@@ -294,6 +294,7 @@ input[type=file]{display:none}
     </div>
     <div style="display:flex;gap:6px;justify-content:center;margin-top:7px">
       <button id="kb-toggle" onclick="toggleKb()" class="per-btn" style="font-size:10px">⌨️ Dreceres OFF</button>
+      <button onclick="openSubModal()" class="per-btn" style="background:rgba(22,163,74,.7);font-size:10px">🔄 Canvis</button>
       <button onclick="openLiveStatsModal()" class="per-btn" style="background:rgba(79,70,229,.7);font-size:10px">📊 Stats en directe</button>
       <button onclick="endLive()" class="per-btn" style="background:rgba(232,64,42,.75);font-size:10px">🏁 Finalitzar</button>
     </div>
@@ -330,7 +331,7 @@ input[type=file]{display:none}
       </div>
     </div>
   </div>
-  <div class="g2" style="gap:10px">
+  <div style="display:flex;flex-direction:column;gap:10px">
     <div>
       <div class="card" style="padding:7px 10px;margin-bottom:8px;background:linear-gradient(135deg,#fff,#fff8f6)">
         <div style="display:flex;align-items:center;gap:8px">
@@ -362,21 +363,21 @@ input[type=file]{display:none}
       <div class="card" style="padding:10px;margin-bottom:8px">
         <div class="ct">⚡ Accions ràpides</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-          <button class="ab am" onclick="lvAct('ro')" style="padding:14px 4px;font-size:12px">📌<br>Reb.Of</button>
-          <button class="ab am" onclick="lvAct('rd')" style="padding:14px 4px;font-size:12px">🛡️<br>Reb.Def</button>
+          <button class="ab am" onclick="lvAct('ro')" style="padding:20px 4px;font-size:15px">📌<br>Reb.Of</button>
+          <button class="ab am" onclick="lvAct('rd')" style="padding:20px 4px;font-size:15px">🛡️<br>Reb.Def</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-          <button class="ab am" onclick="lvAct('ast')" style="padding:14px 4px;font-size:12px">🤝<br>Assist.</button>
-          <button class="ab ao" onclick="lvAct('foul')" style="padding:14px 4px;font-size:12px">⚠️<br>Falta</button>
+          <button class="ab am" onclick="lvAct('ast')" style="padding:20px 4px;font-size:15px">🤝<br>Assist.</button>
+          <button class="ab ao" onclick="lvAct('foul')" style="padding:20px 4px;font-size:15px">⚠️<br>Falta</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('stl')" style="padding:9px 2px;font-size:11px">🔥<br>Robada</button>
-          <button class="ab ao" onclick="lvAct('blk')" style="padding:9px 2px;font-size:11px">✋<br>Tap</button>
-          <button class="ab ao" onclick="lvAct('to')" style="padding:9px 2px;font-size:11px">💨<br>Pèrdua</button>
+          <button class="ab ao" onclick="lvAct('stl')" style="padding:14px 2px;font-size:13px">🔥<br>Robada</button>
+          <button class="ab ao" onclick="lvAct('blk')" style="padding:14px 2px;font-size:13px">✋<br>Tap</button>
+          <button class="ab ao" onclick="lvAct('to')" style="padding:14px 2px;font-size:13px">💨<br>Pèrdua</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('tech')" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:8px 2px;font-size:11px">🟡 Tècnica</button>
-          <button class="ab ao" onclick="lvAct('anti')" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:8px 2px;font-size:11px">🔴 Antiesport.</button>
+          <button class="ab ao" onclick="lvAct('tech')" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:14px 2px;font-size:13px">🟡 Tècnica</button>
+          <button class="ab ao" onclick="lvAct('anti')" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:14px 2px;font-size:13px">🔴 Antiesport.</button>
         </div>
         <button class="btn bo" onclick="lvUndo()" style="width:100%;font-size:11px">↩ Desfer última acció</button>
       </div>
@@ -387,6 +388,43 @@ input[type=file]{display:none}
     </div>
   </div>
 </div></div></div>
+<div id="sub-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:750;align-items:center;justify-content:center;padding:12px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="background:var(--nv);color:#fff;padding:12px 16px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
+      <span style="font-weight:800;font-size:15px">🔄 Canvi de jugadors</span>
+      <button onclick="closeSubModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕</button>
+    </div>
+    <div style="padding:14px">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">
+        El temps al camp es calcula automàticament per al +/-.
+        Toca un jugador a pista per treure'l, toca un jugador a la banqueta per fer-lo entrar.
+      </div>
+      <div class="g2" style="gap:10px">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--ac);margin-bottom:6px;text-transform:uppercase" id="sub-home-label">LOCAL — Pista</div>
+          <div id="sub-court-home" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="font-size:10px;font-weight:700;color:var(--t3);margin:8px 0 4px;text-transform:uppercase">Banqueta</div>
+          <div id="sub-bench-home" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:#3b82f6;margin-bottom:6px;text-transform:uppercase" id="sub-away-label">RIVAL — Pista</div>
+          <div id="sub-court-away" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="font-size:10px;font-weight:700;color:var(--t3);margin:8px 0 4px;text-transform:uppercase">Banqueta</div>
+          <div id="sub-bench-away" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:11px">
+        <div style="font-weight:700;margin-bottom:5px">⏱ Minut actual del partit</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="sub-cur-min" min="0" max="50" style="width:70px;padding:6px;border:1.5px solid var(--b2);border-radius:6px;font-size:14px;font-weight:700;text-align:center" placeholder="Min">
+          <span style="color:var(--t3);font-size:11px">S'usa per calcular els minuts a pista de cada jugador</span>
+        </div>
+      </div>
+      <button onclick="closeSubModal()" style="width:100%;margin-top:10px;background:var(--nv);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer">✓ Tancar i aplicar canvis</button>
+    </div>
+  </div>
+</div>
+
 <div id="live-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:700;align-items:center;justify-content:center;padding:14px">
   <div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="background:var(--nv);color:#fff;padding:13px 18px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
@@ -775,18 +813,18 @@ function showShotPopup(canvasId,cx,cy,type,cb){
   left=Math.max(8,Math.min(left,window.innerWidth-200));
   top=Math.max(60,Math.min(top,window.innerHeight-160));
   popup.style.cssText=`position:fixed;left:${left}px;top:${top}px;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:10px;border:2px solid var(--bd);display:block;min-width:180px`;
-  // Close on outside click — tracked globally so closeSP always cleans it up
-  if(window._spOutside){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;}
+  // Close on outside click
   setTimeout(()=>{
-    window._spOutside=ev=>{if(!popup.contains(ev.target)){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;closeSP(null);}};
-    document.addEventListener('click',window._spOutside,true);
-  },180);
+    function outside(ev){
+      if(!popup.contains(ev.target)){closeSP(null);document.removeEventListener('click',outside);}
+    }
+    document.addEventListener('click',outside);
+  },100);
 }
 function closeSP(made){
-  if(window._spOutside){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;}
   document.getElementById('shot-popup').style.display='none';
-  const cb=_popupCb;_popupCb=null;
-  if(made!==null&&cb)cb(made);
+  if(made!==null&&_popupCb)_popupCb(made);
+  _popupCb=null;
 }
 
 // ─── SMART FOUL POPUP ─────────────────────────────────────────────────────
@@ -1679,7 +1717,7 @@ function renderShotMap(){
     showShotPopup('sh-cv',x,y,type,(made)=>{
       if(made===null)return;
       S.shots.push({x,y,made,player:sh.selPl,team:sh.selTeam,matchId:sh.selMatch,mId:sh.selMatch,type});
-      svL();renderShotMap();updateShStickyCount();rebuildShPlayerGrid();
+      svL();renderShotMap();
     });
   };
 }
@@ -1837,6 +1875,87 @@ function rAll(){
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+// ── SUBSTITUTION MODAL ─────────────────────────────────────────────────────
+function openSubModal(){
+  // Sync current minute from timer
+  const timerEl=document.getElementById('lv-timer');
+  if(timerEl){
+    const [m,s]=timerEl.textContent.split(':').map(Number);
+    const dur=lv.period===5?5:10;
+    const elapsed=dur-(m+s/60);
+    document.getElementById('sub-cur-min').value=Math.max(0,Math.round(elapsed+((lv.period-1)*10)));
+  }
+  renderSubModal();
+  document.getElementById('sub-modal').style.display='flex';
+}
+function closeSubModal(){
+  // Record current minute as the substitution time
+  const minVal=parseInt(document.getElementById('sub-cur-min').value)||lv.curMin;
+  lv.curMin=minVal;
+  document.getElementById('sub-modal').style.display='none';
+  rLvAll();svL();
+}
+function renderSubModal(){
+  const hl=document.getElementById('sub-home-label');
+  const al=document.getElementById('sub-away-label');
+  if(hl)hl.textContent=(lv.hn||'LOCAL')+' — Pista';
+  if(al)al.textContent=(lv.an||'RIVAL')+' — Pista';
+  renderSubTeam('home');
+  renderSubTeam('away');
+}
+function renderSubTeam(team){
+  const oc=lv.onCourt[team];
+  const accent=team==='home'?'var(--ac)':'#3b82f6';
+  const courtEl=document.getElementById(`sub-court-${team}`);
+  const benchEl=document.getElementById(`sub-bench-${team}`);
+  const court=lv.pl[team].filter(p=>oc.has(p.name));
+  const bench=lv.pl[team].filter(p=>!oc.has(p.name));
+  const mkBtn=(p,onCourt)=>{
+    const s=lv.st[team][p.name]||{};
+    const fc=s.fc||0;
+    const minOnCourt=s._enteredMin!=null?(lv.curMin-s._enteredMin):0;
+    return `<button onclick="subTapPlayer('${p.name.replace(/'/g,"\'")}','${team}')"
+      style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;width:100%;
+        background:${onCourt?'#f0fdf4':'#fff'};border:2px solid ${onCourt?'#16a34a':fc>=4?'#dc2626':'var(--b2)'};
+        transition:all .15s;text-align:left">
+      <span style="width:30px;height:30px;border-radius:50%;background:${onCourt?accent:'var(--t3)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">#${p.dorsal}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700">${p.name.split(' ')[0]}${fc>=4?` <span style="color:#dc2626;font-size:10px">⚠️${fc}F</span>`:''}</div>
+        <div style="font-size:10px;color:var(--t3)">${s.pts||0}pts · ${s.ast||0}ast · ${(s.ro||0)+(s.rd||0)}reb${onCourt&&s._enteredMin!=null?' · ~'+Math.round(minOnCourt)+'min':''}</div>
+      </div>
+      <span style="font-size:18px">${onCourt?'▶ Pista':'⬛ Banc'}</span>
+    </button>`;
+  };
+  if(courtEl)courtEl.innerHTML=court.length?court.map(p=>mkBtn(p,true)).join(''):'<div style="font-size:11px;color:var(--t3);padding:6px">Cap jugador a pista</div>';
+  if(benchEl)benchEl.innerHTML=bench.length?bench.map(p=>mkBtn(p,false)).join(''):'<div style="font-size:11px;color:var(--t3);padding:6px">Banqueta buida</div>';
+}
+function subTapPlayer(name,team){
+  const minVal=parseInt(document.getElementById('sub-cur-min').value)||lv.curMin;
+  const oc=lv.onCourt[team];
+  const s=lv.st[team][name]||{};
+  if(oc.has(name)){
+    // Take off court — record time played
+    oc.delete(name);
+    if(s._enteredMin!=null){
+      const played=Math.max(0,minVal-s._enteredMin);
+      s.min=(s.min||0)+played;
+      s._enteredMin=null;
+    }
+    lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} surt (min ${minVal})`,period:lv.period});
+    lv.subEvents.push({type:'out',player:name,team,min:minVal,period:lv.period});
+  } else {
+    // Put on court — record entry time
+    oc.add(name);
+    s._enteredMin=minVal;
+    if(lv.selPl===null||lv.selPl===name)lv.selPl=name;
+    lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra (min ${minVal})`,period:lv.period});
+    lv.subEvents.push({type:'in',player:name,team,min:minVal,period:lv.period});
+  }
+  lv.st[team][name]=s;
+  rLvLog();
+  renderSubModal();
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -1846,9 +1965,10 @@ Object.assign(window,{
   populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,
   // Live
   startLive,endLive,lvAct,lvUndo,setLvCourtView,toggleKb,
+  openSubModal,closeSubModal,subTapPlayer,
   _lvCourtDown,_lvCourtUp,_lvCourtClick,_lvBenchClick,
   openLiveStatsModal,closeLiveStatsModal,
-  showFoulPopup,foulShooterSel,confirmAssist,
+  showFoulPopup,setFoulTL,foulShooterSel,confirmAssist,
   closeSP,tlClick,setPer,toggleTimer,resetTimer,
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,

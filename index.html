@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -131,10 +131,10 @@ input[type=file]{display:none}
 
 <!-- NAV -->
 <div class="nav">
-  <button class="nb active" onclick="ST('t-eq')">🏟️ Equips</button>
+  <button class="nb active" onclick="ST('t-eq')">🏟️ Equipos</button>
   <button class="nb" onclick="ST('t-imp')">📋 Importar</button>
-  <button class="nb" onclick="ST('t-live')">⚡ Directe</button>
-  <button class="nb" onclick="ST('t-shots')">🎯 Tirs</button>
+  <button class="nb" onclick="ST('t-live')">⚡ Directo</button>
+  <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
   <button class="nb" onclick="ST('t-stats')">📊 Stats</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
 </div>
@@ -153,14 +153,14 @@ input[type=file]{display:none}
       <div class="card">
         <div class="ct">Afegir Equip a la Base de Dades</div>
         <div class="fr">
-          <div class="fc"><label>Nom de l'equip</label><input type="text" id="eq-name" placeholder="CB Granollers 2"></div>
+          <div class="fc"><label>Nombre del equipo</label><input type="text" id="eq-name" placeholder="CB Granollers 2"></div>
           <div class="fc" style="flex:0;min-width:80px"><label>Color</label><input type="color" id="eq-color" value="#E8402A" style="padding:3px;height:36px"></div>
         </div>
         <label>Jugadors (un per línia: #4 PAU DÍAZ JIMÉNEZ)</label>
         <textarea id="eq-players" rows="10" placeholder="#4 PAU DÍAZ JIMÉNEZ&#10;#5 MARÇAL PLAZAS LEMOS&#10;#7 MARTÍ TALAMINO COLLADO&#10;#8 JORDI CALLIZO ARMENGOL&#10;#10 CARLES CUXART PINO&#10;#12 FRAN PÉREZ CARRASCO"></textarea>
         <div class="brow">
-          <button class="btn bp" onclick="saveTeam()">💾 Desar equip</button>
-          <button class="btn bo bsm" onclick="clearTeamForm()">✕ Netejar</button>
+          <button class="btn bp" onclick="saveTeam()">💾 Guardar equipo</button>
+          <button class="btn bo bsm" onclick="clearTeamForm()">✕ Limpiar</button>
         </div>
         <div id="eq-st" class="st-msg"></div>
       </div>
@@ -180,39 +180,39 @@ input[type=file]{display:none}
     <div class="ct">Importar Cronologia de Partit</div>
     <div class="fr">
       <div class="fc">
-        <label>Equip LOCAL</label>
+        <label>Equipo LOCAL</label>
         <div style="display:flex;gap:5px">
-          <select id="i-home-sel" onchange="teamSelChange('home')" style="flex:1"><option value="">— base de dades —</option></select>
-          <input type="text" id="i-home-txt" placeholder="o escriu el nom" style="flex:1">
+          <select id="i-home-sel" onchange="teamSelChange('home')" style="flex:1"><option value="">— base de datos —</option></select>
+          <input type="text" id="i-home-txt" placeholder="o escribe el nombre" style="flex:1">
         </div>
       </div>
       <div class="fc">
-        <label>Equip VISITANT</label>
+        <label>Equipo VISITANTE</label>
         <div style="display:flex;gap:5px">
-          <select id="i-away-sel" onchange="teamSelChange('away')" style="flex:1"><option value="">— base de dades —</option></select>
-          <input type="text" id="i-away-txt" placeholder="o escriu el nom" style="flex:1">
+          <select id="i-away-sel" onchange="teamSelChange('away')" style="flex:1"><option value="">— base de datos —</option></select>
+          <input type="text" id="i-away-txt" placeholder="o escribe el nombre" style="flex:1">
         </div>
       </div>
-      <div class="fc" style="flex:0;min-width:100px"><label>Data</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
-      <div class="fc" style="flex:0;min-width:120px"><label>Competició</label><input type="text" id="i-comp" placeholder="Copa Catalunya..."></div>
+      <div class="fc" style="flex:0;min-width:100px"><label>Fecha</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
+      <div class="fc" style="flex:0;min-width:120px"><label>Competición</label><input type="text" id="i-comp" placeholder="Copa Catalunya..."></div>
     </div>
     <!-- Stats: OPTIONAL if teams in DB + crono provided -->
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
       <b>💡 Ràpid:</b> Si els equips estan a la BD + enganxes la cronologia → els stats es calculen <b>automàticament</b>. Rebots i assistències no apareixen en la crono, però tots els tirs, TL, faltes, +/- i minuts sí.
-      <span style="margin-left:6px;cursor:pointer;color:#3b82f6" onclick="document.getElementById('i-stats-section').style.display=document.getElementById('i-stats-section').style.display==='none'?'block':'none'">▼ Stats manuals (opcional)</span>
+      <span style="margin-left:6px;cursor:pointer;color:#3b82f6" onclick="document.getElementById('i-stats-section').style.display=document.getElementById('i-stats-section').style.display==='none'?'block':'none'">▼ Stats manuales (opcional)</span>
     </div>
     <div id="i-stats-section" style="display:block;margin-bottom:8px">
       <div class="g2" style="gap:8px;margin-bottom:4px" id="i-stats-manual">
-        <div id="i-hs-wrap"><label>Stats equip LOCAL (opcional — afegeix rebots/assistències)</label><textarea id="i-hs" rows="5" placeholder="Jugador/a&#10;#4&#10;PAU DÍAZ JIMÉNEZ&#10;...&#10;Pts&#10;Min&#10;TL&#10;T2&#10;T3&#10;Fc&#10;11&#10;31&#10;1/1&#10;100%..."></textarea></div></div>
-        <div id="i-as-wrap"><label>Stats equip VISITANT (opcional)</label><textarea id="i-as" rows="5" placeholder="Jugador/a&#10;#1&#10;MARCEL PARÉS VILASECA&#10;..."></textarea></div></div>
+        <div id="i-hs-wrap"><label>Stats equipo LOCAL (opcional — afegeix rebots/assistències)</label><textarea id="i-hs" rows="5" placeholder="Jugador/a&#10;#4&#10;PAU DÍAZ JIMÉNEZ&#10;...&#10;Pts&#10;Min&#10;TL&#10;T2&#10;T3&#10;Fc&#10;11&#10;31&#10;1/1&#10;100%..."></textarea></div></div>
+        <div id="i-as-wrap"><label>Stats equipo VISITANTE (opcional)</label><textarea id="i-as" rows="5" placeholder="Jugador/a&#10;#1&#10;MARCEL PARÉS VILASECA&#10;..."></textarea></div></div>
       </div>
-      <div style="font-size:11px;color:var(--t3);margin-top:4px">Si s'enganxen stats manuals + crono, la crono té prioritat per a tirs/TL/faltes, i les stats manuals aporten rebots/assistències/minuts.</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Si se pegan stats manuals + crono, la crono té prioritat per a tirs/TL/faltes, i les stats manuals aporten rebots/assistències/minuts.</div>
     </div>
     <label>Cronologia completa del partit</label>
-    <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronologia del partit&#10;#7 RAUL HERNANDEZ BARRERA&#10;Salt guanyat&#10;Min: &#10;0&#10; Període: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
+    <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronología del partido&#10;#7 RAUL HERNANDEZ BARRERA&#10;Salt guanyat&#10;Min: &#10;0&#10; Período: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
     <div class="brow">
-      <button class="btn bp" onclick="parseMatch()">⚡ Processar</button>
-      <button class="btn bo bsm" onclick="clrImp()">✕ Netejar</button>
+      <button class="btn bp" onclick="parseMatch()">⚡ Procesar</button>
+      <button class="btn bo bsm" onclick="clrImp()">✕ Limpiar</button>
     </div>
     <div id="i-st" class="st-msg"></div>
   </div>
@@ -232,33 +232,33 @@ input[type=file]{display:none}
   </div>
 </div></div>
 
-<!-- ═══ TAB: DIRECTE ═══ -->
+<!-- ═══ TAB: DIRECTO ═══ -->
 <div id="t-live" class="tab"><div class="main">
   <!-- Setup -->
   <div id="lv-setup" class="card">
-    <div class="ct">Configurar Partit en Directe</div>
+    <div class="ct">Configurar Partido en Directo</div>
     <div class="fr">
       <div class="fc">
-        <label>Equip LOCAL</label>
+        <label>Equipo LOCAL</label>
         <div style="display:flex;gap:5px">
-          <select id="lv-home-sel" onchange="lvTeamSel('home')" style="flex:1"><option value="">— base de dades —</option></select>
-          <input type="text" id="lv-hn" placeholder="o escriu el nom" style="flex:1">
+          <select id="lv-home-sel" onchange="lvTeamSel('home')" style="flex:1"><option value="">— base de datos —</option></select>
+          <input type="text" id="lv-hn" placeholder="o escribe el nombre" style="flex:1">
         </div>
       </div>
       <div class="fc">
-        <label>Equip RIVAL</label>
+        <label>Equipo RIVAL</label>
         <div style="display:flex;gap:5px">
-          <select id="lv-away-sel" onchange="lvTeamSel('away')" style="flex:1"><option value="">— base de dades —</option></select>
-          <input type="text" id="lv-an" placeholder="o escriu el nom" style="flex:1">
+          <select id="lv-away-sel" onchange="lvTeamSel('away')" style="flex:1"><option value="">— base de datos —</option></select>
+          <input type="text" id="lv-an" placeholder="o escribe el nombre" style="flex:1">
         </div>
       </div>
-      <div class="fc" style="flex:0;min-width:90px"><label>Data</label><input type="text" id="lv-dt"></div>
+      <div class="fc" style="flex:0;min-width:90px"><label>Fecha</label><input type="text" id="lv-dt"></div>
     </div>
     <div class="g2" style="gap:8px;margin-bottom:8px">
-      <div><label>Jugadors locals (si no és a la BD)</label><textarea id="lv-hp" rows="5" placeholder="#4 PAU DÍAZ JIMÉNEZ&#10;#5 MARÇAL PLAZAS LEMOS"></textarea></div>
-      <div><label>Jugadors rivals (si no és a la BD)</label><textarea id="lv-ap" rows="5" placeholder="#1 MARCEL PARÉS VILASECA&#10;#2 ORIOL ROSELL ESPADALER"></textarea></div>
+      <div id="lv-hp-wrap"><label>Jugadores locales (si no está en la BD)</label><textarea id="lv-hp" rows="5" placeholder="#4 NOMBRE APELLIDO&#10;#5 NOMBRE APELLIDO"></textarea></div>
+      <div id="lv-ap-wrap"><label>Jugadores rivales (si no está en la BD)</label><textarea id="lv-ap" rows="5" placeholder="#1 NOMBRE APELLIDO&#10;#2 NOMBRE APELLIDO"></textarea></div>
     </div>
-    <button class="btn bp" onclick="startLive()" style="font-size:14px;padding:10px 20px">🏀 Iniciar Partit</button>
+    <button class="btn bp" onclick="startLive()" style="font-size:14px;padding:10px 20px">🏀 Iniciar Partido</button>
     <div id="lv-st" class="st-msg"></div>
   </div>
 
@@ -293,10 +293,9 @@ input[type=file]{display:none}
       </div>
     </div>
     <div style="display:flex;gap:6px;justify-content:center;margin-top:7px">
-      <button id="kb-toggle" onclick="toggleKb()" class="per-btn" style="font-size:10px">⌨️ Dreceres OFF</button>
-      <button onclick="openSubModal()" class="per-btn" style="background:rgba(22,163,74,.7);font-size:10px">🔄 Canvis</button>
-      <button onclick="openLiveStatsModal()" class="per-btn" style="background:rgba(79,70,229,.7);font-size:10px">📊 Stats en directe</button>
-      <button onclick="endLive()" class="per-btn" style="background:rgba(232,64,42,.75);font-size:10px">🏁 Finalitzar</button>
+      <button id="kb-toggle" onclick="toggleKb()" class="per-btn" style="font-size:10px">⌨️ Atajos OFF</button>
+      <button onclick="openLiveStatsModal()" class="per-btn" style="background:rgba(79,70,229,.7);font-size:10px">📊 Stats en directo</button>
+      <button onclick="endLive()" class="per-btn" style="background:rgba(232,64,42,.75);font-size:10px">🏁 Finalizar</button>
     </div>
     <div id="kb-hints" style="display:none;margin-top:6px;font-size:10px;color:rgba(255,255,255,.75)"></div>
     <div id="kb-feedback" style="font-size:11px;font-weight:700;min-height:14px;opacity:0;transition:opacity .3s;text-align:center"></div>
@@ -307,7 +306,7 @@ input[type=file]{display:none}
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
           <span style="width:9px;height:9px;border-radius:50%;background:var(--ac)"></span>
           <span style="font-size:10px;font-weight:800;color:var(--ac);text-transform:uppercase" id="lv-home-label-strip">LOCAL</span>
-          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=actiu · mantén=banqueta</span>
+          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=activo · mantén=banquillo</span>
         </div>
         <div id="lv-court-strip-home" style="display:flex;gap:4px;flex-wrap:wrap;min-height:42px;background:#fff0ee;border:2px solid #fecaca;border-radius:8px;padding:5px"></div>
       </div>
@@ -315,30 +314,30 @@ input[type=file]{display:none}
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
           <span style="width:9px;height:9px;border-radius:50%;background:#3b82f6"></span>
           <span style="font-size:10px;font-weight:800;color:#3b82f6;text-transform:uppercase" id="lv-away-label-strip">RIVAL</span>
-          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=actiu · mantén=banqueta</span>
+          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=activo · mantén=banquillo</span>
         </div>
         <div id="lv-court-strip-away" style="display:flex;gap:4px;flex-wrap:wrap;min-height:42px;background:#eff6ff;border:2px solid #bfdbfe;border-radius:8px;padding:5px"></div>
       </div>
     </div>
     <div class="g2" style="gap:8px;margin-top:6px">
       <div>
-        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUETA LOCAL</div>
+        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUILLO LOCAL</div>
         <div id="lv-bench-strip-home" style="display:flex;gap:4px;flex-wrap:wrap;min-height:30px;background:var(--bg);border-radius:7px;padding:4px"></div>
       </div>
       <div>
-        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUETA RIVAL</div>
+        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUILLO RIVAL</div>
         <div id="lv-bench-strip-away" style="display:flex;gap:4px;flex-wrap:wrap;min-height:30px;background:var(--bg);border-radius:7px;padding:4px"></div>
       </div>
     </div>
   </div>
-  <div style="display:flex;flex-direction:column;gap:10px">
+  <div style="display:grid;grid-template-columns:1fr 220px;gap:10px;align-items:start">
     <div>
       <div class="card" style="padding:7px 10px;margin-bottom:8px;background:linear-gradient(135deg,#fff,#fff8f6)">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px" id="lv-sel-dorsal">—</div>
           <div style="flex:1">
-            <div style="font-size:9px;color:var(--t3)">JUGADOR ACTIU</div>
-            <div style="font-size:14px;font-weight:800;color:var(--ac)" id="lv-sel-name">Toca un jugador amunt</div>
+            <div style="font-size:9px;color:var(--t3)">JUGADOR ACTIVO</div>
+            <div style="font-size:14px;font-weight:800;color:var(--ac)" id="lv-sel-name">Toca un jugador arriba</div>
           </div>
           <span id="lv-hot" style="display:none;font-size:15px">🔥</span>
         </div>
@@ -347,101 +346,108 @@ input[type=file]{display:none}
         <div class="ct">🏀 Camp — clica per registrar tir <span style="font-size:10px;color:var(--t3)" id="lv-sc"></span></div>
         <div class="cw"><canvas id="lv-cv"></canvas></div>
         <div style="display:flex;gap:6px;margin-top:4px;font-size:10px;color:var(--t3)">
-          <span style="color:var(--gn)">● Anotat</span><span style="color:#dc2626">✕ Fallat</span>
-          <span style="margin-left:auto">T2 dins · T3 fora</span>
+          <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
+          <span style="margin-left:auto">T2 dentro · T3 fuera</span>
         </div>
         <div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
           <button class="bxs btn bp" id="lv-view-live" onclick="setLvCourtView('live')" style="flex:1;min-width:60px;font-size:10px">🎯 Actual</button>
-          <button class="bxs btn bo" id="lv-view-full" onclick="setLvCourtView('full')" style="flex:1;min-width:60px;font-size:10px">📋 Tot</button>
+          <button class="bxs btn bo" id="lv-view-full" onclick="setLvCourtView('full')" style="flex:1;min-width:60px;font-size:10px">📋 Todo</button>
           <button class="bxs btn bo" id="lv-view-heatp" onclick="setLvCourtView('heatp')" style="flex:1;min-width:60px;font-size:10px">🔥 Jugador</button>
-          <button class="bxs btn bo" id="lv-view-heatt" onclick="setLvCourtView('heatt')" style="flex:1;min-width:60px;font-size:10px">🔥 Equip</button>
+          <button class="bxs btn bo" id="lv-view-heatt" onclick="setLvCourtView('heatt')" style="flex:1;min-width:60px;font-size:10px">🔥 Equipo</button>
         </div>
         <div id="lv-view-hint" style="font-size:9px;color:var(--t3);margin-top:4px"></div>
       </div>
     </div>
     <div>
       <div class="card" style="padding:10px;margin-bottom:8px">
-        <div class="ct">⚡ Accions ràpides</div>
+        <div class="ct">⚡ Acciones rápidas</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-          <button class="ab am" onclick="lvAct('ro')" style="padding:20px 4px;font-size:15px">📌<br>Reb.Of</button>
-          <button class="ab am" onclick="lvAct('rd')" style="padding:20px 4px;font-size:15px">🛡️<br>Reb.Def</button>
+          <button class="ab am" onclick="lvAct('ro')" style="padding:18px 4px;font-size:14px">📌<br>Reb.Of</button>
+          <button class="ab am" onclick="lvAct('rd')" style="padding:18px 4px;font-size:14px">🛡️<br>Reb.Def</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-          <button class="ab am" onclick="lvAct('ast')" style="padding:20px 4px;font-size:15px">🤝<br>Assist.</button>
-          <button class="ab ao" onclick="lvAct('foul')" style="padding:20px 4px;font-size:15px">⚠️<br>Falta</button>
+          <button class="ab am" onclick="lvAct('ast')" style="padding:18px 4px;font-size:14px">🤝<br>Asist.</button>
+          <button class="ab ao" onclick="lvAct('foul')" style="padding:18px 4px;font-size:14px">⚠️<br>Falta</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('stl')" style="padding:14px 2px;font-size:13px">🔥<br>Robada</button>
-          <button class="ab ao" onclick="lvAct('blk')" style="padding:14px 2px;font-size:13px">✋<br>Tap</button>
-          <button class="ab ao" onclick="lvAct('to')" style="padding:14px 2px;font-size:13px">💨<br>Pèrdua</button>
+          <button class="ab ao" onclick="lvAct('stl')" style="padding:9px 2px;font-size:11px">🔥<br>Robo</button>
+          <button class="ab ao" onclick="lvAct('blk')" style="padding:13px 2px;font-size:13px">✋<br>Tapónón</button>
+          <button class="ab ao" onclick="lvAct('to')" style="padding:9px 2px;font-size:11px">💨<br>Pérdida</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('tech')" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:14px 2px;font-size:13px">🟡 Tècnica</button>
-          <button class="ab ao" onclick="lvAct('anti')" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:14px 2px;font-size:13px">🔴 Antiesport.</button>
+          <button class="ab ao" onclick="lvAct('tech')" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:13px 2px;font-size:12px">🟡 Técnica</button>
+          <button class="ab ao" onclick="lvAct('anti')" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:13px 2px;font-size:12px">🔴 Antidep.</button>
         </div>
-        <button class="btn bo" onclick="lvUndo()" style="width:100%;font-size:11px">↩ Desfer última acció</button>
+        <button class="btn bo" onclick="openSubModal()" style="width:100%;font-size:12px;margin-bottom:5px;background:#f0fdf4;border-color:#16a34a;color:#15803d">🔄 Cambios</button>
+        <button class="btn bo" onclick="lvUndo()" style="width:100%;font-size:11px">↩ Deshacer última acción</button>
       </div>
       <div class="card" style="padding:8px">
-        <div class="ct">⚡ Últimes accions</div>
+        <div class="ct">⚡ Últimas acciones</div>
         <div id="lv-log" style="max-height:160px;overflow-y:auto;font-size:11px"></div>
       </div>
     </div>
   </div>
 </div></div></div>
 <div id="sub-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:750;align-items:center;justify-content:center;padding:12px">
-  <div style="background:#fff;border-radius:14px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)">
     <div style="background:var(--nv);color:#fff;padding:12px 16px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
-      <span style="font-weight:800;font-size:15px">🔄 Canvi de jugadors</span>
-      <button onclick="closeSubModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕</button>
+      <span style="font-weight:800;font-size:15px">🔄 Cambios de jugadores</span>
+      <button onclick="closeSubModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:14px">
-      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">
-        El temps al camp es calcula automàticament per al +/-.
-        Toca un jugador a pista per treure'l, toca un jugador a la banqueta per fer-lo entrar.
+      <div style="background:#f8fafc;border-radius:10px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase">⏱ Momento del cambio</div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:6px">
+          <div style="text-align:center">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:3px">MINUTO</div>
+            <input type="number" id="sub-min" min="0" max="50" style="width:100%;padding:8px;border:2px solid var(--b2);border-radius:8px;font-size:20px;font-weight:800;text-align:center" oninput="onSubTimeChange()">
+          </div>
+          <span style="font-size:22px;font-weight:800;color:var(--t3)">:</span>
+          <div style="text-align:center">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:3px">SEGUNDO</div>
+            <input type="number" id="sub-sec" min="0" max="59" style="width:100%;padding:8px;border:2px solid var(--b2);border-radius:8px;font-size:20px;font-weight:800;text-align:center" oninput="onSubTimeChange()">
+          </div>
+          <button onclick="syncSubFromTimer()" style="background:var(--nv);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:11px;cursor:pointer;margin-top:14px">↺ Reloj</button>
+        </div>
+        <div id="sub-time-display" style="text-align:center;font-size:11px;color:var(--t3);margin-top:6px"></div>
       </div>
       <div class="g2" style="gap:10px">
         <div>
-          <div style="font-size:10px;font-weight:800;color:var(--ac);margin-bottom:6px;text-transform:uppercase" id="sub-home-label">LOCAL — Pista</div>
-          <div id="sub-court-home" style="display:flex;flex-direction:column;gap:4px"></div>
-          <div style="font-size:10px;font-weight:700;color:var(--t3);margin:8px 0 4px;text-transform:uppercase">Banqueta</div>
-          <div id="sub-bench-home" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="font-size:10px;font-weight:800;color:var(--ac);margin-bottom:6px;text-transform:uppercase" id="sub-home-label">LOCAL</div>
+          <div style="font-size:9px;font-weight:700;color:var(--t3);margin-bottom:3px">▶ EN PISTA</div>
+          <div id="sub-court-home" style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px"></div>
+          <div style="font-size:9px;font-weight:700;color:var(--t3);margin-bottom:3px">⬛ BANQUILLO</div>
+          <div id="sub-bench-home" style="display:flex;flex-direction:column;gap:3px"></div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:800;color:#3b82f6;margin-bottom:6px;text-transform:uppercase" id="sub-away-label">RIVAL — Pista</div>
-          <div id="sub-court-away" style="display:flex;flex-direction:column;gap:4px"></div>
-          <div style="font-size:10px;font-weight:700;color:var(--t3);margin:8px 0 4px;text-transform:uppercase">Banqueta</div>
-          <div id="sub-bench-away" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="font-size:10px;font-weight:800;color:#3b82f6;margin-bottom:6px;text-transform:uppercase" id="sub-away-label">RIVAL</div>
+          <div style="font-size:9px;font-weight:700;color:var(--t3);margin-bottom:3px">▶ EN PISTA</div>
+          <div id="sub-court-away" style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px"></div>
+          <div style="font-size:9px;font-weight:700;color:var(--t3);margin-bottom:3px">⬛ BANQUILLO</div>
+          <div id="sub-bench-away" style="display:flex;flex-direction:column;gap:3px"></div>
         </div>
       </div>
-      <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:11px">
-        <div style="font-weight:700;margin-bottom:5px">⏱ Minut actual del partit</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input type="number" id="sub-cur-min" min="0" max="50" style="width:70px;padding:6px;border:1.5px solid var(--b2);border-radius:6px;font-size:14px;font-weight:700;text-align:center" placeholder="Min">
-          <span style="color:var(--t3);font-size:11px">S'usa per calcular els minuts a pista de cada jugador</span>
-        </div>
-      </div>
-      <button onclick="closeSubModal()" style="width:100%;margin-top:10px;background:var(--nv);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer">✓ Tancar i aplicar canvis</button>
+      <button onclick="closeSubModal()" style="width:100%;margin-top:12px;background:var(--nv);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">✓ Confirmar cambios</button>
     </div>
   </div>
 </div>
-
 <div id="live-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:700;align-items:center;justify-content:center;padding:14px">
   <div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="background:var(--nv);color:#fff;padding:13px 18px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
-      <span style="font-weight:800;font-size:15px">📊 Estadístiques en directe</span>
-      <button onclick="closeLiveStatsModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Tancar</button>
+      <span style="font-weight:800;font-size:15px">📊 Estadísticas en directo</span>
+      <button onclick="closeLiveStatsModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:16px">
-      <div class="card" style="margin-bottom:10px"><div class="ct">📋 Marcador per períodes</div><div id="lsm-periods"></div></div>
+      <div class="card" style="margin-bottom:10px"><div class="ct">📋 Marcador por períodos</div><div id="lsm-periods"></div></div>
       <div class="g2" style="gap:10px;margin-bottom:10px">
         <div class="card" style="border-left:4px solid var(--ac)"><div class="ct" id="lsm-home-title">📕 Local</div><div class="tw" style="max-height:240px;overflow-y:auto"><table><thead id="lsm-home-head"></thead><tbody id="lsm-home-body"></tbody></table></div></div>
         <div class="card" style="border-left:4px solid #3b82f6"><div class="ct" id="lsm-away-title">📘 Rival</div><div class="tw" style="max-height:240px;overflow-y:auto"><table><thead id="lsm-away-head"></thead><tbody id="lsm-away-body"></tbody></table></div></div>
       </div>
       <div class="g2" style="gap:10px;margin-bottom:10px">
-        <div class="card"><div class="ct">👥 Millors parelles</div><div id="lsm-pairs" style="font-size:11px"></div></div>
-        <div class="card"><div class="ct">🔍 Patrons</div><div id="lsm-patterns" style="font-size:12px;line-height:1.7"></div></div>
+        <div class="card"><div class="ct">👥 Mejores parejas</div><div id="lsm-pairs" style="font-size:11px"></div></div>
+        <div class="card"><div class="ct">🔍 Patrones</div><div id="lsm-patterns" style="font-size:12px;line-height:1.7"></div></div>
       </div>
-      <div class="card"><div class="ct">📜 Cronologia <span style="font-size:10px;color:var(--t3)" id="lsm-crono-count"></span></div><div id="lsm-crono" style="max-height:240px;overflow-y:auto;font-size:11px"></div></div>
+      <div class="card"><div class="ct">📜 Cronología <span style="font-size:10px;color:var(--t3)" id="lsm-crono-count"></span></div><div id="lsm-crono" style="max-height:240px;overflow-y:auto;font-size:11px"></div></div>
     </div>
   </div>
 </div>
@@ -477,11 +483,11 @@ input[type=file]{display:none}
       <label>Jugador</label>
       <div id="sh-pg" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-height:170px;overflow-y:auto;margin:4px 0 8px"></div>
       <div style="background:#dbeafe;border-radius:6px;padding:6px 9px;font-size:11px;color:#1e40af">
-        👆 Clica al camp · Apareixerà "Anotat / Fallat" automàticament
+        👆 Clica al camp · Apareixerà "Anotado / Fallado" automàticament
       </div>
       <div style="margin-top:8px"><label>Visualitzar</label>
         <select id="sh-view" onchange="renderShotMap()" style="margin-top:3px">
-          <option value="all">Tots els tirs del partit</option>
+          <option value="all">Todos els tirs del partit</option>
           <option value="player">Jugador seleccionat</option>
           <option value="home">Equip local</option>
           <option value="away">Equip visitant</option>
@@ -495,7 +501,7 @@ input[type=file]{display:none}
       <div class="ct">Camp de tir <span id="sh-pct" style="font-size:11px;color:var(--t2);font-weight:400"></span></div>
       <div class="cw"><canvas id="sh-cv"></canvas></div>
       <div style="display:flex;gap:10px;margin-top:5px;font-size:11px;color:var(--t3);align-items:center">
-        <span style="color:var(--gn)">● Anotat</span><span style="color:#dc2626">✕ Fallat</span>
+        <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
         <button onclick="undoLastShot()" style="margin-left:auto;background:#fff;border:1.5px solid var(--b2);color:var(--t2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer">↩ Desfer</button>
       </div>
     </div>
@@ -506,14 +512,14 @@ input[type=file]{display:none}
 <!-- ═══ TAB: STATS ═══ -->
 <div id="t-stats" class="tab"><div class="main">
 <div class="card" style="margin-bottom:8px">
-  <div class="ct">📜 Historial de partits <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
-  <div id="st-match-history"><div class="empty">Cap partit encara</div></div>
+  <div class="ct">📜 Historial de partidos <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
+  <div id="st-match-history"><div class="empty">Sin partidos todavía</div></div>
 </div>
 <div class="card">
-  <div class="ct">Estadístiques
+  <div class="ct">Estadísticas
     <div style="display:flex;gap:5px">
-      <select id="st-mf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Tots els partits</option></select>
-      <select id="st-tf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Tots els equips</option></select>
+      <select id="st-mf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los partidos</option></select>
+      <select id="st-tf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los equipos</option></select>
     </div>
   </div>
   <div class="g4" id="st-kpis" style="margin-bottom:10px"></div>
@@ -525,9 +531,9 @@ input[type=file]{display:none}
 <div id="t-dash" class="tab"><div class="main">
 <div class="card" style="padding:10px;margin-bottom:8px">
   <div class="fr" style="margin-bottom:0">
-    <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Tots</option></select></div>
-    <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Tots</option></select></div>
-    <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tirs individuals</option><option value="heat">Mapa de calor</option></select></div>
+    <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
+    <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
+    <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option></select></div>
   </div>
 </div>
 <div class="g2" style="margin-bottom:10px">
@@ -804,10 +810,10 @@ function showShotPopup(canvasId,cx,cy,type,cb){
   inner.innerHTML=`
     <div style="font-size:11px;font-weight:700;color:var(--t2);text-align:center">${label}</div>
     <div style="display:flex;gap:7px">
-      <button onclick="closeSP(true)" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">✅ Anotat</button>
-      <button onclick="closeSP(false)" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">❌ Fallat</button>
+      <button onclick="closeSP(true)" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">✅ Anotado</button>
+      <button onclick="closeSP(false)" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">❌ Fallado</button>
     </div>
-    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cancel·lar</button>`;
+    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cancelar</button>`;
   // Position popup
   let left=sx-90,top=sy-110;
   left=Math.max(8,Math.min(left,window.innerWidth-200));
@@ -845,17 +851,17 @@ function showFoulPopup(fouledBy,fouledByTeam){
     <div style="font-weight:700;color:var(--tx);font-size:13px;text-align:center;margin-bottom:8px">
       ⚠️ Falta de <b>${fouledBy.split(' ')[0]}</b>
     </div>
-    <div style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:6px">Quants tirs lliures?</div>
+    <div style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:6px">¿Cuántos tiros libres?</div>
     <div style="display:flex;gap:7px;justify-content:center;margin-bottom:10px">
       ${[0,1,2,3].map(n=>`<button onclick="setFoulTL(${n})"
         style="width:54px;height:54px;border-radius:12px;font-size:22px;font-weight:900;cursor:pointer;border:2.5px solid ${n===0?'#cbd5e1':'#3b82f6'};background:${n===0?'#f1f5f9':n===1?'#dbeafe':n===2?'#bfdbfe':'#93c5fd'};color:${n===0?'var(--t2)':'#1e3a8a'};transition:all .12s"
         onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">${n}</button>`).join('')}
     </div>
     <div id="fl-shooter-wrap" style="display:none">
-      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px">Qui tira? (▶ en pista)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px">¿Quién tira? (▶ en pista)</div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-height:180px;overflow-y:auto" id="fl-shooter-grid"></div>
     </div>
-    <button onclick="closeSP(null)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:7px;padding:5px;font-size:11px;cursor:pointer">✕ Cancel·lar</button>`;
+    <button onclick="closeSP(null)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:7px;padding:5px;font-size:11px;cursor:pointer">✕ Cancelar</button>`;
   popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:16px;border:2px solid var(--bd);display:block;min-width:260px;max-width:320px';
 
   // Populate shooter grid
@@ -907,9 +913,9 @@ function askAssist(cb){
   const popup=document.getElementById('shot-popup');
   const inner=document.getElementById('shot-popup-inner');
   inner.innerHTML=`
-    <div style="font-size:11px;font-weight:700;color:var(--t2)">Assistència?</div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2)">¿Asistencia?</div>
     <select id="ast-sel" style="width:100%;padding:5px;font-size:11px;border:1.5px solid var(--b2);border-radius:6px">
-      <option value="">Sense assistència</option>
+      <option value="">Sin asistencia</option>
       ${players.map(p=>`<option value="${p.name}">#${p.dorsal} ${p.name.split(' ')[0]}</option>`).join('')}
     </select>
     <div style="display:flex;gap:5px">
@@ -926,7 +932,7 @@ function confirmAssist(){
 }
 function lvAstFor(name){
   const s=lv.st[lv.actTeam][name];
-  if(s){s.ast=(s.ast||0)+1;lv.log.unshift({team:lv.actTeam,msg:`🤝 Assist. — ${name.split(' ')[0]}`,period:lv.period});}
+  if(s){s.ast=(s.ast||0)+1;lv.log.unshift({team:lv.actTeam,msg:`🤝 Asist. — ${name.split(' ')[0]}`,period:lv.period});}
   rLvAll();svL();
 }
 
@@ -945,9 +951,9 @@ function askTL(fouledName,nTL){
     </div>`;
   }
   inner.innerHTML=`
-    <div style="font-size:11px;font-weight:700;color:var(--t2)">Tirs lliures — ${fouledName.split(' ')[0]}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2)">Tiros libres — ${fouledName.split(' ')[0]}</div>
     ${rows}
-    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Tancar</button>`;
+    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cerrar</button>`;
   popup.style.cssText=`position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px;border:2px solid var(--bd);display:block;min-width:200px`;
   window._tlState={player:fouledName,total:nTL,done:0};
 }
@@ -1034,13 +1040,13 @@ function renderTeams(){
 }
 
 function populateTeamSelects(){
-  const opts='<option value="">— base de dades —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   document.getElementById('i-home-sel').innerHTML=opts;
   document.getElementById('i-away-sel').innerHTML=opts;
 }
 
 function populateLvTeamSelects(){
-  const opts='<option value="">— base de dades —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   document.getElementById('lv-home-sel').innerHTML=opts;
   document.getElementById('lv-away-sel').innerHTML=opts;
 }
@@ -1057,10 +1063,15 @@ function teamSelChange(side){
 function lvTeamSel(side){
   const selId=document.getElementById(`lv-${side==='home'?'home':'away'}-sel`).value;
   const t=S.teams.find(t=>t.id==selId);
+  const nameEl=document.getElementById(side==='home'?'lv-hn':'lv-an');
+  const taEl=document.getElementById(side==='home'?'lv-hp':'lv-ap');
+  const taWrap=document.getElementById(side==='home'?'lv-hp-wrap':'lv-ap-wrap');
   if(t){
-    document.getElementById(side==='home'?'lv-hn':'lv-an').value=t.name;
-    const ta=document.getElementById(side==='home'?'lv-hp':'lv-ap');
-    ta.value=t.players.map(p=>`#${p.dorsal} ${p.name}`).join('\n');
+    nameEl.value=t.name;
+    taEl.value=t.players.map(p=>`#${p.dorsal} ${p.name}`).join('\n');
+    if(taWrap)taWrap.style.display='none'; // hide textarea — already loaded from DB
+  } else {
+    if(taWrap)taWrap.style.display='block'; // show textarea for manual entry
   }
 }
 
@@ -1124,7 +1135,7 @@ function parseCrono(txt,hPl,aPl){
     let min=0,period=1,mh=score.h,ma=score.a;
     for(let j=i;j<Math.min(i+10,lines.length);j++){
       if(lines[j]==='Min:'&&j+1<lines.length&&lines[j+1].match(/^\d+$/)) min=parseInt(lines[j+1]);
-      if(lines[j].startsWith('Període:')&&j+1<lines.length&&lines[j+1].match(/^\d+$/)) period=parseInt(lines[j+1]);
+      if(lines[j].startsWith('Período:')&&j+1<lines.length&&lines[j+1].match(/^\d+$/)) period=parseInt(lines[j+1]);
       if(lines[j].startsWith('Marcador:')&&j+1<lines.length){const sc=lines[j+1].match(/(\d+)-(\d+)/);if(sc){mh=parseInt(sc[1]);ma=parseInt(sc[2]);}}
       if(j>i&&/^#\d+\s+/.test(lines[j]))break;
     }
@@ -1152,7 +1163,7 @@ function parseCrono(txt,hPl,aPl){
 
     // Skip pure metadata lines
     if(!cur)continue;
-    if(/^Min:|^Període:|^Marcador:|^\d+$|^\d+-\d+$/.test(l))continue;
+    if(/^Min:|^Período:|^Marcador:|^\d+$|^\d+-\d+$/.test(l))continue;
     if(/^(Final de període|Cronologia|Salt guanyat|Salt perdut|Temps mort|CB |\d{2}\/\d{2}\/\d{4}|COPA|LLIGA|CAMPIONAT)/i.test(l))continue;
 
     const action=l;
@@ -1192,7 +1203,7 @@ function parseCrono(txt,hPl,aPl){
 
   // Close out players still on court at end
   const finalScore=score;
-  const finalGmin=(()=>{const fm=[...txt.matchAll(/Període:\s*\n(\d+)/g)];return fm.length?parseInt(fm[fm.length-1][1])*10:40;})();
+  const finalGmin=(()=>{const fm=[...txt.matchAll(/Período:\s*\n(\d+)/g)];return fm.length?parseInt(fm[fm.length-1][1])*10:40;})();
   [...onCt.home,...onCt.away].forEach(name=>{
     if(ps[name]&&ps[name].onSince!==null){ps[name].minOn+=finalGmin-ps[name].onSince;ps[name].onSince=null;}
   });
@@ -1299,7 +1310,7 @@ function parseMatch(){
     score.h=hSt.reduce((s,p)=>s+p.pts,0);
     score.a=aSt.reduce((s,p)=>s+p.pts,0);
   } else {
-    setSt('i-st','Cal la cronologia (o les stats manuals dels dos equips).','err');return;
+    setSt('i-st','Falta la cronología (o les stats manuals dels dos equips).','err');return;
   }
 
   // Auto-detect date from crono header
@@ -1329,7 +1340,7 @@ function parseMatch(){
   window._lastAutoSavedId=_parsed.id;
   svL();
   const src=cr?'cronologia':'stats manuals';
-  setSt('i-st',`✅ PARTIT DESAT — ${hSt.length}+${aSt.length} jugadors · ${score.h}-${score.a}. Ja el pots veure a Estadístiques i Dashboard.`,'ok');
+  setSt('i-st',`✅ PARTIDO GUARDADO — ${hSt.length}+${aSt.length} jugadors · ${score.h}-${score.a}. Ya puedes verlo en Estadísticas y Dashboard.`,'ok');
   rAll();
 }
 
@@ -1363,11 +1374,11 @@ let lv={hn:'',an:'',pl:{home:[],away:[]},st:{home:{},away:{}},score:{home:0,away
 
 function startLive(){
   const hn=document.getElementById('lv-hn').value.trim(),an=document.getElementById('lv-an').value.trim();
-  if(!hn||!an){setSt('lv-st','Cal posar els noms dels equips.','err');return;}
+  if(!hn||!an){setSt('lv-st','Debes poner los nombres de los equipos.','err');return;}
   lv.hn=hn;lv.an=an;
   lv.pl.home=parsePlList(document.getElementById('lv-hp').value);
   lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
-  if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Cal afegir jugadors als dos equips.','err');return;}
+  if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
   lv.st={home:{},away:{}};lv.periodScores=[];
   ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0};}));
   lv.timer={running:false,seconds:600,interval:null};
@@ -1382,7 +1393,7 @@ function startLive(){
   cv.width=CW;cv.height=CH;
   drawCourt(cv.getContext('2d'));
   cv.onclick=e=>{
-    if(!lv.selPl){toast('Selecciona un jugador primer!','err');return;}
+    if(!lv.selPl){toast('¡Selecciona un jugador primero!','err');return;}
     const r=cv.getBoundingClientRect();
     const x=Math.round((e.clientX-r.left)/r.width*CW);
     const y=Math.round((e.clientY-r.top)/r.height*CH);
@@ -1462,8 +1473,8 @@ function renderLvTeamStrip(team){
     </button>`;};
   const cs=document.getElementById(`lv-court-strip-${team}`);
   const bs=document.getElementById(`lv-bench-strip-${team}`);
-  if(cs)cs.innerHTML=court.map(cCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Cap jugador a pista</span>';
-  if(bs)bs.innerHTML=bench.map(bCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Banqueta buida</span>';
+  if(cs)cs.innerHTML=court.map(cCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Ningún jugador en pista</span>';
+  if(bs)bs.innerHTML=bench.map(bCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Banquillo vacío</span>';
   const lbl=document.getElementById(team==='home'?'lv-home-label-strip':'lv-away-label-strip');
   if(lbl)lbl.textContent=(team==='home'?lv.hn:lv.an)||(team==='home'?'LOCAL':'RIVAL');
 }
@@ -1473,7 +1484,7 @@ function _lvCourtClick(name,team){if(_lpFired){_lpFired=false;return;}lv.selPl=n
 function _lvBenchClick(name,team){lv.onCourt[team].add(name);lv.selPl=name;lv.actTeam=team;lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra`,period:lv.period});renderLvStrips();rLvLog();svL();toast(`▶ ${name.split(' ')[0]} a pista`);if(lv.courtView==='heatp'||lv.courtView==='heatt')redrawLvCourt();}
 function updateSelBanner(){
   const ne=document.getElementById('lv-sel-name'),de=document.getElementById('lv-sel-dorsal');
-  if(!lv.selPl){if(ne)ne.textContent='Toca un jugador amunt';if(de){de.textContent='—';de.style.background='var(--ac)';}return;}
+  if(!lv.selPl){if(ne)ne.textContent='Toca un jugador arriba';if(de){de.textContent='—';de.style.background='var(--ac)';}return;}
   const p=lv.pl[lv.actTeam]?.find(p=>p.name===lv.selPl);
   if(ne)ne.textContent=lv.selPl;
   if(de){de.textContent=p?'#'+p.dorsal:'—';de.style.background=lv.actTeam==='home'?'var(--ac)':'#3b82f6';}
@@ -1484,8 +1495,8 @@ function closeLiveStatsModal(){document.getElementById('live-stats-modal').style
 function renderLiveStatsModal(){
   const byPer={};lv.events.forEach(e=>{if(!byPer[e.period])byPer[e.period]={h:0,a:0};const pts={'pts2':2,'pts3':3,'tl_in':1}[e.type]||0;if(pts&&e.team==='home')byPer[e.period].h+=pts;if(pts&&e.team==='away')byPer[e.period].a+=pts;});
   const pe=document.getElementById('lsm-periods');
-  if(pe){if(!Object.keys(byPer).length)pe.innerHTML='<div class="empty">Sense dades</div>';
-  else pe.innerHTML=`<table style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="text-align:left;padding:4px;color:var(--t3)">Període</th><th style="padding:4px;color:var(--ac)">${lv.hn||'Local'}</th><th style="padding:4px;color:#3b82f6">${lv.an||'Rival'}</th></tr>${Object.entries(byPer).map(([p,s])=>`<tr style="border-top:1px solid var(--bd)"><td style="padding:4px">${p==5?'PT':'P'+p}</td><td style="text-align:center;font-weight:700">${s.h}</td><td style="text-align:center;font-weight:700">${s.a}</td></tr>`).join('')}<tr style="border-top:2px solid var(--nv);font-weight:800"><td style="padding:4px">Total</td><td style="text-align:center">${lv.score.home}</td><td style="text-align:center">${lv.score.away}</td></tr></table>`;}
+  if(pe){if(!Object.keys(byPer).length)pe.innerHTML='<div class="empty">Sin datos</div>';
+  else pe.innerHTML=`<table style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="text-align:left;padding:4px;color:var(--t3)">Período</th><th style="padding:4px;color:var(--ac)">${lv.hn||'Local'}</th><th style="padding:4px;color:#3b82f6">${lv.an||'Rival'}</th></tr>${Object.entries(byPer).map(([p,s])=>`<tr style="border-top:1px solid var(--bd)"><td style="padding:4px">${p==5?'PT':'P'+p}</td><td style="text-align:center;font-weight:700">${s.h}</td><td style="text-align:center;font-weight:700">${s.a}</td></tr>`).join('')}<tr style="border-top:2px solid var(--nv);font-weight:800"><td style="padding:4px">Total</td><td style="text-align:center">${lv.score.home}</td><td style="text-align:center">${lv.score.away}</td></tr></table>`;}
   const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','FC','ST','BLK','PER','+/-'];
   const head=cols.map(c=>`<th style="font-size:9px;padding:3px">${c}</th>`).join('');
   const rows=(team)=>lv.pl[team].map(p=>{const s=lv.st[team][p.name]||{},pm=s.pm||0;const bg=lv.onCourt[team].has(p.name)?'background:#f0fdf4':'';
@@ -1498,25 +1509,25 @@ function renderLiveStatsModal(){
   const at=document.getElementById('lsm-away-title');if(at)at.textContent=`📘 ${lv.an||'Rival'}`;
   const pairs=[];['home','away'].forEach(t=>{const pl=lv.pl[t];for(let i=0;i<pl.length;i++)for(let j=i+1;j<pl.length;j++){const sa=lv.st[t][pl[i].name]||{},sb=lv.st[t][pl[j].name]||{};pairs.push({n1:pl[i].name.split(' ')[0],n2:pl[j].name.split(' ')[0],d1:pl[i].dorsal,d2:pl[j].dorsal,team:t,pm:(sa.pm||0)+(sb.pm||0),pts:(sa.pts||0)+(sb.pts||0)});}});
   const pai=document.getElementById('lsm-pairs');
-  if(pai){pairs.sort((a,b)=>b.pm-a.pm);pai.innerHTML=pairs.length?pairs.slice(0,6).map((p,i)=>{const tc=p.team==='home'?'var(--ac)':'#3b82f6';return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f4f8"><span style="color:var(--t3);width:14px">${i+1}</span><span style="width:7px;height:7px;border-radius:50%;background:${tc}"></span><span style="flex:1;font-weight:600;font-size:11px">#${p.d1}${p.n1}+#${p.d2}${p.n2}</span><b style="color:var(--nv);font-size:11px">${p.pts}p</b><span style="color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'var(--t3)'};font-weight:700;width:30px;text-align:right;font-size:11px">${p.pm>0?'+':''}${p.pm}</span></div>`;}).join(''):'<div class="empty">Sense dades</div>';}
+  if(pai){pairs.sort((a,b)=>b.pm-a.pm);pai.innerHTML=pairs.length?pairs.slice(0,6).map((p,i)=>{const tc=p.team==='home'?'var(--ac)':'#3b82f6';return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f4f8"><span style="color:var(--t3);width:14px">${i+1}</span><span style="width:7px;height:7px;border-radius:50%;background:${tc}"></span><span style="flex:1;font-weight:600;font-size:11px">#${p.d1}${p.n1}+#${p.d2}${p.n2}</span><b style="color:var(--nv);font-size:11px">${p.pts}p</b><span style="color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'var(--t3)'};font-weight:700;width:30px;text-align:right;font-size:11px">${p.pm>0?'+':''}${p.pm}</span></div>`;}).join(''):'<div class="empty">Sin datos</div>';}
   const pat=document.getElementById('lsm-patterns');
   if(pat){const pats=[];['home','away'].forEach(t=>{const tn=t==='home'?(lv.hn||'Local'):(lv.an||'Rival');const pl=lv.pl[t].map(p=>({...p,...(lv.st[t][p.name]||{})}));
     const hot=pl.filter(p=>(p.t3Att||0)>=3).sort((a,b)=>(b.t3Made/b.t3Att)-(a.t3Made/a.t3Att))[0];
     if(hot&&hot.t3Made/hot.t3Att>=.5)pats.push(`🎯 <b>${hot.name.split(' ')[0]}</b> (${tn}) encertant T3 al ${Math.round(hot.t3Made/hot.t3Att*100)}%`);
-    const fc=pl.filter(p=>p.fc>=3);if(fc.length)pats.push(`⚠️ <b>${tn}</b>: ${fc.map(p=>p.name.split(' ')[0]).join(', ')} amb 3+ faltes`);
+    const fc=pl.filter(p=>p.fc>=3);if(fc.length)pats.push(`⚠️ <b>${tn}</b>: ${fc.map(p=>p.name.split(' ')[0]).join(', ')} con 3+ faltas`);
     const fc5=lv.events.filter(e=>e.team===t&&e.period===lv.period&&e.type==='foul').length;
-    if(fc5>=5)pats.push(`🎁 <b>${tn}</b> ha fet 5+ faltes — rival en bonus`);
-    const to=pl.filter(p=>(p.to||0)>=3);if(to.length)pats.push(`💨 <b>${tn}</b>: ${to.map(p=>p.name.split(' ')[0]).join(', ')} amb 3+ pèrdues`);});
-  pat.innerHTML=pats.length?pats.map(p=>`<div style="padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px">• ${p}</div>`).join(''):'<div class="empty">Sense patrons detectats</div>';}
+    if(fc5>=5)pats.push(`🎁 <b>${tn}</b> ha hecho 5+ faltas — rival en bonus`);
+    const to=pl.filter(p=>(p.to||0)>=3);if(to.length)pats.push(`💨 <b>${tn}</b>: ${to.map(p=>p.name.split(' ')[0]).join(', ')} con 3+ pérdidas`);});
+  pat.innerHTML=pats.length?pats.map(p=>`<div style="padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px">• ${p}</div>`).join(''):'<div class="empty">Sin patrones detectados</div>';}
   const cc=document.getElementById('lsm-crono-count');if(cc)cc.textContent=`(${lv.log.length})`;
-  const cr=document.getElementById('lsm-crono');if(cr)cr.innerHTML=lv.log.map(e=>`<div style="padding:3px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:6px"><span class="chip ${e.team==='home'?'ch':'ca'}" style="font-size:9px">P${e.period}</span><span style="color:var(--t2)">${e.msg}</span></div>`).join('')||'<div class="empty">Cap acció</div>';
+  const cr=document.getElementById('lsm-crono');if(cr)cr.innerHTML=lv.log.map(e=>`<div style="padding:3px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:6px"><span class="chip ${e.team==='home'?'ch':'ca'}" style="font-size:9px">P${e.period}</span><span style="color:var(--t2)">${e.msg}</span></div>`).join('')||'<div class="empty">Sin acciones</div>';
 }
 
 function teamBonus(shooterTeam){const ft=lv.actTeam==='home'?'away':'home';return lv.events.filter(e=>e.team===ft&&e.period===lv.period&&e.type==='foul').length>=5;}
 
 function lvAct(type){
   const p=lv.selPl,team=lv.actTeam;
-  if(!p){toast('Selecciona un jugador!','err');return;}
+  if(!p){toast('¡Selecciona un jugador!','err');return;}
   const s=lv.st[team][p];if(!s)return;
   const minEl=document.getElementById('lv-min');
   const min=minEl?parseInt(minEl.value)||0:lv.curMin;lv.curMin=min;
@@ -1525,13 +1536,13 @@ function lvAct(type){
   switch(type){
     case 'ro':s.ro=(s.ro||0)+1;msg=`📌 Reb.Of. — ${p.split(' ')[0]}`;break;
     case 'rd':s.rd=(s.rd||0)+1;msg=`🛡️ Reb.Def. — ${p.split(' ')[0]}`;break;
-    case 'ast':s.ast=(s.ast||0)+1;msg=`🤝 Assist. — ${p.split(' ')[0]}`;break;
+    case 'ast':s.ast=(s.ast||0)+1;msg=`🤝 Asist. — ${p.split(' ')[0]}`;break;
     case 'foul':s.fc=(s.fc||0)+1;msg=`⚠️ Falta — ${p.split(' ')[0]}`;setTimeout(()=>showFoulPopup(p,team,'personal'),150);break;
-    case 'tech':s.tech=(s.tech||0)+1;s.fc=(s.fc||0)+1;msg=`🟡 Tècnica — ${p.split(' ')[0]}`;setTimeout(()=>showFoulPopup(p,team,'tech'),150);break;
-    case 'anti':s.anti=(s.anti||0)+1;s.fc=(s.fc||0)+1;msg=`🔴 Antiesport. — ${p.split(' ')[0]}`;setTimeout(()=>showFoulPopup(p,team,'anti'),150);break;
-    case 'stl':s.stl=(s.stl||0)+1;msg=`🔥 Robada — ${p.split(' ')[0]}`;break;
-    case 'blk':s.blk=(s.blk||0)+1;msg=`✋ Tap — ${p.split(' ')[0]}`;break;
-    case 'to':s.to=(s.to||0)+1;msg=`💨 Pèrdua — ${p.split(' ')[0]}`;break;
+    case 'tech':s.tech=(s.tech||0)+1;s.fc=(s.fc||0)+1;msg=`🟡 Técnica — ${p.split(' ')[0]}`;setTimeout(()=>showFoulPopup(p,team,'tech'),150);break;
+    case 'anti':s.anti=(s.anti||0)+1;s.fc=(s.fc||0)+1;msg=`🔴 Antidep. — ${p.split(' ')[0]}`;setTimeout(()=>showFoulPopup(p,team,'anti'),150);break;
+    case 'stl':s.stl=(s.stl||0)+1;msg=`🔥 Robo — ${p.split(' ')[0]}`;break;
+    case 'blk':s.blk=(s.blk||0)+1;msg=`✋ Tapón — ${p.split(' ')[0]}`;break;
+    case 'to':s.to=(s.to||0)+1;msg=`💨 Pérdida — ${p.split(' ')[0]}`;break;
   }
   if(msg){lv.log.unshift({team,msg,period:lv.period,min});lv.events.push({type,player:p,team,period:lv.period,min,score:{...lv.score}});}
   rLvAll();svL();
@@ -1584,13 +1595,13 @@ function rLvAll(){
   const hot=document.getElementById('lv-hot');
   if(hot&&lv.selPl){const last3=lv.events.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).slice(-3);hot.style.display=last3.length>=2&&last3.every(e=>e.player===lv.selPl)?'inline-block':'none';}
 }
-function rLvLog(){const el=document.getElementById('lv-log');if(!el)return;el.innerHTML=lv.log.slice(0,15).map(e=>`<div style="padding:2px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:5px"><span class="chip ${e.team==='home'?'ch':'ca'}" style="font-size:9px">P${e.period}</span><span style="color:var(--t2);font-size:11px">${e.msg}</span></div>`).join('')||'<div class="empty">Cap acció</div>';}
+function rLvLog(){const el=document.getElementById('lv-log');if(!el)return;el.innerHTML=lv.log.slice(0,15).map(e=>`<div style="padding:2px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:5px"><span class="chip ${e.team==='home'?'ch':'ca'}" style="font-size:9px">P${e.period}</span><span style="color:var(--t2);font-size:11px">${e.msg}</span></div>`).join('')||'<div class="empty">Sin acciones</div>';}
 function rLvStats(){}
 function rLvPairs(){}
 function rLvMomentum(){}
 function rLvPeriodSum(){}
 function endLive(){
-  if(!confirm(`Finalitzar?\n${lv.hn} ${lv.score.home} — ${lv.score.away} ${lv.an}`))return;
+  if(!confirm(`¿Finalizar?\n${lv.hn} ${lv.score.home} — ${lv.score.away} ${lv.an}`))return;
   clearInterval(lv.timer.interval);lv.timer.running=false;
   const calcV=s=>(s.pts||0)+(s.ro||0)+(s.rd||0)+(s.ast||0)+(s.stl||0)-((s.t2Att||0)-(s.t2Made||0))-((s.t3Att||0)-(s.t3Made||0))-((s.tlAtt||0)-(s.tlMade||0))-(s.fc||0)-(s.to||0);
   const mkPl=t=>lv.pl[t].map(p=>{const s=lv.st[t][p.name]||{};return{...p,...s,pts:s.pts||0,min:0,tl:`${s.tlMade||0}/${s.tlAtt||0}`,t2:`${s.t2Made||0}/${s.t2Att||0}`,t3:`${s.t3Made||0}/${s.t3Att||0}`,val:calcV(s),reb:(s.ro||0)+(s.rd||0),ast:s.ast||0,tlMade:s.tlMade||0,tlAtt:s.tlAtt||0,tlPct:s.tlAtt>0?s.tlMade/s.tlAtt:null,t2Made:s.t2Made||0,t2Att:s.t2Att||0,t2Pct:s.t2Att>0?s.t2Made/s.t2Att:null,t3Made:s.t3Made||0,t3Att:s.t3Att||0,t3Pct:s.t3Att>0?s.t3Made/s.t3Att:null,fc:s.fc||0,stl:s.stl||0,blk:s.blk||0,to:s.to||0,pm:s.pm||0};});
@@ -1600,11 +1611,11 @@ function endLive(){
   document.getElementById('lv-panel').style.display='none';
   document.getElementById('lv-setup').style.display='block';
   rAll();
-  alert(`✓ Partit desat!\n\n${lv.hn} ${lv.score.home} — ${lv.score.away} ${lv.an}\n${lv.score.home>lv.score.away?'🏆 Guanya '+lv.hn:lv.score.away>lv.score.home?'🏆 Guanya '+lv.an:'🤝 Empat'}\n\n🏀 Màxim: ${top?top.name+' '+top.pts+'pts':'—'}\n\nDades guardades a Estadístiques i Dashboard`);
+  alert(`✓ Partit desat!\n\n${lv.hn} ${lv.score.home} — ${lv.score.away} ${lv.an}\n${lv.score.home>lv.score.away?'🏆 Gana '+lv.hn:lv.score.away>lv.score.home?'🏆 Gana '+lv.an:'🤝 Empate'}\n\n🏀 Máximo: ${top?top.name+' '+top.pts+'pts':'—'}\n\nDades guardades a Estadísticas i Dashboard`);
   ST('t-stats');
 }
 const KB={'r':'ro','d':'rd','a':'ast','f':'foul','t':'tech','y':'anti','s':'stl','b':'blk','p':'to','z':'_undo'};
-const KB_L={'r':'Reb.Of.','d':'Reb.Def.','a':'Assist.','f':'Falta','t':'Tècnica','y':'Anti.','s':'Robada','b':'Tap','p':'Pèrdua','z':'Desfer'};
+const KB_L={'r':'Reb.Of.','d':'Reb.Def.','a':'Asist.','f':'Falta','t':'Técnica','y':'Anti.','s':'Robo','b':'Tapón','p':'Pérdida','z':'Desfer'};
 let _kbOn=false;
 function toggleKb(){_kbOn=!_kbOn;const btn=document.getElementById('kb-toggle');if(btn){btn.textContent=_kbOn?'⌨️ ON':'⌨️ OFF';btn.style.background=_kbOn?'rgba(22,163,74,.6)':'rgba(255,255,255,.15)';}const hints=document.getElementById('kb-hints');if(hints)hints.style.display=_kbOn?'block':'none';if(_kbOn&&hints)hints.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px">'+Object.entries(KB_L).map(([k,v])=>`<span style="font-size:9px"><kbd style="background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px">${k.toUpperCase()}</kbd> ${v}</span>`).join('')+'</div>';}
 document.addEventListener('keydown',e=>{
@@ -1708,8 +1719,8 @@ function renderShotMap(){
   const pct=document.getElementById('sh-pct');if(pct)pct.textContent=shots.length?pf(made,shots.length):'';
   // Set up click handler
   cv.onclick=e=>{
-    if(!sh.selPl){toast('Selecciona un jugador primer!','err');return;}
-    if(!sh.selMatch){toast('Selecciona un partit primer!','err');return;}
+    if(!sh.selPl){toast('¡Selecciona un jugador primero!','err');return;}
+    if(!sh.selMatch){toast('¡Selecciona un partido primero!','err');return;}
     const r=cv.getBoundingClientRect();
     const x=Math.round((e.clientX-r.left)/r.width*CW);
     const y=Math.round((e.clientY-r.top)/r.height*CH);
@@ -1726,46 +1737,18 @@ function renderShotMap(){
 // STATS TABLE
 // ═══════════════════════════════════════════
 let stSort={col:4,dir:-1};
-function renderMatchHistory(){
-  const el=document.getElementById('st-match-history');
-  const cnt=document.getElementById('st-match-count');
-  if(cnt)cnt.textContent=S.matches.length?`(${S.matches.length})`:'';
-  if(!el)return;
-  if(!S.matches.length){el.innerHTML='<div class="empty">Cap partit — importa un o finalitza un en directe</div>';return;}
-  el.innerHTML=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0)).map(m=>{
-    const live=m.type==='live';
-    const win=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':null;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;background:#fff">
-      <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;background:${live?'#dbeafe':'#f1f5f9'};color:${live?'#1e40af':'var(--t2)'}">${live?'⚡ DIRECTE':'📋 IMPORTAT'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:13px"><span style="${win==='home'?'color:var(--ac)':''}">${m.homeTeam}</span> ${m.scoreHome} — ${m.scoreAway} <span style="${win==='away'?'color:var(--ac)':''}">${m.awayTeam}</span></div>
-        <div style="font-size:10px;color:var(--t3)">${m.date||''}${m.competition?' · '+m.competition:''}${(m.shots||[]).length?' · '+(m.shots||[]).length+' tirs':''}</div>
-      </div>
-      <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🗑️ Esborrar</button>
-    </div>`;
-  }).join('');
-}
-function deleteMatch(id){
-  const m=S.matches.find(m=>m.id===id);if(!m)return;
-  if(!confirm('Esborrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?\n\nAquesta acció no es pot desfer.'))return;
-  S.matches=S.matches.filter(m=>m.id!==id);
-  S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
-  svL();renderMatchHistory();renderStats();
-  if(typeof popShotSel==='function')popShotSel();
-  toast('🗑️ Partit esborrat');
-}
 function renderStats(){
   const mf=document.getElementById('st-mf')?.value||'';
   const tf=document.getElementById('st-tf')?.value||'';
   // Populate match filter
   const msel=document.getElementById('st-mf');
-  if(msel){const v=msel.value;msel.innerHTML='<option value="">Tots els partits</option>'+S.matches.map(m=>`<option value="${m.id}"${m.id==v?' selected':''}>${m.name}</option>`).join('');}
+  if(msel){const v=msel.value;msel.innerHTML='<option value="">Todos los partidos</option>'+S.matches.map(m=>`<option value="${m.id}"${m.id==v?' selected':''}>${m.name}</option>`).join('');}
   let all=[],teams=new Set();
   S.matches.forEach(m=>{if(mf&&m.id!=mf)return;
     [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{teams.add(p.team);if(!tf||p.team===tf)all.push(p);});
   });
   const tsel=document.getElementById('st-tf');
-  if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Tots els equips</option>'+[...teams].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
+  if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Todos los equipos</option>'+[...teams].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
   const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
   const kpi=document.getElementById('st-kpis');
   if(kpi)kpi.innerHTML=`
@@ -1795,10 +1778,10 @@ function renderDash(){
   const mv=document.getElementById('db-mv')?.value||'shots';
   let all=[],allT=new Set();
   S.matches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{allT.add(p.team);all.push(p);});});
-  const tsel=document.getElementById('db-tf');if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Tots els equips</option>'+[...allT].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
+  const tsel=document.getElementById('db-tf');if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Todos los equipos</option>'+[...allT].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
   let filt=all;if(tf)filt=filt.filter(p=>p.team===tf);
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
-  const psel=document.getElementById('db-pf');if(psel){const v=psel.value;psel.innerHTML='<option value="">Tots els jugadors</option>'+pnames.map(n=>`<option value="${n}"${n===v?' selected':''}>${n}</option>`).join('');}
+  const psel=document.getElementById('db-pf');if(psel){const v=psel.value;psel.innerHTML='<option value="">Todos els jugadors</option>'+pnames.map(n=>`<option value="${n}"${n===v?' selected':''}>${n}</option>`).join('');}
   if(pf2)filt=filt.filter(p=>p.name===pf2);
   const totPts=filt.reduce((s,p)=>s+p.pts,0);
   const best=[...filt].sort((a,b)=>b.pts-a.pts)[0];
@@ -1847,7 +1830,7 @@ function renderDash(){
   if(shots.length>=5){const out=shots.filter(s=>isThree(s.x,s.y));ins.push(`📍 <b>${Math.round(out.length/shots.length*100)}% dels tirs</b> des de fora de l'arc (${out.length}/${shots.length}).`);}
   const corn=shots.filter(s=>shotZone(s).includes('Cantonada'));
   if(corn.length)ins.push(`📐 Cantonades: <b>${pf(corn.filter(s=>s.made).length,corn.length)}</b> d'encert.`);
-  const foulPl=filt.filter(p=>p.fc>=3);if(foulPl.length)ins.push(`⚠️ Jugadors amb 3+ faltes: <b>${foulPl.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
+  const foulPl=filt.filter(p=>p.fc>=3);if(foulPl.length)ins.push(`⚠️ Jugadors con 3+ faltas: <b>${foulPl.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
   const pmPl=[...filt].sort((a,b)=>(b.pm||0)-(a.pm||0));if(pmPl[0]&&pmPl[0].pm>0)ins.push(`📈 Millor +/-: <b>${pmPl[0].name}</b> amb <b>+${pmPl[0].pm}</b>.`);
   const dbIns=document.getElementById('db-ins');
   if(dbIns)dbIns.innerHTML=ins.map(i=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">• ${i}</div>`).join('')||'<div class="empty">Cap conclusió disponible</div>';
@@ -1855,7 +1838,7 @@ function renderDash(){
   // Pairs
   const pairs=[];
   const byTeam={};pl.forEach(p=>{if(!byTeam[p.team])byTeam[p.team]=[];byTeam[p.team].push(p);});
-  Object.values(byTeam).forEach(tp=>{for(let i=0;i<tp.length;i++)for(let j=i+1;j<tp.length;j++){pairs.push({n:`${tp[i].name.split(' ')[0]} + ${tp[j].name.split(' ')[0]}`,team:tp[i].team,pm:tp[i].pm+tp[j].pm,pts:tp[i].pts+tp[j].pts});}});
+  Object.values(byTeam).forEach(tp=>{for(let i=0;i<tp.length;i++)for(let j=i+1;j<tp.length;j++){pairs.push({n:`${tp[i].name.split(' ')[0]} + ${tp[j].name.split(' ')[0]}`,team:tp[i].team,pm:(tp[i].pm||0)+(tp[j].pm||0),pts:(tp[i].pts||0)+(tp[j].pts||0)});}});
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
   if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
@@ -1875,97 +1858,116 @@ function rAll(){
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-// ── SUBSTITUTION MODAL ─────────────────────────────────────────────────────
-function openSubModal(){
-  // Sync current minute from timer
+// ── CAMBIOS ─────────────────────────────────────────────────────────────────
+function _subGetElapsedMin(){
   const timerEl=document.getElementById('lv-timer');
-  if(timerEl){
-    const [m,s]=timerEl.textContent.split(':').map(Number);
-    const dur=lv.period===5?5:10;
-    const elapsed=dur-(m+s/60);
-    document.getElementById('sub-cur-min').value=Math.max(0,Math.round(elapsed+((lv.period-1)*10)));
-  }
+  if(!timerEl)return lv.curMin||0;
+  const [mm,ss]=timerEl.textContent.split(':').map(Number);
+  const perDur=lv.period===5?5:10;
+  const elapsed=perDur-mm-(ss/60);
+  const prevMins=(lv.period-1)*10;
+  return Math.max(0,prevMins+elapsed);
+}
+function syncSubFromTimer(){
+  const totalMin=_subGetElapsedMin();
+  const m=Math.floor(totalMin),s=Math.round((totalMin-m)*60);
+  const minEl=document.getElementById('sub-min'),secEl=document.getElementById('sub-sec');
+  if(minEl)minEl.value=m;if(secEl)secEl.value=s;
+  onSubTimeChange();
+}
+function onSubTimeChange(){
+  const m=parseInt(document.getElementById('sub-min').value)||0;
+  const s=parseInt(document.getElementById('sub-sec').value)||0;
+  const disp=document.getElementById('sub-time-display');
+  const per=m<10?1:m<20?2:m<30?3:m<40?4:5;
+  if(disp)disp.textContent=`Min ${m}:${String(s).padStart(2,'0')} — ${per===5?'Prórroga':'Cuarto P'+per}`;
+  lv.curMin=m+(s/60);
+}
+function openSubModal(){
+  syncSubFromTimer();
   renderSubModal();
   document.getElementById('sub-modal').style.display='flex';
 }
 function closeSubModal(){
-  // Record current minute as the substitution time
-  const minVal=parseInt(document.getElementById('sub-cur-min').value)||lv.curMin;
-  lv.curMin=minVal;
   document.getElementById('sub-modal').style.display='none';
   rLvAll();svL();
 }
 function renderSubModal(){
-  const hl=document.getElementById('sub-home-label');
-  const al=document.getElementById('sub-away-label');
-  if(hl)hl.textContent=(lv.hn||'LOCAL')+' — Pista';
-  if(al)al.textContent=(lv.an||'RIVAL')+' — Pista';
-  renderSubTeam('home');
-  renderSubTeam('away');
+  const hl=document.getElementById('sub-home-label'),al=document.getElementById('sub-away-label');
+  if(hl)hl.textContent=lv.hn||'LOCAL';if(al)al.textContent=lv.an||'RIVAL';
+  renderSubTeam('home');renderSubTeam('away');
 }
 function renderSubTeam(team){
-  const oc=lv.onCourt[team];
-  const accent=team==='home'?'var(--ac)':'#3b82f6';
-  const courtEl=document.getElementById(`sub-court-${team}`);
-  const benchEl=document.getElementById(`sub-bench-${team}`);
-  const court=lv.pl[team].filter(p=>oc.has(p.name));
-  const bench=lv.pl[team].filter(p=>!oc.has(p.name));
-  const mkBtn=(p,onCourt)=>{
-    const s=lv.st[team][p.name]||{};
-    const fc=s.fc||0;
-    const minOnCourt=s._enteredMin!=null?(lv.curMin-s._enteredMin):0;
-    return `<button onclick="subTapPlayer('${p.name.replace(/'/g,"\'")}','${team}')"
-      style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;width:100%;
-        background:${onCourt?'#f0fdf4':'#fff'};border:2px solid ${onCourt?'#16a34a':fc>=4?'#dc2626':'var(--b2)'};
-        transition:all .15s;text-align:left">
-      <span style="width:30px;height:30px;border-radius:50%;background:${onCourt?accent:'var(--t3)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">#${p.dorsal}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:700">${p.name.split(' ')[0]}${fc>=4?` <span style="color:#dc2626;font-size:10px">⚠️${fc}F</span>`:''}</div>
-        <div style="font-size:10px;color:var(--t3)">${s.pts||0}pts · ${s.ast||0}ast · ${(s.ro||0)+(s.rd||0)}reb${onCourt&&s._enteredMin!=null?' · ~'+Math.round(minOnCourt)+'min':''}</div>
+  const oc=lv.onCourt[team],accent=team==='home'?'var(--ac)':'#3b82f6';
+  const courtEl=document.getElementById(`sub-court-${team}`),benchEl=document.getElementById(`sub-bench-${team}`);
+  const court=lv.pl[team].filter(p=>oc.has(p.name)),bench=lv.pl[team].filter(p=>!oc.has(p.name));
+  const mkBtn=(p,onCourt)=>{const s=lv.st[team][p.name]||{},fc=s.fc||0;
+    const minOnCourt=s._enteredMin!=null?Math.round((lv.curMin-s._enteredMin)*10)/10:null;
+    return `<button onclick="subTapPlayer('${p.name.replace(/'/g,"\\'")}','${team}')"
+      style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;width:100%;
+      background:${onCourt?'#f0fdf4':'#fff'};border:2px solid ${onCourt?(fc>=4?'#dc2626':accent):(fc>=4?'#fca5a5':'var(--b2)')};transition:all .15s">
+      <span style="width:28px;height:28px;border-radius:50%;background:${onCourt?accent:'#94a3b8'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</span>
+      <div style="flex:1;min-width:0;text-align:left">
+        <div style="font-size:11px;font-weight:700">${p.name.split(' ')[0]}${fc>=4?` <span style="color:#dc2626;font-size:9px">⚠️${fc}F</span>`:''}</div>
+        <div style="font-size:9px;color:var(--t3)">${s.pts||0}pts${onCourt&&minOnCourt!=null?' · '+minOnCourt+"'":''}</div>
       </div>
-      <span style="font-size:18px">${onCourt?'▶ Pista':'⬛ Banc'}</span>
-    </button>`;
-  };
-  if(courtEl)courtEl.innerHTML=court.length?court.map(p=>mkBtn(p,true)).join(''):'<div style="font-size:11px;color:var(--t3);padding:6px">Cap jugador a pista</div>';
-  if(benchEl)benchEl.innerHTML=bench.length?bench.map(p=>mkBtn(p,false)).join(''):'<div style="font-size:11px;color:var(--t3);padding:6px">Banqueta buida</div>';
+      <span style="font-size:13px">${onCourt?'✅':'⬇️'}</span>
+    </button>`; };
+  if(courtEl)courtEl.innerHTML=court.length?court.map(p=>mkBtn(p,true)).join(''):'<div style="font-size:10px;color:var(--t3);padding:5px">Sin jugadores en pista</div>';
+  if(benchEl)benchEl.innerHTML=bench.length?bench.map(p=>mkBtn(p,false)).join(''):'<div style="font-size:10px;color:var(--t3);padding:5px">Banquillo vacío</div>';
 }
 function subTapPlayer(name,team){
-  const minVal=parseInt(document.getElementById('sub-cur-min').value)||lv.curMin;
-  const oc=lv.onCourt[team];
-  const s=lv.st[team][name]||{};
+  const curMin=lv.curMin,oc=lv.onCourt[team];
+  const s=lv.st[team][name]=lv.st[team][name]||{};
   if(oc.has(name)){
-    // Take off court — record time played
     oc.delete(name);
-    if(s._enteredMin!=null){
-      const played=Math.max(0,minVal-s._enteredMin);
-      s.min=(s.min||0)+played;
-      s._enteredMin=null;
-    }
-    lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} surt (min ${minVal})`,period:lv.period});
-    lv.subEvents.push({type:'out',player:name,team,min:minVal,period:lv.period});
+    if(s._enteredMin!=null){s.min=(s.min||0)+Math.max(0,curMin-s._enteredMin);delete s._enteredMin;}
+    lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} sale (${Math.floor(curMin)}')`,period:lv.period});
+    lv.subEvents.push({type:'out',player:name,team,min:curMin,period:lv.period});
+    if(lv.selPl===name&&lv.actTeam===team){const next=[...oc][0];lv.selPl=next||null;}
   } else {
-    // Put on court — record entry time
-    oc.add(name);
-    s._enteredMin=minVal;
-    if(lv.selPl===null||lv.selPl===name)lv.selPl=name;
-    lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra (min ${minVal})`,period:lv.period});
-    lv.subEvents.push({type:'in',player:name,team,min:minVal,period:lv.period});
+    oc.add(name);s._enteredMin=curMin;lv.selPl=name;lv.actTeam=team;
+    lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra (${Math.floor(curMin)}')`,period:lv.period});
+    lv.subEvents.push({type:'in',player:name,team,min:curMin,period:lv.period});
   }
-  lv.st[team][name]=s;
-  rLvLog();
-  renderSubModal();
+  rLvLog();renderSubModal();
 }
-
+function renderMatchHistory(){
+  const el=document.getElementById('st-match-history'),cnt=document.getElementById('st-match-count');
+  if(cnt)cnt.textContent=S.matches.length?`(${S.matches.length})`:'';
+  if(!el)return;
+  if(!S.matches.length){el.innerHTML='<div class="empty">Sin partidos todavía</div>';return;}
+  el.innerHTML=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0)).map(m=>{
+    const live=m.type==='live',win=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':null;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;background:#fff">
+      <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${live?'#dbeafe':'#f1f5f9'};color:${live?'#1e40af':'var(--t2)'}">${live?'⚡ DIRECTO':'📋 IMPORTADO'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px"><span style="${win==='home'?'color:var(--ac)':''}">${m.homeTeam}</span> ${m.scoreHome} — ${m.scoreAway} <span style="${win==='away'?'color:var(--ac)':''}">${m.awayTeam}</span></div>
+        <div style="font-size:10px;color:var(--t3)">${m.date||''}${m.competition?' · '+m.competition:''}${(m.shots||[]).length?' · '+(m.shots||[]).length+' tiros':''}</div>
+      </div>
+      <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>
+    </div>`;
+  }).join('');
+}
+function deleteMatch(id){
+  const m=S.matches.find(m=>m.id===id);if(!m)return;
+  if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?\nEsta acción no se puede deshacer.'))return;
+  S.matches=S.matches.filter(m=>m.id!==id);
+  S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
+  svL();renderMatchHistory();renderStats();
+  if(typeof popShotSel==='function')popShotSel();
+  toast('🗑️ Partido borrado');
+}
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
   // Teams
   saveTeam,clearTeamForm,editTeam,deleteTeam,renderTeams,
   // Import
-  populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,
+  populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,lvTeamSel,
   // Live
   startLive,endLive,lvAct,lvUndo,setLvCourtView,toggleKb,
-  openSubModal,closeSubModal,subTapPlayer,
+  openSubModal,closeSubModal,subTapPlayer,syncSubFromTimer,onSubTimeChange,
   _lvCourtDown,_lvCourtUp,_lvCourtClick,_lvBenchClick,
   openLiveStatsModal,closeLiveStatsModal,
   showFoulPopup,setFoulTL,foulShooterSel,confirmAssist,

@@ -467,6 +467,10 @@ input[type=file]{display:none}
 
 <!-- ═══ TAB: STATS ═══ -->
 <div id="t-stats" class="tab"><div class="main">
+<div class="card" style="margin-bottom:8px">
+  <div class="ct">📜 Historial de partits <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
+  <div id="st-match-history"><div class="empty">Cap partit encara</div></div>
+</div>
 <div class="card">
   <div class="ct">Estadístiques
     <div style="display:flex;gap:5px">
@@ -608,7 +612,7 @@ function ST(id){
   if(id==='t-imp')populateTeamSelects();
   if(id==='t-live')populateLvTeamSelects();
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();}
-  if(id==='t-stats')renderStats();
+  if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
 }
 
@@ -771,18 +775,18 @@ function showShotPopup(canvasId,cx,cy,type,cb){
   left=Math.max(8,Math.min(left,window.innerWidth-200));
   top=Math.max(60,Math.min(top,window.innerHeight-160));
   popup.style.cssText=`position:fixed;left:${left}px;top:${top}px;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:10px;border:2px solid var(--bd);display:block;min-width:180px`;
-  // Close on outside click
+  // Close on outside click — tracked globally so closeSP always cleans it up
+  if(window._spOutside){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;}
   setTimeout(()=>{
-    function outside(ev){
-      if(!popup.contains(ev.target)){closeSP(null);document.removeEventListener('click',outside);}
-    }
-    document.addEventListener('click',outside);
-  },100);
+    window._spOutside=ev=>{if(!popup.contains(ev.target)){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;closeSP(null);}};
+    document.addEventListener('click',window._spOutside,true);
+  },180);
 }
 function closeSP(made){
+  if(window._spOutside){document.removeEventListener('click',window._spOutside,true);window._spOutside=null;}
   document.getElementById('shot-popup').style.display='none';
-  if(made!==null&&_popupCb)_popupCb(made);
-  _popupCb=null;
+  const cb=_popupCb;_popupCb=null;
+  if(made!==null&&cb)cb(made);
 }
 
 // ─── SMART FOUL POPUP ─────────────────────────────────────────────────────
@@ -1675,7 +1679,7 @@ function renderShotMap(){
     showShotPopup('sh-cv',x,y,type,(made)=>{
       if(made===null)return;
       S.shots.push({x,y,made,player:sh.selPl,team:sh.selTeam,matchId:sh.selMatch,mId:sh.selMatch,type});
-      svL();renderShotMap();
+      svL();renderShotMap();updateShStickyCount();rebuildShPlayerGrid();
     });
   };
 }
@@ -1684,6 +1688,34 @@ function renderShotMap(){
 // STATS TABLE
 // ═══════════════════════════════════════════
 let stSort={col:4,dir:-1};
+function renderMatchHistory(){
+  const el=document.getElementById('st-match-history');
+  const cnt=document.getElementById('st-match-count');
+  if(cnt)cnt.textContent=S.matches.length?`(${S.matches.length})`:'';
+  if(!el)return;
+  if(!S.matches.length){el.innerHTML='<div class="empty">Cap partit — importa un o finalitza un en directe</div>';return;}
+  el.innerHTML=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0)).map(m=>{
+    const live=m.type==='live';
+    const win=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':null;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;background:#fff">
+      <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;background:${live?'#dbeafe':'#f1f5f9'};color:${live?'#1e40af':'var(--t2)'}">${live?'⚡ DIRECTE':'📋 IMPORTAT'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px"><span style="${win==='home'?'color:var(--ac)':''}">${m.homeTeam}</span> ${m.scoreHome} — ${m.scoreAway} <span style="${win==='away'?'color:var(--ac)':''}">${m.awayTeam}</span></div>
+        <div style="font-size:10px;color:var(--t3)">${m.date||''}${m.competition?' · '+m.competition:''}${(m.shots||[]).length?' · '+(m.shots||[]).length+' tirs':''}</div>
+      </div>
+      <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">🗑️ Esborrar</button>
+    </div>`;
+  }).join('');
+}
+function deleteMatch(id){
+  const m=S.matches.find(m=>m.id===id);if(!m)return;
+  if(!confirm('Esborrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?\n\nAquesta acció no es pot desfer.'))return;
+  S.matches=S.matches.filter(m=>m.id!==id);
+  S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
+  svL();renderMatchHistory();renderStats();
+  if(typeof popShotSel==='function')popShotSel();
+  toast('🗑️ Partit esborrat');
+}
 function renderStats(){
   const mf=document.getElementById('st-mf')?.value||'';
   const tf=document.getElementById('st-tf')?.value||'';
@@ -1797,7 +1829,7 @@ function renderDash(){
 function rAll(){
   const el=document.getElementById('topst');if(el)el.textContent=S.matches.length?S.matches.length+' partits':'';
   popShotSel();
-  if(document.getElementById('t-stats').classList.contains('active'))renderStats();
+  if(document.getElementById('t-stats').classList.contains('active')){renderMatchHistory();renderStats();}
   if(document.getElementById('t-dash').classList.contains('active')){drawCourtOnCanvas('db-cv');renderDash();}
   if(document.getElementById('t-shots').classList.contains('active'))renderShotMap();
 }
@@ -1821,7 +1853,7 @@ Object.assign(window,{
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,
   // Stats
-  renderStats,ssort,
+  renderStats,ssort,renderMatchHistory,deleteMatch,
   // Dashboard
   renderDash,
   // Utils

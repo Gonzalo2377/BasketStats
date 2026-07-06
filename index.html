@@ -1509,7 +1509,7 @@ function renderLiveStatsModal(){
   const at=document.getElementById('lsm-away-title');if(at)at.textContent=`📘 ${lv.an||'Rival'}`;
   const pairs=[];['home','away'].forEach(t=>{const pl=lv.pl[t];for(let i=0;i<pl.length;i++)for(let j=i+1;j<pl.length;j++){const sa=lv.st[t][pl[i].name]||{},sb=lv.st[t][pl[j].name]||{};pairs.push({n1:pl[i].name.split(' ')[0],n2:pl[j].name.split(' ')[0],d1:pl[i].dorsal,d2:pl[j].dorsal,team:t,pm:(sa.pm||0)+(sb.pm||0),pts:(sa.pts||0)+(sb.pts||0)});}});
   const pai=document.getElementById('lsm-pairs');
-  if(pai){pairs.sort((a,b)=>b.pm-a.pm);pai.innerHTML=pairs.length?pairs.slice(0,6).map((p,i)=>{const tc=p.team==='home'?'var(--ac)':'#3b82f6';return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f4f8"><span style="color:var(--t3);width:14px">${i+1}</span><span style="width:7px;height:7px;border-radius:50%;background:${tc}"></span><span style="flex:1;font-weight:600;font-size:11px">#${p.d1}${p.n1}+#${p.d2}${p.n2}</span><b style="color:var(--nv);font-size:11px">${p.pts}p</b><span style="color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'var(--t3)'};font-weight:700;width:30px;text-align:right;font-size:11px">${p.pm>0?'+':''}${p.pm}</span></div>`;}).join(''):'<div class="empty">Sin datos</div>';}
+  if(pai){pairs.sort((a,b)=>b.pm-a.pm);pai.innerHTML=pairs.length?pairs.slice(0,6).map((p,i)=>{const tc=p.team==='home'?'var(--ac)':'#3b82f6';const pm=p.pm||0;return `<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f4f8"><span style="color:var(--t3);width:14px;font-size:11px">${i+1}</span><span style="width:7px;height:7px;border-radius:50%;background:${tc}"></span><span style="flex:1;font-weight:600;font-size:11px">${p.n1}+${p.n2}</span><b style="color:var(--nv);font-size:11px">${p.pts||0}p</b><span style="color:${pm>0?'var(--gn)':pm<0?'#dc2626':'var(--t3)'};font-weight:700;width:36px;text-align:right;font-size:11px">${pm>0?'+':''}${pm}</span></div>`;}).join(''):'<div class="empty">Sin datos</div>';}
   const pat=document.getElementById('lsm-patterns');
   if(pat){const pats=[];['home','away'].forEach(t=>{const tn=t==='home'?(lv.hn||'Local'):(lv.an||'Rival');const pl=lv.pl[t].map(p=>({...p,...(lv.st[t][p.name]||{})}));
     const hot=pl.filter(p=>(p.t3Att||0)>=3).sort((a,b)=>(b.t3Made/b.t3Att)-(a.t3Made/a.t3Att))[0];
@@ -1835,10 +1835,39 @@ function renderDash(){
   const dbIns=document.getElementById('db-ins');
   if(dbIns)dbIns.innerHTML=ins.map(i=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">• ${i}</div>`).join('')||'<div class="empty">Cap conclusió disponible</div>';
 
-  // Pairs
-  const pairs=[];
-  const byTeam={};pl.forEach(p=>{if(!byTeam[p.team])byTeam[p.team]=[];byTeam[p.team].push(p);});
-  Object.values(byTeam).forEach(tp=>{for(let i=0;i<tp.length;i++)for(let j=i+1;j<tp.length;j++){pairs.push({n:`${tp[i].name.split(' ')[0]} + ${tp[j].name.split(' ')[0]}`,team:tp[i].team,pm:(tp[i].pm||0)+(tp[j].pm||0),pts:(tp[i].pts||0)+(tp[j].pts||0)});}});
+  // Pairs — real +/- based on shared time on court (not individual pm sum)
+  const pairMap={};
+  const pKey=(team,a,b)=>team+'|'+[a,b].sort().join('|');
+  const matchesToUse=mf?S.matches.filter(m=>m.id==mf):S.matches;
+  matchesToUse.forEach(m=>{
+    // Reconstruct court state over time using subEvents
+    const subs=(m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
+    const court={home:new Set((m.homePlayers||[]).slice(0,5).map(p=>p.name)),
+                 away:new Set((m.awayPlayers||[]).slice(0,5).map(p=>p.name))};
+    let subIdx=0;
+    (m.events||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0)).forEach(ev=>{
+      while(subIdx<subs.length&&(subs[subIdx].min||0)<=(ev.min||0)){
+        const s=subs[subIdx++];
+        if(s.type==='out')court[s.team]?.delete(s.player);
+        else court[s.team]?.add(s.player);
+      }
+      const pts={'pts2':2,'pts3':3,'tl_in':1}[ev.type];
+      if(!pts)return;
+      const st=ev.team,op=st==='home'?'away':'home';
+      const sc=[...court[st]],opp=[...court[op]];
+      for(let i=0;i<sc.length;i++)for(let j=i+1;j<sc.length;j++){
+        const k=pKey(st,sc[i],sc[j]);
+        if(!pairMap[k])pairMap[k]={n1:sc[i].split(' ')[0],n2:sc[j].split(' ')[0],team:st,pm:0,pts:0};
+        pairMap[k].pm+=pts;pairMap[k].pts+=pts;
+      }
+      for(let i=0;i<opp.length;i++)for(let j=i+1;j<opp.length;j++){
+        const k=pKey(op,opp[i],opp[j]);
+        if(!pairMap[k])pairMap[k]={n1:opp[i].split(' ')[0],n2:opp[j].split(' ')[0],team:op,pm:0,pts:0};
+        pairMap[k].pm-=pts;
+      }
+    });
+  });
+  const pairs=Object.values(pairMap);
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
   if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
@@ -1889,6 +1918,20 @@ function openSubModal(){
   document.getElementById('sub-modal').style.display='flex';
 }
 function closeSubModal(){
+  // Sync the internal timer to whatever time the user entered
+  // This corrects drift between the app clock and the real game clock
+  const m=parseInt(document.getElementById('sub-min')?.value)||0;
+  const s=parseInt(document.getElementById('sub-sec')?.value)||0;
+  const totalSecs=m*60+s;
+  // Compute how many seconds remain in this period based on the entered time
+  const perDurSecs=(lv.period===5?5:10)*60;
+  const prevSecs=(lv.period-1)*10*60; // seconds before current period
+  const elapsedInPeriod=Math.max(0,totalSecs-prevSecs);
+  const remaining=Math.max(0,perDurSecs-elapsedInPeriod);
+  // Update the timer to this corrected position
+  lv.timer.seconds=remaining;
+  lv.curMin=m+(s/60);
+  renderTimer();
   document.getElementById('sub-modal').style.display='none';
   rLvAll();svL();
 }

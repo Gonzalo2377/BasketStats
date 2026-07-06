@@ -798,7 +798,12 @@ function shotZone(s){
 // SHOT POPUP (universal)
 // ═══════════════════════════════════════════
 let _popupCb=null;
+let _outsideHandler=null;
+function _removeOutside(){
+  if(_outsideHandler){document.removeEventListener('click',_outsideHandler,true);_outsideHandler=null;}
+}
 function showShotPopup(canvasId,cx,cy,type,cb){
+  _removeOutside();
   _popupCb=cb;
   const cv=document.getElementById(canvasId);
   const rect=cv.getBoundingClientRect();
@@ -814,23 +819,20 @@ function showShotPopup(canvasId,cx,cy,type,cb){
       <button onclick="closeSP(false)" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">❌ Fallado</button>
     </div>
     <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cancelar</button>`;
-  // Position popup
   let left=sx-90,top=sy-110;
   left=Math.max(8,Math.min(left,window.innerWidth-200));
   top=Math.max(60,Math.min(top,window.innerHeight-160));
   popup.style.cssText=`position:fixed;left:${left}px;top:${top}px;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:10px;border:2px solid var(--bd);display:block;min-width:180px`;
-  // Close on outside click
   setTimeout(()=>{
-    function outside(ev){
-      if(!popup.contains(ev.target)){closeSP(null);document.removeEventListener('click',outside);}
-    }
-    document.addEventListener('click',outside);
-  },100);
+    _outsideHandler=ev=>{if(!popup.contains(ev.target)){_removeOutside();closeSP(null);}};
+    document.addEventListener('click',_outsideHandler,true);
+  },180);
 }
 function closeSP(made){
+  _removeOutside(); // always kill outside listener before doing anything else
   document.getElementById('shot-popup').style.display='none';
-  if(made!==null&&_popupCb)_popupCb(made);
-  _popupCb=null;
+  const cb=_popupCb;_popupCb=null;
+  if(made!==null&&cb)cb(made);
 }
 
 // ─── SMART FOUL POPUP ─────────────────────────────────────────────────────

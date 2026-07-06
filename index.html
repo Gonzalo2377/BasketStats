@@ -927,8 +927,9 @@ function askAssist(cb){
 }
 function confirmAssist(){
   const name=document.getElementById('ast-sel').value;
+  const cb=_popupCb; // save before closeSP nulls it
   closeSP(null);
-  if(name&&_popupCb){_popupCb=null;lvAstFor(name);}
+  if(name)lvAstFor(name);
 }
 function lvAstFor(name){
   const s=lv.st[lv.actTeam][name];
@@ -955,23 +956,26 @@ function askTL(fouledName,nTL){
     ${rows}
     <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cerrar</button>`;
   popup.style.cssText=`position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px;border:2px solid var(--bd);display:block;min-width:200px`;
-  window._tlState={player:fouledName,total:nTL,done:0};
+  window._tlState={player:fouledName,total:nTL,done:0,team:window._foulCtx?.shooterTeam||(lv.actTeam==='home'?'away':'home')};
 }
 function tlClick(idx,made){
   const ts=window._tlState;if(!ts)return;
-  const s=lv.st[lv.actTeam][ts.player];
+  const shooterTeam=ts.team||(lv.actTeam==='home'?'away':'home'); // team that SHOOTS, not fouled
+  const s=lv.st[shooterTeam]?.[ts.player];
   if(s){
-    if(made){s.tlMade=(s.tlMade||0)+1;s.pts=(s.pts||0)+1;lv.score[lv.actTeam]+=1;
-      const pmAll=(pts)=>{const my=lv.onCourt[lv.actTeam],op=lv.onCourt[lv.actTeam==='home'?'away':'home'];my.forEach(n=>{if(lv.st[lv.actTeam][n])lv.st[lv.actTeam][n].pm+=pts;});op.forEach(n=>{if(lv.st[lv.actTeam==='home'?'away':'home'][n])lv.st[lv.actTeam==='home'?'away':'home'][n].pm-=pts;});};pmAll(1);
+    if(made){
+      s.tlMade=(s.tlMade||0)+1;s.pts=(s.pts||0)+1;lv.score[shooterTeam]+=1;
+      const opp=shooterTeam==='home'?'away':'home';
+      lv.onCourt[shooterTeam].forEach(n=>{if(lv.st[shooterTeam][n])lv.st[shooterTeam][n].pm+=1;});
+      lv.onCourt[opp].forEach(n=>{if(lv.st[opp][n])lv.st[opp][n].pm-=1;});
     }
     s.tlAtt=(s.tlAtt||0)+1;
-    lv.log.unshift({team:lv.actTeam,msg:`${made?'✅':'❌'} TL${idx} — ${ts.player.split(' ')[0]}`,period:lv.period});
-    lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:lv.actTeam,period:lv.period});
+    lv.log.unshift({team:shooterTeam,msg:`${made?'✅':'❌'} TL${idx} — ${ts.player.split(' ')[0]}`,period:lv.period});
+    lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin});
   }
   ts.done++;
   if(ts.done>=ts.total){closeSP(null);rLvAll();svL();}
   else{
-    // Highlight current TL button done
     const btns=document.querySelectorAll('#shot-popup-inner button[onclick^="tlClick"]');
     btns.forEach(b=>b.style.opacity='.4');
   }

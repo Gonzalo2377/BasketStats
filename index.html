@@ -137,6 +137,7 @@ input[type=file]{display:none}
   <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
   <button class="nb" onclick="ST('t-stats')">📊 Stats</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
+  <button class="nb" onclick="ST('t-scout')">🔍 Scouting</button>
 </div>
 
 <!-- TOAST -->
@@ -451,6 +452,134 @@ input[type=file]{display:none}
     </div>
   </div>
 </div>
+<!-- ═══ TAB: SCOUTING ═══ -->
+<div id="t-scout" class="tab"><div class="main">
+
+  <!-- Rival selector -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="ct">🔍 Informe de Scouting de Rival</div>
+    <div class="fr" style="align-items:flex-end">
+      <div class="fc" style="flex:2">
+        <label>Equipo rival a analizar</label>
+        <select id="sc-rival" onchange="renderScouting()" style="width:100%;font-size:13px;padding:7px">
+          <option value="">— Selecciona un rival —</option>
+        </select>
+      </div>
+      <div class="fc" style="flex:1">
+        <label>Partidos analizados</label>
+        <div id="sc-match-count" style="padding:7px 9px;font-size:12px;font-weight:700;color:var(--nv);background:var(--bg);border-radius:6px;border:1.5px solid var(--b2)">—</div>
+      </div>
+      <div>
+        <button onclick="exportScoutPDF()" class="btn bn" style="font-size:12px">📄 Exportar informe</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sc-content" style="display:none">
+
+    <!-- KPIs del rival -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="ct">📊 Estadísticas globales del rival</div>
+      <div id="sc-kpis" class="g4" style="gap:7px"></div>
+    </div>
+
+    <!-- Dos columnas principales -->
+    <div class="g2" style="gap:10px;margin-bottom:10px">
+
+      <!-- Zonas de tiro -->
+      <div class="card">
+        <div class="ct">🎯 Mapa de tiro del rival
+          <div style="display:flex;gap:5px">
+            <select id="sc-shot-player" onchange="renderScoutShots()" style="font-size:10px;height:24px;border:1px solid var(--b2);border-radius:4px">
+              <option value="">Todo el equipo</option>
+            </select>
+          </div>
+        </div>
+        <div class="cw"><canvas id="sc-cv"></canvas></div>
+        <div style="display:flex;gap:10px;margin-top:5px;font-size:10px;color:var(--t3)">
+          <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
+          <span id="sc-shot-pct" style="margin-left:auto;font-weight:600"></span>
+        </div>
+        <!-- Zone breakdown table -->
+        <div id="sc-zones" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Jugadores amenaza -->
+      <div class="card">
+        <div class="ct">⚠️ Jugadores a vigilar</div>
+        <div id="sc-players"></div>
+      </div>
+    </div>
+
+    <!-- Situaciones especiales -->
+    <div class="g2" style="gap:10px;margin-bottom:10px">
+
+      <!-- Últimos 2 minutos -->
+      <div class="card">
+        <div class="ct">⏰ Últimos 2 minutos por cuarto</div>
+        <div id="sc-clutch"></div>
+      </div>
+
+      <!-- Post-timeout -->
+      <div class="card">
+        <div class="ct">🛑 Después de tiempo muerto</div>
+        <div id="sc-timeout"></div>
+      </div>
+
+    </div>
+
+    <!-- Tendencias ofensivas -->
+    <div class="g2" style="gap:10px;margin-bottom:10px">
+      <div class="card">
+        <div class="ct">📈 Tendencias ofensivas</div>
+        <div id="sc-tendencies" style="font-size:12px;line-height:1.8"></div>
+      </div>
+      <div class="card">
+        <div class="ct">📋 Conclusiones y alertas</div>
+        <div id="sc-alerts" style="font-size:12px;line-height:1.8"></div>
+      </div>
+    </div>
+
+    <!-- Notas manuales del staff -->
+    <div class="card">
+      <div class="ct">📝 Notas del staff
+        <button onclick="saveScoutNotes()" class="btn bg bxs">💾 Guardar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label>Bloqueos directos (P&R)</label>
+          <textarea id="sc-note-pr" rows="3" placeholder="Cómo usan el pick & roll, quién recibe, tendencia a tirar/penetrar..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
+        </div>
+        <div>
+          <label>Jugadas de banda</label>
+          <textarea id="sc-note-side" rows="3" placeholder="Jugadas de saque de banda ofensivas, bloqueos, cortes..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
+        </div>
+        <div>
+          <label>Defensa rival</label>
+          <textarea id="sc-note-def" rows="3" placeholder="Sistema defensivo, zonas, hombre a hombre, trampas..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
+        </div>
+        <div>
+          <label>Otras observaciones</label>
+          <textarea id="sc-note-other" rows="3" placeholder="Rotaciones, liderazgo, patrones especiales..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
+        </div>
+      </div>
+      <div id="sc-note-st" class="st-msg" style="margin-top:6px"></div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <div id="sc-empty" class="card">
+    <div class="empty" style="padding:30px">
+      <div style="font-size:32px;margin-bottom:10px">🔍</div>
+      <div style="font-weight:700;margin-bottom:5px">Selecciona un equipo rival arriba</div>
+      <div style="font-size:12px;color:var(--t3)">Se generará automáticamente el informe de scouting a partir de los partidos importados</div>
+    </div>
+  </div>
+
+</div></div>
+
+
 <!-- ═══ TAB: TIRS MANUAL ═══ -->
 <div id="t-shots" class="tab"><div class="main">
 <div class="card" style="margin-bottom:10px">
@@ -668,7 +797,7 @@ function ST(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash'];
+  const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-scout'];
   document.querySelectorAll('.nb')[ts.indexOf(id)].classList.add('active');
   if(id==='t-eq')renderTeams();
   if(id==='t-imp')populateTeamSelects();
@@ -676,6 +805,7 @@ function ST(id){
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
   if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
+  if(id==='t-scout'){populateRivalSelect();renderScouting();}
 }
 
 function pf(m,a){return a>0?Math.round(m/a*100)+'%':'—';}
@@ -1938,6 +2068,7 @@ function renderDash(){
 function rAll(){
   const el=document.getElementById('topst');if(el)el.textContent=S.matches.length?S.matches.length+' partits':'';
   popShotSel();
+  if(document.getElementById('t-scout')?.classList.contains('active'))populateRivalSelect();
   if(document.getElementById('t-stats').classList.contains('active')){renderMatchHistory();renderStats();}
   if(document.getElementById('t-dash').classList.contains('active')){drawCourtOnCanvas('db-cv');renderDash();}
   if(document.getElementById('t-shots').classList.contains('active'))renderShotMap();
@@ -2207,6 +2338,384 @@ function setStatsView(v){
   if(v==='agg')renderStatsAggregated();
 }
 
+
+// ═══════════════════════════════════════════
+// SCOUTING MODULE
+// ═══════════════════════════════════════════
+let _scoutRival = '';
+let _scoutNotes = {};
+
+function populateRivalSelect() {
+  const sel = document.getElementById('sc-rival');
+  if (!sel) return;
+  const v = sel.value;
+  // Get all unique team names that are NOT our teams (in S.teams)
+  const ourTeams = new Set(S.teams.map(t => t.name.toLowerCase()));
+  const rivals = new Set();
+  S.matches.forEach(m => {
+    [m.homeTeam, m.awayTeam].forEach(tn => {
+      if (!ourTeams.has(tn.toLowerCase())) rivals.add(tn);
+    });
+  });
+  sel.innerHTML = '<option value="">— Selecciona un rival —</option>' +
+    [...rivals].sort().map(r => `<option value="${r}"${r === v ? ' selected' : ''}>${r}</option>`).join('');
+}
+
+function renderScouting() {
+  const sel = document.getElementById('sc-rival');
+  _scoutRival = sel?.value || '';
+  document.getElementById('sc-content').style.display = _scoutRival ? 'block' : 'none';
+  document.getElementById('sc-empty').style.display = _scoutRival ? 'none' : 'block';
+  if (!_scoutRival) return;
+
+  // Get all matches where rival played
+  const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+  document.getElementById('sc-match-count').textContent = `${matches.length} partido${matches.length !== 1 ? 's' : ''}`;
+
+  // Get all rival players across matches
+  const rivalPlayers = {};
+  matches.forEach(m => {
+    const isHome = m.homeTeam === _scoutRival;
+    const players = isHome ? m.homePlayers : m.awayPlayers;
+    (players || []).forEach(p => {
+      if (!rivalPlayers[p.name]) rivalPlayers[p.name] = {
+        name: p.name, dorsal: p.dorsal,
+        pts: 0, t2Made: 0, t2Att: 0, t3Made: 0, t3Att: 0,
+        tlMade: 0, tlAtt: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0
+      };
+      const rp = rivalPlayers[p.name];
+      rp.pts += p.pts || 0; rp.t2Made += p.t2Made || 0; rp.t2Att += p.t2Att || 0;
+      rp.t3Made += p.t3Made || 0; rp.t3Att += p.t3Att || 0;
+      rp.tlMade += p.tlMade || 0; rp.tlAtt += p.tlAtt || 0;
+      rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
+      rp.pm += p.pm || 0; rp.games++;
+    });
+  });
+  const rpList = Object.values(rivalPlayers);
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const totPts = rpList.reduce((s,p) => s + p.pts, 0);
+  const t2M = rpList.reduce((s,p) => s + p.t2Made, 0);
+  const t2A = rpList.reduce((s,p) => s + p.t2Att, 0);
+  const t3M = rpList.reduce((s,p) => s + p.t3Made, 0);
+  const t3A = rpList.reduce((s,p) => s + p.t3Att, 0);
+  const tlM = rpList.reduce((s,p) => s + p.tlMade, 0);
+  const tlA = rpList.reduce((s,p) => s + p.tlAtt, 0);
+  const n = matches.length || 1;
+  document.getElementById('sc-kpis').innerHTML = `
+    <div class="kpi"><div class="kv">${Math.round(totPts/n)}</div><div class="kl">Pts/partido</div><div class="ks">${totPts} total</div></div>
+    <div class="kpi"><div class="kv">${t2A ? Math.round(t2M/t2A*100)+'%' : '—'}</div><div class="kl">T2%</div><div class="ks">${t2M}/${t2A}</div></div>
+    <div class="kpi"><div class="kv">${t3A ? Math.round(t3M/t3A*100)+'%' : '—'}</div><div class="kl">T3%</div><div class="ks">${t3M}/${t3A}</div></div>
+    <div class="kpi"><div class="kv">${tlA ? Math.round(tlM/tlA*100)+'%' : '—'}</div><div class="kl">TL%</div><div class="ks">${tlM}/${tlA}</div></div>
+    <div class="kpi"><div class="kv">${t3A ? Math.round(t3A/(t2A+t3A)*100)+'%' : '—'}</div><div class="kl">% tiros de 3</div><div class="ks">de ${t2A+t3A} FGA</div></div>
+    <div class="kpi"><div class="kv">${matches.length}</div><div class="kl">Partidos</div></div>`;
+
+  // ── Jugadores amenaza ─────────────────────────────────────────────────────
+  rpList.sort((a, b) => b.pts - a.pts);
+  const scPlayers = document.getElementById('sc-players');
+  if (scPlayers) scPlayers.innerHTML = rpList.slice(0, 10).map(p => {
+    const t2p = p.t2Att ? Math.round(p.t2Made/p.t2Att*100) : 0;
+    const t3p = p.t3Att ? Math.round(p.t3Made/p.t3Att*100) : 0;
+    const ptsPerGame = Math.round(p.pts / p.games * 10) / 10;
+    // Threat level: high scorer or high % shooter with volume
+    const isThreat = ptsPerGame >= 10 || (p.t3Att >= 5 && t3p >= 38);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
+      <div style="width:30px;height:30px;border-radius:50%;background:${isThreat?'#dc2626':'var(--nv)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:12px">${p.name}${isThreat ? ' <span style="color:#dc2626;font-size:10px">⚠️</span>' : ''}</div>
+        <div style="font-size:10px;color:var(--t3)">${ptsPerGame}pts/p · T2:${t2p}% · T3:${t3p}%</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;color:var(--nv);font-size:14px">${p.pts}</div>
+        <div style="font-size:9px;color:var(--t3)">${p.games}P</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Sin datos</div>';
+
+  // ── Populate player selector for shot map ─────────────────────────────────
+  const scShotPl = document.getElementById('sc-shot-player');
+  if (scShotPl) {
+    scShotPl.innerHTML = '<option value="">Todo el equipo</option>' +
+      rpList.map(p => `<option value="${p.name}">${p.name.split(' ')[0]} (#${p.dorsal})</option>`).join('');
+  }
+
+  // ── Shot map ──────────────────────────────────────────────────────────────
+  renderScoutShots();
+
+  // ── Últimos 2 minutos ─────────────────────────────────────────────────────
+  renderScoutClutch(matches);
+
+  // ── Post-timeout ──────────────────────────────────────────────────────────
+  renderScoutTimeout(matches);
+
+  // ── Tendencias ofensivas ──────────────────────────────────────────────────
+  renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A);
+
+  // ── Load saved notes ──────────────────────────────────────────────────────
+  const notes = _scoutNotes[_scoutRival] || {};
+  ['pr','side','def','other'].forEach(k => {
+    const el = document.getElementById('sc-note-' + k);
+    if (el) el.value = notes[k] || '';
+  });
+}
+
+function renderScoutShots() {
+  const rival = _scoutRival; if (!rival) return;
+  const playerFilter = document.getElementById('sc-shot-player')?.value || '';
+  const matches = S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival);
+
+  // Get placed shots for rival from S.shots
+  let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+  shots = shots.filter(s => {
+    const m = S.matches.find(m => m.id === (s.mId || s.matchId));
+    if (!m) return false;
+    const rivalSide = m.homeTeam === rival ? 'home' : m.awayTeam === rival ? 'away' : null;
+    return rivalSide && s.team === rivalSide;
+  });
+  if (playerFilter) shots = shots.filter(s => s.player === playerFilter);
+
+  // Draw on canvas
+  const cv = document.getElementById('sc-cv');
+  if (!cv) return;
+  if (shots.length >= 3) {
+    drawHeatmap('sc-cv', shots);
+  } else {
+    cv.width = CW; cv.height = CH;
+    drawCourt(cv.getContext('2d'));
+    drawShots(cv.getContext('2d'), shots);
+  }
+
+  const made = shots.filter(s => s.made).length;
+  const pctEl = document.getElementById('sc-shot-pct');
+  if (pctEl) pctEl.textContent = shots.length ? `${made}/${shots.length} (${Math.round(made/shots.length*100)}%)` : 'Sin tiros ubicados';
+
+  // Zone breakdown
+  const zones = ['Zona rest.','Zona baixa','Mig rang E.','Mig rang D.','Mig rang C.','Cantonada E.','Cantonada D.','T3 Lateral E.','T3 Lateral D.','T3 Centre'];
+  const zs = {}; zones.forEach(z => zs[z] = {m: 0, a: 0});
+  shots.forEach(s => { const z = shotZone(s); if (zs[z]) { zs[z].a++; if (s.made) zs[z].m++; } });
+  const active = zones.filter(z => zs[z].a > 0);
+  const scZones = document.getElementById('sc-zones');
+  if (scZones) {
+    if (!active.length) {
+      scZones.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:6px 0">Sin tiros ubicados. Añade ubicaciones en la pestaña 🎯 Tiros.</div>';
+    } else {
+      scZones.innerHTML = `<div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Desglose por zona</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px">
+          ${active.sort((a,b) => zs[b].a - zs[a].a).map(z => {
+            const pct = Math.round(zs[z].m/zs[z].a*100);
+            const isHot = pct >= 50 && zs[z].a >= 3;
+            const isCold = pct < 33 && zs[z].a >= 3;
+            return `<div style="display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;background:${isHot?'#fef2f2':isCold?'#eff6ff':'var(--bg)'}">
+              <span style="font-size:16px">${isHot?'🔥':isCold?'❄️':'📍'}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${z}</div>
+                <div style="font-size:9px;color:var(--t3)">${zs[z].m}/${zs[z].a} intentos</div>
+              </div>
+              <span style="font-weight:800;font-size:12px;color:${isHot?'#dc2626':isCold?'#3b82f6':'var(--nv)'}">${pct}%</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
+}
+
+function renderScoutClutch(matches) {
+  const el = document.getElementById('sc-clutch'); if (!el) return;
+  // "Últimos 2 minutos" = min >= 8 in each period
+  const clutchEvents = [];
+  matches.forEach(m => {
+    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
+    (m.events || []).filter(e => {
+      const perMin = e.min - (e.period - 1) * 10; // minute within period
+      return e.team === rivalSide && perMin >= 8;
+    }).forEach(e => clutchEvents.push(e));
+  });
+
+  if (!clutchEvents.length) {
+    el.innerHTML = '<div class="empty">Sin datos de eventos (necesita cronología)</div>';
+    return;
+  }
+
+  const pts2 = clutchEvents.filter(e => e.type === 'pts2').length;
+  const pts3 = clutchEvents.filter(e => e.type === 'pts3').length;
+  const miss2 = clutchEvents.filter(e => e.type === 'miss2').length;
+  const miss3 = clutchEvents.filter(e => e.type === 'miss3').length;
+  const tl_in = clutchEvents.filter(e => e.type === 'tl_in').length;
+  const tl_out = clutchEvents.filter(e => e.type === 'tl_out').length;
+  const totalPts = pts2*2 + pts3*3 + tl_in;
+
+  // Top clutch scorers
+  const clutchScorers = {};
+  clutchEvents.filter(e => ['pts2','pts3','tl_in'].includes(e.type)).forEach(e => {
+    if (!clutchScorers[e.player]) clutchScorers[e.player] = 0;
+    clutchScorers[e.player] += e.type === 'pts3' ? 3 : e.type === 'pts2' ? 2 : 1;
+  });
+  const topScorers = Object.entries(clutchScorers).sort((a,b) => b[1]-a[1]).slice(0,3);
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${totalPts}</div><div class="kl">Pts clutch</div></div>
+      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${pts3+miss3 ? Math.round(pts3/(pts3+miss3)*100)+'%' : '—'}</div><div class="kl">T3% clutch</div></div>
+      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${pts2+miss2 ? Math.round(pts2/(pts2+miss2)*100)+'%' : '—'}</div><div class="kl">T2% clutch</div></div>
+    </div>
+    ${topScorers.length ? `
+    <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Ejecutores en últimos 2min</div>
+    ${topScorers.map((s, i) => `
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd)">
+        <span style="width:18px;height:18px;border-radius:50%;background:${i===0?'#dc2626':'var(--nv)'};color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
+        <span style="flex:1;font-size:12px;font-weight:600">${s[0]}</span>
+        <b style="color:var(--nv)">${s[1]}pts</b>
+      </div>`).join('')}
+    ` : ''}`;
+}
+
+function renderScoutTimeout(matches) {
+  const el = document.getElementById('sc-timeout'); if (!el) return;
+  // Events in the 2 minutes after a timeout (we detect timeouts by gaps in events)
+  // Since federation crono doesn't always mark timeouts explicitly,
+  // we look at "Temps mort" events in the crono parsing (stored in events as type 'timeout')
+  // For now, analyze first possession after each quarter break (period start)
+  const firstPossessions = [];
+  matches.forEach(m => {
+    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
+    const events = (m.events || []).slice().sort((a,b) => (a.min||0)-(b.min||0));
+    // First scoring action in each period
+    for (let per = 1; per <= 4; per++) {
+      const firstInPer = events.find(e => e.period === per && e.team === rivalSide &&
+        ['pts2','pts3','tl_in','miss2','miss3'].includes(e.type));
+      if (firstInPer) firstPossessions.push(firstInPer);
+    }
+  });
+
+  if (!firstPossessions.length) {
+    el.innerHTML = '<div class="empty">Sin datos suficientes (necesita más partidos con cronología)</div>';
+    return;
+  }
+
+  const pts = firstPossessions.filter(e => ['pts2','pts3','tl_in'].includes(e.type));
+  const miss = firstPossessions.filter(e => ['miss2','miss3'].includes(e.type));
+  const t3 = firstPossessions.filter(e => e.type === 'pts3' || e.type === 'miss3');
+  const t2 = firstPossessions.filter(e => e.type === 'pts2' || e.type === 'miss2');
+
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Primera acción ofensiva de cada cuarto (indica tendencias tras pausa)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${Math.round(pts.length/(pts.length+miss.length)*100)}%</div><div class="kl">Eficiencia inicio cuarto</div></div>
+      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${Math.round(t3.length/firstPossessions.length*100)}%</div><div class="kl">Inician con T3</div></div>
+    </div>
+    <div style="font-size:11px;line-height:1.7">
+      • Primeras posesiones de cuarto: <b>${firstPossessions.length}</b> analizadas<br>
+      • Tipo más frecuente: <b>${t3.length >= t2.length ? 'Tiro de 3' : 'Penetración/T2'}</b><br>
+      • Eficiencia: <b>${pts.length} de ${firstPossessions.length}</b> acciones positivas
+    </div>`;
+}
+
+function renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A) {
+  const tens = [];
+  const alerts = [];
+  const n = matches.length || 1;
+
+  // Shooting tendency
+  const t3Rate = t3A ? Math.round(t3A/(t2A+t3A)*100) : 0;
+  if (t3Rate >= 40) tens.push(`🎯 Equipo <b>perimetral</b>: ${t3Rate}% de los tiros son de 3. Presionar en el arco.`);
+  else if (t3Rate <= 25) tens.push(`🏀 Equipo <b>interior</b>: solo ${t3Rate}% T3. Priorizar defensa del bloqueo directo.`);
+  else tens.push(`⚖️ Equipo <b>equilibrado</b>: ${t3Rate}% T3 / ${100-t3Rate}% T2.`);
+
+  // T3 efficiency
+  const t3Pct = t3A ? Math.round(t3M/t3A*100) : 0;
+  if (t3Pct >= 37) alerts.push(`🚨 <b>Peligrosos desde 3</b>: ${t3Pct}% de acierto. No dejar espacios al arco.`);
+  else if (t3Pct <= 28 && t3A >= 10) tens.push(`✅ Punto débil: T3 al ${t3Pct}%. Pueden permitirse dejar el arco.`);
+
+  // T2 efficiency
+  const t2Pct = t2A ? Math.round(t2M/t2A*100) : 0;
+  if (t2Pct >= 52) alerts.push(`🚨 <b>Muy eficientes en T2</b>: ${t2Pct}%. Defender bien la pintura.`);
+
+  // Key players
+  const topScorer = rpList[0];
+  if (topScorer) {
+    const ptsPerGame = Math.round(topScorer.pts / topScorer.games * 10) / 10;
+    if (ptsPerGame >= 15) alerts.push(`🚨 <b>${topScorer.name}</b> promedia ${ptsPerGame}pts/partido. Prioridad defensiva.`);
+    else tens.push(`🏀 Máximo anotador: <b>${topScorer.name}</b> (${ptsPerGame}pts/p)`);
+  }
+
+  // High foul players
+  const foulProne = rpList.filter(p => p.fc / p.games >= 3.5 && p.games >= 2);
+  if (foulProne.length) tens.push(`⚠️ Jugadores con tendencia a faltas: <b>${foulProne.map(p => p.name.split(' ')[0]).join(', ')}</b>. Atacarles en bote.`);
+
+  // Assist focus
+  const topAst = [...rpList].sort((a,b) => b.ast-a.ast)[0];
+  if (topAst && topAst.ast >= 3*n) tens.push(`🤝 Pasador principal: <b>${topAst.name.split(' ')[0]}</b> (${topAst.ast} ast total).`);
+
+  const tenEl = document.getElementById('sc-tendencies');
+  if (tenEl) tenEl.innerHTML = tens.map(t => `<div style="padding:4px 0;border-bottom:1px solid var(--bd)">• ${t}</div>`).join('') || '<div class="empty">Sin datos suficientes</div>';
+
+  const altEl = document.getElementById('sc-alerts');
+  if (altEl) altEl.innerHTML = alerts.length
+    ? alerts.map(a => `<div style="padding:6px 8px;margin-bottom:5px;border-radius:6px;background:#fef2f2;border-left:3px solid #dc2626">${a}</div>`).join('')
+    : '<div style="color:var(--gn);font-size:12px">✅ Sin alertas críticas detectadas</div>';
+}
+
+function saveScoutNotes() {
+  if (!_scoutRival) return;
+  _scoutNotes[_scoutRival] = {
+    pr: document.getElementById('sc-note-pr')?.value || '',
+    side: document.getElementById('sc-note-side')?.value || '',
+    def: document.getElementById('sc-note-def')?.value || '',
+    other: document.getElementById('sc-note-other')?.value || '',
+  };
+  // Save in localStorage as it's not match data
+  try { localStorage.setItem('bascatScoutNotes', JSON.stringify(_scoutNotes)); } catch(e) {}
+  setSt('sc-note-st', '✅ Notas guardadas', 'ok');
+  setTimeout(() => { const el = document.getElementById('sc-note-st'); if (el) el.textContent = ''; }, 2500);
+}
+
+function exportScoutPDF() {
+  if (!_scoutRival) return;
+  // Generate a print-friendly summary in a new window
+  const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+  const notes = _scoutNotes[_scoutRival] || {};
+  const kpis = document.getElementById('sc-kpis')?.innerHTML || '';
+  const players = document.getElementById('sc-players')?.innerHTML || '';
+  const clutch = document.getElementById('sc-clutch')?.innerHTML || '';
+  const tend = document.getElementById('sc-tendencies')?.innerHTML || '';
+  const alerts = document.getElementById('sc-alerts')?.innerHTML || '';
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Scouting — ${_scoutRival}</title>
+    <style>
+      body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#0f172a}
+      h1{color:#0f1f3d;border-bottom:3px solid #e8402a;padding-bottom:8px}
+      h2{color:#0f1f3d;font-size:14px;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px;border-left:3px solid #e8402a;padding-left:8px}
+      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+      .kpi{background:#f4f6fa;border-radius:8px;padding:10px;text-align:center}
+      .kv{font-size:22px;font-weight:800;color:#0f1f3d}
+      .kl{font-size:10px;color:#64748b;text-transform:uppercase}
+      .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .note{background:#f8fafc;border-radius:6px;padding:10px;font-size:12px;min-height:60px;white-space:pre-wrap}
+      .alert{padding:6px 8px;margin-bottom:5px;border-radius:6px;background:#fef2f2;border-left:3px solid #dc2626;font-size:12px}
+      @media print{body{padding:10px}}
+    </style></head><body>
+    <h1>🔍 Informe de Scouting — ${_scoutRival}</h1>
+    <p style="color:#64748b;font-size:12px">Generado por BascatApp · ${new Date().toLocaleDateString('es')} · ${matches.length} partido${matches.length!==1?'s':''} analizados</p>
+    <h2>📊 Estadísticas globales</h2>
+    <div class="kpis">${kpis}</div>
+    <div class="g2">
+      <div><h2>⚠️ Jugadores a vigilar</h2>${players}</div>
+      <div><h2>📈 Tendencias</h2>${tend}<h2>🚨 Alertas</h2>${alerts}</div>
+    </div>
+    <h2>⏰ Situación de últimos 2 minutos</h2>${clutch}
+    <h2>📝 Notas del staff</h2>
+    <div class="g2">
+      <div><b>Pick & Roll</b><div class="note">${notes.pr||'—'}</div></div>
+      <div><b>Jugadas de banda</b><div class="note">${notes.side||'—'}</div></div>
+      <div><b>Defensa rival</b><div class="note">${notes.def||'—'}</div></div>
+      <div><b>Otras observaciones</b><div class="note">${notes.other||'—'}</div></div>
+    </div>
+    <script>window.print();<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -2227,11 +2736,15 @@ Object.assign(window,{
   renderStats,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,
   // Dashboard
   renderDash,
+  // Scouting
+  renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
   // Utils
   rAll,svL,
 });
 
 ldLS();
+// Load scout notes from localStorage
+try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.parse(n); } catch(e) {}
 setTimeout(()=>{
   drawCourtOnCanvas('db-cv');
 },300);

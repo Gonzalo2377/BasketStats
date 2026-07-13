@@ -685,25 +685,42 @@ input[type=file]{display:none}
             <option value="0.25">×0.25</option><option value="0.5">×0.5</option>
             <option value="1" selected>×1</option><option value="1.5">×1.5</option><option value="2">×2</option>
           </select>
-          <button onclick="markClipStart()" class="btn bo bxs" style="font-size:11px;background:#f0fdf4;border-color:#16a34a;color:#15803d">⏺ Inicio clip</button>
-          <span id="sc-clip-start-badge" style="display:none;font-size:10px;font-weight:700;color:#15803d;background:#dcfce7;border-radius:4px;padding:2px 7px"></span>
         </div>
 
-        <!-- Create clip form -->
-        <div style="background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">✂️ Nuevo clip — posición actual: <span id="sc-clip-ts" style="font-family:monospace">0:00</span></div>
+        <!-- IN / OUT marker bar -->
+        <div style="background:#0f172a;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button id="sc-btn-in" onclick="markIn()" style="padding:7px 14px;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #16a34a;background:#16a34a;color:#fff">⏺ Marcar INICIO</button>
+            <button id="sc-btn-out" onclick="markOut()" style="padding:7px 14px;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #64748b;background:transparent;color:#94a3b8" disabled>⏹ Marcar FINAL</button>
+            <button onclick="resetMarks()" style="padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid #475569;background:transparent;color:#94a3b8">↺ Reset</button>
+            <button id="sc-btn-preview" onclick="previewClip()" style="padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid #475569;background:transparent;color:#94a3b8;display:none">👁 Previsualizar</button>
+          </div>
+          <!-- visual range bar -->
+          <div style="margin-top:9px;position:relative;height:8px;background:#334155;border-radius:4px;overflow:hidden;cursor:pointer" id="sc-range-bar" onclick="seekFromBar(event)">
+            <div id="sc-range-fill" style="position:absolute;top:0;bottom:0;left:0;width:0;background:linear-gradient(90deg,#16a34a,#22c55e);display:none"></div>
+            <div id="sc-range-cursor" style="position:absolute;top:-2px;width:2px;height:12px;background:#fff;left:0"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:monospace;font-size:11px;font-weight:700">
+            <span id="sc-mark-in" style="color:#64748b">IN —:—</span>
+            <span id="sc-mark-dur" style="color:#fbbf24">Duración —</span>
+            <span id="sc-mark-out" style="color:#64748b">OUT —:—</span>
+          </div>
+        </div>
 
-          <!-- Descripción -->
+        <!-- Create clip form (only after IN+OUT) -->
+        <div id="sc-clip-form" style="background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px;display:none">
+          <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">
+            ✂️ Guardar clip <span id="sc-clip-range" style="font-family:monospace;color:#16a34a"></span>
+          </div>
+
           <input type="text" id="sc-clip-label" placeholder="Descripción del clip..." style="width:100%;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px;margin-bottom:8px">
 
-          <!-- Categoría: Ataque / Defensa -->
           <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Categoría</div>
           <div style="display:flex;gap:6px;margin-bottom:8px">
             <button id="sc-cat-atk" onclick="setClipCat('ataque')" style="flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--b2);background:#fff;color:var(--t2)">⚔️ Ataque</button>
             <button id="sc-cat-def" onclick="setClipCat('defensa')" style="flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--b2);background:#fff;color:var(--t2)">🛡️ Defensa</button>
           </div>
 
-          <!-- Carpeta -->
           <div id="sc-folder-wrap" style="display:none">
             <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Carpeta</div>
             <div style="display:flex;gap:6px;margin-bottom:6px">
@@ -712,12 +729,11 @@ input[type=file]{display:none}
               </select>
               <button onclick="toggleNewFolder()" class="btn bo bxs" style="font-size:11px;white-space:nowrap">+ Nueva</button>
             </div>
-            <div id="sc-new-folder-wrap" style="display:none;display:flex;gap:6px">
-              <input type="text" id="sc-new-folder-name" placeholder="Nombre de la carpeta (ej: P&R, Zona, Banda...)" style="flex:1;padding:6px 8px;border:1.5px solid var(--ac);border-radius:7px;font-size:12px">
+            <div id="sc-new-folder-wrap" style="display:none;gap:6px">
+              <input type="text" id="sc-new-folder-name" placeholder="Nombre carpeta (ej: P&R, Zona, Banda...)" style="width:100%;padding:6px 8px;border:1.5px solid var(--ac);border-radius:7px;font-size:12px">
             </div>
           </div>
 
-          <!-- Nota -->
           <div style="display:flex;gap:6px;margin-top:8px">
             <input type="text" id="sc-clip-note" placeholder="Nota adicional (opcional)..." style="flex:1;padding:6px 9px;border:1.5px solid var(--b2);border-radius:7px;font-size:11px">
             <button onclick="addScoutClip()" class="btn bp" style="font-size:12px;padding:7px 16px;white-space:nowrap">✂️ Guardar clip</button>
@@ -2811,6 +2827,7 @@ function exportScoutPDF() {
 
   // ── Build PDF HTML ────────────────────────────────────────────────────────
   const w=window.open('','_blank');
+  if(!w){toast('El navegador bloqueó la ventana. Permite las ventanas emergentes para exportar.','err');return;}
   w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Scouting — ${rival}</title>
 <style>
@@ -2957,30 +2974,36 @@ ${activeZones.map(z=>{
 </div>
 
 ${clips.length?`
-<!-- CLIPS DE VÍDEO -->
 <div class="page-break"></div>
-<h2 style="margin-top:16px">🎬 Clips de vídeo (${clips.length} clips)</h2>
-${Object.keys(clipsByTag).length?Object.entries(clipsByTag).map(([tag,tagClips])=>`
-<div style="margin-bottom:12px">
-  <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:5px;letter-spacing:.05em">${tag} (${tagClips.length})</div>
-  ${tagClips.map(cl=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f4f8;align-items:flex-start">
-    <span style="font-size:11px;font-weight:700;color:#94a3b8;min-width:40px">${cl.time||'—'}</span>
-    <div style="flex:1">
-      <div style="font-weight:600;font-size:11px">${cl.label||'Sin título'}</div>
-      ${cl.note?`<div style="font-size:10px;color:#64748b;margin-top:2px">${cl.note}</div>`:''}
-    </div>
-    <div>${(cl.tags||[]).map(t=>`<span class="tag ${t.includes('Ataque')?'atk':t.includes('Defensa')?'def':'sp'}">${t}</span>`).join('')}</div>
-  </div>`).join('')}
-</div>`).join(''):clips.map(cl=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f4f8;align-items:flex-start">
-  <span style="font-size:11px;font-weight:700;color:#94a3b8;min-width:40px">${cl.time||'—'}</span>
-  <div style="flex:1"><div style="font-weight:600;font-size:11px">${cl.label||'Sin título'}</div>${cl.note?`<div style="font-size:10px;color:#64748b;margin-top:2px">${cl.note}</div>`:''}</div>
-  <div>${(cl.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-</div>`).join('')}
+<h2 style="margin-top:16px">🎬 Clips de vídeo (${clips.length})</h2>
+${['ataque','defensa'].map(cat=>{
+  const folders=clipsByCatFolder[cat]||{};
+  const names=Object.keys(folders).sort();
+  if(!names.length) return '';
+  const lbl=cat==='ataque'?'⚔️ ATAQUE':'🛡️ DEFENSA';
+  const col=cat==='ataque'?'#15803d':'#1e40af';
+  const bg =cat==='ataque'?'#f0fdf4':'#eff6ff';
+  return `<div style="margin-bottom:14px">
+    <div style="background:${bg};border-left:4px solid ${col};padding:5px 10px;font-weight:800;font-size:11px;color:${col};margin-bottom:6px">${lbl}</div>
+    ${names.map(f=>`
+    <div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#64748b;background:#f8fafc;padding:4px 8px;border-radius:4px;margin-bottom:4px">📁 ${f} (${folders[f].length})</div>
+      ${folders[f].slice().sort((a,b)=>a.timeSecs-b.timeSecs).map(cl=>`
+      <div style="display:flex;gap:8px;padding:4px 8px;border-bottom:1px solid #f0f4f8">
+        <span style="font-weight:800;font-size:11px;font-family:monospace;min-width:78px">▶ ${cl.time}${cl.timeEndFmt?' → '+cl.timeEndFmt:''}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:11px">${cl.label||'Sin título'}</div>
+          ${cl.note?`<div style="font-size:10px;color:#64748b">${cl.note}</div>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`).join('')}
+  </div>`;
+}).join('')}
 `:''}
 
 <footer>BascatApp · Scouting — ${rival} · ${new Date().toLocaleDateString('es-ES')} · Confidencial</footer>
 
-<script>setTimeout(()=>window.print(),400);<\/script>
+<script>window.onload=function(){var i=document.images;if(i.length){var n=0;for(var k=0;k<i.length;k++){if(i[k].complete){n++}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250)}}}if(n===i.length)setTimeout(function(){window.print()},250);}else{setTimeout(function(){window.print()},250);}};<\/script>
 </body></html>`);
   w.document.close();
 }
@@ -2994,7 +3017,6 @@ ${Object.keys(clipsByTag).length?Object.entries(clipsByTag).map(([tag,tagClips])
 // ═══════════════════════════════════════════
 
 let _clipCat = '';       // 'ataque' | 'defensa'
-let _clipStart = null;   // null or seconds
 
 function _getClips() { return S.clips || {}; }
 function _saveClips() {
@@ -3016,22 +3038,100 @@ function loadScoutVideo(evt) {
 }
 function _updateVidTime() {
   const vid = document.getElementById('sc-video');
-  const ts = _fmtT(vid.currentTime);
   const el = document.getElementById('sc-vid-time');
-  const cl = document.getElementById('sc-clip-ts');
-  if (el) el.textContent = ts;
-  if (cl) cl.textContent = ts;
+  if (el) el.textContent = _fmtT(vid.currentTime);
+  const cur = document.getElementById('sc-range-cursor');
+  if (cur && vid.duration) cur.style.left = (vid.currentTime/vid.duration*100)+'%';
 }
 function scVid(d) { const v=document.getElementById('sc-video'); if(v) v.currentTime=Math.max(0,v.currentTime+d); }
 function setVidSpeed() { const v=document.getElementById('sc-video'),s=document.getElementById('sc-vid-speed'); if(v&&s) v.playbackRate=parseFloat(s.value); }
 function _fmtT(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; }
 
-function markClipStart() {
-  const vid = document.getElementById('sc-video'); if (!vid) return;
-  _clipStart = vid.currentTime;
-  const badge = document.getElementById('sc-clip-start-badge');
-  if (badge) { badge.style.display='inline-block'; badge.textContent=`Inicio: ${_fmtT(_clipStart)}`; }
-  toast(`⏺ Inicio marcado en ${_fmtT(_clipStart)}`);
+let _clipIn = null, _clipOut = null;
+
+function _refreshMarks(){
+  const vid=document.getElementById('sc-video');
+  const dur=vid&&vid.duration?vid.duration:0;
+  const inEl=document.getElementById('sc-mark-in');
+  const outEl=document.getElementById('sc-mark-out');
+  const durEl=document.getElementById('sc-mark-dur');
+  const outBtn=document.getElementById('sc-btn-out');
+  const inBtn=document.getElementById('sc-btn-in');
+  const form=document.getElementById('sc-clip-form');
+  const range=document.getElementById('sc-clip-range');
+  const fill=document.getElementById('sc-range-fill');
+  const prev=document.getElementById('sc-btn-preview');
+
+  if(inEl) {inEl.textContent = _clipIn!==null?`IN ${_fmtT(_clipIn)}`:'IN —:—';
+            inEl.style.color = _clipIn!==null?'#22c55e':'#64748b';}
+  if(outEl){outEl.textContent= _clipOut!==null?`OUT ${_fmtT(_clipOut)}`:'OUT —:—';
+            outEl.style.color= _clipOut!==null?'#ef4444':'#64748b';}
+
+  // OUT button enabled only once IN is set
+  if(outBtn){
+    const on = _clipIn!==null;
+    outBtn.disabled=!on;
+    outBtn.style.borderColor=on?'#dc2626':'#64748b';
+    outBtn.style.background =on?'#dc2626':'transparent';
+    outBtn.style.color      =on?'#fff':'#94a3b8';
+    outBtn.style.cursor     =on?'pointer':'not-allowed';
+  }
+  if(inBtn) inBtn.textContent = _clipIn!==null?`⏺ INICIO ${_fmtT(_clipIn)}`:'⏺ Marcar INICIO';
+
+  const ready = _clipIn!==null && _clipOut!==null && _clipOut>_clipIn;
+  if(durEl){
+    durEl.textContent = ready?`Duración ${(_clipOut-_clipIn).toFixed(1)}s`:'Duración —';
+    durEl.style.color = ready?'#fbbf24':'#64748b';
+  }
+  if(form) form.style.display = ready?'block':'none';
+  if(prev) prev.style.display = ready?'inline-block':'none';
+  if(range&&ready) range.textContent = `${_fmtT(_clipIn)} → ${_fmtT(_clipOut)} (${(_clipOut-_clipIn).toFixed(1)}s)`;
+
+  // green range on the bar
+  if(fill&&dur){
+    if(_clipIn!==null){
+      const a=_clipIn/dur*100;
+      const b=(_clipOut!==null?_clipOut:_clipIn)/dur*100;
+      fill.style.display='block';
+      fill.style.left=a+'%';
+      fill.style.width=Math.max(0.5,b-a)+'%';
+    } else fill.style.display='none';
+  }
+}
+
+function markIn(){
+  const vid=document.getElementById('sc-video'); if(!vid) return;
+  _clipIn=vid.currentTime;
+  if(_clipOut!==null&&_clipOut<=_clipIn) _clipOut=null; // invalid, clear
+  _refreshMarks();
+  toast(`⏺ Inicio en ${_fmtT(_clipIn)}`);
+}
+function markOut(){
+  const vid=document.getElementById('sc-video'); if(!vid||_clipIn===null) return;
+  const t=vid.currentTime;
+  if(t<=_clipIn){toast('El final debe ir después del inicio','err');return;}
+  _clipOut=t;
+  _refreshMarks();
+  toast(`⏹ Final en ${_fmtT(_clipOut)} · ${(_clipOut-_clipIn).toFixed(1)}s`);
+}
+function resetMarks(){
+  _clipIn=null;_clipOut=null;
+  _refreshMarks();
+}
+function previewClip(){
+  const vid=document.getElementById('sc-video');
+  if(!vid||_clipIn===null||_clipOut===null) return;
+  vid.currentTime=_clipIn;
+  vid.play();
+  const stop=()=>{ if(vid.currentTime>=_clipOut){vid.pause();vid.removeEventListener('timeupdate',stop);} };
+  vid.addEventListener('timeupdate',stop);
+}
+function seekFromBar(ev){
+  const vid=document.getElementById('sc-video');
+  const bar=document.getElementById('sc-range-bar');
+  if(!vid||!vid.duration||!bar) return;
+  const r=bar.getBoundingClientRect();
+  vid.currentTime=Math.max(0,Math.min(vid.duration,(ev.clientX-r.left)/r.width*vid.duration));
 }
 
 // ── Category selection ────────────────────────────────────────────────────────
@@ -3092,16 +3192,18 @@ function addScoutClip() {
     folder = selFolder;
   }
 
-  const timeSecs = vid?.currentTime || 0;
-  const timeEnd = (_clipStart !== null && _clipStart < timeSecs) ? timeSecs : null;
-  const timeStart = (_clipStart !== null && _clipStart < timeSecs) ? _clipStart : timeSecs;
+  if (_clipIn === null || _clipOut === null || _clipOut <= _clipIn) {
+    toast('Marca INICIO y FINAL del clip primero', 'err'); return;
+  }
+  const timeStart = _clipIn, timeEnd = _clipOut;
 
   const clip = {
     id: Date.now(),
     timeSecs: timeStart,
     timeEnd,
+    dur: +(timeEnd - timeStart).toFixed(1),
     time: _fmtT(timeStart),
-    timeEndFmt: timeEnd ? _fmtT(timeEnd) : null,
+    timeEndFmt: _fmtT(timeEnd),
     label, note,
     created: new Date().toLocaleDateString('es-ES')
   };
@@ -3117,9 +3219,7 @@ function addScoutClip() {
   document.getElementById('sc-clip-label').value = '';
   document.getElementById('sc-clip-note').value = '';
   if (document.getElementById('sc-new-folder-name')) document.getElementById('sc-new-folder-name').value = '';
-  _clipStart = null;
-  const badge = document.getElementById('sc-clip-start-badge');
-  if (badge) badge.style.display = 'none';
+  resetMarks();
   populateFolderSel();
   renderClipsLibrary();
   toast(`✂️ Clip guardado en ${_clipCat === 'ataque' ? '⚔️' : '🛡️'} ${_clipCat.charAt(0).toUpperCase()+_clipCat.slice(1)} → ${folder}`);
@@ -3167,8 +3267,8 @@ function renderClipsLibrary() {
           <div id="${folderId}" style="display:none">
             ${clips.map(cl => `
               <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-top:1px solid var(--bd)" id="clip-${cl.id}">
-                <button onclick="jumpToClip(${cl.timeSecs})" style="font-size:11px;font-weight:800;font-family:monospace;padding:4px 7px;background:var(--nv);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap">
-                  ▶ ${cl.time}${cl.timeEndFmt?'→'+cl.timeEndFmt:''}
+                <button onclick="jumpToClip(${cl.timeSecs},${cl.timeEnd||0})" style="font-size:11px;font-weight:800;font-family:monospace;padding:4px 7px;background:var(--nv);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap">
+                  ▶ ${cl.time}${cl.timeEndFmt?' → '+cl.timeEndFmt:''}${cl.dur?` <span style="opacity:.7">(${cl.dur}s)</span>`:''}
                 </button>
                 <div style="flex:1;min-width:0">
                   <div style="font-size:12px;font-weight:700">${cl.label}</div>
@@ -3193,11 +3293,15 @@ function toggleFolderView(id) {
   if (arr) arr.textContent = open ? '▼' : '▲';
 }
 
-function jumpToClip(secs) {
+function jumpToClip(secs, end) {
   const vid = document.getElementById('sc-video');
   if (!vid || !vid.src) { toast('Carga el vídeo en este dispositivo primero', 'err'); return; }
   vid.currentTime = secs;
   vid.play();
+  if (end && end > secs) {
+    const stop = () => { if (vid.currentTime >= end) { vid.pause(); vid.removeEventListener('timeupdate', stop); } };
+    vid.addEventListener('timeupdate', stop);
+  }
 }
 
 function deleteClip(rival, cat, folder, id) {
@@ -3241,7 +3345,7 @@ Object.assign(window,{
   renderDash,
   // Scouting
   renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
-  loadScoutVideo,scVid,setVidSpeed,markClipStart,setClipCat,toggleNewFolder,
+  loadScoutVideo,scVid,setVidSpeed,markIn,markOut,resetMarks,previewClip,seekFromBar,setClipCat,toggleNewFolder,
   populateFolderSel,addScoutClip,renderClipsLibrary,toggleFolderView,
   jumpToClip,deleteClip,deleteFolder,
   // Utils

@@ -908,37 +908,19 @@ function drawShots(ctx,shots){
 function drawHeatmap(cvId,shots){
   const cv=document.getElementById(cvId);if(!cv)return;
   cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
-  // Dark background like the reference image
   ctx.fillStyle='#06061a';ctx.fillRect(0,0,CW,CH);
   if(shots.length>0){
-    // Use density per zone to drive intensity (not % — matches the style)
-    const GRID=28,gw=Math.ceil(CW/GRID),gh=Math.ceil(CH/GRID);
-    const density=new Float32Array(gw*gh);
-    shots.forEach(s=>{
-      const gx=Math.min(gw-1,Math.floor(s.x/GRID));
-      const gy=Math.min(gh-1,Math.floor(s.y/GRID));
-      density[gy*gw+gx]+= s.made?1.0:0.5; // made shots count more
-    });
-    const maxD=Math.max(...density,1);
     const off=document.createElement('canvas');off.width=CW;off.height=CH;
     const oc=off.getContext('2d');oc.globalCompositeOperation='lighter';
-    for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
-      const d=density[gy*gw+gx];if(!d)continue;
-      const t=Math.min(1,d/maxD); // 0-1 normalised density
-      const cx=gx*GRID+GRID/2,cy=gy*GRID+GRID/2;
-      const r=Math.max(32,Math.min(80,32+48*Math.pow(t,0.4)));
-      // Colour ramp: purple→magenta→orange→yellow→white (same palette as reference)
-      let R,G,B,A;
-      if(t<0.25){const u=t/0.25;R=Math.round(80+80*u);G=0;B=Math.round(120+80*u);A=0.30+0.25*u;}
-      else if(t<0.50){const u=(t-0.25)/0.25;R=Math.round(160+80*u);G=0;B=Math.round(200-150*u);A=0.55+0.15*u;}
-      else if(t<0.75){const u=(t-0.50)/0.25;R=Math.round(240+15*u);G=Math.round(80*u);B=0;A=0.70+0.15*u;}
-      else{const u=(t-0.75)/0.25;R=255;G=Math.round(80+160*u);B=Math.round(60*u);A=0.85+0.15*u;}
-      const g=oc.createRadialGradient(cx,cy,0,cx,cy,r);
-      g.addColorStop(0,`rgba(${R},${G},${B},${A})`);
-      g.addColorStop(0.5,`rgba(${R},${G},${B},${A*0.4})`);
-      g.addColorStop(1,'rgba(0,0,0,0)');
-      oc.fillStyle=g;oc.beginPath();oc.arc(cx,cy,r,0,Math.PI*2);oc.fill();
-    }
+    shots.forEach(s=>{
+      const si=50,a=s.made?.7:.42;
+      const g=oc.createRadialGradient(s.x,s.y,0,s.x,s.y,si*3);
+      g.addColorStop(0,`rgba(255,230,60,${a})`);
+      g.addColorStop(.25,`rgba(255,100,20,${a*.75})`);
+      g.addColorStop(.6,`rgba(140,0,200,${a*.35})`);
+      g.addColorStop(1,'rgba(0,0,60,0)');
+      oc.fillStyle=g;oc.beginPath();oc.arc(s.x,s.y,si*3,0,Math.PI*2);oc.fill();
+    });
     ctx.drawImage(off,0,0);
   }
   drawCourtLinesOnly(ctx);
@@ -2671,6 +2653,9 @@ function saveScoutNotes() {
 
 function exportScoutPDF() {
   if (!_scoutRival) return;
+  // Capture heatmap canvas as base64 image before opening new window
+  const scCv = document.getElementById('sc-cv');
+  const heatmapImg = scCv ? scCv.toDataURL('image/png') : '';
   // Generate a print-friendly summary in a new window
   const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
   const notes = _scoutNotes[_scoutRival] || {};
@@ -2679,6 +2664,7 @@ function exportScoutPDF() {
   const clutch = document.getElementById('sc-clutch')?.innerHTML || '';
   const tend = document.getElementById('sc-tendencies')?.innerHTML || '';
   const alerts = document.getElementById('sc-alerts')?.innerHTML || '';
+  const zones = document.getElementById('sc-zones')?.innerHTML || '';
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>Scouting — ${_scoutRival}</title>
@@ -2703,7 +2689,17 @@ function exportScoutPDF() {
       <div><h2>⚠️ Jugadores a vigilar</h2>${players}</div>
       <div><h2>📈 Tendencias</h2>${tend}<h2>🚨 Alertas</h2>${alerts}</div>
     </div>
-    <h2>⏰ Situación de últimos 2 minutos</h2>${clutch}
+    <div class="g2" style="margin-bottom:16px">
+      <div>
+        <h2 style="margin-top:0">🎯 Mapa de tiro</h2>
+        ${heatmapImg ? `<img src="${heatmapImg}" style="width:100%;border-radius:8px;border:1px solid #e2e8f0">` : '<p style="color:#94a3b8;font-size:12px">Sin tiros ubicados</p>'}
+        ${zones}
+      </div>
+      <div>
+        <h2 style="margin-top:0">⏰ Últimos 2 minutos</h2>${clutch}
+      </div>
+    </div>
+    <h2 style="display:none">placeholder</h2>
     <h2>📝 Notas del staff</h2>
     <div class="g2">
       <div><b>Pick & Roll</b><div class="note">${notes.pr||'—'}</div></div>

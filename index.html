@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -453,6 +453,10 @@ input[type=file]{display:none}
 </div>
 <!-- ═══ TAB: TIRS MANUAL ═══ -->
 <div id="t-shots" class="tab"><div class="main">
+<div class="card" style="margin-bottom:10px">
+  <div class="ct">📋 Partidos pendientes de ubicar tiros</div>
+  <div id="sh-todo"><div class="empty">Cargando...</div></div>
+</div>
 <div class="g2" style="gap:10px">
   <div>
     <div class="card">
@@ -523,7 +527,21 @@ input[type=file]{display:none}
     </div>
   </div>
   <div class="g4" id="st-kpis" style="margin-bottom:10px"></div>
-  <div class="tw"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
+  <!-- Toggle between views -->
+  <div style="display:flex;gap:6px;margin-bottom:8px">
+    <button id="st-view-agg" onclick="setStatsView('agg')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--ac);background:var(--ac);color:#fff;font-size:11px;font-weight:700;cursor:pointer">👤 Por jugador (acum.)</button>
+    <button id="st-view-all" onclick="setStatsView('all')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">📋 Todos los registros</button>
+  </div>
+  <!-- Aggregated view -->
+  <div id="st-agg-wrap" class="tw">
+    <table><thead><tr>
+      <th>#</th><th>Jugador</th><th>Equipo</th><th>PTS</th>
+      <th>TL</th><th>TL%</th><th>T2</th><th>T2%</th><th>T3</th><th>T3%</th>
+      <th>REB</th><th>AST</th><th>FC</th><th>VAL</th><th>+/-</th><th></th>
+    </tr></thead><tbody id="st-tb-agg"></tbody></table>
+  </div>
+  <!-- All records view (original) -->
+  <div id="st-all-wrap" class="tw" style="display:none"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
 </div>
 </div></div>
 
@@ -549,6 +567,7 @@ input[type=file]{display:none}
   <div class="card"><div class="ct">🔍 Conclusions</div><div id="db-ins" style="font-size:12px;line-height:1.7"></div></div>
 </div>
 <div class="card"><div class="ct">👥 Millors Parelles</div><div id="db-q"></div></div>
+<div class="card" style="margin-top:8px"><div class="ct" id="db-breakdown-title">📅 Stats por partido</div><div id="db-match-breakdown"></div></div>
 </div></div>
 
 <script type="module">
@@ -655,7 +674,7 @@ function ST(id){
   if(id==='t-eq')renderTeams();
   if(id==='t-imp')populateTeamSelects();
   if(id==='t-live')populateLvTeamSelects();
-  if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();}
+  if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
   if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
 }
@@ -760,17 +779,40 @@ function drawShots(ctx,shots){
 function drawHeatmap(cvId,shots){
   const cv=document.getElementById(cvId);if(!cv)return;
   cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
-  ctx.fillStyle='#060612';ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle='#f8fafc';ctx.fillRect(0,0,CW,CH);
   if(shots.length>0){
-    const off=document.createElement('canvas');off.width=CW;off.height=CH;
-    const oc=off.getContext('2d');oc.globalCompositeOperation='lighter';
+    // Normalize by zone: divide court into grid cells, compute made% per zone
+    // then colour by percentage not raw count — prevents over-saturation
+    const GRID=30,gw=Math.ceil(CW/GRID),gh=Math.ceil(CH/GRID);
+    const made=new Float32Array(gw*gh),total=new Float32Array(gw*gh);
     shots.forEach(s=>{
-      const si=50,a=s.made?.7:.42;
-      const g=oc.createRadialGradient(s.x,s.y,0,s.x,s.y,si*3);
-      g.addColorStop(0,`rgba(255,230,60,${a})`);g.addColorStop(.25,`rgba(255,100,20,${a*.75})`);
-      g.addColorStop(.6,`rgba(140,0,200,${a*.35})`);g.addColorStop(1,'rgba(0,0,60,0)');
-      oc.fillStyle=g;oc.beginPath();oc.arc(s.x,s.y,si*3,0,Math.PI*2);oc.fill();
+      const gx=Math.min(gw-1,Math.floor(s.x/GRID));
+      const gy=Math.min(gh-1,Math.floor(s.y/GRID));
+      total[gy*gw+gx]++;
+      if(s.made)made[gy*gw+gx]++;
     });
+    // Build smooth heatmap on offscreen canvas
+    const off=document.createElement('canvas');off.width=CW;off.height=CH;
+    const oc=off.getContext('2d');
+    // For each cell with shots, draw a gradient blob sized by log(count)
+    // coloured by made% (green=high%, red=low%)
+    const maxCount=Math.max(...total);
+    for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
+      const n=total[gy*gw+gx];if(!n)continue;
+      const pct=made[gy*gw+gx]/n; // 0-1, shooting %
+      const cx=gx*GRID+GRID/2,cy=gy*GRID+GRID/2;
+      // Radius proportional to log of count (avoids single zones dominating)
+      const r=Math.max(28,Math.min(70,28+30*Math.log1p(n)/Math.log1p(maxCount)));
+      // Alpha capped at 0.55 to keep it readable
+      const alpha=Math.min(0.55,0.18+0.37*(n/maxCount));
+      // Color: pct 0%=cold blue, 50%=yellow, 100%=hot red
+      let col;
+      if(pct>=.5){const t=(pct-.5)/.5;col=`rgba(${Math.round(220+35*t)},${Math.round(180-160*t)},${Math.round(20-20*t)},${alpha})`;}
+      else{const t=pct/.5;col=`rgba(${Math.round(60+160*t)},${Math.round(120+60*t)},${Math.round(220-200*t)},${alpha})`;}
+      const g=oc.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');
+      oc.fillStyle=g;oc.beginPath();oc.arc(cx,cy,r,0,Math.PI*2);oc.fill();
+    }
     ctx.drawImage(off,0,0);
   }
   drawCourtLinesOnly(ctx);
@@ -1772,7 +1814,8 @@ function renderStats(){
     const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
     return `<tr><td>#${p.dorsal}</td><td><b>${p.name}</b></td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
   }).join(''):`<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
-}
+
+  renderStatsAggregated();}
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
 
 // ═══════════════════════════════════════════
@@ -1877,7 +1920,8 @@ function renderDash(){
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
   if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
-}
+
+  renderDashMatchBreakdown();}
 
 // ═══════════════════════════════════════════
 // REFRESH ALL
@@ -2007,6 +2051,223 @@ function deleteMatch(id){
   if(typeof popShotSel==='function')popShotSel();
   toast('🗑️ Partido borrado');
 }
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD: per-match breakdown
+// ══════════════════════════════════════════════════════════════
+function renderDashMatchBreakdown(){
+  const el=document.getElementById('db-match-breakdown');
+  const title=document.getElementById('db-breakdown-title');
+  if(!el)return;
+  const mf=document.getElementById('db-mf')?.value||'';
+  const tf=document.getElementById('db-tf')?.value||'';
+  const pf=document.getElementById('db-pf')?.value||'';
+  const matchesToShow=mf?S.matches.filter(m=>m.id==mf):S.matches;
+  if(!matchesToShow.length){el.innerHTML='<div class="empty">Sin partidos</div>';return;}
+  if(title)title.textContent=`📅 Stats por partido${pf?' — '+pf.split(' ')[0]:tf?' — '+tf:''}`;
+  el.innerHTML=matchesToShow.map(m=>{
+    // Get all players from this match filtered by team/player selection
+    let players=[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,matchName:m.name,isHome:true})),
+                 ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,matchName:m.name,isHome:false}))];
+    if(tf)players=players.filter(p=>p.team===tf);
+    if(pf)players=players.filter(p=>p.name===pf);
+    if(!players.length)return '';
+    // Aggregate stats for this match+filter
+    const totPts=players.reduce((s,p)=>s+(p.pts||0),0);
+    const t2M=players.reduce((s,p)=>s+(p.t2Made||0),0),t2A=players.reduce((s,p)=>s+(p.t2Att||0),0);
+    const t3M=players.reduce((s,p)=>s+(p.t3Made||0),0),t3A=players.reduce((s,p)=>s+(p.t3Att||0),0);
+    const tlM=players.reduce((s,p)=>s+(p.tlMade||0),0),tlA=players.reduce((s,p)=>s+(p.tlAtt||0),0);
+    const reb=players.reduce((s,p)=>s+(p.reb||0),0);
+    const ast=players.reduce((s,p)=>s+(p.ast||0),0);
+    const bestP=players.sort((a,b)=>(b.pts||0)-(a.pts||0))[0];
+    const win=m.scoreHome>m.scoreAway?m.homeTeam:m.scoreAway>m.scoreHome?m.awayTeam:'Empate';
+    return `<div style="border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;overflow:hidden">
+      <div style="background:var(--nv);color:#fff;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleMatchBreakdown('mbd-${m.id}')">
+        <div>
+          <div style="font-weight:700;font-size:13px">${m.homeTeam} ${m.scoreHome} — ${m.scoreAway} ${m.awayTeam}</div>
+          <div style="font-size:10px;opacity:.7">${m.date||''}${m.competition?' · '+m.competition:''} · ${win==='Empate'?'🤝 Empate':'🏆 '+win}</div>
+        </div>
+        <div style="text-align:right;font-size:12px"><b>${totPts}</b> pts<span style="opacity:.6;font-size:10px;display:block">${players.length} jug.</span></div>
+      </div>
+      <div id="mbd-${m.id}" style="display:none;padding:10px 12px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:20px">${totPts}</div><div class="kl">Puntos</div></div>
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:20px">${t2A?Math.round(t2M/t2A*100)+'%':'—'}</div><div class="kl">T2% (${t2M}/${t2A})</div></div>
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:20px">${t3A?Math.round(t3M/t3A*100)+'%':'—'}</div><div class="kl">T3% (${t3M}/${t3A})</div></div>
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:20px">${tlA?Math.round(tlM/tlA*100)+'%':'—'}</div><div class="kl">TL% (${tlM}/${tlA})</div></div>
+        </div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:#f1f5f9">${['#','Jugador','PTS','MIN','TL','T2','T3','REB','AST','FC','VAL','+/-'].map(h=>`<th style="padding:4px 6px;text-align:left;font-weight:700;color:var(--t2)">${h}</th>`).join('')}</tr></thead>
+          <tbody>${players.sort((a,b)=>(b.pts||0)-(a.pts||0)).map((p,i)=>{
+            const pm=p.pm||0,val=p.val||0;
+            return `<tr style="border-top:1px solid #f0f4f8${bestP&&p.name===bestP.name?' background:#fffbeb':''}">
+              <td style="padding:4px 6px">#${p.dorsal}</td>
+              <td style="padding:4px 6px;font-weight:${i===0?'700':'400'}">${p.name.split(' ')[0]}</td>
+              <td style="padding:4px 6px;font-weight:700">${p.pts||0}</td>
+              <td style="padding:4px 6px">${p.min||'—'}</td>
+              <td style="padding:4px 6px">${p.tl||'—'}</td>
+              <td style="padding:4px 6px">${p.t2||'—'}</td>
+              <td style="padding:4px 6px">${p.t3||'—'}</td>
+              <td style="padding:4px 6px">${p.reb||'—'}</td>
+              <td style="padding:4px 6px">${p.ast||'—'}</td>
+              <td style="padding:4px 6px">${p.fc||0}</td>
+              <td style="padding:4px 6px;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val}</td>
+              <td style="padding:4px 6px;font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
+            </tr>`;}).join('')}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleMatchBreakdown(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHOTS TAB — to-do list of matches missing shot locations
+// ══════════════════════════════════════════════════════════════
+function renderShotsTodo(){
+  const el=document.getElementById('sh-todo');
+  if(!el)return;
+  // A match "needs locations" if it was imported (no live shots) and has players
+  // but has shots in S.shots that lack coordinates, OR has no shots at all
+  const todo=S.matches.filter(m=>{
+    if(m.type==='live')return false; // live matches already have locations
+    // Count shots already placed for this match
+    const placed=S.shots.filter(s=>(s.mId||s.matchId)==m.id).length;
+    // Count total FGA from player stats
+    const totalFGA=(m.homePlayers||[]).concat(m.awayPlayers||[])
+      .reduce((sum,p)=>sum+(p.t2Att||0)+(p.t3Att||0),0);
+    return placed<totalFGA; // still shots left to place
+  });
+  if(!todo.length){
+    el.innerHTML='<div style="color:var(--gn);font-size:11px;font-weight:600;padding:4px 0">✅ Todos los partidos tienen ubicaciones completas</div>';
+    return;
+  }
+  el.innerHTML=todo.map(m=>{
+    const placed=S.shots.filter(s=>(s.mId||s.matchId)==m.id).length;
+    const totalFGA=(m.homePlayers||[]).concat(m.awayPlayers||[])
+      .reduce((sum,p)=>sum+(p.t2Att||0)+(p.t3Att||0),0);
+    const pct=totalFGA?Math.round(placed/totalFGA*100):0;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${m.homeTeam} vs ${m.awayTeam}</div>
+        <div style="font-size:10px;color:var(--t3)">${m.date||''} · ${placed}/${totalFGA} tiros ubicados</div>
+        <div style="height:4px;background:#e2e8f0;border-radius:2px;margin-top:4px">
+          <div style="height:4px;background:${pct===100?'var(--gn)':'var(--ac)'};border-radius:2px;width:${pct}%;transition:width .3s"></div>
+        </div>
+      </div>
+      <button onclick="quickSelectMatch('${m.id}')" style="background:var(--ac);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">Ubicar →</button>
+    </div>`;
+  }).join('');
+}
+function quickSelectMatch(id){
+  // Switch to shots tab and pre-select this match
+  ST('t-shots');
+  const sel=document.getElementById('sh-match');
+  if(sel){sel.value=id;shMatchChange();}
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATS TAB — aggregate per player with expandable match rows
+// ══════════════════════════════════════════════════════════════
+function renderStatsAggregated(){
+  const mf=document.getElementById('st-mf')?.value||'';
+  const tf=document.getElementById('st-tf')?.value||'';
+  // Build aggregated player map
+  const playerMap={};
+  S.matches.forEach(m=>{
+    if(mf&&m.id!=mf)return;
+    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id,mName:m.name,mScoreH:m.scoreHome,mScoreA:m.scoreAway})),
+     ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id,mName:m.name,mScoreH:m.scoreHome,mScoreA:m.scoreAway}))]
+    .forEach(p=>{
+      if(tf&&p.team!==tf)return;
+      const key=p.name+'|'+p.team;
+      if(!playerMap[key]){
+        playerMap[key]={name:p.name,dorsal:p.dorsal,team:p.team,pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,reb:0,ast:0,fc:0,pm:0,val:0,min:0,games:[]};
+      }
+      const agg=playerMap[key];
+      agg.pts+=(p.pts||0);agg.t2Made+=(p.t2Made||0);agg.t2Att+=(p.t2Att||0);
+      agg.t3Made+=(p.t3Made||0);agg.t3Att+=(p.t3Att||0);
+      agg.tlMade+=(p.tlMade||0);agg.tlAtt+=(p.tlAtt||0);
+      agg.reb+=(p.reb||0);agg.ast+=(p.ast||0);agg.fc+=(p.fc||0);
+      agg.pm+=(p.pm||0);agg.val+=(p.val||0);agg.min+=(p.min||0);
+      agg.games.push(p);
+    });
+  });
+  const players=Object.values(playerMap);
+  const el=document.getElementById('st-tb-agg');
+  if(!el)return;
+  if(!players.length){el.innerHTML=`<tr><td colspan="16" class="no-d">Sin datos</td></tr>`;return;}
+  players.sort((a,b)=>b.pts-a.pts);
+  el.innerHTML=players.map(p=>{
+    const t2p=p.t2Att?Math.round(p.t2Made/p.t2Att*100)+'%':'—';
+    const t3p=p.t3Att?Math.round(p.t3Made/p.t3Att*100)+'%':'—';
+    const tlp=p.tlAtt?Math.round(p.tlMade/p.tlAtt*100)+'%':'—';
+    const pm=p.pm,val=p.val;
+    const g=p.games.length;
+    return `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" onclick="togglePlayerGames('pg-${p.name.replace(/\s/g,'_')}-${p.team.replace(/\s/g,'_')}')">
+      <td style="padding:5px 6px">#${p.dorsal}</td>
+      <td style="padding:5px 6px;font-weight:700">${p.name} <span style="color:var(--t3);font-size:9px">(${g}P)</span></td>
+      <td style="padding:5px 6px"><span class="chip cgr">${p.team}</span></td>
+      <td style="padding:5px 6px;font-weight:700">${p.pts}</td>
+      <td style="padding:5px 6px">${p.tlMade}/${p.tlAtt}</td>
+      <td style="padding:5px 6px">${tlp}</td>
+      <td style="padding:5px 6px">${p.t2Made}/${p.t2Att}</td>
+      <td style="padding:5px 6px">${t2p}</td>
+      <td style="padding:5px 6px">${p.t3Made}/${p.t3Att}</td>
+      <td style="padding:5px 6px">${t3p}</td>
+      <td style="padding:5px 6px">${p.reb||'—'}</td>
+      <td style="padding:5px 6px">${p.ast||'—'}</td>
+      <td style="padding:5px 6px">${p.fc}</td>
+      <td style="padding:5px 6px;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val}</td>
+      <td style="padding:5px 6px;font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
+      <td style="padding:5px 6px;color:var(--t3);font-size:11px">▼</td>
+    </tr>
+    <tr id="pg-${p.name.replace(/\s/g,'_')}-${p.team.replace(/\s/g,'_')}" style="display:none;background:#f8fafc">
+      <td colspan="16" style="padding:0">
+        <table style="width:100%;border-collapse:collapse;font-size:10px">
+          <thead><tr style="background:#e2e8f0">${['Partido','PTS','TL','T2','T3','REB','AST','FC','VAL','+/-'].map(h=>`<th style="padding:3px 8px;text-align:left;color:var(--t2)">${h}</th>`).join('')}</tr></thead>
+          <tbody>${p.games.map(g=>{const gpm=g.pm||0,gval=g.val||0;return `<tr style="border-top:1px solid #e2e8f0">
+            <td style="padding:3px 8px;color:var(--t3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.mName||'—'}</td>
+            <td style="padding:3px 8px;font-weight:700">${g.pts||0}</td>
+            <td style="padding:3px 8px">${g.tl||'—'}</td>
+            <td style="padding:3px 8px">${g.t2||'—'}</td>
+            <td style="padding:3px 8px">${g.t3||'—'}</td>
+            <td style="padding:3px 8px">${g.reb||'—'}</td>
+            <td style="padding:3px 8px">${g.ast||'—'}</td>
+            <td style="padding:3px 8px">${g.fc||0}</td>
+            <td style="padding:3px 8px;color:${gval>0?'var(--gn)':gval<0?'#dc2626':'inherit'}">${gval}</td>
+            <td style="padding:3px 8px;font-weight:700;color:${gpm>0?'var(--gn)':gpm<0?'#dc2626':'inherit'}">${gpm>0?'+':''}${gpm}</td>
+          </tr>`}).join('')}
+          </tbody>
+        </table>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function togglePlayerGames(id){
+  const el=document.getElementById(id);if(!el)return;
+  el.style.display=el.style.display==='none'?'table-row':'none';
+}
+
+
+// Stats view toggle
+function setStatsView(v){
+  document.getElementById('st-agg-wrap').style.display=v==='agg'?'block':'none';
+  document.getElementById('st-all-wrap').style.display=v==='all'?'block':'none';
+  document.getElementById('st-view-agg').style.background=v==='agg'?'var(--ac)':'#fff';
+  document.getElementById('st-view-agg').style.color=v==='agg'?'#fff':'var(--t2)';
+  document.getElementById('st-view-agg').style.borderColor=v==='agg'?'var(--ac)':'var(--b2)';
+  document.getElementById('st-view-all').style.background=v==='all'?'var(--ac)':'#fff';
+  document.getElementById('st-view-all').style.color=v==='all'?'#fff':'var(--t2)';
+  document.getElementById('st-view-all').style.borderColor=v==='all'?'var(--ac)':'var(--b2)';
+  if(v==='agg')renderStatsAggregated();
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -2022,13 +2283,13 @@ Object.assign(window,{
   showFoulPopup,setFoulTL,foulShooterSel,confirmAssist,
   closeSP,tlClick,setPer,toggleTimer,resetTimer,
   // Shots
-  shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,
+  shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
-  renderStats,ssort,renderMatchHistory,deleteMatch,
+  renderStats,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,
   // Dashboard
   renderDash,
   // Utils
-  rAll,svL,
+  rAll,svL,renderDashMatchBreakdown,toggleMatchBreakdown,
 });
 
 ldLS();

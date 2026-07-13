@@ -2521,7 +2521,7 @@ function renderScouting() {
     const el = document.getElementById('sc-note-' + k);
     if (el) el.value = notes[k] || '';
   });
-  renderClipsList();
+  renderClipsLibrary();
 }
 
 function renderScoutShots() {
@@ -3241,7 +3241,9 @@ Object.assign(window,{
   renderDash,
   // Scouting
   renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
-  loadScoutVideo,scVid,setVidSpeed,addScoutClip,toggleClipTag,jumpToClip,deleteClip,
+  loadScoutVideo,scVid,setVidSpeed,markClipStart,setClipCat,toggleNewFolder,
+  populateFolderSel,addScoutClip,renderClipsLibrary,toggleFolderView,
+  jumpToClip,deleteClip,deleteFolder,
   // Utils
   rAll,svL,
 });

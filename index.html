@@ -452,6 +452,123 @@ input[type=file]{display:none}
     </div>
   </div>
 </div>
+<!-- ═══ TAB: TIRS MANUAL ═══ -->
+<div id="t-shots" class="tab"><div class="main">
+<div class="card" style="margin-bottom:10px">
+  <div class="ct">📋 Partidos pendientes de ubicar tiros</div>
+  <div id="sh-todo"><div class="empty">Cargando...</div></div>
+</div>
+<div class="g2" style="gap:10px">
+  <div>
+    <div class="card">
+      <div class="ct">Afegir Tirs</div>
+      <div class="fr" style="margin-bottom:7px">
+        <div class="fc"><label>Partit</label><select id="sh-match" onchange="shMatchChange()"><option value="">— selecciona —</option></select></div>
+        <div class="fc" style="flex:0;min-width:80px"><label>Equip</label>
+          <select id="sh-team" onchange="shTeamChange()">
+            <option value="home">Local</option><option value="away">Visitant</option>
+          </select>
+        </div>
+      </div>
+      <!-- Sticky player banner -->
+      <div id="sh-sticky-banner" style="display:none;background:#fff0ee;border:1.5px solid var(--ac);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">🎯</span>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--t2)">Registrant tirs de:</div>
+            <div style="font-size:13px;font-weight:800;color:var(--ac)" id="sh-sticky-name">—</div>
+          </div>
+          <span id="sh-sticky-count" style="font-size:11px;color:var(--t3);white-space:nowrap">0 tirs</span>
+          <button onclick="clearStickyPlayer()" style="background:#fee2e2;border:none;color:#991b1b;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+        </div>
+      </div>
+      <div id="sh-no-player-hint" style="background:#dbeafe;border-radius:6px;padding:6px 9px;font-size:11px;color:#1e40af;margin-bottom:6px">
+        👆 Selecciona un jugador (queda seleccionat per tots els tirs)
+      </div>
+      <label>Jugador</label>
+      <div id="sh-pg" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-height:170px;overflow-y:auto;margin:4px 0 8px"></div>
+      <div style="background:#dbeafe;border-radius:6px;padding:6px 9px;font-size:11px;color:#1e40af">
+        👆 Clica al camp · Apareixerà "Anotado / Fallado" automàticament
+      </div>
+      <div style="margin-top:8px"><label>Visualitzar</label>
+        <select id="sh-view" onchange="renderShotMap()" style="margin-top:3px">
+          <option value="all">Todos els tirs del partit</option>
+          <option value="player">Jugador seleccionat</option>
+          <option value="home">Equip local</option>
+          <option value="away">Equip visitant</option>
+        </select>
+      </div>
+      <div id="sh-count" style="margin-top:6px;font-size:11px;color:var(--t3)"></div>
+    </div>
+  </div>
+  <div>
+    <div class="card" style="padding:10px">
+      <div class="ct">Camp de tir <span id="sh-pct" style="font-size:11px;color:var(--t2);font-weight:400"></span></div>
+      <div class="cw"><canvas id="sh-cv"></canvas></div>
+      <div style="display:flex;gap:10px;margin-top:5px;font-size:11px;color:var(--t3);align-items:center">
+        <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
+        <button onclick="undoLastShot()" style="margin-left:auto;background:#fff;border:1.5px solid var(--b2);color:var(--t2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer">↩ Desfer</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<!-- ═══ TAB: STATS ═══ -->
+<div id="t-stats" class="tab"><div class="main">
+<div class="card" style="margin-bottom:8px">
+  <div class="ct">📜 Historial de partidos <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
+  <div id="st-match-history"><div class="empty">Sin partidos todavía</div></div>
+</div>
+<div class="card">
+  <div class="ct">Estadísticas
+    <div style="display:flex;gap:5px">
+      <select id="st-mf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los partidos</option></select>
+      <select id="st-tf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los equipos</option></select>
+    </div>
+  </div>
+  <div class="g4" id="st-kpis" style="margin-bottom:10px"></div>
+  <!-- Toggle between views -->
+  <div style="display:flex;gap:6px;margin-bottom:8px">
+    <button id="st-view-agg" onclick="setStatsView('agg')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--ac);background:var(--ac);color:#fff;font-size:11px;font-weight:700;cursor:pointer">👤 Por jugador (acum.)</button>
+    <button id="st-view-all" onclick="setStatsView('all')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">📋 Todos los registros</button>
+  </div>
+  <!-- Aggregated view -->
+  <div id="st-agg-wrap" class="tw">
+    <table><thead><tr>
+      <th>#</th><th>Jugador</th><th>Equipo</th><th>PTS</th>
+      <th>TL</th><th>TL%</th><th>T2</th><th>T2%</th><th>T3</th><th>T3%</th>
+      <th>REB</th><th>AST</th><th>FC</th><th>VAL</th><th>+/-</th><th></th>
+    </tr></thead><tbody id="st-tb-agg"></tbody></table>
+  </div>
+  <!-- All records view (original) -->
+  <div id="st-all-wrap" class="tw" style="display:none"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
+</div>
+</div></div>
+
+<!-- ═══ TAB: DASHBOARD ═══ -->
+<div id="t-dash" class="tab"><div class="main">
+<div class="card" style="padding:10px;margin-bottom:8px">
+  <div class="fr" style="margin-bottom:0">
+    <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
+    <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
+    <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option></select></div>
+  </div>
+</div>
+<div class="g2" style="margin-bottom:10px">
+  <div class="card"><div class="ct">Resum</div><div id="db-kpis" class="g4" style="gap:7px"></div></div>
+  <div class="card">
+    <div class="ct">🔥 Mapa de tir</div>
+    <div class="cw"><canvas id="db-cv"></canvas></div>
+    <div id="db-zs" style="margin-top:7px"></div>
+  </div>
+</div>
+<div class="g2" style="margin-bottom:10px">
+  <div class="card"><div class="ct">🏆 Top Anotadors</div><div id="db-top"></div></div>
+  <div class="card"><div class="ct">🔍 Conclusions</div><div id="db-ins" style="font-size:12px;line-height:1.7"></div></div>
+</div>
+<div class="card"><div class="ct">👥 Millors Parelles</div><div id="db-q"></div></div>
+</div></div>
 <!-- ═══ TAB: SCOUTING ═══ -->
 <div id="t-scout" class="tab"><div class="main">
 
@@ -659,123 +776,6 @@ input[type=file]{display:none}
 </div></div>
 
 
-<!-- ═══ TAB: TIRS MANUAL ═══ -->
-<div id="t-shots" class="tab"><div class="main">
-<div class="card" style="margin-bottom:10px">
-  <div class="ct">📋 Partidos pendientes de ubicar tiros</div>
-  <div id="sh-todo"><div class="empty">Cargando...</div></div>
-</div>
-<div class="g2" style="gap:10px">
-  <div>
-    <div class="card">
-      <div class="ct">Afegir Tirs</div>
-      <div class="fr" style="margin-bottom:7px">
-        <div class="fc"><label>Partit</label><select id="sh-match" onchange="shMatchChange()"><option value="">— selecciona —</option></select></div>
-        <div class="fc" style="flex:0;min-width:80px"><label>Equip</label>
-          <select id="sh-team" onchange="shTeamChange()">
-            <option value="home">Local</option><option value="away">Visitant</option>
-          </select>
-        </div>
-      </div>
-      <!-- Sticky player banner -->
-      <div id="sh-sticky-banner" style="display:none;background:#fff0ee;border:1.5px solid var(--ac);border-radius:8px;padding:8px 10px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:14px">🎯</span>
-          <div style="flex:1">
-            <div style="font-size:10px;color:var(--t2)">Registrant tirs de:</div>
-            <div style="font-size:13px;font-weight:800;color:var(--ac)" id="sh-sticky-name">—</div>
-          </div>
-          <span id="sh-sticky-count" style="font-size:11px;color:var(--t3);white-space:nowrap">0 tirs</span>
-          <button onclick="clearStickyPlayer()" style="background:#fee2e2;border:none;color:#991b1b;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
-        </div>
-      </div>
-      <div id="sh-no-player-hint" style="background:#dbeafe;border-radius:6px;padding:6px 9px;font-size:11px;color:#1e40af;margin-bottom:6px">
-        👆 Selecciona un jugador (queda seleccionat per tots els tirs)
-      </div>
-      <label>Jugador</label>
-      <div id="sh-pg" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-height:170px;overflow-y:auto;margin:4px 0 8px"></div>
-      <div style="background:#dbeafe;border-radius:6px;padding:6px 9px;font-size:11px;color:#1e40af">
-        👆 Clica al camp · Apareixerà "Anotado / Fallado" automàticament
-      </div>
-      <div style="margin-top:8px"><label>Visualitzar</label>
-        <select id="sh-view" onchange="renderShotMap()" style="margin-top:3px">
-          <option value="all">Todos els tirs del partit</option>
-          <option value="player">Jugador seleccionat</option>
-          <option value="home">Equip local</option>
-          <option value="away">Equip visitant</option>
-        </select>
-      </div>
-      <div id="sh-count" style="margin-top:6px;font-size:11px;color:var(--t3)"></div>
-    </div>
-  </div>
-  <div>
-    <div class="card" style="padding:10px">
-      <div class="ct">Camp de tir <span id="sh-pct" style="font-size:11px;color:var(--t2);font-weight:400"></span></div>
-      <div class="cw"><canvas id="sh-cv"></canvas></div>
-      <div style="display:flex;gap:10px;margin-top:5px;font-size:11px;color:var(--t3);align-items:center">
-        <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
-        <button onclick="undoLastShot()" style="margin-left:auto;background:#fff;border:1.5px solid var(--b2);color:var(--t2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer">↩ Desfer</button>
-      </div>
-    </div>
-  </div>
-</div>
-</div></div>
-
-<!-- ═══ TAB: STATS ═══ -->
-<div id="t-stats" class="tab"><div class="main">
-<div class="card" style="margin-bottom:8px">
-  <div class="ct">📜 Historial de partidos <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
-  <div id="st-match-history"><div class="empty">Sin partidos todavía</div></div>
-</div>
-<div class="card">
-  <div class="ct">Estadísticas
-    <div style="display:flex;gap:5px">
-      <select id="st-mf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los partidos</option></select>
-      <select id="st-tf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los equipos</option></select>
-    </div>
-  </div>
-  <div class="g4" id="st-kpis" style="margin-bottom:10px"></div>
-  <!-- Toggle between views -->
-  <div style="display:flex;gap:6px;margin-bottom:8px">
-    <button id="st-view-agg" onclick="setStatsView('agg')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--ac);background:var(--ac);color:#fff;font-size:11px;font-weight:700;cursor:pointer">👤 Por jugador (acum.)</button>
-    <button id="st-view-all" onclick="setStatsView('all')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">📋 Todos los registros</button>
-  </div>
-  <!-- Aggregated view -->
-  <div id="st-agg-wrap" class="tw">
-    <table><thead><tr>
-      <th>#</th><th>Jugador</th><th>Equipo</th><th>PTS</th>
-      <th>TL</th><th>TL%</th><th>T2</th><th>T2%</th><th>T3</th><th>T3%</th>
-      <th>REB</th><th>AST</th><th>FC</th><th>VAL</th><th>+/-</th><th></th>
-    </tr></thead><tbody id="st-tb-agg"></tbody></table>
-  </div>
-  <!-- All records view (original) -->
-  <div id="st-all-wrap" class="tw" style="display:none"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
-</div>
-</div></div>
-
-<!-- ═══ TAB: DASHBOARD ═══ -->
-<div id="t-dash" class="tab"><div class="main">
-<div class="card" style="padding:10px;margin-bottom:8px">
-  <div class="fr" style="margin-bottom:0">
-    <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
-    <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
-    <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option></select></div>
-  </div>
-</div>
-<div class="g2" style="margin-bottom:10px">
-  <div class="card"><div class="ct">Resum</div><div id="db-kpis" class="g4" style="gap:7px"></div></div>
-  <div class="card">
-    <div class="ct">🔥 Mapa de tir</div>
-    <div class="cw"><canvas id="db-cv"></canvas></div>
-    <div id="db-zs" style="margin-top:7px"></div>
-  </div>
-</div>
-<div class="g2" style="margin-bottom:10px">
-  <div class="card"><div class="ct">🏆 Top Anotadors</div><div id="db-top"></div></div>
-  <div class="card"><div class="ct">🔍 Conclusions</div><div id="db-ins" style="font-size:12px;line-height:1.7"></div></div>
-</div>
-<div class="card"><div class="ct">👥 Millors Parelles</div><div id="db-q"></div></div>
-</div></div>
 
 <script type="module">
 // ═══════════════════════════════════════════

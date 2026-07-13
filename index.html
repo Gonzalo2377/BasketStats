@@ -3003,9 +3003,6 @@ function _saveClips() {
 }
 
 // ── Sync S.clips into Firebase (add to svL payload) ──────────────────────────
-// Patch svL to include clips
-const _origSvL = svL;
-
 // ── Video load ────────────────────────────────────────────────────────────────
 function loadScoutVideo(evt) {
   const file = evt.target.files[0]; if (!file) return;

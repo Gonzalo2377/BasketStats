@@ -121,6 +121,7 @@ input[type=file]{display:none}
   <div class="logo">Bascat<span>App</span></div>
   <span class="bge">β</span>
   <div class="tr">
+    <button onclick="exportBackup()" title="Descargar copia de seguridad de todos los datos" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📦 Backup</button>
     <span id="topst" style="font-size:11px;opacity:.65"></span>
     <span id="sync-status" style="font-size:11px;display:flex;align-items:center;gap:4px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#94A3B8;display:inline-block;transition:background .3s"></span>
@@ -237,6 +238,7 @@ input[type=file]{display:none}
 <div id="t-live" class="tab"><div class="main">
   <!-- Setup -->
   <div id="lv-setup" class="card">
+<div id="lv-resume-banner" style="display:none;margin-bottom:10px"></div>
     <div class="ct">Configurar Partido en Directo</div>
     <div class="fr">
       <div class="fc">
@@ -815,7 +817,7 @@ input[type=file]{display:none}
 // FIREBASE SETUP
 // ═══════════════════════════════════════════
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCUUqhC86_f-_2jVT49r8W5uen7QkwcZJ4",
@@ -828,7 +830,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const DATA_DOC = doc(db, 'bascatapp', 'data');
+const DATA_DOC = doc(db, 'bascatapp', 'data'); // legacy single-doc (kept as backup)
+const META_DOC = doc(db, 'bascatapp', 'meta');
+const CLIPS_DOC = doc(db, 'bascatapp', 'clipsdoc');
+const MATCHES_COL = collection(db, 'bascatapp', 'data', 'matches');
+// djb2 hash to detect which matches actually changed (avoid rewriting everything)
+function _hash(str){let h=5381;for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))|0;}return h;}
+let _matchHashes={};
 
 // ═══════════════════════════════════════════
 // CLOUDINARY (clips de vídeo) — plan gratis, sin tarjeta
@@ -864,7 +872,7 @@ async function uploadClipToCloud(blob, rival, onProgress) {
 // ═══════════════════════════════════════════
 // STATE & PERSISTENCE
 // ═══════════════════════════════════════════
-let S = {teams:[], matches:[], shots:[]};
+let S = {teams:[], matches:[], shots:[], clips:{}};
 let _saving = false;
 let _saveTimer = null;
 
@@ -884,13 +892,26 @@ function svL() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async () => {
     try {
-      await setDoc(DATA_DOC, {
-        teams: S.teams,
-        matches: S.matches,
-        shots: S.shots,
-        clips: S.clips || {},
-        updatedAt: Date.now()
-      });
+      // Meta (teams) + clips: small docs, always written
+      await setDoc(META_DOC, { teams: S.teams, updatedAt: Date.now() });
+      await setDoc(CLIPS_DOC, { clips: S.clips || {} });
+      // Matches: ONE DOCUMENT PER MATCH (each with its placed shots embedded).
+      // Only rewrite matches whose content changed; delete removed ones.
+      const seen = new Set();
+      for (const m of S.matches) {
+        const id = String(m.id);
+        seen.add(id);
+        const placedShots = S.shots.filter(s => (s.mId || s.matchId) == m.id);
+        const payload = { ...m, placedShots };
+        const h = _hash(JSON.stringify(payload));
+        if (_matchHashes[id] !== h) {
+          await setDoc(doc(MATCHES_COL, id), payload);
+          _matchHashes[id] = h;
+        }
+      }
+      for (const id of Object.keys(_matchHashes)) {
+        if (!seen.has(id)) { try { await deleteDoc(doc(MATCHES_COL, id)); } catch(e){} delete _matchHashes[id]; }
+      }
       setSyncStatus('ok');
     } catch(e) {
       console.error('Firebase save error:', e);
@@ -900,32 +921,66 @@ function svL() {
   }, 800);
 }
 
-// Real-time listener — updates all clients automatically
-function ldLS() {
+function _refreshAfterSync(){
+  setSyncStatus('ok');
+  rAll();
+  renderTeams();
+  populateTeamSelects();
+  populateLvTeamSelects();
+  if(document.getElementById('t-scout')?.classList.contains('active'))renderClipsLibrary();
+}
+
+// Real-time listeners on the sharded structure. Each match lives in its own
+// Firestore document, so the old 1MB single-document ceiling is gone: the
+// only per-document limit now applies to ONE match (~50-100KB), never the whole club.
+async function ldLS() {
   setSyncStatus('conn');
-  onSnapshot(DATA_DOC, (snap) => {
-    if (snap.exists()) {
-      const d = snap.data();
-      S = {
-        teams:   d.teams   || [],
-        matches: d.matches || [],
-        shots:   d.shots   || [],
-        clips:   d.clips   || {}
-      };
-    } else {
-      S = {teams:[], matches:[], shots:[], clips:{}};
+  // ── One-time migration from legacy single doc ──
+  try {
+    const metaSnap = await getDoc(META_DOC);
+    if (!metaSnap.exists()) {
+      const legacy = await getDoc(DATA_DOC);
+      if (legacy.exists()) {
+        const d = legacy.data();
+        await setDoc(META_DOC, { teams: d.teams || [], migratedAt: Date.now() });
+        await setDoc(CLIPS_DOC, { clips: d.clips || {} });
+        const shots = d.shots || [];
+        for (const m of (d.matches || [])) {
+          const placedShots = shots.filter(s => (s.mId || s.matchId) == m.id);
+          await setDoc(doc(MATCHES_COL, String(m.id)), { ...m, placedShots });
+        }
+        console.log('✓ Migración a estructura por-partido completada (el doc antiguo queda como backup)');
+      } else {
+        await setDoc(META_DOC, { teams: [], createdAt: Date.now() });
+      }
     }
-    setSyncStatus('ok');
-    rAll();
-    // Refresh current tab renders
-    renderTeams();
-    populateTeamSelects();
-    populateLvTeamSelects();
+  } catch(e) { console.error('Migration error:', e); }
+
+  onSnapshot(META_DOC, (snap) => {
+    S.teams = snap.exists() ? (snap.data().teams || []) : [];
+    _refreshAfterSync();
+  }, (err) => { console.error(err); setSyncStatus('error'); });
+
+  onSnapshot(CLIPS_DOC, (snap) => {
+    S.clips = snap.exists() ? (snap.data().clips || {}) : {};
     if(document.getElementById('t-scout')?.classList.contains('active'))renderClipsLibrary();
-  }, (err) => {
-    console.error('Firebase listener error:', err);
-    setSyncStatus('error');
-  });
+  }, (err) => { console.error(err); });
+
+  onSnapshot(MATCHES_COL, (qs) => {
+    const matches = [], shots = [];
+    qs.forEach(dSnap => {
+      const m = dSnap.data();
+      const ps = m.placedShots || [];
+      delete m.placedShots;
+      matches.push(m);
+      shots.push(...ps);
+      _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
+    });
+    matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+    S.matches = matches;
+    S.shots = shots;
+    _refreshAfterSync();
+  }, (err) => { console.error(err); setSyncStatus('error'); });
 }
 
 function toast(msg,type='ok'){
@@ -947,7 +1002,7 @@ function ST(id){
   document.querySelectorAll('.nb')[ts.indexOf(id)].classList.add('active');
   if(id==='t-eq')renderTeams();
   if(id==='t-imp')populateTeamSelects();
-  if(id==='t-live')populateLvTeamSelects();
+  if(id==='t-live'){populateLvTeamSelects();checkLiveResume();}
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
   if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
@@ -1670,6 +1725,17 @@ function parseMatch(){
   };
   showImpPrev(_parsed);
   if(window._lastAutoSavedId)S.matches=S.matches.filter(m=>m.id!==window._lastAutoSavedId);
+  // Duplicate detection: same two teams + same date → replace (keeps id so placed shots survive)
+  const dup=S.matches.find(m=>m.id!==_parsed.id&&m.id!==window._lastAutoSavedId
+    &&m.homeTeam===_parsed.homeTeam&&m.awayTeam===_parsed.awayTeam
+    &&(m.date||'')===( _parsed.date||''));
+  if(dup){
+    if(confirm(`Ya existe "${dup.homeTeam} vs ${dup.awayTeam}"${dup.date?' del '+dup.date:''}.\n\n¿Reemplazarlo con esta importación? (se conservan los tiros ubicados)`)){
+      _parsed.id=dup.id; // keep id → S.shots links survive
+      _parsed.shots=dup.shots||[];
+      S.matches=S.matches.filter(m=>m.id!==dup.id);
+    } // if declined: keep both (new one gets its own id)
+  }
   S.matches=S.matches.filter(m=>m.id!==_parsed.id);
   S.matches.push(_parsed);
   window._lastAutoSavedId=_parsed.id;
@@ -1707,23 +1773,7 @@ function clrImp(){['i-hs','i-as','i-cr','i-date','i-comp'].forEach(id=>document.
 // ═══════════════════════════════════════════
 let lv={hn:'',an:'',pl:{home:[],away:[]},st:{home:{},away:{}},score:{home:0,away:0},period:1,curMin:0,actTeam:'home',selPl:null,log:[],events:[],onCourt:{home:new Set(),away:new Set()},stType:'made',shots:[],subEvents:[],periodScores:[],statsVisible:true,timer:{running:false,seconds:600,interval:null},courtView:'live'};
 
-function startLive(){
-  const hn=document.getElementById('lv-hn').value.trim(),an=document.getElementById('lv-an').value.trim();
-  if(!hn||!an){setSt('lv-st','Debes poner los nombres de los equipos.','err');return;}
-  lv.hn=hn;lv.an=an;
-  lv.pl.home=parsePlList(document.getElementById('lv-hp').value);
-  lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
-  if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
-  lv.st={home:{},away:{}};lv.periodScores=[];
-  ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0};}));
-  lv.timer={running:false,seconds:600,interval:null};
-  lv.score={home:0,away:0};lv.period=1;lv.curMin=0;
-  lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
-  lv.onCourt={home:new Set(),away:new Set()};lv.statsVisible=true;lv.courtView='live';
-  document.getElementById('lv-setup').style.display='none';
-  document.getElementById('lv-panel').style.display='block';
-  document.getElementById('lv-hl').textContent=hn;
-  document.getElementById('lv-al').textContent=an;
+function bindLvCourt(){
   const cv=document.getElementById('lv-cv');
   cv.width=CW;cv.height=CH;
   drawCourt(cv.getContext('2d'));
@@ -1753,6 +1803,26 @@ function startLive(){
       redrawLvCourt();rLvAll();svL();
     });
   };
+}
+
+function startLive(){
+  const hn=document.getElementById('lv-hn').value.trim(),an=document.getElementById('lv-an').value.trim();
+  if(!hn||!an){setSt('lv-st','Debes poner los nombres de los equipos.','err');return;}
+  lv.hn=hn;lv.an=an;
+  lv.pl.home=parsePlList(document.getElementById('lv-hp').value);
+  lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
+  if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
+  lv.st={home:{},away:{}};lv.periodScores=[];
+  ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0};}));
+  lv.timer={running:false,seconds:600,interval:null};
+  lv.score={home:0,away:0};lv.period=1;lv.curMin=0;
+  lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
+  lv.onCourt={home:new Set(),away:new Set()};lv.statsVisible=true;lv.courtView='live';
+  document.getElementById('lv-setup').style.display='none';
+  document.getElementById('lv-panel').style.display='block';
+  document.getElementById('lv-hl').textContent=hn;
+  document.getElementById('lv-al').textContent=an;
+  bindLvCourt();
   lv._startersOk=false;lv.starters=null;
   setLvCourtView('live');
   rLvAll();
@@ -1949,7 +2019,8 @@ function rLvAll(){
   if(document.getElementById('live-stats-modal')?.style.display==='flex')renderLiveStatsModal();
   const hot=document.getElementById('lv-hot');
   if(hot&&lv.selPl){const last3=lv.events.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).slice(-3);hot.style.display=last3.length>=2&&last3.every(e=>e.player===lv.selPl)?'inline-block':'none';}
-}
+
+  _lvPersist();}
 function rLvLog(){const el=document.getElementById('lv-log');if(!el)return;el.innerHTML=lv.log.slice(0,15).map(e=>`<div style="padding:2px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:5px"><span class="chip ${e.team==='home'?'ch':'ca'}" style="font-size:9px">P${e.period}</span><span style="color:var(--t2);font-size:11px">${e.msg}</span></div>`).join('')||'<div class="empty">Sin acciones</div>';}
 function rLvStats(){}
 function rLvPairs(){}
@@ -1966,6 +2037,7 @@ function endLive(){
     return{...p,...s,pts:s.pts||0,min:Math.round(mn),starter:!!s.starter,tl:`${s.tlMade||0}/${s.tlAtt||0}`,t2:`${s.t2Made||0}/${s.t2Att||0}`,t3:`${s.t3Made||0}/${s.t3Att||0}`,val:calcV(s),reb:(s.ro||0)+(s.rd||0),ast:s.ast||0,tlMade:s.tlMade||0,tlAtt:s.tlAtt||0,tlPct:s.tlAtt>0?s.tlMade/s.tlAtt:null,t2Made:s.t2Made||0,t2Att:s.t2Att||0,t2Pct:s.t2Att>0?s.t2Made/s.t2Att:null,t3Made:s.t3Made||0,t3Att:s.t3Att||0,t3Pct:s.t3Att>0?s.t3Made/s.t3Att:null,fc:s.fc||0,stl:s.stl||0,blk:s.blk||0,to:s.to||0,pm:s.pm||0};});
   const m={id:Date.now(),name:`${lv.hn} vs ${lv.an}`,date:document.getElementById('lv-dt').value||new Date().toLocaleDateString('ca'),competition:'',homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
   S.matches.push(m);svL();
+  _lvClearPersist();
   const top=[...mkPl('home'),...mkPl('away')].sort((a,b)=>b.pts-a.pts)[0];
   document.getElementById('lv-panel').style.display='none';
   document.getElementById('lv-setup').style.display='block';
@@ -2902,13 +2974,14 @@ function exportScoutPDF() {
     (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
       if (!rivalPlayers[p.name]) rivalPlayers[p.name] = {
         name:p.name,dorsal:p.dorsal,pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,
-        tlMade:0,tlAtt:0,fc:0,reb:0,ast:0,games:0
+        tlMade:0,tlAtt:0,fc:0,reb:0,ast:0,games:0,starts:0,min:0,pm:0
       };
       const r=rivalPlayers[p.name];
       r.pts+=(p.pts||0);r.t2Made+=(p.t2Made||0);r.t2Att+=(p.t2Att||0);
       r.t3Made+=(p.t3Made||0);r.t3Att+=(p.t3Att||0);
       r.tlMade+=(p.tlMade||0);r.tlAtt+=(p.tlAtt||0);
       r.fc+=(p.fc||0);r.reb+=(p.reb||0);r.ast+=(p.ast||0);r.games++;
+      if(p.starter)r.starts++;r.min+=(p.min||0);r.pm+=(p.pm||0);
     });
   });
   const rp = Object.values(rivalPlayers).sort((a,b) => b.pts-a.pts);
@@ -2945,6 +3018,33 @@ function exportScoutPDF() {
   const zs={};ZONES.forEach(z=>zs[z]={m:0,a:0});
   shots.forEach(s=>{const z=shotZone(s);if(zs[z]){zs[z].a++;if(s.made)zs[z].m++;}});
   const activeZones=ZONES.filter(z=>zs[z].a>0).sort((a,b)=>zs[b].a-zs[a].a);
+
+  // ── Habitual starting five ────────────────────────────────────────────────
+  const startersRank=rp.filter(p=>p.starts>0).sort((a,b)=>b.starts-a.starts||b.min-a.min).slice(0,5);
+
+  // ── Rival points per quarter (avg) ───────────────────────────────────────
+  const perQ=[0,0,0,0];let perQGames=0;
+  matches.forEach(m=>{
+    const rs=m.homeTeam===rival?'home':'away';
+    let counted=false;
+    (m.events||[]).forEach(e=>{
+      if(e.team!==rs)return;
+      const per=Math.min(4,e.period||1);
+      const p=e.type==='pts3'?3:e.type==='pts2'?2:e.type==='tl_in'?1:0;
+      if(p){perQ[per-1]+=p;counted=true;}
+    });
+    if(counted)perQGames++;
+  });
+  const perQAvg=perQ.map(v=>perQGames?Math.round(v/perQGames*10)/10:0);
+  const perQMax=Math.max(...perQAvg,1);
+
+  // ── Matches analyzed list ────────────────────────────────────────────────
+  const matchList=matches.map(m=>{
+    const isHome=m.homeTeam===rival;
+    const my=isHome?m.scoreHome:m.scoreAway, op=isHome?m.scoreAway:m.scoreHome;
+    const res=my>op?'W':my<op?'L':'E';
+    return{name:isHome?`vs ${m.awayTeam} (casa)`:`en ${m.homeTeam}`,date:m.date||'',my,op,res};
+  });
 
   // ── Heatmap canvas → image ───────────────────────────────────────────────
   const scCv=document.getElementById('sc-cv');
@@ -3025,6 +3125,12 @@ footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:1
   <div class="badge">${n} partido${n!==1?'s':''} analizados</div>
 </div>
 
+${startersRank.length?`
+<div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:14px">
+  <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">⭐ Quinteto inicial habitual</div>
+  <div>${startersRank.map(p=>`<span style="display:inline-block;background:#fff;border:1.5px solid #f59e0b;border-radius:20px;padding:3px 11px;margin:2px;font-size:12px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]} <span style="color:#92400e;font-size:9px">(${p.starts}/${p.games})</span></span>`).join('')}</div>
+</div>`:''}
+
 <!-- KPIs -->
 <h2>📊 Estadísticas globales</h2>
 <div class="kgrid">
@@ -3041,7 +3147,7 @@ footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:1
 <div>
 <h2>⚠️ Jugadores a vigilar</h2>
 <table>
-<thead><tr><th>#</th><th>Jugador</th><th>Pts/p</th><th>T2%</th><th>T3%</th><th>TL%</th><th>P</th></tr></thead>
+<thead><tr><th>#</th><th>Jugador</th><th>Min/p</th><th>Pts/p</th><th>T2%</th><th>T3%</th><th>TL%</th><th>+/-</th><th>P</th></tr></thead>
 <tbody>
 ${rp.filter(p=>p.pts>0||p.t2Att>0||p.t3Att>0).map(p=>{
   const ppg=Math.round(p.pts/p.games*10)/10;
@@ -3051,11 +3157,13 @@ ${rp.filter(p=>p.pts>0||p.t2Att>0||p.t3Att>0).map(p=>{
   const threat=ppg>=10||(p.t3Att>=5&&t3p>=38);
   return `<tr${threat?' class="threat"':''}>
     <td><b>#${p.dorsal}</b></td>
-    <td><b>${p.name}</b>${threat?' 🚨':''}</td>
+    <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}${threat?' 🚨':''}</td>
+    <td>${p.min?Math.round(p.min/p.games):'—'}</td>
     <td><b>${ppg}</b></td>
     <td>${p.t2Att?t2p+'%':'—'}</td>
     <td>${p.t3Att?t3p+'%':'—'}</td>
     <td>${p.tlAtt?tlp+'%':'—'}</td>
+    <td style="color:${p.pm>0?'#15803d':p.pm<0?'#dc2626':'#64748b'}">${p.pm>0?'+':''}${p.pm}</td>
     <td style="color:#94a3b8">${p.games}</td>
   </tr>`;
 }).join('')}
@@ -3074,6 +3182,25 @@ ${[
   rp[0]&&Math.round(rp[0].pts/rp[0].games*10)/10>=15?`🚨 <b>${rp[0].name}</b>: prioridad defensiva (${Math.round(rp[0].pts/rp[0].games*10)/10}pts/p).`:'',
 ].filter(Boolean).map(t=>`<div class="tend-item">• ${t}</div>`).join('')}
 </div>
+<h2>📅 Partidos analizados</h2>
+${matchList.map(mm=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid #f0f4f8;font-size:11px">
+  <span style="width:18px;height:18px;border-radius:4px;background:${mm.res==='W'?'#dcfce7':mm.res==='L'?'#fee2e2':'#f1f5f9'};color:${mm.res==='W'?'#15803d':mm.res==='L'?'#dc2626':'#64748b'};font-weight:800;display:flex;align-items:center;justify-content:center;font-size:10px">${mm.res}</span>
+  <span style="flex:1">${mm.name}</span>
+  <b>${mm.my}-${mm.op}</b>
+  <span style="color:#94a3b8;font-size:10px">${mm.date}</span>
+</div>`).join('')}
+
+<h2>📊 Puntos por cuarto (promedio)</h2>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+${perQAvg.map((v,i)=>`<div style="text-align:center">
+  <div style="height:52px;display:flex;align-items:flex-end;justify-content:center">
+    <div style="width:70%;height:${Math.max(8,v/perQMax*52)}px;background:linear-gradient(180deg,#e8402a,#f97316);border-radius:5px 5px 0 0"></div>
+  </div>
+  <div style="font-weight:800;font-size:14px">${v}</div>
+  <div style="font-size:9px;color:#94a3b8">CUARTO ${i+1}</div>
+</div>`).join('')}
+</div>
+
 <h2>⏰ Clutch (últ. 2 min por cuarto)</h2>
 <div class="g3" style="margin-bottom:8px">
   <div class="kbox"><div class="v">${cPts.reduce((s,e)=>s+(e.type==='pts3'?3:e.type==='pts2'?2:1),0)}</div><div class="l">Pts clutch</div></div>
@@ -3560,6 +3687,74 @@ function deleteFolder(rival, cat, folder) {
 }
 
 
+
+// ── Full data backup (JSON download) ──────────────────────────────────────
+function exportBackup(){
+  const data=JSON.stringify({exportedAt:new Date().toISOString(),version:2,...S},null,1);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`bascatapp_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast('📦 Copia de seguridad descargada');
+}
+
+// ── LIVE MATCH CRASH RECOVERY ──────────────────────────────────────────────
+// Persists the in-progress live match to localStorage on every render so a
+// browser crash / reload / dead battery never loses the game.
+function _lvPersist(){
+  if(!lv||!lv.st||!document.getElementById('lv-panel')||document.getElementById('lv-panel').style.display==='none')return;
+  try{
+    const snap={...lv,timer:{running:false,seconds:lv.timer?.seconds??600,interval:null},
+      onCourt:{home:[...(lv.onCourt?.home||[])],away:[...(lv.onCourt?.away||[])]},
+      _active:true,_savedAt:Date.now()};
+    localStorage.setItem('bascatLive',JSON.stringify(snap));
+  }catch(e){}
+}
+function _lvClearPersist(){try{localStorage.removeItem('bascatLive');}catch(e){}}
+function checkLiveResume(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem('bascatLive')||'null');}catch(e){}
+  const el=document.getElementById('lv-resume-banner');
+  if(!el)return;
+  if(saved&&saved._active&&saved.hn){
+    const mins=Math.round((Date.now()-(saved._savedAt||0))/60000);
+    el.style.display='block';
+    el.innerHTML=`<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:22px">⚠️</span>
+      <div style="flex:1;min-width:180px">
+        <div style="font-weight:800;font-size:13px">Partido en curso encontrado</div>
+        <div style="font-size:11px;color:var(--t3)">${saved.hn} ${saved.score?.home??0} — ${saved.score?.away??0} ${saved.an} · P${saved.period||1} · guardado hace ${mins} min</div>
+      </div>
+      <button onclick="resumeLive()" class="btn bp" style="font-size:12px">▶️ Continuar</button>
+      <button onclick="discardLive()" style="background:#fee2e2;border:none;color:#dc2626;border-radius:7px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">🗑 Descartar</button>
+    </div>`;
+  } else el.style.display='none';
+}
+function resumeLive(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem('bascatLive')||'null');}catch(e){}
+  if(!saved){toast('No hay partido guardado','err');return;}
+  lv=saved;
+  lv.onCourt={home:new Set(saved.onCourt?.home||[]),away:new Set(saved.onCourt?.away||[])};
+  lv.timer={running:false,seconds:saved.timer?.seconds??600,interval:null};
+  document.getElementById('lv-setup').style.display='none';
+  document.getElementById('lv-panel').style.display='block';
+  document.getElementById('lv-hl').textContent=lv.hn;
+  document.getElementById('lv-al').textContent=lv.an;
+  bindLvCourt();
+  setLvCourtView('live');
+  renderTimer();
+  rLvAll();
+  toast('▶️ Partido recuperado — el reloj está en pausa');
+}
+function discardLive(){
+  if(!confirm('¿Descartar el partido guardado? Se perderán sus datos.'))return;
+  _lvClearPersist();
+  checkLiveResume();
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -3586,7 +3781,7 @@ Object.assign(window,{
   populateFolderSel,addScoutClip,renderClipsLibrary,toggleFolderView,
   jumpToClip,closeClipModal,deleteClip,deleteFolder,
   // Utils
-  rAll,svL,
+  rAll,svL,exportBackup,resumeLive,discardLive,checkLiveResume,
 });
 
 ldLS();

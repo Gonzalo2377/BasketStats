@@ -392,16 +392,16 @@ input[type=file]{display:none}
 <div id="sub-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:750;align-items:center;justify-content:center;padding:12px">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)">
     <div style="background:var(--nv);color:#fff;padding:12px 16px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2">
-      <span style="font-weight:800;font-size:15px">🔄 Cambios de jugadores</span>
+      <span id="sub-modal-title" style="font-weight:800;font-size:15px">🔄 Cambios de jugadores</span>
       <button onclick="closeSubModal()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
     </div>
     <div style="padding:14px">
       <div style="background:#f8fafc;border-radius:10px;padding:10px 14px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase">⏱ Momento del cambio</div>
+        <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase">⏱ Tiempo del marcador — <span id="sub-period-label" style="color:var(--ac)">P1</span> · copia lo que ves en el marcador (cuenta atrás)</div>
         <div style="display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:6px">
           <div style="text-align:center">
-            <div style="font-size:9px;color:var(--t3);margin-bottom:3px">MINUTO</div>
-            <input type="number" id="sub-min" min="0" max="50" style="width:100%;padding:8px;border:2px solid var(--b2);border-radius:8px;font-size:20px;font-weight:800;text-align:center" oninput="onSubTimeChange()">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:3px">MIN RESTANTES</div>
+            <input type="number" id="sub-min" min="0" max="10" style="width:100%;padding:8px;border:2px solid var(--b2);border-radius:8px;font-size:20px;font-weight:800;text-align:center" oninput="onSubTimeChange()">
           </div>
           <span style="font-size:22px;font-weight:800;color:var(--t3)">:</span>
           <div style="text-align:center">
@@ -1753,8 +1753,11 @@ function startLive(){
       redrawLvCourt();rLvAll();svL();
     });
   };
+  lv._startersOk=false;lv.starters=null;
   setLvCourtView('live');
   rLvAll();
+  toast('⭐ Marca los 5 titulares de cada equipo antes de iniciar el reloj');
+  setTimeout(()=>openSubModal(),400);
 }
 
 function setLvCourtView(mode){
@@ -1900,8 +1903,25 @@ function lvUndo(){
     }});
   rLvAll();
 }
-function renderTimer(){const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60;const el=document.getElementById('lv-timer');if(!el)return;el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');el.style.background=lv.timer.running?'rgba(232,64,42,.4)':'rgba(255,255,255,.13)';const dur=lv.period===5?300:600;const elapsed=Math.floor((dur-lv.timer.seconds)/60);const me=document.getElementById('lv-min');if(me)me.value=Math.max(0,elapsed);lv.curMin=Math.max(0,elapsed);}
-function toggleTimer(){if(lv.timer.running){clearInterval(lv.timer.interval);lv.timer.running=false;}else{lv.timer.interval=setInterval(()=>{if(lv.timer.seconds>0){lv.timer.seconds--;renderTimer();}else{clearInterval(lv.timer.interval);lv.timer.running=false;toast('⏱ Final del període!');}},1000);lv.timer.running=true;}renderTimer();}
+function renderTimer(){const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60;const el=document.getElementById('lv-timer');if(!el)return;el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');el.style.background=lv.timer.running?'rgba(232,64,42,.4)':'rgba(255,255,255,.13)';const dur=lv.period===5?300:600;const elapsedInPer=Math.max(0,(dur-lv.timer.seconds)/60);const me=document.getElementById('lv-min');if(me)me.value=Math.floor(elapsedInPer);lv.curMin=(lv.period-1)*10+elapsedInPer;}
+function toggleTimer(){if(lv.timer.running){clearInterval(lv.timer.interval);lv.timer.running=false;}else{
+  // First start: require exactly 5 on court per team (starting fives)
+  if(!lv._startersOk){
+    const h=lv.onCourt.home.size,a=lv.onCourt.away.size;
+    if(h!==5||a!==5){
+      toast(`Selecciona los quintetos iniciales: ${lv.hn||'Local'} ${h}/5 · ${lv.an||'Visitante'} ${a}/5`,'err');
+      openSubModal();
+      return;
+    }
+    // Confirm starters
+    lv.starters={home:[...lv.onCourt.home],away:[...lv.onCourt.away]};
+    ['home','away'].forEach(t=>lv.onCourt[t].forEach(n=>{
+      const s=lv.st[t][n];if(s){s.starter=true;if(s._enteredMin==null)s._enteredMin=0;}
+    }));
+    lv._startersOk=true;
+    lv.log.unshift({team:'home',msg:`⭐ Quintetos confirmados`,period:lv.period});
+    toast('⭐ Quintetos iniciales confirmados');
+  }lv.timer.interval=setInterval(()=>{if(lv.timer.seconds>0){lv.timer.seconds--;renderTimer();}else{clearInterval(lv.timer.interval);lv.timer.running=false;toast('⏱ Final del període!');}},1000);lv.timer.running=true;}renderTimer();}
 function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period===5?300:600;renderTimer();}
 function setPer(n){
   if(lv.period>0&&n!==lv.period)lv.periodScores[lv.period-1]={h:lv.score.home,a:lv.score.away};
@@ -1939,7 +1959,11 @@ function endLive(){
   if(!confirm(`¿Finalizar?\n${lv.hn} ${lv.score.home} — ${lv.score.away} ${lv.an}`))return;
   clearInterval(lv.timer.interval);lv.timer.running=false;
   const calcV=s=>(s.pts||0)+(s.ro||0)+(s.rd||0)+(s.ast||0)+(s.stl||0)-((s.t2Att||0)-(s.t2Made||0))-((s.t3Att||0)-(s.t3Made||0))-((s.tlAtt||0)-(s.tlMade||0))-(s.fc||0)-(s.to||0);
-  const mkPl=t=>lv.pl[t].map(p=>{const s=lv.st[t][p.name]||{};return{...p,...s,pts:s.pts||0,min:0,tl:`${s.tlMade||0}/${s.tlAtt||0}`,t2:`${s.t2Made||0}/${s.t2Att||0}`,t3:`${s.t3Made||0}/${s.t3Att||0}`,val:calcV(s),reb:(s.ro||0)+(s.rd||0),ast:s.ast||0,tlMade:s.tlMade||0,tlAtt:s.tlAtt||0,tlPct:s.tlAtt>0?s.tlMade/s.tlAtt:null,t2Made:s.t2Made||0,t2Att:s.t2Att||0,t2Pct:s.t2Att>0?s.t2Made/s.t2Att:null,t3Made:s.t3Made||0,t3Att:s.t3Att||0,t3Pct:s.t3Att>0?s.t3Made/s.t3Att:null,fc:s.fc||0,stl:s.stl||0,blk:s.blk||0,to:s.to||0,pm:s.pm||0};});
+  const finalMin=lv.curMin||((lv.period-1)*10+(lv.period===5?5:10)-lv.timer.seconds/60);
+  const mkPl=t=>lv.pl[t].map(p=>{const s=lv.st[t][p.name]||{};
+    let mn=s.min||0;
+    if(s._enteredMin!=null)mn+=Math.max(0,finalMin-s._enteredMin); // still on court at the end
+    return{...p,...s,pts:s.pts||0,min:Math.round(mn),starter:!!s.starter,tl:`${s.tlMade||0}/${s.tlAtt||0}`,t2:`${s.t2Made||0}/${s.t2Att||0}`,t3:`${s.t3Made||0}/${s.t3Att||0}`,val:calcV(s),reb:(s.ro||0)+(s.rd||0),ast:s.ast||0,tlMade:s.tlMade||0,tlAtt:s.tlAtt||0,tlPct:s.tlAtt>0?s.tlMade/s.tlAtt:null,t2Made:s.t2Made||0,t2Att:s.t2Att||0,t2Pct:s.t2Att>0?s.t2Made/s.t2Att:null,t3Made:s.t3Made||0,t3Att:s.t3Att||0,t3Pct:s.t3Att>0?s.t3Made/s.t3Att:null,fc:s.fc||0,stl:s.stl||0,blk:s.blk||0,to:s.to||0,pm:s.pm||0};});
   const m={id:Date.now(),name:`${lv.hn} vs ${lv.an}`,date:document.getElementById('lv-dt').value||new Date().toLocaleDateString('ca'),competition:'',homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
   S.matches.push(m);svL();
   const top=[...mkPl('home'),...mkPl('away')].sort((a,b)=>b.pts-a.pts)[0];
@@ -2263,8 +2287,8 @@ function _subGetElapsedMin(){
   return Math.max(0,prevMins+elapsed);
 }
 function syncSubFromTimer(){
-  const totalMin=_subGetElapsedMin();
-  const m=Math.floor(totalMin),s=Math.round((totalMin-m)*60);
+  const r=Math.max(0,lv.timer.seconds);
+  const m=Math.floor(r/60),s=Math.round(r%60);
   const minEl=document.getElementById('sub-min'),secEl=document.getElementById('sub-sec');
   if(minEl)minEl.value=m;if(secEl)secEl.value=s;
   onSubTimeChange();
@@ -2272,10 +2296,16 @@ function syncSubFromTimer(){
 function onSubTimeChange(){
   const m=parseInt(document.getElementById('sub-min').value)||0;
   const s=parseInt(document.getElementById('sub-sec').value)||0;
+  const per=lv.period;
+  const perDur=per===5?5:10;
   const disp=document.getElementById('sub-time-display');
-  const per=m<10?1:m<20?2:m<30?3:m<40?4:5;
-  if(disp)disp.textContent=`Min ${m}:${String(s).padStart(2,'0')} — ${per===5?'Prórroga':'Cuarto P'+per}`;
-  lv.curMin=m+(s/60);
+  const pl=document.getElementById('sub-period-label');
+  if(pl)pl.textContent=per===5?'PRÓRROGA':'P'+per;
+  const remainingMin=Math.min(perDur,m+(s/60));
+  const elapsedMin=perDur-remainingMin;
+  const globalMin=(per-1)*10+elapsedMin;
+  if(disp)disp.textContent=`${per===5?'Prórroga':'Cuarto '+per} · quedan ${m}:${String(s).padStart(2,'0')} (min ${Math.floor(elapsedMin)}' jugados del cuarto)`;
+  lv.curMin=globalMin;
 }
 function openSubModal(){
   syncSubFromTimer();
@@ -2283,26 +2313,26 @@ function openSubModal(){
   document.getElementById('sub-modal').style.display='flex';
 }
 function closeSubModal(){
-  // Sync the internal timer to whatever time the user entered
-  // This corrects drift between the app clock and the real game clock
+  // The user enters the REMAINING time of the quarter (exactly what the scoreboard shows, counting down).
+  // The internal clock is also a countdown — copy it directly, correcting any drift.
   const m=parseInt(document.getElementById('sub-min')?.value)||0;
   const s=parseInt(document.getElementById('sub-sec')?.value)||0;
-  const totalSecs=m*60+s;
-  // Compute how many seconds remain in this period based on the entered time
   const perDurSecs=(lv.period===5?5:10)*60;
-  const prevSecs=(lv.period-1)*10*60; // seconds before current period
-  const elapsedInPeriod=Math.max(0,totalSecs-prevSecs);
-  const remaining=Math.max(0,perDurSecs-elapsedInPeriod);
-  // Update the timer to this corrected position
+  const remaining=Math.min(perDurSecs,Math.max(0,m*60+s));
   lv.timer.seconds=remaining;
-  lv.curMin=m+(s/60);
+  lv.curMin=(lv.period-1)*10+(perDurSecs-remaining)/60;
   renderTimer();
   document.getElementById('sub-modal').style.display='none';
   rLvAll();svL();
 }
 function renderSubModal(){
   const hl=document.getElementById('sub-home-label'),al=document.getElementById('sub-away-label');
-  if(hl)hl.textContent=lv.hn||'LOCAL';if(al)al.textContent=lv.an||'RIVAL';
+  const hc=lv.onCourt.home.size,ac=lv.onCourt.away.size;
+  const badge=(n)=>` <span style="font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;background:${n===5?'#dcfce7':'#fee2e2'};color:${n===5?'#15803d':'#dc2626'}">${n}/5</span>`;
+  if(hl)hl.innerHTML=(lv.hn||'LOCAL')+badge(hc);
+  if(al)al.innerHTML=(lv.an||'RIVAL')+badge(ac);
+  const ttl=document.getElementById('sub-modal-title');
+  if(ttl)ttl.textContent=lv._startersOk?'🔄 Cambios':'⭐ Quintetos iniciales — marca 5 por equipo';
   renderSubTeam('home');renderSubTeam('away');
 }
 function renderSubTeam(team){
@@ -2330,12 +2360,12 @@ function subTapPlayer(name,team){
   if(oc.has(name)){
     oc.delete(name);
     if(s._enteredMin!=null){s.min=(s.min||0)+Math.max(0,curMin-s._enteredMin);delete s._enteredMin;}
-    lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} sale (${Math.floor(curMin)}')`,period:lv.period});
+    lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} sale (${Math.floor(curMin-(lv.period-1)*10)}' P${lv.period})`,period:lv.period});
     lv.subEvents.push({type:'out',player:name,team,min:curMin,period:lv.period});
     if(lv.selPl===name&&lv.actTeam===team){const next=[...oc][0];lv.selPl=next||null;}
   } else {
     oc.add(name);s._enteredMin=curMin;lv.selPl=name;lv.actTeam=team;
-    lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra (${Math.floor(curMin)}')`,period:lv.period});
+    lv.log.unshift({team,msg:`▶ ${name.split(' ')[0]} entra (${Math.floor(curMin-(lv.period-1)*10)}' P${lv.period})`,period:lv.period});
     lv.subEvents.push({type:'in',player:name,team,min:curMin,period:lv.period});
   }
   rLvLog();renderSubModal();
@@ -2558,7 +2588,7 @@ function renderScouting() {
       if (!rivalPlayers[p.name]) rivalPlayers[p.name] = {
         name: p.name, dorsal: p.dorsal,
         pts: 0, t2Made: 0, t2Att: 0, t3Made: 0, t3Att: 0,
-        tlMade: 0, tlAtt: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0
+        tlMade: 0, tlAtt: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, starts: 0, min: 0
       };
       const rp = rivalPlayers[p.name];
       rp.pts += p.pts || 0; rp.t2Made += p.t2Made || 0; rp.t2Att += p.t2Att || 0;
@@ -2566,6 +2596,8 @@ function renderScouting() {
       rp.tlMade += p.tlMade || 0; rp.tlAtt += p.tlAtt || 0;
       rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
       rp.pm += p.pm || 0; rp.games++;
+      if (p.starter) rp.starts++;
+      rp.min += p.min || 0;
     });
   });
   const rpList = Object.values(rivalPlayers);
@@ -2589,8 +2621,17 @@ function renderScouting() {
 
   // ── Jugadores amenaza ─────────────────────────────────────────────────────
   rpList.sort((a, b) => b.pts - a.pts);
+  // Habitual starting five (most frequent starters)
+  const startersRank = rpList.filter(p => p.starts > 0).sort((a,b) => b.starts - a.starts || b.min - a.min).slice(0, 5);
+  const startersHtml = startersRank.length ? `
+    <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:8px 10px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">⭐ Quinteto inicial habitual</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${startersRank.map(p => `<span style="background:#fff;border:1.5px solid #f59e0b;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]} <span style="color:#92400e;font-size:9px">(${p.starts}/${p.games})</span></span>`).join('')}
+      </div>
+    </div>` : '';
   const scPlayers = document.getElementById('sc-players');
-  if (scPlayers) scPlayers.innerHTML = rpList.slice(0, 10).map(p => {
+  if (scPlayers) scPlayers.innerHTML = startersHtml + rpList.slice(0, 10).map(p => {
     const t2p = p.t2Att ? Math.round(p.t2Made/p.t2Att*100) : 0;
     const t3p = p.t3Att ? Math.round(p.t3Made/p.t3Att*100) : 0;
     const ptsPerGame = Math.round(p.pts / p.games * 10) / 10;
@@ -2599,8 +2640,8 @@ function renderScouting() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
       <div style="width:30px;height:30px;border-radius:50%;background:${isThreat?'#dc2626':'var(--nv)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</div>
       <div style="flex:1">
-        <div style="font-weight:700;font-size:12px">${p.name}${isThreat ? ' <span style="color:#dc2626;font-size:10px">⚠️</span>' : ''}</div>
-        <div style="font-size:10px;color:var(--t3)">${ptsPerGame}pts/p · T2:${t2p}% · T3:${t3p}%</div>
+        <div style="font-weight:700;font-size:12px">${p.name}${p.starts>0 ? ' <span title="Titular" style="color:#f59e0b;font-size:10px">★</span>' : ''}${isThreat ? ' <span style="color:#dc2626;font-size:10px">⚠️</span>' : ''}</div>
+        <div style="font-size:10px;color:var(--t3)">${ptsPerGame}pts/p${p.min?` · ${Math.round(p.min/p.games)}min/p`:''} · T2:${t2p}% · T3:${t3p}%</div>
       </div>
       <div style="text-align:right">
         <div style="font-weight:800;color:var(--nv);font-size:14px">${p.pts}</div>

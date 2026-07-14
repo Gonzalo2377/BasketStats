@@ -740,14 +740,30 @@ input[type=file]{display:none}
           </div>
         </div>
 
-        <!-- Clips library -->
-        <div id="sc-clips-library"></div>
       </div>
 
       <div id="sc-video-empty" style="text-align:center;padding:24px 16px;color:var(--t3)">
         <div style="font-size:28px;margin-bottom:8px">🎬</div>
         <div style="font-size:12px;font-weight:600;margin-bottom:4px">Carga el vídeo del partido</div>
-        <div style="font-size:11px">El vídeo se procesa localmente — los clips y carpetas se sincronizan en todos los dispositivos via Firebase</div>
+        <div style="font-size:11px">Carga el vídeo del partido para <b>crear</b> clips nuevos. Los clips ya guardados se ven abajo sin necesidad de vídeo.</div>
+      </div>
+
+      <!-- Clips library — ALWAYS visible, no video needed -->
+      <div style="border-top:1.5px solid var(--bd);margin-top:12px;padding-top:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">📚 Biblioteca de clips</div>
+        <div id="sc-clips-library"></div>
+      </div>
+    </div>
+
+    <!-- Clip playback modal -->
+    <div id="sc-clip-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:900;align-items:center;justify-content:center;padding:16px" onclick="closeClipModal(event)">
+      <div style="max-width:900px;width:100%" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div id="sc-clip-modal-title" style="color:#fff;font-weight:700;font-size:14px"></div>
+          <button onclick="closeClipModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
+        </div>
+        <video id="sc-clip-player" style="width:100%;border-radius:10px;background:#000" controls autoplay></video>
+        <div id="sc-clip-modal-note" style="color:#94a3b8;font-size:12px;margin-top:8px"></div>
       </div>
     </div>
 
@@ -812,6 +828,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const DATA_DOC = doc(db, 'bascatapp', 'data');
+
+// ═══════════════════════════════════════════
+// CLOUDINARY (clips de vídeo) — plan gratis, sin tarjeta
+// 1) Crea cuenta en cloudinary.com
+// 2) Dashboard → copia tu "Cloud name" aquí abajo
+// 3) Settings → Upload → Add upload preset → Signing mode: UNSIGNED → guarda el nombre aquí
+// ═══════════════════════════════════════════
+const CLOUDINARY_CLOUD = 'yyfhdwlg';
+const CLOUDINARY_PRESET = 'bascat';
+const CLOUD_OK = () => !!CLOUDINARY_CLOUD && !!CLOUDINARY_PRESET;
+
+async function uploadClipToCloud(blob, rival, onProgress) {
+  const fd = new FormData();
+  fd.append('file', blob);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('folder', `bascat/${rival.replace(/[^\w]/g,'_')}`);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`);
+    xhr.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded/e.total*100)); };
+    xhr.onload = () => {
+      try {
+        const r = JSON.parse(xhr.responseText);
+        if (r.secure_url) resolve({ url: r.secure_url, publicId: r.public_id });
+        else reject(new Error(r.error?.message || 'Cloudinary rechazó la subida'));
+      } catch { reject(new Error('Respuesta inválida de Cloudinary')); }
+    };
+    xhr.onerror = () => reject(new Error('Fallo de red al subir'));
+    xhr.send(fd);
+  });
+}
 
 // ═══════════════════════════════════════════
 // STATE & PERSISTENCE
@@ -3170,8 +3217,57 @@ function toggleNewFolder() {
   if (!visible) { if(sel) sel.value=''; document.getElementById('sc-new-folder-name')?.focus(); }
 }
 
-// ── Add clip ──────────────────────────────────────────────────────────────────
-function addScoutClip() {
+// ── Record the marked segment from the <video> into a webm Blob ────────────
+function _recordSegment(vid, inT, outT, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (!vid.captureStream && !vid.mozCaptureStream) {
+      reject(new Error('Tu navegador no soporta captureStream. Usa Chrome.'));
+      return;
+    }
+    let stream;
+    try { stream = vid.captureStream ? vid.captureStream() : vid.mozCaptureStream(); }
+    catch (e) { reject(new Error('No se pudo capturar el vídeo')); return; }
+
+    const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
+      .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_200_000 });
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    rec.onerror = () => reject(new Error('Error grabando el clip'));
+    rec.onstop = () => {
+      vid.pause();
+      vid.playbackRate = 1;
+      resolve(new Blob(chunks, { type: mime }));
+    };
+
+    const total = outT - inT;
+    const tick = () => {
+      if (vid.currentTime >= outT) {
+        vid.removeEventListener('timeupdate', tick);
+        if (rec.state !== 'inactive') rec.stop();
+      } else if (onProgress) {
+        onProgress(Math.min(100, Math.round((vid.currentTime - inT) / total * 100)));
+      }
+    };
+
+    vid.pause();
+    vid.currentTime = inT;
+    vid.playbackRate = 1;
+    const startRec = () => {
+      vid.removeEventListener('seeked', startRec);
+      rec.start(200);
+      vid.addEventListener('timeupdate', tick);
+      vid.play().catch(() => reject(new Error('No se pudo reproducir el vídeo')));
+      // hard safety stop
+      setTimeout(() => { if (rec.state !== 'inactive') { vid.removeEventListener('timeupdate', tick); rec.stop(); } },
+                 (total + 3) * 1000);
+    };
+    vid.addEventListener('seeked', startRec);
+  });
+}
+
+// ── Add clip: record segment → upload to Storage → save metadata ───────────
+async function addScoutClip() {
   const rival = _scoutRival;
   const vid = document.getElementById('sc-video');
   const label = document.getElementById('sc-clip-label')?.value.trim();
@@ -3182,29 +3278,54 @@ function addScoutClip() {
   if (!rival) { toast('Selecciona un rival primero', 'err'); return; }
   if (!label) { toast('Añade una descripción al clip', 'err'); return; }
   if (!_clipCat) { toast('Selecciona Ataque o Defensa', 'err'); return; }
-
-  // Determine folder
-  let folder = '';
-  if (selFolder === '__new__' || !selFolder) {
-    folder = newFolderName;
-    if (!folder) { toast('Escribe el nombre de la carpeta', 'err'); return; }
-  } else {
-    folder = selFolder;
-  }
-
   if (_clipIn === null || _clipOut === null || _clipOut <= _clipIn) {
     toast('Marca INICIO y FINAL del clip primero', 'err'); return;
   }
+
+  let folder = (selFolder === '__new__' || !selFolder) ? newFolderName : selFolder;
+  if (!folder) { toast('Escribe el nombre de la carpeta', 'err'); return; }
+
+  const btn = document.querySelector('#sc-clip-form button.bp');
+  const setBtn = (txt, dis) => { if (btn) { btn.textContent = txt; btn.disabled = !!dis; btn.style.opacity = dis ? .6 : 1; } };
+
   const timeStart = _clipIn, timeEnd = _clipOut;
+  const dur = +(timeEnd - timeStart).toFixed(1);
+
+  let videoUrl = null, publicId = null;
+
+  if (!CLOUD_OK()) {
+    const cont = confirm(
+      'Cloudinary no está configurado (revisa CLOUDINARY_CLOUD y CLOUDINARY_PRESET en el código).\n\n' +
+      '¿Guardar solo la marca de tiempo?'
+    );
+    if (!cont) { setBtn('✂️ Guardar clip', false); return; }
+  } else {
+    try {
+      setBtn('⏺ Grabando 0%…', true);
+      const blob = await _recordSegment(vid, timeStart, timeEnd, p => setBtn(`⏺ Grabando ${p}%…`, true));
+      setBtn('☁️ Subiendo 0%…', true);
+      const up = await uploadClipToCloud(blob, rival, p => setBtn(`☁️ Subiendo ${p}%…`, true));
+      videoUrl = up.url; publicId = up.publicId;
+    } catch (e) {
+      console.error('Clip recording/upload failed:', e);
+      const cont = confirm(
+        `No se pudo guardar el vídeo del clip:\n${e.message}\n\n` +
+        `¿Guardar solo la marca de tiempo? (necesitarás el vídeo cargado para verlo)`
+      );
+      if (!cont) { setBtn('✂️ Guardar clip', false); return; }
+    }
+  }
 
   const clip = {
     id: Date.now(),
     timeSecs: timeStart,
     timeEnd,
-    dur: +(timeEnd - timeStart).toFixed(1),
+    dur,
     time: _fmtT(timeStart),
     timeEndFmt: _fmtT(timeEnd),
     label, note,
+    videoUrl,
+    publicId,
     created: new Date().toLocaleDateString('es-ES')
   };
 
@@ -3215,14 +3336,15 @@ function addScoutClip() {
   S.clips[rival][_clipCat][folder].push(clip);
   _saveClips();
 
-  // Reset form
   document.getElementById('sc-clip-label').value = '';
   document.getElementById('sc-clip-note').value = '';
-  if (document.getElementById('sc-new-folder-name')) document.getElementById('sc-new-folder-name').value = '';
+  const nf = document.getElementById('sc-new-folder-name'); if (nf) nf.value = '';
+  setBtn('✂️ Guardar clip', false);
   resetMarks();
   populateFolderSel();
   renderClipsLibrary();
-  toast(`✂️ Clip guardado en ${_clipCat === 'ataque' ? '⚔️' : '🛡️'} ${_clipCat.charAt(0).toUpperCase()+_clipCat.slice(1)} → ${folder}`);
+  toast(videoUrl ? `✅ Clip guardado (${dur}s) — disponible en todos los dispositivos`
+                 : `⚠️ Clip guardado solo como marca de tiempo`);
 }
 
 // ── Render clips library ──────────────────────────────────────────────────────
@@ -3235,7 +3357,7 @@ function renderClipsLibrary() {
   cats.forEach(cat => Object.values(rivalClips[cat]||{}).forEach(arr => totalClips += arr.length));
 
   if (!totalClips) {
-    el.innerHTML = `<div style="text-align:center;padding:12px;color:var(--t3);font-size:11px">Sin clips todavía. Selecciona una categoría y crea el primer clip.</div>`;
+    el.innerHTML = `<div style="text-align:center;padding:14px;color:var(--t3);font-size:11px">Sin clips para este rival todavía.<br>Carga el vídeo del partido arriba y marca INICIO/FINAL para crear el primero.</div>`;
     return;
   }
 
@@ -3267,8 +3389,8 @@ function renderClipsLibrary() {
           <div id="${folderId}" style="display:none">
             ${clips.map(cl => `
               <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-top:1px solid var(--bd)" id="clip-${cl.id}">
-                <button onclick="jumpToClip(${cl.timeSecs},${cl.timeEnd||0})" style="font-size:11px;font-weight:800;font-family:monospace;padding:4px 7px;background:var(--nv);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap">
-                  ▶ ${cl.time}${cl.timeEndFmt?' → '+cl.timeEndFmt:''}${cl.dur?` <span style="opacity:.7">(${cl.dur}s)</span>`:''}
+                <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify(cl.label||"")},${JSON.stringify(cl.note||"")})' style="font-size:11px;font-weight:800;font-family:monospace;padding:5px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap" title="${cl.videoUrl?'Clip guardado — se ve sin el vídeo':'Solo marca de tiempo — requiere el vídeo'}">
+                  ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
                 </button>
                 <div style="flex:1;min-width:0">
                   <div style="font-size:12px;font-weight:700">${cl.label}</div>
@@ -3293,15 +3415,39 @@ function toggleFolderView(id) {
   if (arr) arr.textContent = open ? '▼' : '▲';
 }
 
-function jumpToClip(secs, end) {
+function jumpToClip(secs, end, url, title, note) {
+  // 1) Uploaded clip → play standalone, no source video needed
+  if (url) {
+    const modal = document.getElementById('sc-clip-modal');
+    const pl = document.getElementById('sc-clip-player');
+    const t = document.getElementById('sc-clip-modal-title');
+    const nt = document.getElementById('sc-clip-modal-note');
+    if (t) t.textContent = title || 'Clip';
+    if (nt) nt.textContent = note || '';
+    if (pl) { pl.src = url; pl.currentTime = 0; pl.play().catch(()=>{}); }
+    if (modal) modal.style.display = 'flex';
+    return;
+  }
+  // 2) Legacy timestamp-only clip → needs the full video loaded
   const vid = document.getElementById('sc-video');
-  if (!vid || !vid.src) { toast('Carga el vídeo en este dispositivo primero', 'err'); return; }
+  if (!vid || !vid.src) {
+    toast('Este clip solo tiene marca de tiempo. Carga el vídeo del partido para verlo.', 'err');
+    return;
+  }
   vid.currentTime = secs;
   vid.play();
   if (end && end > secs) {
     const stop = () => { if (vid.currentTime >= end) { vid.pause(); vid.removeEventListener('timeupdate', stop); } };
     vid.addEventListener('timeupdate', stop);
   }
+}
+
+function closeClipModal(ev) {
+  if (ev && ev.target !== ev.currentTarget && ev.type === 'click' && ev.currentTarget.id === 'sc-clip-modal') return;
+  const modal = document.getElementById('sc-clip-modal');
+  const pl = document.getElementById('sc-clip-player');
+  if (pl) { pl.pause(); pl.removeAttribute('src'); pl.load(); }
+  if (modal) modal.style.display = 'none';
 }
 
 function deleteClip(rival, cat, folder, id) {
@@ -3347,7 +3493,7 @@ Object.assign(window,{
   renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
   loadScoutVideo,scVid,setVidSpeed,markIn,markOut,resetMarks,previewClip,seekFromBar,setClipCat,toggleNewFolder,
   populateFolderSel,addScoutClip,renderClipsLibrary,toggleFolderView,
-  jumpToClip,deleteClip,deleteFolder,
+  jumpToClip,closeClipModal,deleteClip,deleteFolder,
   // Utils
   rAll,svL,
 });

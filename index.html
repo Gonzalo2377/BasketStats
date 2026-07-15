@@ -1770,7 +1770,7 @@ function showImpPrev(m){
   const all=[...m.homePlayers.map(p=>({...p,side:'home',tn:m.homeTeam})),...m.awayPlayers.map(p=>({...p,side:'away',tn:m.awayTeam}))].sort((a,b)=>b.pts-a.pts);
   document.getElementById('p-tb').innerHTML=all.map(p=>{
     const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-    return `<tr><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip ${p.side==='home'?'ch':'ca'}">${p.tn}</span></td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl}</td><td>${p.t2}</td><td>${p.t3}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
+    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip ${p.side==='home'?'ch':'ca'}">${p.tn}</span></td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl}</td><td>${p.t2}</td><td>${p.t3}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
   }).join('');
 }
 function confImp(){if(!_parsed)return;S.matches=S.matches.filter(m=>m.id!==_parsed.id);S.matches.push(_parsed);_parsed=null;svL();document.getElementById('i-prev').style.display='none';setSt('i-st','✓ Desat. Total: '+S.matches.length+' partits.','ok');rAll();}
@@ -2217,7 +2217,7 @@ function renderStats(){
   const tb=document.getElementById('st-tb');
   if(tb)tb.innerHTML=sorted.length?sorted.map(p=>{
     const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-    return `<tr><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
+    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
   }).join(''):`<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
 
   renderStatsAggregated();}
@@ -2230,6 +2230,7 @@ function renderDash(){
   const tf=document.getElementById('db-tf')?.value||'';
   const pf2=document.getElementById('db-pf')?.value||'';
   const mv=document.getElementById('db-mv')?.value||'shots';
+  const mf=document.getElementById('db-mf')?.value||''; // match filter (no selector → all matches)
   let all=[],allT=new Set();
   S.matches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{allT.add(p.team);all.push(p);});});
   const tsel=document.getElementById('db-tf');if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Todos los equipos</option>'+[...allT].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
@@ -2717,7 +2718,7 @@ function renderScouting() {
     const ptsPerGame = Math.round(p.pts / p.games * 10) / 10;
     // Threat level: high scorer or high % shooter with volume
     const isThreat = ptsPerGame >= 10 || (p.t3Att >= 5 && t3p >= 38);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,_scoutRival)" title="Ver perfil">
       <div style="width:30px;height:30px;border-radius:50%;background:${isThreat?'#dc2626':'var(--nv)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</div>
       <div style="flex:1">
         <div style="font-weight:700;font-size:12px">${p.name}${p.starts>0 ? ' <span title="Titular" style="color:#f59e0b;font-size:10px">★</span>' : ''}${isThreat ? ' <span style="color:#dc2626;font-size:10px">⚠️</span>' : ''}</div>
@@ -3817,6 +3818,7 @@ function _svgLines(series,labels,{h=110}={}){ // series: [{name,color,values(nul
 }
 
 function openPlayerProfile(name,team){
+ try{
   // Collect this player's games chronologically
   const games=[];
   S.matches.forEach(m=>{
@@ -3913,6 +3915,7 @@ function openPlayerProfile(name,team){
     if(cnt)cnt.textContent=myShots.length?`· ${made}/${myShots.length} ubicados (${Math.round(made/myShots.length*100)}%)`:'· sin tiros ubicados';
   }
   document.getElementById('player-modal').style.display='flex';
+ }catch(e){console.error('openPlayerProfile:',e);toast('Error abriendo el perfil: '+e.message,'err');}
 }
 function closePlayerProfile(){document.getElementById('player-modal').style.display='none';}
 

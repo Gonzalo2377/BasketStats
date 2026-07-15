@@ -812,6 +812,14 @@ input[type=file]{display:none}
 
 
 
+<!-- Player profile modal -->
+<div id="player-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:850;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto" onclick="if(event.target===this)closePlayerProfile()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:880px;margin:12px auto;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden">
+    <div id="pp-header" style="background:var(--nv);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:14px;position:relative"></div>
+    <div id="pp-body" style="padding:16px 20px"></div>
+  </div>
+</div>
+
 <script type="module">
 // ═══════════════════════════════════════════
 // FIREBASE SETUP
@@ -2556,7 +2564,7 @@ function renderStatsAggregated(){
     const tlp=p.tlAtt?Math.round(p.tlMade/p.tlAtt*100)+'%':'—';
     const pm=p.pm,val=p.val;
     const g=p.games.length;
-    return `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" onclick="togglePlayerGames('pg-${p.name.replace(/\s/g,'_')}-${p.team.replace(/\s/g,'_')}')">
+    return `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)">
       <td style="padding:5px 6px">#${p.dorsal}</td>
       <td style="padding:5px 6px;font-weight:700">${p.name} <span style="color:var(--t3);font-size:9px">(${g}P)</span></td>
       <td style="padding:5px 6px"><span class="chip cgr">${p.team}</span></td>
@@ -2573,7 +2581,7 @@ function renderStatsAggregated(){
       <td style="padding:5px 6px">${p.fc}</td>
       <td style="padding:5px 6px;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val}</td>
       <td style="padding:5px 6px;font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
-      <td style="padding:5px 6px;color:var(--t3);font-size:11px">▼</td>
+      <td style="padding:5px 6px;color:var(--t3);font-size:11px" title="Ver perfil del jugador">👤</td>
     </tr>
     <tr id="pg-${p.name.replace(/\s/g,'_')}-${p.team.replace(/\s/g,'_')}" style="display:none;background:#f8fafc">
       <td colspan="17" style="padding:0">
@@ -3755,6 +3763,159 @@ function discardLive(){
   checkLiveResume();
 }
 
+
+// ═══════════════════════════════════════════
+// PLAYER PROFILE (Stats → click on a player)
+// ═══════════════════════════════════════════
+function _parseDMY(d){ // "27/09/2025 18:00" → timestamp
+  const m=(d||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m?new Date(+m[3],+m[2]-1,+m[1]).getTime():0;
+}
+
+// Tiny SVG chart helpers (no libraries)
+function _svgBars(values,labels,{color='#e8402a',neg=false,h=110}={}){
+  const n=values.length;if(!n)return'';
+  const W=Math.max(220,n*46),PB=18,PT=14;
+  const maxV=Math.max(...values.map(v=>Math.abs(v)),1);
+  const zero=neg?(h-PB+PT)/2:h-PB;
+  const scale=(neg?(h-PB-PT)/2:(h-PB-PT))/maxV;
+  let s=`<svg viewBox="0 0 ${W} ${h}" style="width:100%;max-width:${W}px">`;
+  if(neg)s+=`<line x1="0" y1="${zero}" x2="${W}" y2="${zero}" stroke="#cbd5e1" stroke-width="1"/>`;
+  values.forEach((v,i)=>{
+    const x=i*(W/n)+(W/n-26)/2;
+    const bh=Math.max(2,Math.abs(v)*scale);
+    const y=v>=0?zero-bh:zero;
+    const col=neg?(v>=0?'#16a34a':'#dc2626'):color;
+    s+=`<rect x="${x}" y="${y}" width="26" height="${bh}" rx="4" fill="${col}"/>`;
+    s+=`<text x="${x+13}" y="${v>=0?y-4:y+bh+11}" text-anchor="middle" font-size="10" font-weight="800" fill="#0f172a">${v}</text>`;
+    s+=`<text x="${x+13}" y="${h-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${labels[i]||''}</text>`;
+  });
+  return s+'</svg>';
+}
+function _svgLines(series,labels,{h=110}={}){ // series: [{name,color,values(null=no attempt)}]
+  const n=labels.length;if(!n)return'';
+  const W=Math.max(220,n*46),PB=18,PT=12;
+  let s=`<svg viewBox="0 0 ${W} ${h}" style="width:100%;max-width:${W}px">`;
+  [0,50,100].forEach(g=>{
+    const y=h-PB-(g/100)*(h-PB-PT);
+    s+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#f0f4f8" stroke-width="1"/><text x="2" y="${y-2}" font-size="7" fill="#cbd5e1">${g}%</text>`;
+  });
+  const X=i=>i*(W/n)+(W/n)/2;
+  const Y=v=>h-PB-(Math.min(100,v)/100)*(h-PB-PT);
+  series.forEach(sr=>{
+    const pts=sr.values.map((v,i)=>v==null?null:`${X(i)},${Y(v)}`);
+    // draw segments skipping nulls
+    let path='';let open=false;
+    pts.forEach(p=>{if(p==null){open=false;return;}path+=(open?' L':' M')+p;open=true;});
+    s+=`<path d="${path.trim()}" fill="none" stroke="${sr.color}" stroke-width="2.5" stroke-linecap="round"/>`;
+    sr.values.forEach((v,i)=>{if(v==null)return;
+      s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${sr.color}"/>`;
+      s+=`<text x="${X(i)}" y="${Y(v)-7}" text-anchor="middle" font-size="9" font-weight="800" fill="${sr.color}">${v}</text>`;});
+  });
+  labels.forEach((l,i)=>{s+=`<text x="${X(i)}" y="${h-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${l}</text>`;});
+  return s+'</svg>';
+}
+
+function openPlayerProfile(name,team){
+  // Collect this player's games chronologically
+  const games=[];
+  S.matches.forEach(m=>{
+    const sides=[['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway,m.awayTeam],
+                 ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome,m.homeTeam]];
+    for(const [side,tName,players,my,op,oppName] of sides){
+      if(tName!==team)continue;
+      const p=(players||[]).find(x=>x.name===name);
+      if(p)games.push({...p,side,mId:m.id,date:m.date||'',ts:_parseDMY(m.date)||m.id,opp:oppName,my,op,
+                       res:my>op?'W':my<op?'L':'E'});
+    }
+  });
+  if(!games.length){toast('Sin partidos de este jugador','err');return;}
+  games.sort((a,b)=>a.ts-b.ts);
+  const G=games.length;
+  const sum=f=>games.reduce((s,g)=>s+(g[f]||0),0);
+  const pts=sum('pts'),t2m=sum('t2Made'),t2a=sum('t2Att'),t3m=sum('t3Made'),t3a=sum('t3Att'),
+        tlm=sum('tlMade'),tla=sum('tlAtt'),fc=sum('fc'),pm=sum('pm'),min=sum('min'),
+        reb=sum('reb'),ast=sum('ast'),starts=games.filter(g=>g.starter).length;
+  const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
+  const dorsal=games[games.length-1].dorsal;
+
+  // Player shots (for map)
+  const allShots=[...S.shots,...S.matches.flatMap(m=>(m.shots||[]).map(s=>({...s,mId:m.id})))];
+  const myShots=allShots.filter(s=>{
+    if(s.player!==name)return false;
+    const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
+    return (s.team==='home'?m.homeTeam:m.awayTeam)===team;
+  });
+
+  // Header
+  document.getElementById('pp-header').innerHTML=`
+    <div style="width:52px;height:52px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0">#${dorsal}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:18px;font-weight:900">${name} ${starts>0?'<span style="color:#fbbf24" title="Titular">★</span>':''}</div>
+      <div style="font-size:11px;opacity:.75">${team} · ${G} partido${G!==1?'s':''} · titular ${starts}/${G} · ${min?Math.round(min/G)+' min/p':''}</div>
+    </div>
+    <button onclick="closePlayerProfile()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;flex-shrink:0">✕</button>`;
+
+  const labels=games.map((g,i)=>g.date?g.date.slice(0,5):('P'+(i+1)));
+  const kpi=(v,l,s2)=>`<div class="kpi" style="padding:9px 6px"><div class="kv" style="font-size:19px">${v}</div><div class="kl">${l}</div>${s2?`<div class="ks">${s2}</div>`:''}</div>`;
+  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div style="overflow-x:auto">${inner}</div></div>`;
+
+  document.getElementById('pp-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
+      ${kpi((pts/G).toFixed(1),'Pts/partido',pts+' tot')}
+      ${kpi(pct(t2m,t2a),'T2%',t2m+'/'+t2a)}
+      ${kpi(pct(t3m,t3a),'T3%',t3m+'/'+t3a)}
+      ${kpi(pct(tlm,tla),'TL%',tlm+'/'+tla)}
+      ${kpi((pm>0?'+':'')+pm,'+/- total','')}
+      ${kpi(fc,'Faltas','')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${chart('🏀 Puntos por partido',_svgBars(games.map(g=>g.pts||0),labels))}
+      ${chart('🎯 % de tiro por partido <span style="font-weight:600;text-transform:none;letter-spacing:0">· <span style="color:#e8402a">●</span> T2 <span style="color:#0ea5e9">●</span> T3</span>',
+        _svgLines([
+          {name:'T2',color:'#e8402a',values:games.map(g=>g.t2Att?Math.round(g.t2Made/g.t2Att*100):null)},
+          {name:'T3',color:'#0ea5e9',values:games.map(g=>g.t3Att?Math.round(g.t3Made/g.t3Att*100):null)}
+        ],labels))}
+      ${chart('⏱ Minutos por partido',_svgBars(games.map(g=>Math.round(g.min||0)),labels,{color:'#0f1f3d'}))}
+      ${chart('📈 +/- por partido',_svgBars(games.map(g=>g.pm||0),labels,{neg:true}))}
+    </div>
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro <span style="font-weight:600" id="pp-shot-count"></span></div>
+        <div class="cw"><canvas id="pp-cv"></canvas></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido</div>
+        <div style="overflow-x:auto;max-height:260px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">
+          <thead><tr style="background:#1e293b;position:sticky;top:0">${['Rival','','MIN','PTS','TL','T2','T3','FC','+/-'].map(h=>`<th style="padding:4px 7px;text-align:left;color:#fff">${h}</th>`).join('')}</tr></thead>
+          <tbody>${games.slice().reverse().map(g=>`<tr style="border-top:1px solid #f0f4f8">
+            <td style="padding:4px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.opp}${g.starter?' <span style="color:#f59e0b">★</span>':''}</td>
+            <td style="padding:4px 7px"><span style="font-weight:800;color:${g.res==='W'?'#15803d':g.res==='L'?'#dc2626':'#64748b'}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
+            <td style="padding:4px 7px">${Math.round(g.min)||'—'}</td>
+            <td style="padding:4px 7px;font-weight:800">${g.pts||0}</td>
+            <td style="padding:4px 7px">${(g.tlMade||0)}/${(g.tlAtt||0)}</td>
+            <td style="padding:4px 7px">${(g.t2Made||0)}/${(g.t2Att||0)}</td>
+            <td style="padding:4px 7px">${(g.t3Made||0)}/${(g.t3Att||0)}</td>
+            <td style="padding:4px 7px">${g.fc||0}</td>
+            <td style="padding:4px 7px;font-weight:800;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+
+  // Draw the shot map
+  const cv=document.getElementById('pp-cv');
+  if(cv){
+    if(myShots.length>=5)drawHeatmap('pp-cv',myShots);
+    else{cv.width=CW;cv.height=CH;drawCourt(cv.getContext('2d'));drawShots(cv.getContext('2d'),myShots);}
+    const made=myShots.filter(s=>s.made).length;
+    const cnt=document.getElementById('pp-shot-count');
+    if(cnt)cnt.textContent=myShots.length?`· ${made}/${myShots.length} ubicados (${Math.round(made/myShots.length*100)}%)`:'· sin tiros ubicados';
+  }
+  document.getElementById('player-modal').style.display='flex';
+}
+function closePlayerProfile(){document.getElementById('player-modal').style.display='none';}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -3772,7 +3933,7 @@ Object.assign(window,{
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
-  renderStats,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,
+  renderStats,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
   // Dashboard
   renderDash,
   // Scouting

@@ -112,6 +112,7 @@ input[type=file]{display:none}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:900;opacity:0;transition:opacity .3s;pointer-events:none}
 /* SHOT POPUP */
 #shot-popup{position:fixed;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:10px;border:2px solid var(--bd);display:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
 </style>
 </head>
 <body>
@@ -138,7 +139,9 @@ input[type=file]{display:none}
   <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
   <button class="nb" onclick="ST('t-stats')">📊 Stats</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
+  <button class="nb" onclick="ST('t-club')">🟡 Claret</button>
   <button class="nb" onclick="ST('t-scout')">🔍 Scouting</button>
+  <button class="nb" onclick="ST('t-video')">🎬 Vídeo</button>
 </div>
 
 <!-- TOAST -->
@@ -572,6 +575,28 @@ input[type=file]{display:none}
 </div>
 <div class="card"><div class="ct">👥 Millors Parelles</div><div id="db-q"></div></div>
 </div></div>
+<!-- ═══ TAB: CLARET ═══ -->
+<div id="t-club" class="tab"><div class="main">
+  <div class="card" style="margin-bottom:10px">
+    <div class="ct">🟡 Unió Esportiva Claret</div>
+    <div class="g4" id="cl-kpis" style="gap:7px"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="ct">👥 Jugadores (acumulado) <span style="font-size:10px;color:var(--t3);font-weight:400">— clic para el perfil</span></div>
+    <div class="tw"><table><thead><tr>
+      <th>#</th><th>Jugador</th><th>P</th><th>MIN</th><th>PTS</th><th>T2%</th><th>T3%</th><th>TL%</th><th>REB</th><th>AST</th><th>FC</th><th>+/-</th><th>+/-/10min</th>
+    </tr></thead><tbody id="cl-players"></tbody></table></div>
+  </div>
+  <div class="g2" style="gap:10px;margin-bottom:10px">
+    <div class="card"><div class="ct">🖐 Mejores quintetos (+/-)</div><div id="cl-lineups"></div></div>
+    <div class="card"><div class="ct">⚡ Impacto por minuto</div><div id="cl-impact"></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">📊 Comparativa con la liga</div>
+    <div id="cl-league"></div>
+  </div>
+</div></div>
+
 <!-- ═══ TAB: SCOUTING ═══ -->
 <div id="t-scout" class="tab"><div class="main">
 
@@ -660,116 +685,6 @@ input[type=file]{display:none}
       </div>
     </div>
 
-    <!-- Vídeo y clips -->
-    <div class="card" style="margin-bottom:10px">
-      <div class="ct">🎬 Vídeo y clips del rival
-        <div style="display:flex;gap:6px;align-items:center">
-          <button onclick="document.getElementById('sc-video-input').click()" class="btn bo bxs" style="font-size:11px">📁 Cargar vídeo</button>
-          <input type="file" id="sc-video-input" accept="video/*" style="display:none" onchange="loadScoutVideo(event)">
-          <span id="sc-video-name" style="font-size:10px;color:var(--t3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-        </div>
-      </div>
-
-      <div id="sc-video-wrap" style="display:none">
-        <!-- Player -->
-        <div style="background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px">
-          <video id="sc-video" style="width:100%;max-height:360px;display:block" controls preload="metadata"></video>
-        </div>
-        <!-- Controls -->
-        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-          <button onclick="scVid(-10)" class="btn bo bxs" style="font-size:11px">-10s</button>
-          <button onclick="scVid(-5)"  class="btn bo bxs" style="font-size:11px">-5s</button>
-          <button onclick="scVid(-1)"  class="btn bo bxs" style="font-size:11px">-1s</button>
-          <span id="sc-vid-time" style="font-size:14px;font-weight:900;font-family:monospace;min-width:60px;text-align:center;background:var(--nv);color:#fff;border-radius:6px;padding:3px 8px">0:00</span>
-          <button onclick="scVid(1)"   class="btn bo bxs" style="font-size:11px">+1s</button>
-          <button onclick="scVid(5)"   class="btn bo bxs" style="font-size:11px">+5s</button>
-          <button onclick="scVid(10)"  class="btn bo bxs" style="font-size:11px">+10s</button>
-          <select id="sc-vid-speed" onchange="setVidSpeed()" style="font-size:11px;padding:4px 6px;border:1.5px solid var(--b2);border-radius:6px">
-            <option value="0.25">×0.25</option><option value="0.5">×0.5</option>
-            <option value="1" selected>×1</option><option value="1.5">×1.5</option><option value="2">×2</option>
-          </select>
-        </div>
-
-        <!-- IN / OUT marker bar -->
-        <div style="background:#0f172a;border-radius:10px;padding:10px 12px;margin-bottom:10px">
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button id="sc-btn-in" onclick="markIn()" style="padding:7px 14px;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #16a34a;background:#16a34a;color:#fff">⏺ Marcar INICIO</button>
-            <button id="sc-btn-out" onclick="markOut()" style="padding:7px 14px;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #64748b;background:transparent;color:#94a3b8" disabled>⏹ Marcar FINAL</button>
-            <button onclick="resetMarks()" style="padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid #475569;background:transparent;color:#94a3b8">↺ Reset</button>
-            <button id="sc-btn-preview" onclick="previewClip()" style="padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid #475569;background:transparent;color:#94a3b8;display:none">👁 Previsualizar</button>
-          </div>
-          <!-- visual range bar -->
-          <div style="margin-top:9px;position:relative;height:8px;background:#334155;border-radius:4px;overflow:hidden;cursor:pointer" id="sc-range-bar" onclick="seekFromBar(event)">
-            <div id="sc-range-fill" style="position:absolute;top:0;bottom:0;left:0;width:0;background:linear-gradient(90deg,#16a34a,#22c55e);display:none"></div>
-            <div id="sc-range-cursor" style="position:absolute;top:-2px;width:2px;height:12px;background:#fff;left:0"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:monospace;font-size:11px;font-weight:700">
-            <span id="sc-mark-in" style="color:#64748b">IN —:—</span>
-            <span id="sc-mark-dur" style="color:#fbbf24">Duración —</span>
-            <span id="sc-mark-out" style="color:#64748b">OUT —:—</span>
-          </div>
-        </div>
-
-        <!-- Create clip form (only after IN+OUT) -->
-        <div id="sc-clip-form" style="background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px;display:none">
-          <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">
-            ✂️ Guardar clip <span id="sc-clip-range" style="font-family:monospace;color:#16a34a"></span>
-          </div>
-
-          <input type="text" id="sc-clip-label" placeholder="Descripción del clip..." style="width:100%;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px;margin-bottom:8px">
-
-          <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Categoría</div>
-          <div style="display:flex;gap:6px;margin-bottom:8px">
-            <button id="sc-cat-atk" onclick="setClipCat('ataque')" style="flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--b2);background:#fff;color:var(--t2)">⚔️ Ataque</button>
-            <button id="sc-cat-def" onclick="setClipCat('defensa')" style="flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--b2);background:#fff;color:var(--t2)">🛡️ Defensa</button>
-          </div>
-
-          <div id="sc-folder-wrap" style="display:none">
-            <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Carpeta</div>
-            <div style="display:flex;gap:6px;margin-bottom:6px">
-              <select id="sc-folder-sel" style="flex:1;padding:6px 8px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
-                <option value="">— Carpeta existente —</option>
-              </select>
-              <button onclick="toggleNewFolder()" class="btn bo bxs" style="font-size:11px;white-space:nowrap">+ Nueva</button>
-            </div>
-            <div id="sc-new-folder-wrap" style="display:none;gap:6px">
-              <input type="text" id="sc-new-folder-name" placeholder="Nombre carpeta (ej: P&R, Zona, Banda...)" style="width:100%;padding:6px 8px;border:1.5px solid var(--ac);border-radius:7px;font-size:12px">
-            </div>
-          </div>
-
-          <div style="display:flex;gap:6px;margin-top:8px">
-            <input type="text" id="sc-clip-note" placeholder="Nota adicional (opcional)..." style="flex:1;padding:6px 9px;border:1.5px solid var(--b2);border-radius:7px;font-size:11px">
-            <button onclick="addScoutClip()" class="btn bp" style="font-size:12px;padding:7px 16px;white-space:nowrap">✂️ Guardar clip</button>
-          </div>
-        </div>
-
-      </div>
-
-      <div id="sc-video-empty" style="text-align:center;padding:24px 16px;color:var(--t3)">
-        <div style="font-size:28px;margin-bottom:8px">🎬</div>
-        <div style="font-size:12px;font-weight:600;margin-bottom:4px">Carga el vídeo del partido</div>
-        <div style="font-size:11px">Carga el vídeo del partido para <b>crear</b> clips nuevos. Los clips ya guardados se ven abajo sin necesidad de vídeo.</div>
-      </div>
-
-      <!-- Clips library — ALWAYS visible, no video needed -->
-      <div style="border-top:1.5px solid var(--bd);margin-top:12px;padding-top:12px">
-        <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">📚 Biblioteca de clips</div>
-        <div id="sc-clips-library"></div>
-      </div>
-    </div>
-
-    <!-- Clip playback modal -->
-    <div id="sc-clip-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:900;align-items:center;justify-content:center;padding:16px" onclick="closeClipModal(event)">
-      <div style="max-width:900px;width:100%" onclick="event.stopPropagation()">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div id="sc-clip-modal-title" style="color:#fff;font-weight:700;font-size:14px"></div>
-          <button onclick="closeClipModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
-        </div>
-        <video id="sc-clip-player" style="width:100%;border-radius:10px;background:#000" controls autoplay></video>
-        <div id="sc-clip-modal-note" style="color:#94a3b8;font-size:12px;margin-top:8px"></div>
-      </div>
-    </div>
-
     <!-- Notas manuales del staff -->
     <div class="card">    <!-- Notas manuales del staff -->
     <div class="card">
@@ -813,6 +728,98 @@ input[type=file]{display:none}
 </div></div>
 
 
+
+<!-- ═══ TAB: VIDEO ═══ -->
+<div id="t-video" class="tab"><div class="main">
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="ct">🎬 Vídeo del partido
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="document.getElementById('v-file').click()" class="btn bo bxs" style="font-size:11px">📁 Cargar vídeo</button>
+        <input type="file" id="v-file" accept="video/*" style="display:none" onchange="vLoadVideo(event)">
+        <span id="v-name" style="font-size:10px;color:var(--t3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      </div>
+    </div>
+
+    <!-- Teams form (asked on video load) -->
+    <div id="v-teams-form" style="display:none;background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase">¿De qué partido es este vídeo?</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="v-local" placeholder="Equipo LOCAL" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <input type="text" id="v-away" placeholder="Equipo VISITANTE" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <button onclick="vSetTeams()" class="btn bp" style="font-size:12px">✓ Confirmar</button>
+      </div>
+    </div>
+
+    <div id="v-wrap" style="display:none">
+      <div id="v-container" style="position:relative;background:#000;border-radius:10px;overflow:hidden;margin-bottom:8px">
+        <video id="v-video" style="width:100%;max-height:440px;display:block" preload="metadata"></video>
+        <div id="v-rec-badge" style="display:none;position:absolute;top:10px;left:10px;background:rgba(220,38,38,.92);color:#fff;font-weight:800;font-size:12px;padding:5px 12px;border-radius:20px;font-family:monospace;animation:pulse 1s infinite">⏺ REC</div>
+        <div id="v-speed-badge" style="display:none;position:absolute;top:10px;right:10px;background:rgba(15,23,42,.85);color:#fff;font-weight:800;font-size:12px;padding:5px 10px;border-radius:8px;font-family:monospace"></div>
+        <button onclick="vFullscreen()" title="Pantalla completa" style="position:absolute;bottom:10px;right:10px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer">⛶</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <span id="v-time" style="font-size:14px;font-weight:900;font-family:monospace;background:var(--nv);color:#fff;border-radius:6px;padding:4px 10px">0:00</span>
+        <span id="v-match-label" style="font-size:11px;font-weight:700;color:var(--t2)"></span>
+        <span style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
+      </div>
+
+      <!-- Clip form (appears after 2nd space) -->
+      <div id="v-clip-form" style="display:none;background:#0f172a;border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="color:#fff;font-weight:800;font-size:12px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">✂️ Nuevo clip <span id="v-clip-range" style="color:#22c55e;font-family:monospace"></span></div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:5px;text-transform:uppercase">¿De quién es el clip?</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button id="v-side-local" onclick="vSetTeamSide('local')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #475569;background:transparent;color:#cbd5e1">LOCAL</button>
+          <button id="v-side-away" onclick="vSetTeamSide('away')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #475569;background:transparent;color:#cbd5e1">VISITANTE</button>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:5px;text-transform:uppercase">Categoría</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button id="v-cat-atk" onclick="vSetCat('ataque')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #475569;background:transparent;color:#cbd5e1">⚔️ Ataque</button>
+          <button id="v-cat-def" onclick="vSetCat('defensa')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid #475569;background:transparent;color:#cbd5e1">🛡️ Defensa</button>
+        </div>
+        <div id="v-folder-wrap" style="display:none">
+          <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:5px;text-transform:uppercase">Carpeta</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <select id="v-folder-sel" style="flex:1;padding:7px;border-radius:8px;font-size:12px;border:none">
+              <option value="">— Carpeta existente —</option>
+            </select>
+            <button onclick="vToggleNewFolder()" style="background:#334155;border:none;color:#fff;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">+ Nueva</button>
+          </div>
+          <input type="text" id="v-new-folder" placeholder="Nombre carpeta (P&R, Zona, Banda...)" style="display:none;width:100%;padding:7px 10px;border-radius:8px;font-size:12px;border:2px solid var(--ac);margin-bottom:6px">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input type="text" id="v-clip-label" placeholder="Descripción (opcional)..." style="flex:1;padding:7px 10px;border-radius:8px;font-size:12px;border:none">
+          <button id="v-save-btn" onclick="vSaveClip()" class="btn bp" style="font-size:12px;padding:8px 16px;white-space:nowrap">✂️ Guardar</button>
+          <button onclick="vCancelClip()" style="background:#334155;border:none;color:#cbd5e1;border-radius:8px;padding:8px 12px;font-size:11px;cursor:pointer">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="v-empty" style="text-align:center;padding:22px;color:var(--t3)">
+      <div style="font-size:26px;margin-bottom:6px">🎬</div>
+      <div style="font-size:12px;font-weight:600">Carga el vídeo del partido para crear clips</div>
+      <div style="font-size:11px;margin-top:4px">Los clips guardados se ven abajo sin necesidad de vídeo, desde cualquier dispositivo</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📚 Biblioteca de clips <span style="font-size:10px;color:var(--t3);font-weight:400">— una carpeta por partido</span></div>
+    <div id="v-library"></div>
+  </div>
+
+</div></div>
+
+<!-- Clip playback modal -->
+    <div id="sc-clip-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:900;align-items:center;justify-content:center;padding:16px" onclick="closeClipModal(event)">
+      <div style="max-width:900px;width:100%" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div id="sc-clip-modal-title" style="color:#fff;font-weight:700;font-size:14px"></div>
+          <button onclick="closeClipModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer">✕ Cerrar</button>
+        </div>
+        <video id="sc-clip-player" style="width:100%;border-radius:10px;background:#000" controls autoplay></video>
+        <div id="sc-clip-modal-note" style="color:#94a3b8;font-size:12px;margin-top:8px"></div>
+      </div>
+    </div>
 
 <!-- Player profile modal -->
 <div id="player-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:850;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto" onclick="if(event.target===this)closePlayerProfile()">
@@ -904,7 +911,7 @@ function svL() {
     try {
       // Meta (teams) + clips: small docs, always written
       await setDoc(META_DOC, { teams: S.teams, updatedAt: Date.now() });
-      await setDoc(CLIPS_DOC, { clips: S.clips || {} });
+      await setDoc(CLIPS_DOC, { clips: S.clips || {}, clips2: S.clips2 || {} });
       // Matches: ONE DOCUMENT PER MATCH (each with its placed shots embedded).
       // Only rewrite matches whose content changed; delete removed ones.
       const seen = new Set();
@@ -973,7 +980,6 @@ async function ldLS() {
 
   onSnapshot(CLIPS_DOC, (snap) => {
     S.clips = snap.exists() ? (snap.data().clips || {}) : {};
-    if(document.getElementById('t-scout')?.classList.contains('active'))renderClipsLibrary();
   }, (err) => { console.error(err); });
 
   onSnapshot(MATCHES_COL, (qs) => {
@@ -1008,11 +1014,13 @@ function ST(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-scout'];
+  const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-club','t-scout','t-video'];
   document.querySelectorAll('.nb')[ts.indexOf(id)].classList.add('active');
   if(id==='t-eq')renderTeams();
   if(id==='t-imp')populateTeamSelects();
   if(id==='t-live'){populateLvTeamSelects();checkLiveResume();}
+  if(id==='t-video')renderVideoLib();
+  if(id==='t-club')renderClub();
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
   if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
@@ -2294,7 +2302,7 @@ function renderDash(){
 
   // Pairs — real +/- based on shared time on court (not individual pm sum)
   const pairMap={};
-  const pKey=(team,a,b)=>team+'|'+[a,b].sort().join('|');
+  const pKey=(tname,a,b)=>tname+'|'+[a,b].sort().join('|');
   const matchesToUse=mf?S.matches.filter(m=>m.id==mf):S.matches;
   matchesToUse.forEach(m=>{
     // Reconstruct court state over time using subEvents
@@ -2311,37 +2319,29 @@ function renderDash(){
       const pts={'pts2':2,'pts3':3,'tl_in':1}[ev.type];
       if(!pts)return;
       const st=ev.team,op=st==='home'?'away':'home';
+      const stName=st==='home'?m.homeTeam:m.awayTeam;
+      const opName=op==='home'?m.homeTeam:m.awayTeam;
       const sc=[...court[st]],opp=[...court[op]];
       for(let i=0;i<sc.length;i++)for(let j=i+1;j<sc.length;j++){
-        const k=pKey(st,sc[i],sc[j]);
-        if(!pairMap[k])pairMap[k]={n1:sc[i].split(' ')[0],n2:sc[j].split(' ')[0],team:st,pm:0,pts:0};
+        const k=pKey(stName,sc[i],sc[j]);
+        if(!pairMap[k])pairMap[k]={n1:sc[i].split(' ')[0],n2:sc[j].split(' ')[0],f1:sc[i],f2:sc[j],tname:stName,pm:0,pts:0};
         pairMap[k].pm+=pts;pairMap[k].pts+=pts;
       }
       for(let i=0;i<opp.length;i++)for(let j=i+1;j<opp.length;j++){
-        const k=pKey(op,opp[i],opp[j]);
-        if(!pairMap[k])pairMap[k]={n1:opp[i].split(' ')[0],n2:opp[j].split(' ')[0],team:op,pm:0,pts:0};
+        const k=pKey(opName,opp[i],opp[j]);
+        if(!pairMap[k])pairMap[k]={n1:opp[i].split(' ')[0],n2:opp[j].split(' ')[0],f1:opp[i],f2:opp[j],tname:opName,pm:0,pts:0};
         pairMap[k].pm-=pts;
       }
     });
   });
   let pairs=Object.values(pairMap);
-  // Apply team filter: only pairs from that team
-  if(tf)pairs=pairs.filter(p=>{
-    // Check which team these players belong to by looking at matches
-    const teamNames=new Set(S.matches.flatMap(m=>[
-      ...(m.homePlayers||[]).map(pl=>pl.name+'>'+m.homeTeam),
-      ...(m.awayPlayers||[]).map(pl=>pl.name+'>'+m.awayTeam)
-    ]));
-    // Simplified: filter by team stored in pairMap
-    return p.team===tf||S.matches.some(m=>(m.homeTeam===tf||m.awayTeam===tf)&&
-      [...(m.homePlayers||[]),...(m.awayPlayers||[])].some(pl=>pl.name===p.n1||pl.name===p.n2));
-  });
-  // Apply player filter: only pairs involving that player
-  if(pf2)pairs=pairs.filter(p=>p.n1===pf2.split(' ')[0]||p.n2===pf2.split(' ')[0]||
-    p.n1===pf2||p.n2===pf2);
+  // Team filter: only pairs of that team
+  if(tf)pairs=pairs.filter(p=>p.tname===tf);
+  // Player filter: pairs (of the selected team if any) involving that player
+  if(pf2)pairs=pairs.filter(p=>p.f1===pf2||p.f2===pf2);
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
-  if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
+  if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
 }
 
 // ═══════════════════════════════════════════
@@ -2758,7 +2758,7 @@ function renderScouting() {
     const el = document.getElementById('sc-note-' + k);
     if (el) el.value = notes[k] || '';
   });
-  renderClipsLibrary();
+
 }
 
 function renderScoutShots() {
@@ -3061,15 +3061,21 @@ function exportScoutPDF() {
   const scCv=document.getElementById('sc-cv');
   const heatImg=scCv?scCv.toDataURL('image/png'):'';
 
-  // ── Video clips from Firebase (S.clips) ─────────────────────────────────
-  const clipsByCatFolder={};
+  // ── Video clips: legacy (S.clips by rival) + new (S.clips2 by match→team) ──
+  const clipsByCatFolder={ataque:{},defensa:{}};
   const clips=[];
+  const addClip=(cat,folder,cl)=>{
+    if(!clipsByCatFolder[cat][folder])clipsByCatFolder[cat][folder]=[];
+    clipsByCatFolder[cat][folder].push(cl);
+    clips.push({...cl,cat,folder});
+  };
   ['ataque','defensa'].forEach(cat=>{
-    const folders=S.clips?.[rival]?.[cat]||{};
-    clipsByCatFolder[cat]={};
-    Object.entries(folders).forEach(([folder,fclips])=>{
-      clipsByCatFolder[cat][folder]=fclips||[];
-      (fclips||[]).forEach(cl=>clips.push({...cl,cat,folder}));
+    Object.entries(S.clips?.[rival]?.[cat]||{}).forEach(([folder,fclips])=>(fclips||[]).forEach(cl=>addClip(cat,folder,cl)));
+  });
+  Object.values(S.clips2||{}).forEach(mk=>{
+    const cats=mk.teams?.[rival];if(!cats)return;
+    ['ataque','defensa'].forEach(cat=>{
+      Object.entries(cats[cat]||{}).forEach(([folder,fclips])=>(fclips||[]).forEach(cl=>addClip(cat,folder,cl)));
     });
   });
   clips.sort((a,b)=>a.timeSecs-b.timeSecs);
@@ -3286,167 +3292,8 @@ ${['ataque','defensa'].map(cat=>{
 
 
 
-// ═══════════════════════════════════════════
-// VIDEO + CLIPS MODULE
-// Structure: S.clips[rival][cat][folder] = [{id,timeSecs,timeEnd,label,note,created}]
-// Synced to Firebase. Video file loaded locally per device.
-// ═══════════════════════════════════════════
-
-let _clipCat = '';       // 'ataque' | 'defensa'
-
-function _getClips() { return S.clips || {}; }
-function _saveClips() {
-  if (!S.clips) S.clips = {};
-  svL();  // reuses existing Firebase save — clips added to S
-}
-
-// ── Sync S.clips into Firebase (add to svL payload) ──────────────────────────
-// ── Video load ────────────────────────────────────────────────────────────────
-function loadScoutVideo(evt) {
-  const file = evt.target.files[0]; if (!file) return;
-  const vid = document.getElementById('sc-video');
-  vid.src = URL.createObjectURL(file);
-  document.getElementById('sc-video-name').textContent = file.name;
-  document.getElementById('sc-video-wrap').style.display = 'block';
-  document.getElementById('sc-video-empty').style.display = 'none';
-  vid.addEventListener('timeupdate', _updateVidTime);
-  renderClipsLibrary();
-}
-function _updateVidTime() {
-  const vid = document.getElementById('sc-video');
-  const el = document.getElementById('sc-vid-time');
-  if (el) el.textContent = _fmtT(vid.currentTime);
-  const cur = document.getElementById('sc-range-cursor');
-  if (cur && vid.duration) cur.style.left = (vid.currentTime/vid.duration*100)+'%';
-}
-function scVid(d) { const v=document.getElementById('sc-video'); if(v) v.currentTime=Math.max(0,v.currentTime+d); }
-function setVidSpeed() { const v=document.getElementById('sc-video'),s=document.getElementById('sc-vid-speed'); if(v&&s) v.playbackRate=parseFloat(s.value); }
+// ── Utilidades de vídeo/clips reutilizadas por la pestaña 🎬 Vídeo ──
 function _fmtT(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; }
-
-let _clipIn = null, _clipOut = null;
-
-function _refreshMarks(){
-  const vid=document.getElementById('sc-video');
-  const dur=vid&&vid.duration?vid.duration:0;
-  const inEl=document.getElementById('sc-mark-in');
-  const outEl=document.getElementById('sc-mark-out');
-  const durEl=document.getElementById('sc-mark-dur');
-  const outBtn=document.getElementById('sc-btn-out');
-  const inBtn=document.getElementById('sc-btn-in');
-  const form=document.getElementById('sc-clip-form');
-  const range=document.getElementById('sc-clip-range');
-  const fill=document.getElementById('sc-range-fill');
-  const prev=document.getElementById('sc-btn-preview');
-
-  if(inEl) {inEl.textContent = _clipIn!==null?`IN ${_fmtT(_clipIn)}`:'IN —:—';
-            inEl.style.color = _clipIn!==null?'#22c55e':'#64748b';}
-  if(outEl){outEl.textContent= _clipOut!==null?`OUT ${_fmtT(_clipOut)}`:'OUT —:—';
-            outEl.style.color= _clipOut!==null?'#ef4444':'#64748b';}
-
-  // OUT button enabled only once IN is set
-  if(outBtn){
-    const on = _clipIn!==null;
-    outBtn.disabled=!on;
-    outBtn.style.borderColor=on?'#dc2626':'#64748b';
-    outBtn.style.background =on?'#dc2626':'transparent';
-    outBtn.style.color      =on?'#fff':'#94a3b8';
-    outBtn.style.cursor     =on?'pointer':'not-allowed';
-  }
-  if(inBtn) inBtn.textContent = _clipIn!==null?`⏺ INICIO ${_fmtT(_clipIn)}`:'⏺ Marcar INICIO';
-
-  const ready = _clipIn!==null && _clipOut!==null && _clipOut>_clipIn;
-  if(durEl){
-    durEl.textContent = ready?`Duración ${(_clipOut-_clipIn).toFixed(1)}s`:'Duración —';
-    durEl.style.color = ready?'#fbbf24':'#64748b';
-  }
-  if(form) form.style.display = ready?'block':'none';
-  if(prev) prev.style.display = ready?'inline-block':'none';
-  if(range&&ready) range.textContent = `${_fmtT(_clipIn)} → ${_fmtT(_clipOut)} (${(_clipOut-_clipIn).toFixed(1)}s)`;
-
-  // green range on the bar
-  if(fill&&dur){
-    if(_clipIn!==null){
-      const a=_clipIn/dur*100;
-      const b=(_clipOut!==null?_clipOut:_clipIn)/dur*100;
-      fill.style.display='block';
-      fill.style.left=a+'%';
-      fill.style.width=Math.max(0.5,b-a)+'%';
-    } else fill.style.display='none';
-  }
-}
-
-function markIn(){
-  const vid=document.getElementById('sc-video'); if(!vid) return;
-  _clipIn=vid.currentTime;
-  if(_clipOut!==null&&_clipOut<=_clipIn) _clipOut=null; // invalid, clear
-  _refreshMarks();
-  toast(`⏺ Inicio en ${_fmtT(_clipIn)}`);
-}
-function markOut(){
-  const vid=document.getElementById('sc-video'); if(!vid||_clipIn===null) return;
-  const t=vid.currentTime;
-  if(t<=_clipIn){toast('El final debe ir después del inicio','err');return;}
-  _clipOut=t;
-  _refreshMarks();
-  toast(`⏹ Final en ${_fmtT(_clipOut)} · ${(_clipOut-_clipIn).toFixed(1)}s`);
-}
-function resetMarks(){
-  _clipIn=null;_clipOut=null;
-  _refreshMarks();
-}
-function previewClip(){
-  const vid=document.getElementById('sc-video');
-  if(!vid||_clipIn===null||_clipOut===null) return;
-  vid.currentTime=_clipIn;
-  vid.play();
-  const stop=()=>{ if(vid.currentTime>=_clipOut){vid.pause();vid.removeEventListener('timeupdate',stop);} };
-  vid.addEventListener('timeupdate',stop);
-}
-function seekFromBar(ev){
-  const vid=document.getElementById('sc-video');
-  const bar=document.getElementById('sc-range-bar');
-  if(!vid||!vid.duration||!bar) return;
-  const r=bar.getBoundingClientRect();
-  vid.currentTime=Math.max(0,Math.min(vid.duration,(ev.clientX-r.left)/r.width*vid.duration));
-}
-
-// ── Category selection ────────────────────────────────────────────────────────
-function setClipCat(cat) {
-  _clipCat = cat;
-  const atkBtn = document.getElementById('sc-cat-atk');
-  const defBtn = document.getElementById('sc-cat-def');
-  const ac = 'var(--ac)', wh = '#fff', t2 = 'var(--t2)', b2 = 'var(--b2)';
-  if (atkBtn) { atkBtn.style.background=cat==='ataque'?ac:wh; atkBtn.style.color=cat==='ataque'?wh:t2; atkBtn.style.borderColor=cat==='ataque'?ac:b2; }
-  if (defBtn) { defBtn.style.background=cat==='defensa'?ac:wh; defBtn.style.color=cat==='defensa'?wh:t2; defBtn.style.borderColor=cat==='defensa'?ac:b2; }
-  document.getElementById('sc-folder-wrap').style.display = 'block';
-  populateFolderSel();
-}
-
-function populateFolderSel() {
-  const rival = _scoutRival; if (!rival || !_clipCat) return;
-  const existing = Object.keys((_getClips()[rival]?.[_clipCat]) || {}).sort();
-  const sel = document.getElementById('sc-folder-sel');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Selecciona carpeta existente —</option>' +
-    existing.map(f => `<option value="${f}">${f}</option>`).join('') +
-    '<option value="__new__">+ Crear carpeta nueva...</option>';
-  sel.onchange = () => {
-    const nw = document.getElementById('sc-new-folder-wrap');
-    if (sel.value === '__new__') { if(nw) nw.style.display='flex'; document.getElementById('sc-new-folder-name')?.focus(); }
-    else { if(nw) nw.style.display='none'; }
-  };
-}
-
-function toggleNewFolder() {
-  const nw = document.getElementById('sc-new-folder-wrap');
-  if (!nw) return;
-  const visible = nw.style.display === 'flex';
-  nw.style.display = visible ? 'none' : 'flex';
-  const sel = document.getElementById('sc-folder-sel');
-  if (!visible) { if(sel) sel.value=''; document.getElementById('sc-new-folder-name')?.focus(); }
-}
-
-// ── Record the marked segment from the <video> into a webm Blob ────────────
 function _recordSegment(vid, inT, outT, onProgress) {
   return new Promise((resolve, reject) => {
     if (!vid.captureStream && !vid.mozCaptureStream) {
@@ -3494,156 +3341,6 @@ function _recordSegment(vid, inT, outT, onProgress) {
     vid.addEventListener('seeked', startRec);
   });
 }
-
-// ── Add clip: record segment → upload to Storage → save metadata ───────────
-async function addScoutClip() {
-  const rival = _scoutRival;
-  const vid = document.getElementById('sc-video');
-  const label = document.getElementById('sc-clip-label')?.value.trim();
-  const note = document.getElementById('sc-clip-note')?.value.trim() || '';
-  const newFolderName = document.getElementById('sc-new-folder-name')?.value.trim();
-  const selFolder = document.getElementById('sc-folder-sel')?.value;
-
-  if (!rival) { toast('Selecciona un rival primero', 'err'); return; }
-  if (!label) { toast('Añade una descripción al clip', 'err'); return; }
-  if (!_clipCat) { toast('Selecciona Ataque o Defensa', 'err'); return; }
-  if (_clipIn === null || _clipOut === null || _clipOut <= _clipIn) {
-    toast('Marca INICIO y FINAL del clip primero', 'err'); return;
-  }
-
-  let folder = (selFolder === '__new__' || !selFolder) ? newFolderName : selFolder;
-  if (!folder) { toast('Escribe el nombre de la carpeta', 'err'); return; }
-
-  const btn = document.querySelector('#sc-clip-form button.bp');
-  const setBtn = (txt, dis) => { if (btn) { btn.textContent = txt; btn.disabled = !!dis; btn.style.opacity = dis ? .6 : 1; } };
-
-  const timeStart = _clipIn, timeEnd = _clipOut;
-  const dur = +(timeEnd - timeStart).toFixed(1);
-
-  let videoUrl = null, publicId = null;
-
-  if (!CLOUD_OK()) {
-    const cont = confirm(
-      'Cloudinary no está configurado (revisa CLOUDINARY_CLOUD y CLOUDINARY_PRESET en el código).\n\n' +
-      '¿Guardar solo la marca de tiempo?'
-    );
-    if (!cont) { setBtn('✂️ Guardar clip', false); return; }
-  } else {
-    try {
-      setBtn('⏺ Grabando 0%…', true);
-      const blob = await _recordSegment(vid, timeStart, timeEnd, p => setBtn(`⏺ Grabando ${p}%…`, true));
-      setBtn('☁️ Subiendo 0%…', true);
-      const up = await uploadClipToCloud(blob, rival, p => setBtn(`☁️ Subiendo ${p}%…`, true));
-      videoUrl = up.url; publicId = up.publicId;
-    } catch (e) {
-      console.error('Clip recording/upload failed:', e);
-      const cont = confirm(
-        `No se pudo guardar el vídeo del clip:\n${e.message}\n\n` +
-        `¿Guardar solo la marca de tiempo? (necesitarás el vídeo cargado para verlo)`
-      );
-      if (!cont) { setBtn('✂️ Guardar clip', false); return; }
-    }
-  }
-
-  const clip = {
-    id: Date.now(),
-    timeSecs: timeStart,
-    timeEnd,
-    dur,
-    time: _fmtT(timeStart),
-    timeEndFmt: _fmtT(timeEnd),
-    label, note,
-    videoUrl,
-    publicId,
-    created: new Date().toLocaleDateString('es-ES')
-  };
-
-  if (!S.clips) S.clips = {};
-  if (!S.clips[rival]) S.clips[rival] = {};
-  if (!S.clips[rival][_clipCat]) S.clips[rival][_clipCat] = {};
-  if (!S.clips[rival][_clipCat][folder]) S.clips[rival][_clipCat][folder] = [];
-  S.clips[rival][_clipCat][folder].push(clip);
-  _saveClips();
-
-  document.getElementById('sc-clip-label').value = '';
-  document.getElementById('sc-clip-note').value = '';
-  const nf = document.getElementById('sc-new-folder-name'); if (nf) nf.value = '';
-  setBtn('✂️ Guardar clip', false);
-  resetMarks();
-  populateFolderSel();
-  renderClipsLibrary();
-  toast(videoUrl ? `✅ Clip guardado (${dur}s) — disponible en todos los dispositivos`
-                 : `⚠️ Clip guardado solo como marca de tiempo`);
-}
-
-// ── Render clips library ──────────────────────────────────────────────────────
-function renderClipsLibrary() {
-  const el = document.getElementById('sc-clips-library'); if (!el) return;
-  const rival = _scoutRival;
-  const rivalClips = (_getClips()[rival]) || {};
-  const cats = ['ataque', 'defensa'];
-  let totalClips = 0;
-  cats.forEach(cat => Object.values(rivalClips[cat]||{}).forEach(arr => totalClips += arr.length));
-
-  if (!totalClips) {
-    el.innerHTML = `<div style="text-align:center;padding:14px;color:var(--t3);font-size:11px">Sin clips para este rival todavía.<br>Carga el vídeo del partido arriba y marca INICIO/FINAL para crear el primero.</div>`;
-    return;
-  }
-
-  el.innerHTML = cats.map(cat => {
-    const catData = rivalClips[cat] || {};
-    const folders = Object.keys(catData).sort();
-    if (!folders.length) return '';
-    const catLabel = cat === 'ataque' ? '⚔️ Ataque' : '🛡️ Defensa';
-    const catColor = cat === 'ataque' ? '#15803d' : '#1e40af';
-    const catBg = cat === 'ataque' ? '#f0fdf4' : '#eff6ff';
-    const catBorder = cat === 'ataque' ? '#16a34a' : '#3b82f6';
-
-    return `<div style="margin-bottom:12px">
-      <div style="background:${catBg};border:1.5px solid ${catBorder};border-radius:8px;padding:8px 12px;font-weight:800;font-size:12px;color:${catColor};margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-        <span>${catLabel}</span>
-        <span style="font-size:10px;font-weight:600;opacity:.7">${folders.reduce((s,f)=>s+catData[f].length,0)} clips</span>
-      </div>
-      ${folders.map(folder => {
-        const clips = (catData[folder]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
-        const folderId = `clf-${cat}-${folder.replace(/\s/g,'_')}`;
-        return `<div style="margin-bottom:6px;border:1px solid var(--bd);border-radius:8px;overflow:hidden">
-          <div style="background:#f8fafc;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleFolderView('${folderId}')">
-            <span style="font-weight:700;font-size:12px">📁 ${folder} <span style="font-size:10px;color:var(--t3);font-weight:400">(${clips.length})</span></span>
-            <div style="display:flex;gap:5px;align-items:center">
-              <button onclick="event.stopPropagation();deleteFolder('${rival}','${cat}','${folder}')" style="background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:2px 4px" title="Eliminar carpeta">🗑️</button>
-              <span id="arr-${folderId}" style="color:var(--t3);font-size:11px">▼</span>
-            </div>
-          </div>
-          <div id="${folderId}" style="display:none">
-            ${clips.map(cl => `
-              <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-top:1px solid var(--bd)" id="clip-${cl.id}">
-                <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify(cl.label||"")},${JSON.stringify(cl.note||"")})' style="font-size:11px;font-weight:800;font-family:monospace;padding:5px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;white-space:nowrap" title="${cl.videoUrl?'Clip guardado — se ve sin el vídeo':'Solo marca de tiempo — requiere el vídeo'}">
-                  ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
-                </button>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:12px;font-weight:700">${cl.label}</div>
-                  ${cl.note?`<div style="font-size:10px;color:var(--t3);margin-top:1px">${cl.note}</div>`:''}
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">${cl.created}</div>
-                </div>
-                <button onclick="deleteClip('${rival}','${cat}','${folder}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>
-              </div>`).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }).join('');
-}
-
-function toggleFolderView(id) {
-  const el = document.getElementById(id);
-  const arr = document.getElementById('arr-' + id);
-  if (!el) return;
-  const open = el.style.display !== 'none';
-  el.style.display = open ? 'none' : 'block';
-  if (arr) arr.textContent = open ? '▼' : '▲';
-}
-
 function jumpToClip(secs, end, url, title, note) {
   // 1) Uploaded clip → play standalone, no source video needed
   if (url) {
@@ -3670,31 +3367,12 @@ function jumpToClip(secs, end, url, title, note) {
     vid.addEventListener('timeupdate', stop);
   }
 }
-
 function closeClipModal(ev) {
   if (ev && ev.target !== ev.currentTarget && ev.type === 'click' && ev.currentTarget.id === 'sc-clip-modal') return;
   const modal = document.getElementById('sc-clip-modal');
   const pl = document.getElementById('sc-clip-player');
   if (pl) { pl.pause(); pl.removeAttribute('src'); pl.load(); }
   if (modal) modal.style.display = 'none';
-}
-
-function deleteClip(rival, cat, folder, id) {
-  if (!S.clips?.[rival]?.[cat]?.[folder]) return;
-  S.clips[rival][cat][folder] = S.clips[rival][cat][folder].filter(c => c.id !== id);
-  if (!S.clips[rival][cat][folder].length) delete S.clips[rival][cat][folder];
-  _saveClips();
-  renderClipsLibrary();
-  toast('Clip eliminado');
-}
-
-function deleteFolder(rival, cat, folder) {
-  if (!confirm(`¿Eliminar la carpeta "${folder}" y todos sus clips?`)) return;
-  if (S.clips?.[rival]?.[cat]) delete S.clips[rival][cat][folder];
-  _saveClips();
-  populateFolderSel();
-  renderClipsLibrary();
-  toast(`🗑️ Carpeta "${folder}" eliminada`);
 }
 
 
@@ -3827,7 +3505,7 @@ function openPlayerProfile(name,team){
     const sides=[['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway,m.awayTeam],
                  ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome,m.homeTeam]];
     for(const [side,tName,players,my,op,oppName] of sides){
-      if(tName!==team)continue;
+      if(team==='__CLARET__'?!isOurTeam(tName):tName!==team)continue;
       const p=(players||[]).find(x=>x.name===name);
       if(p)games.push({...p,side,mId:m.id,date:m.date||'',ts:_parseDMY(m.date)||m.id,opp:oppName,my,op,
                        res:my>op?'W':my<op?'L':'E'});
@@ -3921,6 +3599,467 @@ function openPlayerProfile(name,team){
 }
 function closePlayerProfile(){document.getElementById('player-modal').style.display='none';}
 
+
+// ═══════════════════════════════════════════
+// 🎬 VIDEO TAB — keyboard-driven clip cutting
+// S.clips2[matchKey] = {local,away,created,teams:{[teamName]:{ataque:{[folder]:[clip]},defensa:{...}}}}
+// ═══════════════════════════════════════════
+let _vMatchKey=null,_vIn=null,_vOut=null,_vSide='',_vCat='',_vSpeed=1,_vRewind=null,_vRewindRate=0;
+
+function vEl(){return document.getElementById('v-video');}
+
+function vLoadVideo(evt){
+  const f=evt.target.files[0];if(!f)return;
+  const v=vEl();
+  v.src=URL.createObjectURL(f);
+  document.getElementById('v-name').textContent=f.name;
+  document.getElementById('v-teams-form').style.display='block';
+  document.getElementById('v-empty').style.display='none';
+  v.addEventListener('timeupdate',()=>{
+    const t=document.getElementById('v-time');
+    if(t)t.textContent=_fmtT(v.currentTime);
+    // live REC badge time
+    if(_vIn!==null&&_vOut===null){
+      const b=document.getElementById('v-rec-badge');
+      if(b)b.textContent=`⏺ REC ${_fmtT(_vIn)} → ${_fmtT(v.currentTime)}`;
+    }
+  });
+  v.addEventListener('dblclick',vFullscreen);
+  document.getElementById('v-local')?.focus();
+}
+
+function vSetTeams(){
+  const l=document.getElementById('v-local')?.value.trim();
+  const a=document.getElementById('v-away')?.value.trim();
+  if(!l||!a){toast('Escribe ambos equipos','err');return;}
+  _vMatchKey=`${l} vs ${a}`;
+  if(!S.clips2)S.clips2={};
+  if(!S.clips2[_vMatchKey])S.clips2[_vMatchKey]={local:l,away:a,created:Date.now(),teams:{}};
+  document.getElementById('v-teams-form').style.display='none';
+  document.getElementById('v-wrap').style.display='block';
+  document.getElementById('v-match-label').textContent=`🏀 ${l} vs ${a}`;
+  renderVideoLib();
+  toast('⌨ Atajos activos: ESPACIO, J, K, L, ← →');
+}
+
+function vFullscreen(){
+  const cont=document.getElementById('v-container');
+  if(document.fullscreenElement)document.exitFullscreen();
+  else cont?.requestFullscreen?.();
+}
+
+// ── Rewind engine (browsers don't support negative playbackRate) ─────────────
+function _vStopRewind(){
+  if(_vRewind){clearInterval(_vRewind);_vRewind=null;_vRewindRate=0;_vUpdateSpeedBadge();}
+}
+function _vStartRewind(){
+  const v=vEl();if(!v)return;
+  v.pause();
+  _vRewindRate=_vRewindRate?Math.min(4,_vRewindRate+1):1;
+  if(!_vRewind)_vRewind=setInterval(()=>{
+    const vv=vEl();if(!vv)return;
+    vv.currentTime=Math.max(0,vv.currentTime-0.12*_vRewindRate);
+    if(vv.currentTime<=0)_vStopRewind();
+  },100);
+  _vUpdateSpeedBadge();
+}
+function _vUpdateSpeedBadge(){
+  const b=document.getElementById('v-speed-badge');if(!b)return;
+  if(_vRewindRate){b.style.display='block';b.textContent=`◀◀ x${_vRewindRate}`;}
+  else if(_vSpeed!==1){b.style.display='block';b.textContent=`▶▶ x${_vSpeed}`;}
+  else b.style.display='none';
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  const tab=document.getElementById('t-video');
+  if(!tab||!tab.classList.contains('active'))return;
+  const v=vEl();if(!v||!v.src)return;
+  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  const formOpen=document.getElementById('v-clip-form')?.style.display==='block';
+  switch(e.key){
+    case ' ':
+      e.preventDefault();
+      if(formOpen)return; // finish the pending clip first
+      if(_vIn===null){ // START clip
+        _vIn=v.currentTime;_vOut=null;
+        const b=document.getElementById('v-rec-badge');
+        if(b){b.style.display='block';b.textContent=`⏺ REC ${_fmtT(_vIn)}`;}
+        if(v.paused)v.play();
+        toast(`⏺ Inicio de clip en ${_fmtT(_vIn)}`);
+      } else { // END clip
+        if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
+        _vOut=v.currentTime;
+        v.pause();
+        document.getElementById('v-rec-badge').style.display='none';
+        document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
+        document.getElementById('v-clip-form').style.display='block';
+        vPopulateFolders();
+      }
+      break;
+    case 'l':case 'L':
+      _vStopRewind();
+      _vSpeed=_vSpeed>=4?1:_vSpeed+1;
+      v.playbackRate=_vSpeed;
+      if(v.paused)v.play();
+      _vUpdateSpeedBadge();
+      break;
+    case 'k':case 'K':
+      _vStopRewind();
+      v.pause();_vSpeed=1;v.playbackRate=1;_vUpdateSpeedBadge();
+      break;
+    case 'j':case 'J':
+      _vSpeed=1;v.playbackRate=1;
+      _vStartRewind();
+      break;
+    case 'ArrowRight':e.preventDefault();v.currentTime=Math.min(v.duration||1e9,v.currentTime+5);break;
+    case 'ArrowLeft':e.preventDefault();v.currentTime=Math.max(0,v.currentTime-5);break;
+  }
+});
+
+// ── Clip form ──────────────────────────────────────────────────────────────
+function vSetTeamSide(side){
+  _vSide=side;
+  const mk=S.clips2?.[_vMatchKey];if(!mk)return;
+  const lb=document.getElementById('v-side-local'),ab=document.getElementById('v-side-away');
+  const on=(b,is)=>{if(!b)return;b.style.background=is?'var(--ac)':'transparent';b.style.borderColor=is?'var(--ac)':'#475569';b.style.color=is?'#fff':'#cbd5e1';};
+  on(lb,side==='local');on(ab,side==='away');
+  if(lb)lb.textContent=mk.local.toUpperCase();
+  if(ab)ab.textContent=mk.away.toUpperCase();
+  vPopulateFolders();
+}
+function vSetCat(cat){
+  _vCat=cat;
+  const a=document.getElementById('v-cat-atk'),d=document.getElementById('v-cat-def');
+  const on=(b,is)=>{if(!b)return;b.style.background=is?'var(--ac)':'transparent';b.style.borderColor=is?'var(--ac)':'#475569';b.style.color=is?'#fff':'#cbd5e1';};
+  on(a,cat==='ataque');on(d,cat==='defensa');
+  document.getElementById('v-folder-wrap').style.display=(_vSide&&_vCat)?'block':'none';
+  vPopulateFolders();
+}
+function vPopulateFolders(){
+  if(!_vSide||!_vCat)return;
+  const mk=S.clips2?.[_vMatchKey];if(!mk)return;
+  const tName=_vSide==='local'?mk.local:mk.away;
+  const existing=Object.keys(mk.teams?.[tName]?.[_vCat]||{}).sort();
+  const sel=document.getElementById('v-folder-sel');if(!sel)return;
+  sel.innerHTML='<option value="">— Carpeta existente —</option>'+
+    existing.map(f=>`<option value="${f}">${f}</option>`).join('')+
+    '<option value="__new__">+ Crear carpeta nueva…</option>';
+  sel.onchange=()=>{
+    const nf=document.getElementById('v-new-folder');
+    if(sel.value==='__new__'){nf.style.display='block';nf.focus();}
+    else nf.style.display='none';
+  };
+  document.getElementById('v-folder-wrap').style.display='block';
+}
+function vToggleNewFolder(){
+  const nf=document.getElementById('v-new-folder');
+  const sel=document.getElementById('v-folder-sel');
+  nf.style.display=nf.style.display==='none'?'block':'none';
+  if(nf.style.display==='block'){if(sel)sel.value='';nf.focus();}
+}
+function vCancelClip(){
+  _vIn=null;_vOut=null;_vSide='';_vCat='';
+  document.getElementById('v-clip-form').style.display='none';
+  document.getElementById('v-rec-badge').style.display='none';
+}
+
+async function vSaveClip(){
+  const v=vEl();
+  const mk=S.clips2?.[_vMatchKey];
+  if(!mk){toast('Confirma los equipos primero','err');return;}
+  if(_vIn===null||_vOut===null){toast('Marca inicio y fin con ESPACIO','err');return;}
+  if(!_vSide){toast('¿Local o visitante?','err');return;}
+  if(!_vCat){toast('¿Ataque o defensa?','err');return;}
+  const selF=document.getElementById('v-folder-sel')?.value;
+  const newF=document.getElementById('v-new-folder')?.value.trim();
+  let folder=(selF==='__new__'||!selF)?newF:selF;
+  if(!folder){toast('Elige o crea una carpeta','err');return;}
+  const label=document.getElementById('v-clip-label')?.value.trim()||'';
+  const tName=_vSide==='local'?mk.local:mk.away;
+
+  const btn=document.getElementById('v-save-btn');
+  const setBtn=(t,d)=>{if(btn){btn.textContent=t;btn.disabled=!!d;btn.style.opacity=d?.6:1;}};
+  const inT=_vIn,outT=_vOut,dur=+(outT-inT).toFixed(1);
+
+  let videoUrl=null,publicId=null;
+  if(CLOUD_OK()){
+    try{
+      setBtn('⏺ Grabando 0%…',true);
+      const blob=await _recordSegment(v,inT,outT,p=>setBtn(`⏺ Grabando ${p}%…`,true));
+      setBtn('☁️ Subiendo 0%…',true);
+      const up=await uploadClipToCloud(blob,_vMatchKey,p=>setBtn(`☁️ Subiendo ${p}%…`,true));
+      videoUrl=up.url;publicId=up.publicId;
+    }catch(e){
+      console.error(e);
+      if(!confirm(`No se pudo guardar el vídeo del clip:\n${e.message}\n\n¿Guardar solo la marca de tiempo?`)){setBtn('✂️ Guardar',false);return;}
+    }
+  }
+  const clip={id:Date.now(),timeSecs:inT,timeEnd:outT,dur,time:_fmtT(inT),timeEndFmt:_fmtT(outT),
+    label,videoUrl,publicId,created:new Date().toLocaleDateString('es-ES')};
+  if(!mk.teams)mk.teams={};
+  if(!mk.teams[tName])mk.teams[tName]={};
+  if(!mk.teams[tName][_vCat])mk.teams[tName][_vCat]={};
+  if(!mk.teams[tName][_vCat][folder])mk.teams[tName][_vCat][folder]=[];
+  mk.teams[tName][_vCat][folder].push(clip);
+  svL();
+  setBtn('✂️ Guardar',false);
+  document.getElementById('v-clip-label').value='';
+  const nf=document.getElementById('v-new-folder');if(nf)nf.value='';
+  vCancelClip();
+  renderVideoLib();
+  toast(videoUrl?`✅ Clip de ${dur}s guardado en ${tName} → ${_vCat} → ${folder}`:`⚠️ Guardado solo como marca de tiempo`);
+}
+
+// ── Library: main folders = matches ─────────────────────────────────────────
+function renderVideoLib(){
+  const el=document.getElementById('v-library');if(!el)return;
+  const entries=Object.entries(S.clips2||{}).sort((a,b)=>(b[1].created||0)-(a[1].created||0));
+  if(!entries.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa ESPACIO para crear el primero.</div>';return;}
+  el.innerHTML=entries.map(([mkKey,mk])=>{
+    let total=0;
+    Object.values(mk.teams||{}).forEach(t=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
+    const mid=`vlib-${_hash(mkKey)}`;
+    return `<div style="border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden">
+      <div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="vToggleFolder('${mid}')">
+        <span style="font-weight:800;font-size:13px">📂 ${mk.local} vs ${mk.away}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:10px;opacity:.7">${total} clips</span>
+          <button onclick="event.stopPropagation();vDeleteMatch('${mkKey.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
+          <span id="arr-${mid}">▼</span>
+        </div>
+      </div>
+      <div id="${mid}" style="display:none;padding:10px 12px">
+        ${Object.entries(mk.teams||{}).map(([tName,cats])=>`
+          <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
+          ${['ataque','defensa'].map(cat=>{
+            const folders=cats[cat]||{};const names=Object.keys(folders).sort();
+            if(!names.length)return'';
+            const col=cat==='ataque'?'#15803d':'#1e40af',bg=cat==='ataque'?'#f0fdf4':'#eff6ff',bd=cat==='ataque'?'#16a34a':'#3b82f6';
+            return `<div style="background:${bg};border-left:3px solid ${bd};border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px">
+              <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;margin-bottom:4px">${cat==='ataque'?'⚔️ Ataque':'🛡️ Defensa'}</div>
+              ${names.map(f=>{
+                const clips=(folders[f]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
+                return `<div style="margin-bottom:5px">
+                  <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">📁 ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>
+                    <button onclick="vDeleteFolder('${mkKey.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
+                  </div>
+                  ${clips.map(cl=>`
+                  <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
+                    <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.local+" vs "+mk.away)},"")'
+                      style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
+                      ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
+                    </button>
+                    <span style="flex:1;font-size:11px">${cl.label||'<i style="color:var(--t3)">sin descripción</i>'}</span>
+                    <span style="font-size:9px;color:var(--t3);font-family:monospace">${cl.time}→${cl.timeEndFmt}</span>
+                    <button onclick="vDeleteClip('${mkKey.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>
+                  </div>`).join('')}
+                </div>`;}).join('')}
+            </div>`;}).join('')}
+        `).join('')}
+      </div>
+    </div>`;}).join('');
+}
+function vToggleFolder(id){
+  const el=document.getElementById(id);const a=document.getElementById('arr-'+id);
+  if(!el)return;const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';if(a)a.textContent=open?'▼':'▲';
+}
+function vDeleteClip(mkKey,tName,cat,folder,id){
+  const arr=S.clips2?.[mkKey]?.teams?.[tName]?.[cat]?.[folder];if(!arr)return;
+  S.clips2[mkKey].teams[tName][cat][folder]=arr.filter(c=>c.id!==id);
+  if(!S.clips2[mkKey].teams[tName][cat][folder].length)delete S.clips2[mkKey].teams[tName][cat][folder];
+  svL();renderVideoLib();
+}
+function vDeleteFolder(mkKey,tName,cat,folder){
+  if(!confirm(`¿Eliminar la carpeta "${folder}" y sus clips?`))return;
+  if(S.clips2?.[mkKey]?.teams?.[tName]?.[cat])delete S.clips2[mkKey].teams[tName][cat][folder];
+  svL();renderVideoLib();
+}
+function vDeleteMatch(mkKey){
+  if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`))return;
+  delete S.clips2[mkKey];
+  svL();renderVideoLib();
+}
+
+
+// ═══════════════════════════════════════════
+// 🟡 CLARET TAB — our team hub
+// ═══════════════════════════════════════════
+const isOurTeam=n=>/claret/i.test(n||'');
+
+function renderClub(){
+  // Gather our matches (imported AND live both end up in S.matches)
+  const ours=[];
+  S.matches.forEach(m=>{
+    if(isOurTeam(m.homeTeam))ours.push({m,side:'home',tName:m.homeTeam,my:m.scoreHome,op:m.scoreAway,opp:m.awayTeam,players:m.homePlayers||[]});
+    else if(isOurTeam(m.awayTeam))ours.push({m,side:'away',tName:m.awayTeam,my:m.scoreAway,op:m.scoreHome,opp:m.homeTeam,players:m.awayPlayers||[]});
+  });
+  const G=ours.length;
+  const kEl=document.getElementById('cl-kpis');
+  if(!G){
+    if(kEl)kEl.innerHTML='<div class="empty" style="grid-column:1/-1">Sin partidos del Claret todavía. Importa cronologías o juega partidos en Directo (el nombre del equipo debe contener "Claret").</div>';
+    ['cl-players','cl-lineups','cl-impact','cl-league'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
+    return;
+  }
+  const W=ours.filter(o=>o.my>o.op).length,L=ours.filter(o=>o.my<o.op).length;
+  const ptsF=ours.reduce((s,o)=>s+o.my,0),ptsA=ours.reduce((s,o)=>s+o.op,0);
+
+  // Player aggregation
+  const pm={};
+  ours.forEach(o=>o.players.forEach(p=>{
+    if(!pm[p.name])pm[p.name]={name:p.name,dorsal:p.dorsal,g:0,min:0,pts:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,reb:0,ast:0,fc:0,pm:0,starts:0,tName:o.tName};
+    const a=pm[p.name];
+    a.g++;a.min+=p.min||0;a.pts+=p.pts||0;
+    a.t2m+=p.t2Made||0;a.t2a+=p.t2Att||0;a.t3m+=p.t3Made||0;a.t3a+=p.t3Att||0;
+    a.tlm+=p.tlMade||0;a.tla+=p.tlAtt||0;
+    a.reb+=p.reb||0;a.ast+=p.ast||0;a.fc+=p.fc||0;a.pm+=p.pm||0;
+    if(p.starter)a.starts++;
+  }));
+  const players=Object.values(pm).sort((a,b)=>b.pts-a.pts);
+  const teamReb=players.reduce((s,p)=>s+p.reb,0),teamAst=players.reduce((s,p)=>s+p.ast,0);
+  const t2m=players.reduce((s,p)=>s+p.t2m,0),t2a=players.reduce((s,p)=>s+p.t2a,0);
+  const t3m=players.reduce((s,p)=>s+p.t3m,0),t3a=players.reduce((s,p)=>s+p.t3a,0);
+  const tlm=players.reduce((s,p)=>s+p.tlm,0),tla=players.reduce((s,p)=>s+p.tla,0);
+  const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
+
+  if(kEl)kEl.innerHTML=`
+    <div class="kpi"><div class="kv" style="color:${W>=L?'var(--gn)':'#dc2626'}">${W}-${L}</div><div class="kl">Balance</div></div>
+    <div class="kpi"><div class="kv">${Math.round(ptsF/G)}</div><div class="kl">Pts a favor/p</div></div>
+    <div class="kpi"><div class="kv">${Math.round(ptsA/G)}</div><div class="kl">Pts en contra/p</div></div>
+    <div class="kpi"><div class="kv">${(ptsF-ptsA>0?'+':'')+Math.round((ptsF-ptsA)/G)}</div><div class="kl">Dif/partido</div></div>
+    <div class="kpi"><div class="kv">${pct(t2m,t2a)}</div><div class="kl">T2%</div><div class="ks">${t2m}/${t2a}</div></div>
+    <div class="kpi"><div class="kv">${pct(t3m,t3a)}</div><div class="kl">T3%</div><div class="ks">${t3m}/${t3a}</div></div>
+    <div class="kpi"><div class="kv">${pct(tlm,tla)}</div><div class="kl">TL%</div><div class="ks">${tlm}/${tla}</div></div>
+    <div class="kpi"><div class="kv">${teamReb?Math.round(teamReb/G):'—'}</div><div class="kl">Reb/p</div></div>`;
+
+  // Players table
+  const tb=document.getElementById('cl-players');
+  if(tb)tb.innerHTML=players.map(p=>{
+    const per10=p.min?Math.round(p.pm/p.min*100)/10:0;
+    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
+      <td>#${p.dorsal}</td>
+      <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}</td>
+      <td>${p.g}</td>
+      <td>${Math.round(p.min)||'—'}</td>
+      <td><b>${p.pts}</b></td>
+      <td>${pct(p.t2m,p.t2a)}</td>
+      <td>${pct(p.t3m,p.t3a)}</td>
+      <td>${pct(p.tlm,p.tla)}</td>
+      <td>${p.reb||0}</td>
+      <td>${p.ast||0}</td>
+      <td>${p.fc}</td>
+      <td style="font-weight:700;color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'inherit'}">${p.pm>0?'+':''}${p.pm}</td>
+      <td style="font-weight:700;color:${per10>0?'var(--gn)':per10<0?'#dc2626':'inherit'}">${per10>0?'+':''}${per10}</td>
+    </tr>`;}).join('');
+
+  // Best lineups (5-sets) from subEvents
+  renderClubLineups(ours);
+
+  // Impact per minute (min ≥ threshold)
+  const imp=players.filter(p=>p.min>=15).map(p=>({...p,per10:p.min?p.pm/p.min*10:0}))
+    .sort((a,b)=>b.per10-a.per10).slice(0,8);
+  const ie=document.getElementById('cl-impact');
+  if(ie)ie.innerHTML=imp.length?imp.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">
+      <span style="width:18px;height:18px;border-radius:50%;background:${i<3?'var(--gn)':'var(--nv)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span>
+      <span style="flex:1;font-weight:600">${p.name.split(' ')[0]}</span>
+      <span style="font-size:10px;color:var(--t3)">${Math.round(p.min)}min</span>
+      <b style="color:${p.per10>0?'var(--gn)':'#dc2626'}">${p.per10>0?'+':''}${p.per10.toFixed(1)}/10min</b>
+    </div>`).join('')+'<div style="font-size:9px;color:var(--t3);margin-top:5px">+/- por cada 10 minutos en pista (mín. 15 min jugados)</div>'
+    :'<div class="empty">Faltan minutos jugados (reimporta cronologías o juega en Directo)</div>';
+
+  // League comparison
+  renderClubLeague();
+}
+
+function renderClubLineups(ours){
+  const el=document.getElementById('cl-lineups');if(!el)return;
+  const lineups={};
+  ours.forEach(o=>{
+    const m=o.m,side=o.side;
+    const subs=(m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
+    if(!subs.length&&!(m.events||[]).length)return;
+    const court=new Set((o.players.filter(p=>p.starter).length===5?o.players.filter(p=>p.starter):o.players.slice(0,5)).map(p=>p.name));
+    let si=0;
+    (m.events||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0)).forEach(ev=>{
+      while(si<subs.length&&(subs[si].min||0)<=(ev.min||0)){
+        const s=subs[si++];
+        if(s.team!==side)continue;
+        if(s.type==='out')court.delete(s.player);else court.add(s.player);
+      }
+      const pts={'pts2':2,'pts3':3,'tl_in':1}[ev.type];if(!pts)return;
+      if(court.size!==5)return;
+      const key=[...court].sort().join('|');
+      if(!lineups[key])lineups[key]={names:[...court].map(n=>n.split(' ')[0]),pm:0,ev:0};
+      lineups[key].pm+=(ev.team===side?pts:-pts);
+      lineups[key].ev++;
+    });
+  });
+  const top=Object.values(lineups).filter(l=>l.ev>=4).sort((a,b)=>b.pm-a.pm).slice(0,5);
+  el.innerHTML=top.length?top.map((l,i)=>`
+    <div style="padding:6px 0;border-bottom:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="width:18px;height:18px;border-radius:50%;background:${i===0?'var(--gn)':'var(--nv)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <span style="flex:1;font-size:11px;font-weight:600">${l.names.join(' · ')}</span>
+        <b style="color:${l.pm>0?'var(--gn)':'#dc2626'};font-size:13px">${l.pm>0?'+':''}${l.pm}</b>
+      </div>
+      <div style="font-size:9px;color:var(--t3);margin-left:25px">${l.ev} acciones de anotación con este quinteto</div>
+    </div>`).join('')
+    :'<div class="empty">Se necesitan partidos con cambios registrados (Directo o cronología reimportada)</div>';
+}
+
+function renderClubLeague(){
+  const el=document.getElementById('cl-league');if(!el)return;
+  // Build per-team aggregates across ALL matches in the DB
+  const T={};
+  S.matches.forEach(m=>{
+    [['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway],
+     ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome]].forEach(([side,name,players,my,op])=>{
+      if(!name)return;
+      if(!T[name])T[name]={name,g:0,pts:0,ptsA:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,fc:0};
+      const t=T[name];t.g++;t.pts+=my||0;t.ptsA+=op||0;
+      (players||[]).forEach(p=>{t.t2m+=p.t2Made||0;t.t2a+=p.t2Att||0;t.t3m+=p.t3Made||0;t.t3a+=p.t3Att||0;
+        t.tlm+=p.tlMade||0;t.tla+=p.tlAtt||0;t.fc+=p.fc||0;});
+    });
+  });
+  const teams=Object.values(T).filter(t=>t.g>0);
+  const us=teams.find(t=>isOurTeam(t.name));
+  if(!us||teams.length<3){el.innerHTML='<div class="empty">Se necesitan más equipos en la base de datos para comparar (importa partidos de otros rivales)</div>';return;}
+  const N=teams.length;
+  const metrics=[
+    {label:'Puntos a favor /p',val:t=>t.pts/t.g,fmt:v=>v.toFixed(1),desc:true},
+    {label:'Puntos en contra /p',val:t=>t.ptsA/t.g,fmt:v=>v.toFixed(1),desc:false},
+    {label:'T2%',val:t=>t.t2a?t.t2m/t.t2a:0,fmt:v=>Math.round(v*100)+'%',desc:true},
+    {label:'T3%',val:t=>t.t3a?t.t3m/t.t3a:0,fmt:v=>Math.round(v*100)+'%',desc:true},
+    {label:'TL%',val:t=>t.tla?t.tlm/t.tla:0,fmt:v=>Math.round(v*100)+'%',desc:true},
+    {label:'Faltas /p',val:t=>t.fc/t.g,fmt:v=>v.toFixed(1),desc:false},
+  ];
+  const rows=metrics.map(mt=>{
+    const sorted=[...teams].sort((a,b)=>mt.desc?mt.val(b)-mt.val(a):mt.val(a)-mt.val(b));
+    const pos=sorted.findIndex(t=>t.name===us.name)+1;
+    const bad=pos>N*2/3, good=pos<=Math.ceil(N/3);
+    return {label:mt.label,pos,val:mt.fmt(mt.val(us)),bad,good,best:mt.fmt(mt.val(sorted[0])),bestName:sorted[0].name};
+  });
+  const toImprove=rows.filter(r=>r.bad);
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px">
+      ${rows.map(r=>`<div style="border:1.5px solid ${r.bad?'#fca5a5':r.good?'#86efac':'var(--bd)'};background:${r.bad?'#fef2f2':r.good?'#f0fdf4':'#fff'};border-radius:10px;padding:9px 11px">
+        <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase">${r.label}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
+          <span style="font-size:18px;font-weight:900;color:${r.bad?'#dc2626':r.good?'#15803d':'var(--nv)'}">${r.pos}º</span>
+          <span style="font-size:11px;color:var(--t3)">de ${N} · ${r.val}</span>
+        </div>
+        <div style="font-size:8px;color:var(--t3);margin-top:2px">1º: ${r.bestName.length>16?r.bestName.slice(0,15)+'…':r.bestName} (${r.best})</div>
+      </div>`).join('')}
+    </div>
+    ${toImprove.length?`<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 8px 8px 0;padding:8px 12px">
+      <div style="font-size:10px;font-weight:800;color:#dc2626;text-transform:uppercase;margin-bottom:3px">🎯 A mejorar</div>
+      <div style="font-size:11px">${toImprove.map(r=>`<b>${r.label}</b> (${r.pos}º de ${N}, ${r.val})`).join(' · ')}</div>
+    </div>`:'<div style="color:var(--gn);font-size:12px;font-weight:600">✅ Sin métricas en el tercio bajo de la liga</div>'}
+    <div style="font-size:9px;color:var(--t3);margin-top:6px">Comparativa sobre los ${N} equipos con partidos en la base de datos — cuantos más rivales importes, más fiable.</div>`;
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -3943,9 +4082,12 @@ Object.assign(window,{
   renderDash,
   // Scouting
   renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
-  loadScoutVideo,scVid,setVidSpeed,markIn,markOut,resetMarks,previewClip,seekFromBar,setClipCat,toggleNewFolder,
-  populateFolderSel,addScoutClip,renderClipsLibrary,toggleFolderView,
-  jumpToClip,closeClipModal,deleteClip,deleteFolder,
+  jumpToClip,closeClipModal,
+  // Vídeo tab
+  vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
+  renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,
+  // Club tab
+  renderClub,
   // Utils
   rAll,svL,exportBackup,resumeLive,discardLive,checkLiveResume,
 });

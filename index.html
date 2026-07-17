@@ -1025,6 +1025,7 @@ function toast(msg,type='ok'){
 // TABS
 // ═══════════════════════════════════════════
 function ST(id){
+  if(_playerMode&&id!=='t-stats')return;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -3623,10 +3624,12 @@ let _vMatchKey=null,_vIn=null,_vOut=null,_vSide='',_vCat='',_vSpeed=1,_vRewind=n
 
 function vEl(){return document.getElementById('v-video');}
 
+let _vSrcUrl=null;
 function vLoadVideo(evt){
   const f=evt.target.files[0];if(!f)return;
   const v=vEl();
-  v.src=URL.createObjectURL(f);
+  _vSrcUrl=URL.createObjectURL(f);
+  v.src=_vSrcUrl;
   document.getElementById('v-name').textContent=f.name;
   document.getElementById('v-teams-form').style.display='block';
   document.getElementById('v-empty').style.display='none';
@@ -3691,29 +3694,6 @@ function _vUpdateSpeedBadge(){
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────────────
-let _vRec=null,_vChunks=[],_vPendingBlob=null;
-
-function _vStartRecording(){
-  const v=vEl();
-  try{
-    const stream=v.captureStream?v.captureStream():v.mozCaptureStream();
-    const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
-      .find(m=>MediaRecorder.isTypeSupported(m))||'video/webm';
-    _vChunks=[];
-    _vRec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1_200_000});
-    _vRec.ondataavailable=e=>{if(e.data.size)_vChunks.push(e.data);};
-    _vRec.start(200);
-    return true;
-  }catch(e){console.warn('captureStream no disponible:',e);_vRec=null;return false;}
-}
-function _vStopRecording(){
-  return new Promise(res=>{
-    if(!_vRec||_vRec.state==='inactive'){res(null);return;}
-    _vRec.onstop=()=>{res(new Blob(_vChunks,{type:_vRec.mimeType||'video/webm'}));_vRec=null;};
-    _vRec.stop();
-  });
-}
-
 document.addEventListener('keydown',async e=>{
   const tab=document.getElementById('t-video');
   if(!tab||!tab.classList.contains('active'))return;
@@ -3726,23 +3706,21 @@ document.addEventListener('keydown',async e=>{
       _vStopRewind();
       if(v.paused)v.play();else v.pause();
       break;
-    case 'b':case 'B': // clip start / end — records LIVE while you watch
+    case 'b':case 'B': // clip start / end — grabación diferida en 2º plano a x1
       if(formOpen)return;
       if(_vIn===null){
         _vIn=v.currentTime;_vOut=null;
-        _vStartRecording();
         const b=document.getElementById('v-rec-badge');
-        if(b){b.style.display='block';b.textContent=`⏺ REC ${_fmtT(_vIn)}`;}
+        if(b){b.style.display='block';b.textContent=`⏺ CLIP ${_fmtT(_vIn)}`;}
         if(v.paused)v.play();
-        toast(`⏺ Grabando clip desde ${_fmtT(_vIn)}`);
+        toast(`⏺ Inicio de clip en ${_fmtT(_vIn)} — sigue viendo, se graba en 2º plano`);
       }else{
         if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
         _vOut=v.currentTime;
-        _vPendingBlob=await _vStopRecording();
         v.pause();
         document.getElementById('v-rec-badge').style.display='none';
         document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
-        document.getElementById('v-clip-form').style.display='block';
+        vShowClipForm();
         vPopulateFolders();
       }
       break;
@@ -3814,9 +3792,42 @@ function vToggleNewFolder(){
 }
 function vCancelClip(){
   _vIn=null;_vOut=null;_vSide='';_vCat='';
-  if(_vRec&&_vRec.state!=='inactive'){try{_vRec.stop();}catch(e){}_vRec=null;}
-  document.getElementById('v-clip-form').style.display='none';
+  // reset ALL selections so nothing stays pre-selected for the next clip
+  const off=b=>{if(!b)return;b.style.background='transparent';b.style.borderColor='#475569';b.style.color='#cbd5e1';};
+  off(document.getElementById('v-side-local'));off(document.getElementById('v-side-away'));
+  off(document.getElementById('v-cat-atk'));off(document.getElementById('v-cat-def'));
+  const sel=document.getElementById('v-folder-sel');if(sel)sel.value='';
+  const nf=document.getElementById('v-new-folder');if(nf){nf.value='';nf.style.display='none';}
+  const fw=document.getElementById('v-folder-wrap');if(fw)fw.style.display='none';
+  vHideClipForm();
   document.getElementById('v-rec-badge').style.display='none';
+}
+
+// ── Form as overlay flyer when in fullscreen ────────────────────────────────
+let _vFormHome=null;
+function vShowClipForm(){
+  const form=document.getElementById('v-clip-form');
+  const cont=document.getElementById('v-container');
+  if(!_vFormHome)_vFormHome=form.parentNode;
+  if(document.fullscreenElement===cont){
+    cont.appendChild(form);
+    form.style.position='absolute';form.style.bottom='18px';form.style.left='50%';
+    form.style.transform='translateX(-50%)';form.style.width='min(560px,92%)';
+    form.style.maxHeight='75vh';form.style.overflowY='auto';form.style.zIndex='6';
+    form.style.boxShadow='0 10px 50px rgba(0,0,0,.6)';
+  }
+  form.style.display='block';
+  document.getElementById('v-clip-label')?.blur();
+}
+function vHideClipForm(){
+  const form=document.getElementById('v-clip-form');
+  if(!form)return;
+  form.style.display='none';
+  if(_vFormHome&&form.parentNode!==_vFormHome){
+    _vFormHome.insertBefore(form,_vFormHome.querySelector('#v-empty'));
+    form.style.position='';form.style.bottom='';form.style.left='';form.style.transform='';
+    form.style.width='';form.style.maxHeight='';form.style.overflowY='';form.style.zIndex='';form.style.boxShadow='';
+  }
 }
 
 async function vSaveClip(){
@@ -3832,7 +3843,6 @@ async function vSaveClip(){
   const label=document.getElementById('v-clip-label')?.value.trim()||'';
   const tName=_vSide==='local'?mk.local:mk.away;
   const inT=_vIn,outT=_vOut,dur=+(outT-inT).toFixed(1);
-  const blob=_vPendingBlob;
 
   const clip={id:Date.now(),timeSecs:inT,timeEnd:outT,dur,time:_fmtT(inT),timeEndFmt:_fmtT(outT),
     label,videoUrl:null,publicId:null,created:new Date().toLocaleDateString('es-ES')};
@@ -3843,45 +3853,68 @@ async function vSaveClip(){
   mk.teams[tName][_vCat][folder].push(clip);
   svL();
 
-  // reset immediately — next clip can start while this uploads
   const mkKey=_vMatchKey,cat=_vCat;
   document.getElementById('v-clip-label').value='';
-  const nf=document.getElementById('v-new-folder');if(nf)nf.value='';
-  _vPendingBlob=null;
   vCancelClip();
   renderVideoLib();
-  toast(`✂️ Clip de ${dur}s guardado — siguiente clip cuando quieras (B)`);
+  toast(`✂️ Clip de ${dur}s en cola — sigue clipeando (B)`);
 
-  // background upload
-  if(blob&&CLOUD_OK())_vQueueUpload(mkKey,tName,cat,folder,clip.id,label||folder,blob);
-  else if(!blob)toast('⚠️ Sin vídeo grabado (captureStream no disponible) — guardado solo como marca','err');
+  // Background: record segment at x1 on a hidden player, then upload
+  if(CLOUD_OK())_vEnqueue({mkKey,tName,cat,folder,clipId:clip.id,name:label||folder,inT,outT});
 }
 
-// ── Background upload queue ────────────────────────────────────────────────
-const _vUploads={};
-function _vRenderUploads(){
-  const el=document.getElementById('v-uploads');if(!el)return;
-  const list=Object.values(_vUploads);
-  el.innerHTML=list.length?list.map(u=>`
-    <div style="display:flex;align-items:center;gap:8px;font-size:10px;padding:3px 8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:3px">
-      <span>☁️</span><span style="flex:1;font-weight:600">${u.name}</span>
-      <span style="font-weight:800;color:#0369a1">${u.err?'❌ '+u.err:u.pct+'%'}</span>
-    </div>`).join(''):'';
+// ── Background job queue: hidden-player x1 recording → upload ───────────────
+const _vJobs=[];let _vBusy=false;
+function _vEnqueue(job){_vJobs.push(job);_vProcess();}
+async function _vProcess(){
+  if(_vBusy)return;_vBusy=true;
+  while(_vJobs.length){await _vRunJob(_vJobs.shift());}
+  _vBusy=false;
 }
-async function _vQueueUpload(mkKey,tName,cat,folder,clipId,name,blob){
-  _vUploads[clipId]={name,pct:0};_vRenderUploads();
+async function _vRunJob(job){
+  const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
+  _vUploads[clipId]={name,pct:0,phase:'⏺ Grabando'};_vRenderUploads();
+  let hv=null;
   try{
+    // Hidden secondary player: replays ONLY the clip range at x1 —
+    // your main video is untouched, keep clipping at any speed
+    hv=document.createElement('video');
+    hv.src=_vSrcUrl;hv.muted=true;hv.preload='auto';
+    hv.style.cssText='position:fixed;bottom:0;right:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1';
+    document.body.appendChild(hv);
+    await new Promise((res,rej)=>{
+      hv.onloadedmetadata=res;
+      hv.onerror=()=>rej(new Error('No se pudo abrir el vídeo en 2º plano'));
+      setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
+    });
+    const blob=await _recordSegment(hv,inT,outT,p=>{
+      _vUploads[clipId].pct=p;_vUploads[clipId].phase='⏺ Grabando';_vRenderUploads();
+    });
+    _vUploads[clipId].phase='☁️ Subiendo';_vUploads[clipId].pct=0;_vRenderUploads();
     const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
     const arr=S.clips2?.[mkKey]?.teams?.[tName]?.[cat]?.[folder];
     const cl=arr?.find(x=>x.id===clipId);
     if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
     delete _vUploads[clipId];_vRenderUploads();
   }catch(e){
-    console.error(e);
-    _vUploads[clipId].err=e.message.slice(0,40);_vRenderUploads();
+    console.error('clip job failed:',e);
+    _vUploads[clipId]={name,err:e.message.slice(0,40)};_vRenderUploads();
     setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
-    toast(`❌ Falló la subida de "${name}" — el clip queda como marca de tiempo`,'err');
+    toast(`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
+  }finally{
+    if(hv){try{hv.pause();hv.removeAttribute('src');hv.load();hv.remove();}catch(e){}}
   }
+}
+
+const _vUploads={};
+function _vRenderUploads(){
+  const el=document.getElementById('v-uploads');if(!el)return;
+  const list=Object.values(_vUploads);
+  el.innerHTML=list.length?list.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;padding:3px 8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:3px">
+      <span>${u.err?'❌':(u.phase||'☁️').split(' ')[0]}</span><span style="flex:1;font-weight:600">${u.name}</span>
+      <span style="font-weight:800;color:${u.err?'#dc2626':'#0369a1'}">${u.err?u.err:(u.phase||'')+' '+u.pct+'%'}</span>
+    </div>`).join(''):'';
 }
 
 // ── Download match folder as ZIP ────────────────────────────────────────────

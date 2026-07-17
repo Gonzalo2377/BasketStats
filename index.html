@@ -113,6 +113,8 @@ input[type=file]{display:none}
 /* SHOT POPUP */
 #shot-popup{position:fixed;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:10px;border:2px solid var(--bd);display:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+#v-container:fullscreen{display:flex;align-items:center;justify-content:center;background:#000}
+#v-container:fullscreen video{max-height:100vh!important;width:100%;height:100%;object-fit:contain}
 </style>
 </head>
 <body>
@@ -584,7 +586,17 @@ input[type=file]{display:none}
   <div class="card" style="margin-bottom:10px">
     <div class="ct">👥 Jugadores (acumulado) <span style="font-size:10px;color:var(--t3);font-weight:400">— clic para el perfil</span></div>
     <div class="tw"><table><thead><tr>
-      <th>#</th><th>Jugador</th><th>P</th><th>MIN</th><th>PTS</th><th>T2%</th><th>T3%</th><th>TL%</th><th>REB</th><th>AST</th><th>FC</th><th>+/-</th><th>+/-/10min</th>
+      <th>#</th><th>Jugador</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">P ⇅</th>
+      <th onclick="clSort('min')" style="cursor:pointer">MIN ⇅</th>
+      <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th>
+      <th onclick="clSort('t2p')" style="cursor:pointer">T2% ⇅</th>
+      <th onclick="clSort('t3p')" style="cursor:pointer">T3% ⇅</th>
+      <th onclick="clSort('tlp')" style="cursor:pointer">TL% ⇅</th>
+      <th onclick="clSort('reb')" style="cursor:pointer">REB ⇅</th>
+      <th onclick="clSort('ast')" style="cursor:pointer">AST ⇅</th>
+      <th onclick="clSort('fc')" style="cursor:pointer">FC ⇅</th>
+      <th onclick="clSort('pm')" style="cursor:pointer">+/- ⇅</th>
+      <th onclick="clSort('per10')" style="cursor:pointer">+/-/10min ⇅</th>
     </tr></thead><tbody id="cl-players"></tbody></table></div>
   </div>
   <div class="g2" style="gap:10px;margin-bottom:10px">
@@ -758,10 +770,12 @@ input[type=file]{display:none}
         <div id="v-speed-badge" style="display:none;position:absolute;top:10px;right:10px;background:rgba(15,23,42,.85);color:#fff;font-weight:800;font-size:12px;padding:5px 10px;border-radius:8px;font-family:monospace"></div>
         <button onclick="vFullscreen()" title="Pantalla completa" style="position:absolute;bottom:10px;right:10px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer">⛶</button>
       </div>
+      <input type="range" id="v-scrub" min="0" max="1000" value="0" style="width:100%;margin-bottom:6px;accent-color:var(--ac)" oninput="vScrub(this.value)">
+      <div id="v-uploads" style="margin-bottom:6px"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <span id="v-time" style="font-size:14px;font-weight:900;font-family:monospace;background:var(--nv);color:#fff;border-radius:6px;padding:4px 10px">0:00</span>
         <span id="v-match-label" style="font-size:11px;font-weight:700;color:var(--t2)"></span>
-        <span style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> play/pausa · <b>B</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
       </div>
 
       <!-- Clip form (appears after 2nd space) -->
@@ -2341,7 +2355,7 @@ function renderDash(){
   if(pf2)pairs=pairs.filter(p=>p.f1===pf2||p.f2===pf2);
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
-  if(dbq)dbq.innerHTML=pairs.length?`<div class="g2"><div><div class="sh">📈 Per +/-</div>${pairs.slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div><div><div class="sh">🏀 Per punts</div>${[...pairs].sort((a,b)=>b.pts-a.pts).slice(0,6).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><b style="color:var(--nv)">${p.pts}pts</b></div>`).join('')}</div></div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
+  if(dbq)dbq.innerHTML=pairs.length?`<div><div class="sh">📈 Mejores parejas por +/-</div>${pairs.slice(0,10).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
 }
 
 // ═══════════════════════════════════════════
@@ -2466,11 +2480,12 @@ function renderMatchHistory(){
         <div style="font-weight:700;font-size:13px"><span style="${win==='home'?'color:var(--ac)':''}">${m.homeTeam}</span> ${m.scoreHome} — ${m.scoreAway} <span style="${win==='away'?'color:var(--ac)':''}">${m.awayTeam}</span></div>
         <div style="font-size:10px;color:var(--t3)">${m.date||''}${m.competition?' · '+m.competition:''}${(m.shots||[]).length?' · '+(m.shots||[]).length+' tiros':''}</div>
       </div>
-      <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>
+      ${_playerMode?'':`<button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>`}
     </div>`;
   }).join('');
 }
 function deleteMatch(id){
+  if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
   const m=S.matches.find(m=>m.id===id);if(!m)return;
   if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?\nEsta acción no se puede deshacer.'))return;
   S.matches=S.matches.filter(m=>m.id!==id);
@@ -3625,6 +3640,11 @@ function vLoadVideo(evt){
     }
   });
   v.addEventListener('dblclick',vFullscreen);
+  v.addEventListener('click',()=>{if(v.paused)v.play();else v.pause();});
+  v.addEventListener('timeupdate',()=>{
+    const sc=document.getElementById('v-scrub');
+    if(sc&&v.duration)sc.value=Math.round(v.currentTime/v.duration*1000);
+  });
   document.getElementById('v-local')?.focus();
 }
 
@@ -3671,25 +3691,54 @@ function _vUpdateSpeedBadge(){
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{
+let _vRec=null,_vChunks=[],_vPendingBlob=null;
+
+function _vStartRecording(){
+  const v=vEl();
+  try{
+    const stream=v.captureStream?v.captureStream():v.mozCaptureStream();
+    const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
+      .find(m=>MediaRecorder.isTypeSupported(m))||'video/webm';
+    _vChunks=[];
+    _vRec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1_200_000});
+    _vRec.ondataavailable=e=>{if(e.data.size)_vChunks.push(e.data);};
+    _vRec.start(200);
+    return true;
+  }catch(e){console.warn('captureStream no disponible:',e);_vRec=null;return false;}
+}
+function _vStopRecording(){
+  return new Promise(res=>{
+    if(!_vRec||_vRec.state==='inactive'){res(null);return;}
+    _vRec.onstop=()=>{res(new Blob(_vChunks,{type:_vRec.mimeType||'video/webm'}));_vRec=null;};
+    _vRec.stop();
+  });
+}
+
+document.addEventListener('keydown',async e=>{
   const tab=document.getElementById('t-video');
   if(!tab||!tab.classList.contains('active'))return;
   const v=vEl();if(!v||!v.src)return;
   if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
   const formOpen=document.getElementById('v-clip-form')?.style.display==='block';
   switch(e.key){
-    case ' ':
+    case ' ': // play / pause
       e.preventDefault();
-      if(formOpen)return; // finish the pending clip first
-      if(_vIn===null){ // START clip
+      _vStopRewind();
+      if(v.paused)v.play();else v.pause();
+      break;
+    case 'b':case 'B': // clip start / end — records LIVE while you watch
+      if(formOpen)return;
+      if(_vIn===null){
         _vIn=v.currentTime;_vOut=null;
+        _vStartRecording();
         const b=document.getElementById('v-rec-badge');
         if(b){b.style.display='block';b.textContent=`⏺ REC ${_fmtT(_vIn)}`;}
         if(v.paused)v.play();
-        toast(`⏺ Inicio de clip en ${_fmtT(_vIn)}`);
-      } else { // END clip
+        toast(`⏺ Grabando clip desde ${_fmtT(_vIn)}`);
+      }else{
         if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
         _vOut=v.currentTime;
+        _vPendingBlob=await _vStopRecording();
         v.pause();
         document.getElementById('v-rec-badge').style.display='none';
         document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
@@ -3716,6 +3765,11 @@ document.addEventListener('keydown',e=>{
     case 'ArrowLeft':e.preventDefault();v.currentTime=Math.max(0,v.currentTime-5);break;
   }
 });
+
+function vScrub(val){
+  const v=vEl();if(!v||!v.duration)return;
+  v.currentTime=val/1000*v.duration;
+}
 
 // ── Clip form ──────────────────────────────────────────────────────────────
 function vSetTeamSide(side){
@@ -3760,15 +3814,15 @@ function vToggleNewFolder(){
 }
 function vCancelClip(){
   _vIn=null;_vOut=null;_vSide='';_vCat='';
+  if(_vRec&&_vRec.state!=='inactive'){try{_vRec.stop();}catch(e){}_vRec=null;}
   document.getElementById('v-clip-form').style.display='none';
   document.getElementById('v-rec-badge').style.display='none';
 }
 
 async function vSaveClip(){
-  const v=vEl();
   const mk=S.clips2?.[_vMatchKey];
   if(!mk){toast('Confirma los equipos primero','err');return;}
-  if(_vIn===null||_vOut===null){toast('Marca inicio y fin con ESPACIO','err');return;}
+  if(_vIn===null||_vOut===null){toast('Marca inicio y fin con B','err');return;}
   if(!_vSide){toast('¿Local o visitante?','err');return;}
   if(!_vCat){toast('¿Ataque o defensa?','err');return;}
   const selF=document.getElementById('v-folder-sel')?.value;
@@ -3777,38 +3831,101 @@ async function vSaveClip(){
   if(!folder){toast('Elige o crea una carpeta','err');return;}
   const label=document.getElementById('v-clip-label')?.value.trim()||'';
   const tName=_vSide==='local'?mk.local:mk.away;
-
-  const btn=document.getElementById('v-save-btn');
-  const setBtn=(t,d)=>{if(btn){btn.textContent=t;btn.disabled=!!d;btn.style.opacity=d?.6:1;}};
   const inT=_vIn,outT=_vOut,dur=+(outT-inT).toFixed(1);
+  const blob=_vPendingBlob;
 
-  let videoUrl=null,publicId=null;
-  if(CLOUD_OK()){
-    try{
-      setBtn('⏺ Grabando 0%…',true);
-      const blob=await _recordSegment(v,inT,outT,p=>setBtn(`⏺ Grabando ${p}%…`,true));
-      setBtn('☁️ Subiendo 0%…',true);
-      const up=await uploadClipToCloud(blob,_vMatchKey,p=>setBtn(`☁️ Subiendo ${p}%…`,true));
-      videoUrl=up.url;publicId=up.publicId;
-    }catch(e){
-      console.error(e);
-      if(!confirm(`No se pudo guardar el vídeo del clip:\n${e.message}\n\n¿Guardar solo la marca de tiempo?`)){setBtn('✂️ Guardar',false);return;}
-    }
-  }
   const clip={id:Date.now(),timeSecs:inT,timeEnd:outT,dur,time:_fmtT(inT),timeEndFmt:_fmtT(outT),
-    label,videoUrl,publicId,created:new Date().toLocaleDateString('es-ES')};
+    label,videoUrl:null,publicId:null,created:new Date().toLocaleDateString('es-ES')};
   if(!mk.teams)mk.teams={};
   if(!mk.teams[tName])mk.teams[tName]={};
   if(!mk.teams[tName][_vCat])mk.teams[tName][_vCat]={};
   if(!mk.teams[tName][_vCat][folder])mk.teams[tName][_vCat][folder]=[];
   mk.teams[tName][_vCat][folder].push(clip);
   svL();
-  setBtn('✂️ Guardar',false);
+
+  // reset immediately — next clip can start while this uploads
+  const mkKey=_vMatchKey,cat=_vCat;
   document.getElementById('v-clip-label').value='';
   const nf=document.getElementById('v-new-folder');if(nf)nf.value='';
+  _vPendingBlob=null;
   vCancelClip();
   renderVideoLib();
-  toast(videoUrl?`✅ Clip de ${dur}s guardado en ${tName} → ${_vCat} → ${folder}`:`⚠️ Guardado solo como marca de tiempo`);
+  toast(`✂️ Clip de ${dur}s guardado — siguiente clip cuando quieras (B)`);
+
+  // background upload
+  if(blob&&CLOUD_OK())_vQueueUpload(mkKey,tName,cat,folder,clip.id,label||folder,blob);
+  else if(!blob)toast('⚠️ Sin vídeo grabado (captureStream no disponible) — guardado solo como marca','err');
+}
+
+// ── Background upload queue ────────────────────────────────────────────────
+const _vUploads={};
+function _vRenderUploads(){
+  const el=document.getElementById('v-uploads');if(!el)return;
+  const list=Object.values(_vUploads);
+  el.innerHTML=list.length?list.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;padding:3px 8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:3px">
+      <span>☁️</span><span style="flex:1;font-weight:600">${u.name}</span>
+      <span style="font-weight:800;color:#0369a1">${u.err?'❌ '+u.err:u.pct+'%'}</span>
+    </div>`).join(''):'';
+}
+async function _vQueueUpload(mkKey,tName,cat,folder,clipId,name,blob){
+  _vUploads[clipId]={name,pct:0};_vRenderUploads();
+  try{
+    const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
+    const arr=S.clips2?.[mkKey]?.teams?.[tName]?.[cat]?.[folder];
+    const cl=arr?.find(x=>x.id===clipId);
+    if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
+    delete _vUploads[clipId];_vRenderUploads();
+  }catch(e){
+    console.error(e);
+    _vUploads[clipId].err=e.message.slice(0,40);_vRenderUploads();
+    setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
+    toast(`❌ Falló la subida de "${name}" — el clip queda como marca de tiempo`,'err');
+  }
+}
+
+// ── Download match folder as ZIP ────────────────────────────────────────────
+async function vDownloadMatch(mkKey){
+  const mk=S.clips2?.[mkKey];if(!mk)return;
+  const clips=[];
+  Object.entries(mk.teams||{}).forEach(([tName,cats])=>Object.entries(cats).forEach(([cat,folders])=>
+    Object.entries(folders).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{
+      if(cl.videoUrl)clips.push({tName,cat,folder,cl});
+    }))));
+  if(!clips.length){toast('Este partido no tiene clips con vídeo subido','err');return;}
+  toast(`📦 Preparando ZIP con ${clips.length} clips…`);
+  // lazy-load JSZip
+  if(!window.JSZip){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar JSZip'));
+      document.head.appendChild(s);
+    }).catch(e=>{toast(e.message,'err');});
+    if(!window.JSZip)return;
+  }
+  const zip=new JSZip();
+  const root=zip.folder(mkKey.replace(/[\\/:*?"<>|]/g,'-'));
+  let done=0;
+  for(const {tName,cat,folder,cl} of clips){
+    try{
+      const r=await fetch(cl.videoUrl);
+      const b=await r.blob();
+      const safe=s=>s.replace(/[\\/:*?"<>|]/g,'-');
+      const fname=`${cl.time.replace(':','m')}s_${safe(cl.label||'clip')}.webm`;
+      root.folder(safe(tName)).folder(cat).folder(safe(folder)).file(fname,b);
+      done++;
+      toast(`📦 ${done}/${clips.length} clips añadidos…`);
+    }catch(e){console.warn('skip clip',e);}
+  }
+  toast('📦 Comprimiendo…');
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${mkKey.replace(/[\\/:*?"<>|]/g,'-')}_clips.zip`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('✅ ZIP descargado');
 }
 
 // ── Library: main folders = matches ─────────────────────────────────────────
@@ -3825,6 +3942,7 @@ function renderVideoLib(){
         <span style="font-weight:800;font-size:13px">📂 ${mk.local} vs ${mk.away}</span>
         <div style="display:flex;gap:8px;align-items:center">
           <span style="font-size:10px;opacity:.7">${total} clips</span>
+          <button onclick="event.stopPropagation();vDownloadMatch('${mkKey.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
           <button onclick="event.stopPropagation();vDeleteMatch('${mkKey.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
           <span id="arr-${mid}">▼</span>
         </div>
@@ -3933,25 +4051,11 @@ function renderClub(){
     <div class="kpi"><div class="kv">${pct(tlm,tla)}</div><div class="kl">TL%</div><div class="ks">${tlm}/${tla}</div></div>
     <div class="kpi"><div class="kv">${teamReb?Math.round(teamReb/G):'—'}</div><div class="kl">Reb/p</div></div>`;
 
-  // Players table
-  const tb=document.getElementById('cl-players');
-  if(tb)tb.innerHTML=players.map(p=>{
-    const per10=p.min?Math.round(p.pm/p.min*100)/10:0;
-    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
-      <td>#${p.dorsal}</td>
-      <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}</td>
-      <td>${p.g}</td>
-      <td>${Math.round(p.min)||'—'}</td>
-      <td><b>${p.pts}</b></td>
-      <td>${pct(p.t2m,p.t2a)}</td>
-      <td>${pct(p.t3m,p.t3a)}</td>
-      <td>${pct(p.tlm,p.tla)}</td>
-      <td>${p.reb||0}</td>
-      <td>${p.ast||0}</td>
-      <td>${p.fc}</td>
-      <td style="font-weight:700;color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'inherit'}">${p.pm>0?'+':''}${p.pm}</td>
-      <td style="font-weight:700;color:${per10>0?'var(--gn)':per10<0?'#dc2626':'inherit'}">${per10>0?'+':''}${per10}</td>
-    </tr>`;}).join('');
+  // Players table (sortable)
+  _clPlayers=players.map(p=>({...p,
+    t2p:p.t2a?p.t2m/p.t2a:-1,t3p:p.t3a?p.t3m/p.t3a:-1,tlp:p.tla?p.tlm/p.tla:-1,
+    per10:p.min?Math.round(p.pm/p.min*100)/10:0}));
+  _clRenderRows();
 
   // Best lineups (5-sets) from subEvents
   renderClubLineups(ours);
@@ -3971,6 +4075,33 @@ function renderClub(){
 
   // League comparison
   renderClubLeague();
+}
+
+let _clPlayers=[],_clSortF='pts',_clSortDir=-1;
+function clSort(f){
+  if(_clSortF===f)_clSortDir*=-1;else{_clSortF=f;_clSortDir=-1;}
+  _clRenderRows();
+}
+function _clRenderRows(){
+  const tb=document.getElementById('cl-players');if(!tb)return;
+  const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
+  const arr=[..._clPlayers];
+  arr.sort((a,b)=>_clSortDir===-1?(b[_clSortF]??-1e9)-(a[_clSortF]??-1e9):(a[_clSortF]??1e9)-(b[_clSortF]??1e9));
+  tb.innerHTML=arr.map(p=>`<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
+      <td>#${p.dorsal}</td>
+      <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}</td>
+      <td>${p.g}</td>
+      <td>${Math.round(p.min)||'—'}</td>
+      <td><b>${p.pts}</b></td>
+      <td>${pct(p.t2m,p.t2a)}</td>
+      <td>${pct(p.t3m,p.t3a)}</td>
+      <td>${pct(p.tlm,p.tla)}</td>
+      <td>${p.reb||0}</td>
+      <td>${p.ast||0}</td>
+      <td>${p.fc}</td>
+      <td style="font-weight:700;color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'inherit'}">${p.pm>0?'+':''}${p.pm}</td>
+      <td style="font-weight:700;color:${p.per10>0?'var(--gn)':p.per10<0?'#dc2626':'inherit'}">${p.per10>0?'+':''}${p.per10}</td>
+    </tr>`).join('');
 }
 
 function renderClubLineups(ours){
@@ -4060,6 +4191,22 @@ function renderClubLeague(){
     <div style="font-size:9px;color:var(--t3);margin-top:6px">Comparativa sobre los ${N} equipos con partidos en la base de datos — cuantos más rivales importes, más fiable.</div>`;
 }
 
+
+// ═══════════════════════════════════════════
+// 👤 MODO JUGADOR — solo lectura, solo Stats
+// Link para jugadores: añade ?jugador a la URL (p.ej. https://.../index.html?jugador)
+// ═══════════════════════════════════════════
+const _playerMode = new URLSearchParams(location.search).has('jugador') || location.hash === '#jugador';
+function applyPlayerMode(){
+  if(!_playerMode)return;
+  // hide every nav button except Stats
+  document.querySelectorAll('.nb').forEach((b,i)=>{ if(ts[i]!=='t-stats') b.style.display='none'; });
+  // hide backup button
+  document.querySelectorAll('.top button').forEach(b=>{ if(b.textContent.includes('Backup')) b.style.display='none'; });
+  // jump straight to stats
+  ST('t-stats');
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -4085,14 +4232,15 @@ Object.assign(window,{
   jumpToClip,closeClipModal,
   // Vídeo tab
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
-  renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,
+  renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
-  renderClub,
+  renderClub,clSort,
   // Utils
-  rAll,svL,exportBackup,resumeLive,discardLive,checkLiveResume,
+  rAll,svL,exportBackup,applyPlayerMode,resumeLive,discardLive,checkLiveResume,
 });
 
 ldLS();
+setTimeout(applyPlayerMode,50);
 // Load scout notes + clips from localStorage
 try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.parse(n); } catch(e) {}
 // Clips synced via Firebase S.clips (loaded in ldLS)

@@ -119,11 +119,28 @@ input[type=file]{display:none}
 </head>
 <body>
 
+<!-- LOGIN GATE -->
+<div id="login-gate" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0f1f3d,#1e3a5f);z-index:2000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,.5);text-align:center">
+    <div style="font-size:34px;margin-bottom:6px">🏀</div>
+    <div style="font-size:22px;font-weight:900;color:#0f1f3d">Bascat<span style="color:#e8402a">App</span></div>
+    <div style="font-size:11px;color:#64748b;margin:6px 0 18px">Unió Esportiva Claret · Acceso privado</div>
+    <input type="password" id="login-code" placeholder="Código de acceso" autocomplete="off"
+      style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;text-align:center;letter-spacing:.1em;margin-bottom:10px"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" class="btn bp" style="width:100%;font-size:14px;padding:11px">Entrar</button>
+    <div id="login-err" style="color:#dc2626;font-size:11px;font-weight:700;margin-top:8px;min-height:14px"></div>
+    <div style="font-size:9px;color:#94a3b8;margin-top:12px">Staff: acceso completo · Jugadores: estadísticas</div>
+  </div>
+</div>
+
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Bascat<span>App</span></div>
   <span class="bge">β</span>
   <div class="tr">
+    <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
+    <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
     <button onclick="exportBackup()" title="Descargar copia de seguridad de todos los datos" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📦 Backup</button>
     <span id="topst" style="font-size:11px;opacity:.65"></span>
     <span id="sync-status" style="font-size:11px;display:flex;align-items:center;gap:4px">
@@ -926,7 +943,7 @@ function svL() {
   _saveTimer = setTimeout(async () => {
     try {
       // Meta (teams) + clips: small docs, always written
-      await setDoc(META_DOC, { teams: S.teams, updatedAt: Date.now() });
+      await setDoc(META_DOC, { teams: S.teams, access: S.access || null, updatedAt: Date.now() });
       await setDoc(CLIPS_DOC, { clips: S.clips || {}, clips2: S.clips2 || {} });
       // Matches: ONE DOCUMENT PER MATCH (each with its placed shots embedded).
       // Only rewrite matches whose content changed; delete removed ones.
@@ -991,6 +1008,7 @@ async function ldLS() {
 
   onSnapshot(META_DOC, (snap) => {
     S.teams = snap.exists() ? (snap.data().teams || []) : [];
+    S.access = snap.exists() ? (snap.data().access || null) : null;
     _refreshAfterSync();
   }, (err) => { console.error(err); setSyncStatus('error'); });
 
@@ -4332,19 +4350,79 @@ function renderClubLeague(){
 
 
 // ═══════════════════════════════════════════
-// 👤 MODO JUGADOR — solo lectura, solo Stats
-// Link para jugadores: añade ?jugador a la URL (p.ej. https://.../index.html?jugador)
+// 🔐 ACCESO CON CÓDIGOS — staff (todo) / jugadores (solo Stats)
+// Los códigos se guardan en Firebase (campo access del doc meta) y el staff
+// puede cambiarlos con el botón 🔑. Se recuerdan por dispositivo.
 // ═══════════════════════════════════════════
-const _playerMode = new URLSearchParams(location.search).has('jugador') || location.hash === '#jugador';
-function applyPlayerMode(){
-  if(!_playerMode)return;
-  // hide every nav button except Stats
-  document.querySelectorAll('.nb').forEach((b,i)=>{ if(ts[i]!=='t-stats') b.style.display='none'; });
-  // hide backup button
-  document.querySelectorAll('.top button').forEach(b=>{ if(b.textContent.includes('Backup')) b.style.display='none'; });
-  // jump straight to stats
-  ST('t-stats');
+const ACCESS_DEFAULTS={staff:'STAFF2026',player:'CLARET'};
+let _playerMode=false;
+
+function _codes(){return (S.access&&S.access.staff&&S.access.player)?S.access:ACCESS_DEFAULTS;}
+
+function doLogin(){
+  const v=(document.getElementById('login-code')?.value||'').trim();
+  const acc=_codes();
+  let role=null;
+  if(v===acc.staff)role='staff';
+  else if(v===acc.player)role='player';
+  if(!role){
+    const err=document.getElementById('login-err');
+    if(err)err.textContent='Código incorrecto';
+    return;
+  }
+  try{localStorage.setItem('bascatRole',role);}catch(e){}
+  document.getElementById('login-gate').style.display='none';
+  _applyRole(role);
+  toast(role==='staff'?'👋 Bienvenido, staff':'👋 Bienvenido — modo jugador');
 }
+
+function doLogout(){
+  try{localStorage.removeItem('bascatRole');}catch(e){}
+  const g=document.getElementById('login-gate');
+  const inp=document.getElementById('login-code');
+  if(inp)inp.value='';
+  const err=document.getElementById('login-err');if(err)err.textContent='';
+  if(g)g.style.display='flex';
+}
+
+function _applyRole(role){
+  _playerMode=(role==='player');
+  document.querySelectorAll('.nb').forEach((b,i)=>{
+    b.style.display=_playerMode&&ts[i]!=='t-stats'?'none':'';
+  });
+  document.querySelectorAll('.top button').forEach(b=>{
+    if(b.textContent.includes('Backup')||b.id==='btn-codes')b.style.display=_playerMode?'none':'';
+  });
+  if(_playerMode)ST('t-stats');
+  rAll();
+}
+
+function changeAccessCodes(){
+  if(_playerMode)return;
+  const acc=_codes();
+  const ns=prompt('Nuevo código de STAFF (acceso completo):',acc.staff);
+  if(ns===null)return;
+  const np=prompt('Nuevo código de JUGADORES (solo Stats):',acc.player);
+  if(np===null)return;
+  if(!ns.trim()||!np.trim()){toast('Los códigos no pueden estar vacíos','err');return;}
+  if(ns.trim()===np.trim()){toast('Los dos códigos deben ser diferentes','err');return;}
+  S.access={staff:ns.trim(),player:np.trim()};
+  svL();
+  toast('🔑 Códigos actualizados en todos los dispositivos');
+}
+
+function initAccess(){
+  // legacy link still works and forces player mode
+  const urlPlayer=new URLSearchParams(location.search).has('jugador')||location.hash==='#jugador';
+  if(urlPlayer){_applyRole('player');return;}
+  let role=null;
+  try{role=localStorage.getItem('bascatRole');}catch(e){}
+  if(role==='staff'||role==='player'){_applyRole(role);return;}
+  const g=document.getElementById('login-gate');
+  if(g)g.style.display='flex';
+  setTimeout(()=>document.getElementById('login-code')?.focus(),100);
+}
+
 
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
@@ -4375,11 +4453,11 @@ Object.assign(window,{
   // Club tab
   renderClub,clSort,
   // Utils
-  rAll,svL,exportBackup,applyPlayerMode,resumeLive,discardLive,checkLiveResume,
+  rAll,svL,exportBackup,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
 });
 
 ldLS();
-setTimeout(applyPlayerMode,50);
+setTimeout(initAccess,50);
 // Load scout notes + clips from localStorage
 try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.parse(n); } catch(e) {}
 // Clips synced via Firebase S.clips (loaded in ldLS)

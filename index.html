@@ -4390,13 +4390,8 @@ function doLogout(){
 
 function _applyRole(role){
   _playerMode=(role==='player');
+  // CSS (body.player-mode) hides every nav button except Stats + staff-only buttons
   document.body.classList.toggle('player-mode',_playerMode);
-  document.querySelectorAll('.nb').forEach((b,i)=>{
-    b.style.display=_playerMode&&ts[i]!=='t-stats'?'none':'';
-  });
-  document.querySelectorAll('.top button').forEach(b=>{
-    if(b.textContent.includes('Backup')||b.id==='btn-codes')b.style.display=_playerMode?'none':'';
-  });
   if(_playerMode)ST('t-stats');
   rAll();
 }

@@ -28,6 +28,9 @@ input,select,textarea{font-family:var(--fn);font-size:13px}
 .nb{flex:none;padding:9px 15px;font-size:12px;font-weight:600;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;background:none;white-space:nowrap;cursor:pointer}
 .nb.active{color:#fff;border-bottom-color:var(--ac)}
 .nb:hover{color:#fff;background:rgba(255,255,255,.07)}
+body.player-mode .nb{display:none!important}
+body.player-mode .nb.nb-stats{display:inline-block!important}
+body.player-mode #btn-codes,body.player-mode .btn-staff-only{display:none!important}
 /* TABS */
 .tab{display:none}.tab.active{display:block}
 .main{padding:12px;max-width:1400px;margin:0 auto}
@@ -141,7 +144,7 @@ input[type=file]{display:none}
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
-    <button onclick="exportBackup()" title="Descargar copia de seguridad de todos los datos" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📦 Backup</button>
+    <button class="btn-staff-only" onclick="exportBackup()" title="Descargar copia de seguridad de todos los datos" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📦 Backup</button>
     <span id="topst" style="font-size:11px;opacity:.65"></span>
     <span id="sync-status" style="font-size:11px;display:flex;align-items:center;gap:4px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#94A3B8;display:inline-block;transition:background .3s"></span>
@@ -156,7 +159,7 @@ input[type=file]{display:none}
   <button class="nb" onclick="ST('t-imp')">📋 Importar</button>
   <button class="nb" onclick="ST('t-live')">⚡ Directo</button>
   <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
-  <button class="nb" onclick="ST('t-stats')">📊 Stats</button>
+  <button class="nb nb-stats" onclick="ST('t-stats')">📊 Stats</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
   <button class="nb" onclick="ST('t-club')">🟡 Claret</button>
   <button class="nb" onclick="ST('t-scout')">🔍 Scouting</button>
@@ -4387,6 +4390,7 @@ function doLogout(){
 
 function _applyRole(role){
   _playerMode=(role==='player');
+  document.body.classList.toggle('player-mode',_playerMode);
   document.querySelectorAll('.nb').forEach((b,i)=>{
     b.style.display=_playerMode&&ts[i]!=='t-stats'?'none':'';
   });

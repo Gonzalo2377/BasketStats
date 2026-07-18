@@ -757,8 +757,9 @@ input[type=file]{display:none}
     <div id="v-teams-form" style="display:none;background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase">¿De qué partido es este vídeo?</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input type="text" id="v-local" placeholder="Equipo LOCAL" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
-        <input type="text" id="v-away" placeholder="Equipo VISITANTE" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <input type="text" id="v-local" list="v-teams-list" placeholder="Equipo LOCAL" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <input type="text" id="v-away" list="v-teams-list" placeholder="Equipo VISITANTE" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <datalist id="v-teams-list"></datalist>
         <button onclick="vSetTeams()" class="btn bp" style="font-size:12px">✓ Confirmar</button>
       </div>
     </div>
@@ -1139,6 +1140,50 @@ function drawShots(ctx,shots){
   ctx.restore();
 }
 
+// Zone map: court split into zones, coloured by shooting % (blue=bad, red=good)
+function drawZoneMap(cvId,shots){
+  const cv=document.getElementById(cvId);if(!cv)return;
+  cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0b0b20';ctx.fillRect(0,0,CW,CH);
+  // per-zone stats
+  const zs={};
+  shots.forEach(s=>{const z=shotZone(s);if(!zs[z])zs[z]={m:0,a:0};zs[z].a++;if(s.made)zs[z].m++;});
+  // colour: pct 0→60%+ maps blue → white → red
+  const zoneColor=z=>{
+    const st=zs[z];
+    if(!st||!st.a)return 'rgba(148,163,184,.13)'; // no attempts: faint gray
+    const t=Math.min(1,(st.m/st.a)/0.6);
+    let r,g,b;
+    if(t<0.5){const u=t/0.5;r=Math.round(59+u*(255-59));g=Math.round(130+u*(255-130));b=Math.round(246+u*(255-246));}
+    else{const u=(t-0.5)/0.5;r=255;g=Math.round(255-u*(255-70));b=Math.round(255-u*(255-70));}
+    return `rgba(${r},${g},${b},.82)`;
+  };
+  // paint zones by sampling the court in small cells (uses shotZone geometry directly)
+  const CELL=4;
+  const centroids={};
+  for(let y=0;y<CH;y+=CELL)for(let x=0;x<CW;x+=CELL){
+    const z=shotZone({x:x+CELL/2,y:y+CELL/2});
+    ctx.fillStyle=zoneColor(z);
+    ctx.fillRect(x,y,CELL,CELL);
+    if(!centroids[z])centroids[z]={sx:0,sy:0,n:0};
+    centroids[z].sx+=x;centroids[z].sy+=y;centroids[z].n++;
+  }
+  drawCourtLinesOnly(ctx);
+  // labels at zone centroids
+  ctx.textAlign='center';
+  Object.entries(centroids).forEach(([z,ct])=>{
+    const st=zs[z];if(!st||!st.a)return;
+    const cx=ct.sx/ct.n,cy=ct.sy/ct.n;
+    const pct=Math.round(st.m/st.a*100);
+    ctx.font='800 15px system-ui';
+    ctx.fillStyle='#0f172a';
+    ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=3;
+    ctx.strokeText(pct+'%',cx,cy);ctx.fillText(pct+'%',cx,cy);
+    ctx.font='600 9px system-ui';
+    ctx.strokeText(st.m+'/'+st.a,cx,cy+12);ctx.fillText(st.m+'/'+st.a,cx,cy+12);
+  });
+}
+
 function drawHeatmap(cvId,shots){
   const cv=document.getElementById(cvId);if(!cv)return;
   cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
@@ -1147,7 +1192,7 @@ function drawHeatmap(cvId,shots){
     const off=document.createElement('canvas');off.width=CW;off.height=CH;
     const oc=off.getContext('2d');oc.globalCompositeOperation='lighter';
     shots.forEach(s=>{
-      const si=50,a=s.made?.7:.42;
+      const si=50,a=.55; // pure quantity: made & missed weigh the same
       const g=oc.createRadialGradient(s.x,s.y,0,s.x,s.y,si*3);
       g.addColorStop(0,`rgba(255,230,60,${a})`);
       g.addColorStop(.25,`rgba(255,100,20,${a*.75})`);
@@ -1771,6 +1816,15 @@ function parseMatch(){
   }
   S.matches=S.matches.filter(m=>m.id!==_parsed.id);
   S.matches.push(_parsed);
+  // Auto-add both teams to the Equipos tab if they don't exist yet
+  [[_parsed.homeTeam,_parsed.homePlayers],[_parsed.awayTeam,_parsed.awayPlayers]].forEach(([tn,pls])=>{
+    if(!tn)return;
+    if(!S.teams.some(t=>t.name.toLowerCase()===tn.toLowerCase())){
+      S.teams.push({id:Date.now()+Math.floor(Math.random()*999),name:tn,color:'#0f1f3d',
+        players:(pls||[]).map(p=>({dorsal:p.dorsal,name:p.name}))});
+      toast(`➕ Equipo añadido: ${tn}`);
+    }
+  });
   window._lastAutoSavedId=_parsed.id;
   svL();
   const src=cr?'cronologia':'stats manuals';
@@ -2802,6 +2856,7 @@ function renderScoutShots() {
     drawCourt(cv.getContext('2d'));
     drawShots(cv.getContext('2d'), shots);
   }
+  drawZoneMap('sc-cv2', shots);
 
   const made = shots.filter(s => s.made).length;
   const pctEl = document.getElementById('sc-shot-pct');
@@ -3581,6 +3636,8 @@ function openPlayerProfile(name,team){
       <div>
         <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro <span style="font-weight:600" id="pp-shot-count"></span></div>
         <div class="cw"><canvas id="pp-cv"></canvas></div>
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin:8px 0 4px">% por zona</div>
+        <div class="cw"><canvas id="pp-cv2"></canvas></div>
       </div>
       <div>
         <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido</div>
@@ -3606,6 +3663,7 @@ function openPlayerProfile(name,team){
   if(cv){
     if(myShots.length>=5)drawHeatmap('pp-cv',myShots);
     else{cv.width=CW;cv.height=CH;drawCourt(cv.getContext('2d'));drawShots(cv.getContext('2d'),myShots);}
+    drawZoneMap('pp-cv2',myShots);
     const made=myShots.filter(s=>s.made).length;
     const cnt=document.getElementById('pp-shot-count');
     if(cnt)cnt.textContent=myShots.length?`· ${made}/${myShots.length} ubicados (${Math.round(made/myShots.length*100)}%)`:'· sin tiros ubicados';
@@ -3648,6 +3706,13 @@ function vLoadVideo(evt){
     const sc=document.getElementById('v-scrub');
     if(sc&&v.duration)sc.value=Math.round(v.currentTime/v.duration*1000);
   });
+  // suggest teams from the database (saved teams + every team seen in matches)
+  const dl=document.getElementById('v-teams-list');
+  if(dl){
+    const names=new Set(S.teams.map(t=>t.name));
+    S.matches.forEach(m=>{if(m.homeTeam)names.add(m.homeTeam);if(m.awayTeam)names.add(m.awayTeam);});
+    dl.innerHTML=[...names].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+  }
   document.getElementById('v-local')?.focus();
 }
 

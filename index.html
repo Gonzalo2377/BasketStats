@@ -836,7 +836,7 @@ input[type=file]{display:none}
     <div id="v-empty" style="text-align:center;padding:22px;color:var(--t3)">
       <div style="font-size:26px;margin-bottom:6px">🎬</div>
       <div style="font-size:12px;font-weight:600">Carga el vídeo del partido para crear clips</div>
-      <div style="font-size:11px;margin-top:4px">Los clips guardados se ven abajo sin necesidad de vídeo, desde cualquier dispositivo</div>
+      <div style="font-size:11px;margin-top:4px">Los clips guardados se ven abajo sin necesidad de vídeo, desde cualquier dispositivo y de forma permanente</div>
     </div>
   </div>
 
@@ -890,6 +890,8 @@ const DATA_DOC = doc(db, 'bascatapp', 'data'); // legacy single-doc (kept as bac
 const META_DOC = doc(db, 'bascatapp', 'meta');
 const CLIPS_DOC = doc(db, 'bascatapp', 'clipsdoc');
 const MATCHES_COL = collection(db, 'bascatapp', 'data', 'matches');
+const CLIPS_COL = collection(db, 'bascatapp', 'data', 'clips'); // un documento por partido: sin límite de tamaño
+let _clipHashes={};
 // djb2 hash to detect which matches actually changed (avoid rewriting everything)
 function _hash(str){let h=5381;for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))|0;}return h;}
 let _matchHashes={};
@@ -950,7 +952,21 @@ function svL() {
     try {
       // Meta (teams) + clips: small docs, always written
       await setDoc(META_DOC, { teams: S.teams, access: S.access || null, updatedAt: Date.now() });
-      await setDoc(CLIPS_DOC, { clips: S.clips || {}, clips2: S.clips2 || {} });
+      await setDoc(CLIPS_DOC, { clips: S.clips || {} }); // legacy scouting clips (small)
+      // Clips de vídeo: UN DOCUMENTO POR PARTIDO → el límite de 1MB nunca se alcanza
+      {
+        const seenC = new Set();
+        for (const [mkKey, mk] of Object.entries(S.clips2 || {})) {
+          const id = String(Math.abs(_hash(mkKey)));
+          seenC.add(id);
+          const payload = { key: mkKey, ...mk };
+          const h = _hash(JSON.stringify(payload));
+          if (_clipHashes[id] !== h) { await setDoc(doc(CLIPS_COL, id), payload); _clipHashes[id] = h; }
+        }
+        for (const id of Object.keys(_clipHashes)) {
+          if (!seenC.has(id)) { try { await deleteDoc(doc(CLIPS_COL, id)); } catch(e){} delete _clipHashes[id]; }
+        }
+      }
       // Matches: ONE DOCUMENT PER MATCH (each with its placed shots embedded).
       // Only rewrite matches whose content changed; delete removed ones.
       const seen = new Set();
@@ -1018,8 +1034,34 @@ async function ldLS() {
     _refreshAfterSync();
   }, (err) => { console.error(err); setSyncStatus('error'); });
 
-  onSnapshot(CLIPS_DOC, (snap) => {
+  onSnapshot(CLIPS_DOC, async (snap) => {
     S.clips = snap.exists() ? (snap.data().clips || {}) : {};
+    // One-time migration: clips2 used to live inside this single document
+    const legacy2 = snap.exists() ? (snap.data().clips2 || null) : null;
+    if (legacy2 && Object.keys(legacy2).length) {
+      try {
+        for (const [mkKey, mk] of Object.entries(legacy2)) {
+          await setDoc(doc(CLIPS_COL, String(Math.abs(_hash(mkKey)))), { key: mkKey, ...mk });
+        }
+        await setDoc(CLIPS_DOC, { clips: S.clips || {} }); // drop the old blob
+        console.log('✓ Clips migrados a documentos por partido');
+      } catch(e) { console.error('clips migration', e); }
+    }
+  }, (err) => { console.error(err); });
+
+  // Clips library — one document per match, loaded in real time
+  onSnapshot(CLIPS_COL, (qs) => {
+    const c2 = {};
+    qs.forEach(d => {
+      const data = d.data();
+      const key = data.key;
+      if (!key) return;
+      const { key: _k, ...rest } = data;
+      c2[key] = rest;
+      _clipHashes[d.id] = _hash(JSON.stringify({ key, ...rest }));
+    });
+    S.clips2 = c2;
+    renderVideoLib();
   }, (err) => { console.error(err); });
 
   onSnapshot(MATCHES_COL, (qs) => {
@@ -4150,7 +4192,7 @@ async function vDownloadMatch(mkKey){
 function renderVideoLib(){
   const el=document.getElementById('v-library');if(!el)return;
   const entries=Object.entries(S.clips2||{}).sort((a,b)=>(b[1].created||0)-(a[1].created||0));
-  if(!entries.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa ESPACIO para crear el primero.</div>';return;}
+  if(!entries.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa <b>B</b> para marcar inicio y fin del primero.</div>';return;}
   el.innerHTML=entries.map(([mkKey,mk])=>{
     let total=0;
     Object.values(mk.teams||{}).forEach(t=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));

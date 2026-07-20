@@ -144,6 +144,8 @@ input[type=file]{display:none}
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
+    <input type="file" id="backup-file" accept=".json" style="display:none" onchange="importBackupFile(event)">
+    <button class="btn-staff-only" onclick="document.getElementById('backup-file').click()" title="Restaurar desde un backup JSON" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📥</button>
     <button class="btn-staff-only" onclick="exportBackup()" title="Descargar copia de seguridad de todos los datos" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">📦 Backup</button>
     <span id="topst" style="font-size:11px;opacity:.65"></span>
     <span id="sync-status" style="font-size:11px;display:flex;align-items:center;gap:4px">
@@ -871,6 +873,7 @@ input[type=file]{display:none}
 // ═══════════════════════════════════════════
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCUUqhC86_f-_2jVT49r8W5uen7QkwcZJ4",
@@ -2604,12 +2607,42 @@ function renderMatchHistory(){
 function deleteMatch(id){
   if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
   const m=S.matches.find(m=>m.id===id);if(!m)return;
-  if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?\nEsta acción no se puede deshacer.'))return;
+  if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?'))return;
+  // Soft delete: keep in local trash (last 10) and offer instant undo
+  const shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)==id);
+  try{
+    const tr=JSON.parse(localStorage.getItem('bascatTrash')||'[]');
+    tr.unshift({match:m,shots,deletedAt:Date.now()});
+    localStorage.setItem('bascatTrash',JSON.stringify(tr.slice(0,10)));
+  }catch(e){}
   S.matches=S.matches.filter(m=>m.id!==id);
   S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
   svL();renderMatchHistory();renderStats();
-  if(typeof popShotSel==='function')popShotSel();
-  toast('🗑️ Partido borrado');
+  _showUndoDelete(m.homeTeam+' vs '+m.awayTeam);
+}
+
+function _showUndoDelete(name){
+  const old=document.getElementById('undo-toast');if(old)old.remove();
+  const d=document.createElement('div');
+  d.id='undo-toast';
+  d.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;border-radius:10px;padding:10px 16px;display:flex;gap:12px;align-items:center;z-index:1500;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:12px';
+  d.innerHTML=`🗑 "${name}" borrado <button onclick="undoDeleteMatch()" style="background:var(--ac);border:none;color:#fff;border-radius:7px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer">↩ Deshacer</button>`;
+  document.body.appendChild(d);
+  setTimeout(()=>{if(document.getElementById('undo-toast')===d)d.remove();},10000);
+}
+
+function undoDeleteMatch(){
+  try{
+    const tr=JSON.parse(localStorage.getItem('bascatTrash')||'[]');
+    if(!tr.length){toast('Nada que restaurar','err');return;}
+    const {match,shots}=tr.shift();
+    localStorage.setItem('bascatTrash',JSON.stringify(tr));
+    S.matches.push(match);
+    S.shots.push(...(shots||[]));
+    svL();renderMatchHistory();renderStats();
+    const t=document.getElementById('undo-toast');if(t)t.remove();
+    toast(`↩ Restaurado: ${match.homeTeam} vs ${match.awayTeam}`);
+  }catch(e){toast('Error restaurando: '+e.message,'err');}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3511,6 +3544,31 @@ function closeClipModal(ev) {
 
 
 // ── Full data backup (JSON download) ──────────────────────────────────────
+// ── Restore from a backup JSON ─────────────────────────────────────────────
+function importBackupFile(evt){
+  const f=evt.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const d=JSON.parse(reader.result);
+      if(!Array.isArray(d.matches)||!Array.isArray(d.teams)){toast('El archivo no parece un backup de BascatApp','err');return;}
+      const msg=`El backup contiene:\n· ${d.matches.length} partidos\n· ${d.teams.length} equipos\n· ${(d.shots||[]).length} tiros ubicados\n· clips: ${Object.keys(d.clips2||{}).length} partidos con clips\n\n¿REEMPLAZAR todos los datos actuales con este backup?\n(Los datos actuales se perderán)`;
+      if(!confirm(msg))return;
+      S.teams=d.teams||[];
+      S.matches=d.matches||[];
+      S.shots=d.shots||[];
+      S.clips=d.clips||{};
+      S.clips2=d.clips2||{};
+      if(d.access)S.access=d.access;
+      svL();
+      rAll();renderTeams();populateTeamSelects();
+      toast(`✅ Backup restaurado: ${S.matches.length} partidos`);
+    }catch(e){toast('Archivo inválido: '+e.message,'err');}
+  };
+  reader.readAsText(f);
+  evt.target.value='';
+}
+
 function exportBackup(){
   const data=JSON.stringify({exportedAt:new Date().toISOString(),version:2,...S},null,1);
   const blob=new Blob([data],{type:'application/json'});
@@ -4452,10 +4510,16 @@ Object.assign(window,{
   // Club tab
   renderClub,clSort,
   // Utils
-  rAll,svL,exportBackup,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
+  rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
 });
 
-ldLS();
+// Autenticación anónima: cuando las reglas de Firestore exijan auth, la app entra sola.
+// Si el proveedor anónimo aún no está activado en la consola, seguimos igualmente (reglas abiertas).
+(async()=>{
+  try{ await signInAnonymously(getAuth(app)); console.log('✓ Firebase auth anónima'); }
+  catch(e){ console.warn('Auth anónima no disponible (¿proveedor sin activar?):', e.code||e.message); }
+  ldLS();
+})();
 setTimeout(initAccess,50);
 // Load scout notes + clips from localStorage
 try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.parse(n); } catch(e) {}

@@ -583,6 +583,7 @@ input[type=file]{display:none}
   <div class="fr" style="margin-bottom:0">
     <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
+    <div class="fc"><label>Partit</label><select id="db-mf" onchange="renderDash()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
     <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option><option value="zones">Mapa por zonas (%)</option></select></div>
   </div>
 </div>
@@ -2416,8 +2417,17 @@ function renderDash(){
   const pf2=document.getElementById('db-pf')?.value||'';
   const mv=document.getElementById('db-mv')?.value||'shots';
   const mf=document.getElementById('db-mf')?.value||''; // match filter (no selector → all matches)
+  // Match selector — most recent first
+  const msel=document.getElementById('db-mf');
+  if(msel){
+    const v=msel.value;
+    const ms=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
+    msel.innerHTML='<option value="">Todos (acumulado)</option>'+ms.map(m=>
+      `<option value="${m.id}"${String(m.id)===v?' selected':''}>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
+  }
   let all=[],allT=new Set();
-  S.matches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{allT.add(p.team);all.push(p);});});
+  const srcMatches=mf?S.matches.filter(m=>String(m.id)===String(mf)):S.matches;
+  srcMatches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{allT.add(p.team);all.push(p);});});
   const tsel=document.getElementById('db-tf');if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Todos los equipos</option>'+[...allT].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
   let filt=all;if(tf)filt=filt.filter(p=>p.team===tf);
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
@@ -2442,6 +2452,7 @@ function renderDash(){
 
   // Shots
   let shots=[...S.shots,...S.matches.flatMap(m=>(m.shots||[]).map(s=>({...s,mId:m.id})))];
+  if(mf)shots=shots.filter(s=>String(s.mId||s.matchId)===String(mf));
   if(tf)shots=shots.filter(s=>{const m=S.matches.find(m=>m.id===(s.mId||s.matchId));if(!m)return false;return(s.team==='home'?m.homeTeam:m.awayTeam)===tf;});
   if(pf2)shots=shots.filter(s=>s.player===pf2);
   // Draw

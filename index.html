@@ -2839,12 +2839,18 @@ function subTapPlayer(name,team){
   }
   rLvLog();renderSubModal();
 }
+let _histOpen=false;
+const HIST_PREVIEW=3;
+function toggleHistory(){_histOpen=!_histOpen;renderMatchHistory();}
 function renderMatchHistory(){
   const el=document.getElementById('st-match-history'),cnt=document.getElementById('st-match-count');
   if(cnt)cnt.textContent=S.matches.length?`(${S.matches.length})`:'';
   if(!el)return;
   if(!S.matches.length){el.innerHTML='<div class="empty">Sin partidos todavía</div>';return;}
-  el.innerHTML=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0)).map(m=>{
+  const sorted=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
+  const shown=_histOpen?sorted:sorted.slice(0,HIST_PREVIEW);
+  const hidden=sorted.length-shown.length;
+  el.innerHTML=shown.map(m=>{
     const live=m.type==='live',win=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':null;
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;background:#fff">
       <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${live?'#dbeafe':'#f1f5f9'};color:${live?'#1e40af':'var(--t2)'}">${live?'⚡ DIRECTO':'📋 IMPORTADO'}</span>
@@ -2854,7 +2860,10 @@ function renderMatchHistory(){
       </div>
       ${_playerMode?'':`<button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>`}
     </div>`;
-  }).join('');
+  }).join('')+((hidden>0||_histOpen)?`
+    <button onclick="toggleHistory()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px">
+      ${_histOpen?'▲ Mostrar menos':`▼ Ver los ${hidden} partidos restantes`}
+    </button>`:'');
 }
 function deleteMatch(id){
   if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
@@ -2937,7 +2946,10 @@ function renderShotsTodo(){
       </div>
       <button onclick="quickSelectMatch('${m.id}')" style="background:var(--ac);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">Ubicar →</button>
     </div>`;
-  }).join('');
+  }).join('')+((hidden>0||_histOpen)?`
+    <button onclick="toggleHistory()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px">
+      ${_histOpen?'▲ Mostrar menos':`▼ Ver los ${hidden} partidos restantes`}
+    </button>`:'');
 }
 function quickSelectMatch(id){
   // Switch to shots tab and pre-select this match
@@ -4812,6 +4824,24 @@ function initAccess(){
 // ═══════════════════════════════════════════
 // 📄 PDF DE PARTIDO — informe para compartir tras el partido
 // ═══════════════════════════════════════════
+// Dibuja los mapas en un canvas temporal y devuelve la imagen (para el PDF)
+function _mapsToImages(shots){
+  if(!shots.length)return null;
+  const mk=(id,fn)=>{
+    const cv=document.createElement('canvas');
+    cv.id=id;cv.width=CW;cv.height=CH;
+    cv.style.cssText='position:fixed;left:-9999px;top:0';
+    document.body.appendChild(cv);
+    try{fn(id,shots);}catch(e){console.warn('map render',e);}
+    let url='';
+    try{url=cv.toDataURL('image/png');}catch(e){}
+    cv.remove();
+    return url;
+  };
+  return {heat:mk('_tmp_heat_'+Date.now(),drawHeatmap),
+          zones:mk('_tmp_zone_'+Date.now(),drawZoneMap)};
+}
+
 function exportMatchPDF(){
   const mf=document.getElementById('st-mf')?.value||'';
   const m=S.matches.find(x=>x.id==mf);
@@ -4835,6 +4865,14 @@ function exportMatchPDF(){
   const everyone=[...(m.homePlayers||[]),...(m.awayPlayers||[])];
   const anyMin=everyone.some(p=>p.min),anyReb=everyone.some(p=>p.reb),anyAst=everyone.some(p=>p.ast);
 
+  // Tiros ubicados de este partido, por equipo → imágenes de los mapas
+  const matchShots=[
+    ...S.shots.filter(s=>(s.mId||s.matchId)==m.id),
+    ...(m.shots||[])            // los embebidos ya pertenecen a este partido
+  ];
+  const shotsOf=sd=>matchShots.filter(s=>s.team===sd);
+  const maps={home:_mapsToImages(shotsOf('home')),away:_mapsToImages(shotsOf('away'))};
+
   const qTable=()=>hasQ?`<table class="qt">
       <thead><tr><th style="text-align:left">Parcials</th>
         ${Array.from({length:maxQ},(_,i)=>`<th>${i<4?'Q'+(i+1):'PR'}</th>`).join('')}
@@ -4856,7 +4894,7 @@ function exportMatchPDF(){
     ${withQ?qTable():''}
   </div>`;
 
-  const teamPage=(side,isLast)=>{
+  const teamPage=(side)=>{
     const name=side==='home'?m.homeTeam:m.awayTeam;
     const score=side==='home'?m.scoreHome:m.scoreAway;
     const opp=side==='home'?m.scoreAway:m.scoreHome;
@@ -4870,7 +4908,7 @@ function exportMatchPDF(){
     const top3=[...pls].filter(p=>(p.t3Made||0)>0).sort((a,b)=>(b.t3Made||0)-(a.t3Made||0))[0];
     const card=(lbl,nm,sub)=>`<div class="card"><div class="cl">${lbl}</div><div class="cn">${nm}</div><div class="cs">${sub}</div></div>`;
 
-    return `<div class="page${isLast?' last':''}">
+    return `<div class="page">
       ${header(side==='home')}
       <div class="tname">${name} <b>${score}</b>–${opp}
         ${won===side?'<span class="win">GUANYADOR</span>':won?'<span class="lose">DERROTA</span>':''}</div>
@@ -4920,7 +4958,21 @@ function exportMatchPDF(){
         </tfoot>
       </table>
       <div class="foot"><span>★ = quintet inicial</span><span>BascatApp · ${new Date().toLocaleDateString('es-ES')}</span></div>
-    </div>`;
+    </div>
+    ${maps[side]?`<div class="page">
+      <div class="tname">${name} — Mapes de tir <span style="font-size:11px;font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">${shotsOf(side).length} tirs ubicats · ${pc(shotsOf(side).filter(s=>s.made).length,shotsOf(side).length)} d'encert</span></div>
+      <div class="maps">
+        <div class="mapbox">
+          <div class="ml">🔥 Mapa de calor <span>on més es tira</span></div>
+          <img src="${maps[side].heat}">
+        </div>
+        <div class="mapbox">
+          <div class="ml">🎯 Percentatge per zona <span>blau = fluix · vermell = bo</span></div>
+          <img src="${maps[side].zones}">
+        </div>
+      </div>
+      <div class="foot"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date:''}</span><span>BascatApp</span></div>
+    </div>`:''}`;
   };
 
   const w=window.open('','_blank');
@@ -4932,7 +4984,7 @@ function exportMatchPDF(){
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:0}
     .page{padding:14px 18px;page-break-after:always}
-    .page.last{page-break-after:auto}
+    .page:last-of-type{page-break-after:auto}
     .head{display:flex;align-items:flex-end;gap:20px;border-bottom:3px solid #0f1f3d;padding-bottom:9px;margin-bottom:11px}
     .brand{font-size:9px;color:#64748b;font-weight:700;letter-spacing:.09em}
     .sc{font-size:25px;font-weight:900;line-height:1.15;margin-top:2px}
@@ -4972,10 +5024,15 @@ function exportMatchPDF(){
     th:not(:first-child):not(:nth-child(2)),td:not(:first-child):not(:nth-child(2)){width:64px}
     .foot{border-top:1px solid #e2e8f0;margin-top:10px;padding-top:6px;font-size:9px;color:#94a3b8;
       display:flex;justify-content:space-between}
+    .maps{display:flex;gap:16px;align-items:flex-start;justify-content:center}
+    .mapbox{flex:1;max-width:47%}
+    .ml{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;color:#0f1f3d}
+    .ml span{font-weight:500;text-transform:none;letter-spacing:0;color:#64748b;font-size:10px;margin-left:5px}
+    .mapbox img{width:100%;height:auto;border:1.5px solid #e2e8f0;border-radius:8px;display:block}
   </style></head><body>
-  ${teamPage('home',false)}
-  ${teamPage('away',true)}
-  <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+  ${teamPage('home')}
+  ${teamPage('away')}
+  <script>window.onload=function(){var i=document.images,n=0;if(!i.length){setTimeout(function(){window.print()},200);return;}for(var k=0;k<i.length;k++){if(i[k].complete){if(++n===i.length)setTimeout(function(){window.print()},250);}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250);};}}};<\/script>
   </body></html>`);
   w.document.close();
 }
@@ -4997,7 +5054,7 @@ Object.assign(window,{
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
-  renderStats,exportMatchPDF,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
+  renderStats,exportMatchPDF,ssort,renderMatchHistory,toggleHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
   // Dashboard
   renderDash,
   // Scouting

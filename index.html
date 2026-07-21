@@ -2,7 +2,7 @@
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BascatApp</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -61,6 +61,83 @@ textarea{resize:vertical;line-height:1.5}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 @media(max-width:800px){.g3,.g4{grid-template-columns:1fr 1fr}}
+
+/* ═══════════ MÓVIL ═══════════ */
+@media(max-width:820px){
+  html,body{-webkit-text-size-adjust:100%;overflow-x:hidden}
+  .main{padding:8px}
+  .card{padding:11px;border-radius:9px;margin-bottom:8px}
+  .g2{grid-template-columns:1fr;gap:8px}
+
+  /* Barra superior: no se rompe, los botones encogen */
+  .top{padding:0 8px;gap:5px;height:46px}
+  .top .logo{font-size:15px}
+  .top .tr{gap:4px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .top .tr::-webkit-scrollbar{display:none}
+  .top button{padding:4px 8px!important;font-size:10px!important;white-space:nowrap;flex-shrink:0}
+  #topst{display:none}
+
+  /* Menú de pestañas: deslizable con inercia */
+  .nav{top:46px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .nb{padding:10px 13px;font-size:12px;scroll-snap-align:start}
+
+  /* TABLAS: deslizar horizontal con las 2 primeras columnas fijas */
+  .tw{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .tw::-webkit-scrollbar{height:7px}
+  .tw::-webkit-scrollbar-track{background:var(--bg)}
+  .tw::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+  .tw>table{font-size:12px}
+  .tw>table th{padding:9px 8px;font-size:10px}
+  .tw>table td{padding:9px 8px}
+  .tw>table>thead>tr>th:first-child,
+  .tw>table>tbody>tr>td:first-child{position:sticky;left:0;z-index:3;width:34px;min-width:34px;max-width:34px}
+  .tw>table>thead>tr>th:nth-child(2),
+  .tw>table>tbody>tr>td:nth-child(2){position:sticky;left:34px;z-index:3;max-width:132px;overflow:hidden;text-overflow:ellipsis;
+    box-shadow:6px 0 8px -6px rgba(0,0,0,.28)}
+  .tw>table>tbody>tr>td:first-child,
+  .tw>table>tbody>tr>td:nth-child(2){background:var(--cd)}
+  .tw>table>thead>tr>th:first-child,
+  .tw>table>thead>tr>th:nth-child(2){background:var(--nv);z-index:6}
+
+  /* Filtros a pantalla completa */
+  .fr{gap:6px}
+  .fc{min-width:calc(50% - 3px)}
+  /* iOS hace zoom automático si el texto del campo mide menos de 16px */
+  select,input[type=text],input[type=number],input[type=password],textarea{font-size:16px!important}
+
+  /* Pistas: se adaptan al ancho (los clics siguen siendo exactos) */
+  .cw{width:100%}
+  .cw canvas{width:100%!important;height:auto!important;display:block}
+
+  /* KPIs más compactos */
+  .kpi{padding:7px 5px}
+  .kpi .kv{font-size:17px}
+  .kpi .kl{font-size:9px}
+
+  /* Modales a pantalla casi completa */
+  #player-modal,#sub-modal,#sc-clip-modal{padding:0!important;align-items:stretch!important}
+  #player-modal>div,#sub-modal>div,#sc-clip-modal>div{max-width:100%!important;margin:0!important;
+    border-radius:0!important;min-height:100vh;max-height:100vh;overflow-y:auto}
+  #pp-header{padding:12px 14px!important;position:sticky;top:0;z-index:5}
+  #pp-body{padding:12px 14px!important}
+  .pp-kpis{grid-template-columns:repeat(3,1fr)!important}
+  .pp-charts{grid-template-columns:1fr!important}
+  .pp-maps{grid-template-columns:1fr!important}
+  .pp-games{max-height:none!important}
+
+  /* Vídeo */
+  #v-video{max-height:46vh!important}
+  #v-clip-form{padding:11px!important}
+}
+
+@media(max-width:430px){
+  .pp-kpis{grid-template-columns:repeat(2,1fr)!important}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .fc{min-width:100%}
+  .nb{padding:10px 11px;font-size:11px}
+  .tw>table>thead>tr>th:nth-child(2),
+  .tw>table>tbody>tr>td:nth-child(2){max-width:104px}
+}
 @media(max-width:500px){.g2,.g3,.g4{grid-template-columns:1fr}}
 /* KPI */
 .kpi{background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;text-align:center}
@@ -118,6 +195,115 @@ input[type=file]{display:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
 #v-container:fullscreen{display:flex;align-items:center;justify-content:center;background:#000}
 #v-container:fullscreen video{max-height:100vh!important;width:100%;height:100%;object-fit:contain}
+
+/* ══════ MÓVIL — mejoras generales ══════ */
+.vtb{flex:1;padding:11px 4px;border-radius:9px;border:1.5px solid var(--b2);background:var(--cd);color:var(--t1);font-size:13px;font-weight:800;cursor:pointer}
+.vtb-main{background:var(--nv);color:#fff;border-color:var(--nv);flex:1.3}
+.vtb-clip{background:#dc2626;color:#fff;border-color:#dc2626;flex:1.6}
+
+@media(max-width:820px){
+  /* Aviso visual de que la tabla se puede deslizar */
+  .tw{background:
+      linear-gradient(90deg,var(--cd) 30%,rgba(255,255,255,0)),
+      linear-gradient(90deg,rgba(255,255,255,0),var(--cd) 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%,rgba(15,31,61,.16),rgba(0,0,0,0)),
+      radial-gradient(farthest-side at 100% 50%,rgba(15,31,61,.16),rgba(0,0,0,0)) 100% 0;
+    background-repeat:no-repeat;background-size:36px 100%,36px 100%,14px 100%,14px 100%;
+    background-attachment:local,local,scroll,scroll}
+
+  /* Controles táctiles del vídeo: fuera el teclado, dentro los botones */
+  .kb-hint{display:none}
+  .v-touch{display:flex!important}
+  #v-video{max-height:34vh}
+
+  /* Perfil de jugador a pantalla completa */
+  #player-modal{padding:0!important;align-items:stretch!important}
+  #player-modal>div{max-width:100%!important;margin:0!important;border-radius:0!important;
+    height:100dvh;display:flex;flex-direction:column}
+  #pp-header{position:sticky;top:0;z-index:5;padding:12px 14px!important}
+  #pp-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px!important}
+  .pp-kpis{grid-template-columns:repeat(3,1fr)!important}
+  .pp-charts{grid-template-columns:1fr!important}
+  .pp-maps{grid-template-columns:1fr!important}
+
+  /* Resto de modales: hoja a pantalla casi completa */
+  #sub-modal>div,#sc-clip-modal>div,#live-stats-modal>div{max-width:100%!important;max-height:94dvh}
+
+  /* Filtros: uno por línea y dedo cómodo */
+  .fc select,.fc input{padding:10px 9px;font-size:13px}
+  /* iOS hace zoom automático si el texto del campo mide menos de 16px */
+  select,input[type=text],input[type=number],input[type=password],textarea{font-size:16px!important}
+
+  /* Pistas y gráficos nunca se salen */
+  .cw canvas,#pp-cv,#pp-cv2,#sc-cv,#sc-cv2,#db-cv{max-width:100%;height:auto}
+  .pp-charts svg{width:100%;height:auto}
+}
+
+@media(max-width:430px){
+  .pp-kpis{grid-template-columns:repeat(2,1fr)!important}
+  .vtb{font-size:12px;padding:10px 2px}
+  #v-video{max-height:30vh}
+}
+
+/* ═══════════ MÓVIL: mejoras de lectura y navegación ═══════════ */
+@media(max-width:820px){
+
+  /* Columnas fijas (# y Jugador) al deslizar tablas horizontalmente */
+  .tsk table th:nth-child(1),.tsk table td:nth-child(1){
+    position:sticky;left:0;z-index:3;background:var(--cd);
+    box-shadow:1px 0 0 var(--bd)}
+  .tsk table th:nth-child(2),.tsk table td:nth-child(2){
+    position:sticky;left:32px;z-index:3;background:var(--cd);
+    box-shadow:2px 0 5px rgba(15,31,61,.10);max-width:120px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tsk table thead th:nth-child(1),.tsk table thead th:nth-child(2){
+    z-index:5;background:var(--nv);color:#fff}
+  .tsk table tbody tr:hover td:nth-child(1),
+  .tsk table tbody tr:hover td:nth-child(2){background:var(--bg)}
+  .tsk table th:nth-child(1),.tsk table td:nth-child(1){min-width:32px;padding-left:6px;padding-right:2px}
+
+  /* Filas y celdas más cómodas al dedo */
+  .tw table td,.tw table th{padding:8px 7px;font-size:11.5px}
+  .tw{max-height:none}
+
+  /* Filtros: uno por línea, altura táctil */
+  .fr{gap:6px}
+  .fc select,.fc input{min-height:38px;font-size:13px}
+
+  /* Mapas y canvas: ocupan el ancho completo */
+  .cw{overflow:hidden}
+  .cw canvas{width:100%!important;height:auto!important;display:block}
+
+  /* Perfil de jugador: pantalla completa en móvil */
+  #player-modal{padding:0!important;align-items:stretch!important}
+  #player-modal>div{max-width:100%!important;margin:0!important;border-radius:0!important;
+    min-height:100vh}
+  #pp-header{position:sticky;top:0;z-index:10}
+  #pp-body{padding:12px!important}
+  #pp-body .g2,#pp-map-grid{grid-template-columns:1fr!important}
+  #pp-body>div[style*="grid-template-columns:repeat(6"]{grid-template-columns:repeat(3,1fr)!important}
+
+  /* Gráficos del perfil: deslizables si no caben */
+  #pp-body svg{min-width:280px}
+  #pp-body div[style*="overflow-x"]{-webkit-overflow-scrolling:touch}
+
+  /* Indicador de swipe entre pestañas */
+  .swipe-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+    background:rgba(15,23,42,.88);color:#fff;font-size:11px;font-weight:700;
+    padding:7px 14px;border-radius:20px;z-index:800;pointer-events:none;
+    opacity:0;transition:opacity .2s}
+  .swipe-hint.on{opacity:1}
+
+  /* Espacio final para que el último elemento no quede pegado */
+  .main{padding-bottom:26px}
+}
+
+@media(max-width:430px){
+  .tsk table th:nth-child(2),.tsk table td:nth-child(2){max-width:88px;font-size:11px}
+  .tw table td,.tw table th{padding:7px 5px;font-size:11px}
+  #pp-body>div[style*="grid-template-columns:repeat(6"]{grid-template-columns:repeat(2,1fr)!important}
+}
+
 </style>
 </head>
 <body>
@@ -555,6 +741,7 @@ input[type=file]{display:none}
     <div style="display:flex;gap:5px">
       <select id="st-mf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los partidos</option></select>
       <select id="st-tf" onchange="renderStats()" style="height:26px;font-size:11px"><option value="">Todos los equipos</option></select>
+      <button id="st-pdf-btn" onclick="exportMatchPDF()" class="btn bo bxs" style="font-size:11px;display:none;white-space:nowrap">📄 PDF del partido</button>
     </div>
   </div>
   <div class="g4" id="st-kpis" style="margin-bottom:10px"></div>
@@ -565,7 +752,7 @@ input[type=file]{display:none}
     <button id="st-view-all" onclick="setStatsView('all')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">📋 Todos los registros</button>
   </div>
   <!-- Aggregated view -->
-  <div id="st-agg-wrap" class="tw">
+  <div id="st-agg-wrap" class="tw tsk">
     <table><thead><tr>
       <th>#</th><th>Jugador</th><th>Equipo</th><th>MIN</th><th>PTS</th>
       <th>TL</th><th>TL%</th><th>T2</th><th>T2%</th><th>T3</th><th>T3%</th>
@@ -573,7 +760,7 @@ input[type=file]{display:none}
     </tr></thead><tbody id="st-tb-agg"></tbody></table>
   </div>
   <!-- All records view (original) -->
-  <div id="st-all-wrap" class="tw" style="display:none"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
+  <div id="st-all-wrap" class="tw tsk" style="display:none"><table><thead id="st-th"></thead><tbody id="st-tb"></tbody></table></div>
 </div>
 </div></div>
 
@@ -609,7 +796,7 @@ input[type=file]{display:none}
   </div>
   <div class="card" style="margin-bottom:10px">
     <div class="ct">👥 Jugadores (acumulado) <span style="font-size:10px;color:var(--t3);font-weight:400">— clic para el perfil</span></div>
-    <div class="tw"><table><thead><tr>
+    <div class="tw tsk"><table><thead><tr>
       <th>#</th><th>Jugador</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">P ⇅</th>
       <th onclick="clSort('min')" style="cursor:pointer">MIN ⇅</th>
       <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th>
@@ -795,12 +982,20 @@ input[type=file]{display:none}
         <div id="v-speed-badge" style="display:none;position:absolute;top:10px;right:10px;background:rgba(15,23,42,.85);color:#fff;font-weight:800;font-size:12px;padding:5px 10px;border-radius:8px;font-family:monospace"></div>
         <button onclick="vFullscreen()" title="Pantalla completa" style="position:absolute;bottom:10px;right:10px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer">⛶</button>
       </div>
+      <div class="v-touch" style="display:none;gap:6px;margin-bottom:8px">
+        <button onclick="vSeekBy(-5)" class="vtb">−5s</button>
+        <button onclick="vRewindTap()" class="vtb">⏪</button>
+        <button onclick="vTogglePlay()" class="vtb vtb-main">⏯</button>
+        <button onclick="vSpeedCycle()" class="vtb">⏩</button>
+        <button onclick="vSeekBy(5)" class="vtb">+5s</button>
+        <button id="v-btn-clip" onclick="vClipMark()" class="vtb vtb-clip">⏺ Clip</button>
+      </div>
       <input type="range" id="v-scrub" min="0" max="1000" value="0" style="width:100%;margin-bottom:6px;accent-color:var(--ac)" oninput="vScrub(this.value)">
       <div id="v-uploads" style="margin-bottom:6px"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <span id="v-time" style="font-size:14px;font-weight:900;font-family:monospace;background:var(--nv);color:#fff;border-radius:6px;padding:4px 10px">0:00</span>
         <span id="v-match-label" style="font-size:11px;font-weight:700;color:var(--t2)"></span>
-        <span style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> play/pausa · <b>B</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
+        <span class="kb-hint" style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> play/pausa · <b>B</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
       </div>
 
       <!-- Clip form (appears after 2nd space) -->
@@ -1093,12 +1288,13 @@ function toast(msg,type='ok'){
 // ═══════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════
+const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-club','t-scout','t-video'];
 function ST(id){
   if(_playerMode&&id!=='t-stats')return;
+  try{const _i=ts.indexOf(id);if(_i>=0)document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}catch(e){}
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-club','t-scout','t-video'];
   document.querySelectorAll('.nb')[ts.indexOf(id)].classList.add('active');
   if(id==='t-eq')renderTeams();
   if(id==='t-imp')populateTeamSelects();
@@ -2381,6 +2577,9 @@ function renderStats(){
     <div class="kpi"><div class="kv">${top?top.pts:'—'}</div><div class="kl">Màxim</div><div class="ks">${top?top.name.split(' ')[0]:''}</div></div>
     <div class="kpi"><div class="kv">${S.matches.filter(m=>!mf||m.id==mf).length}</div><div class="kl">Partits</div></div>
     <div class="kpi"><div class="kv">${[...teams].length}</div><div class="kl">Equips</div></div>`;
+  // Botón de PDF: solo con un partido concreto seleccionado
+  const pdfBtn=document.getElementById('st-pdf-btn');
+  if(pdfBtn)pdfBtn.style.display=(mf&&S.matches.some(m=>m.id==mf))?'inline-block':'none';
   // Quintetos iniciales (solo cuando hay un partido concreto seleccionado)
   const luEl=document.getElementById('st-lineups');
   if(luEl){
@@ -3787,7 +3986,7 @@ function openPlayerProfile(name,team){
   const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div style="overflow-x:auto">${inner}</div></div>`;
 
   document.getElementById('pp-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
+    <div class="pp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
       ${kpi((pts/G).toFixed(1),'Pts/partido',pts+' tot')}
       ${kpi(pct(t2m,t2a),'T2%',t2m+'/'+t2a)}
       ${kpi(pct(t3m,t3a),'T3%',t3m+'/'+t3a)}
@@ -3795,7 +3994,7 @@ function openPlayerProfile(name,team){
       ${kpi((pm>0?'+':'')+pm,'+/- total','')}
       ${kpi(fc,'Faltas','')}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="pp-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       ${chart('🏀 Puntos por partido',_svgBars(games.map(g=>g.pts||0),labels))}
       ${chart('🎯 % de tiro por partido <span style="font-weight:600;text-transform:none;letter-spacing:0">· <span style="color:#e8402a">●</span> T2 <span style="color:#0ea5e9">●</span> T3</span>',
         _svgLines([
@@ -3805,7 +4004,7 @@ function openPlayerProfile(name,team){
       ${chart('⏱ Minutos por partido',_svgBars(games.map(g=>Math.round(g.min||0)),labels,{color:'#0f1f3d'}))}
       ${chart('📈 +/- por partido',_svgBars(games.map(g=>g.pm||0),labels,{neg:true}))}
     </div>
-    <div style="display:grid;grid-template-columns:300px 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
+    <div class="pp-maps" style="display:grid;grid-template-columns:300px 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
       <div>
         <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro <span style="font-weight:600" id="pp-shot-count"></span></div>
         <div class="cw"><canvas id="pp-cv"></canvas></div>
@@ -3814,7 +4013,7 @@ function openPlayerProfile(name,team){
       </div>
       <div>
         <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido</div>
-        <div style="overflow-x:auto;max-height:260px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">
+        <div class="pp-games tw" style="max-height:260px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">
           <thead><tr style="background:#1e293b;position:sticky;top:0">${['Rival','','MIN','PTS','TL','T2','T3','FC','+/-'].map(h=>`<th style="padding:4px 7px;text-align:left;color:#fff">${h}</th>`).join('')}</tr></thead>
           <tbody>${games.slice().reverse().map(g=>`<tr style="border-top:1px solid #f0f4f8">
             <td style="padding:4px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.opp}${g.starter?' <span style="color:#f59e0b">★</span>':''}</td>
@@ -3932,53 +4131,47 @@ function _vUpdateSpeedBadge(){
 }
 
 // ── Keyboard ──────────────────────────────────────────────────────────────
-document.addEventListener('keydown',async e=>{
+// Acciones reutilizables: las usan el teclado (PC) y los botones táctiles (móvil)
+function vTogglePlay(){const v=vEl();if(!v||!v.src)return;_vStopRewind();if(v.paused)v.play();else v.pause();}
+function vSeekBy(n){const v=vEl();if(!v||!v.src)return;v.currentTime=Math.max(0,Math.min(v.duration||1e9,v.currentTime+n));}
+function vSpeedCycle(){const v=vEl();if(!v||!v.src)return;_vStopRewind();_vSpeed=_vSpeed>=4?1:_vSpeed+1;v.playbackRate=_vSpeed;if(v.paused)v.play();_vUpdateSpeedBadge();}
+function vPauseNormal(){const v=vEl();if(!v||!v.src)return;_vStopRewind();v.pause();_vSpeed=1;v.playbackRate=1;_vUpdateSpeedBadge();}
+function vRewindTap(){const v=vEl();if(!v||!v.src)return;_vSpeed=1;v.playbackRate=1;_vStartRewind();}
+function vClipMark(){
+  const v=vEl();if(!v||!v.src)return;
+  if(document.getElementById('v-clip-form')?.style.display==='block')return;
+  if(_vIn===null){
+    _vIn=v.currentTime;_vOut=null;
+    const b=document.getElementById('v-rec-badge');
+    if(b){b.style.display='block';b.textContent=`⏺ CLIP ${_fmtT(_vIn)}`;}
+    if(v.paused)v.play();
+    toast(`⏺ Inicio de clip en ${_fmtT(_vIn)} — sigue viendo, se graba en 2º plano`);
+  }else{
+    if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
+    _vOut=v.currentTime;
+    v.pause();
+    document.getElementById('v-rec-badge').style.display='none';
+    document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
+    vShowClipForm();
+    vPopulateFolders();
+  }
+  const mb=document.getElementById('v-btn-clip');
+  if(mb)mb.textContent=_vIn===null?'⏺ Clip':'⏹ Fin clip';
+}
+
+document.addEventListener('keydown',e=>{
   const tab=document.getElementById('t-video');
   if(!tab||!tab.classList.contains('active'))return;
   const v=vEl();if(!v||!v.src)return;
   if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
-  const formOpen=document.getElementById('v-clip-form')?.style.display==='block';
   switch(e.key){
-    case ' ': // play / pause
-      e.preventDefault();
-      _vStopRewind();
-      if(v.paused)v.play();else v.pause();
-      break;
-    case 'b':case 'B': // clip start / end — grabación diferida en 2º plano a x1
-      if(formOpen)return;
-      if(_vIn===null){
-        _vIn=v.currentTime;_vOut=null;
-        const b=document.getElementById('v-rec-badge');
-        if(b){b.style.display='block';b.textContent=`⏺ CLIP ${_fmtT(_vIn)}`;}
-        if(v.paused)v.play();
-        toast(`⏺ Inicio de clip en ${_fmtT(_vIn)} — sigue viendo, se graba en 2º plano`);
-      }else{
-        if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
-        _vOut=v.currentTime;
-        v.pause();
-        document.getElementById('v-rec-badge').style.display='none';
-        document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
-        vShowClipForm();
-        vPopulateFolders();
-      }
-      break;
-    case 'l':case 'L':
-      _vStopRewind();
-      _vSpeed=_vSpeed>=4?1:_vSpeed+1;
-      v.playbackRate=_vSpeed;
-      if(v.paused)v.play();
-      _vUpdateSpeedBadge();
-      break;
-    case 'k':case 'K':
-      _vStopRewind();
-      v.pause();_vSpeed=1;v.playbackRate=1;_vUpdateSpeedBadge();
-      break;
-    case 'j':case 'J':
-      _vSpeed=1;v.playbackRate=1;
-      _vStartRewind();
-      break;
-    case 'ArrowRight':e.preventDefault();v.currentTime=Math.min(v.duration||1e9,v.currentTime+5);break;
-    case 'ArrowLeft':e.preventDefault();v.currentTime=Math.max(0,v.currentTime-5);break;
+    case ' ':e.preventDefault();vTogglePlay();break;
+    case 'b':case 'B':vClipMark();break;
+    case 'l':case 'L':vSpeedCycle();break;
+    case 'k':case 'K':vPauseNormal();break;
+    case 'j':case 'J':vRewindTap();break;
+    case 'ArrowRight':e.preventDefault();vSeekBy(5);break;
+    case 'ArrowLeft':e.preventDefault();vSeekBy(-5);break;
   }
 });
 
@@ -4534,6 +4727,247 @@ function initAccess(){
 }
 
 
+// ═══════════════════════════════════════════
+// 📱 Deslizar para cambiar de pestaña (solo táctil)
+// ═══════════════════════════════════════════
+(function(){
+  let x0=null,y0=null,ignore=false;
+  const BLOCK='.tw, .cw, #v-container, #player-modal, #sub-modal, #sc-clip-modal, input[type=range], select, textarea, canvas, video';
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1){ignore=true;return;}
+    // No robar el gesto a tablas, pistas, vídeo o modales abiertos
+    ignore=!!e.target.closest?.(BLOCK)||document.getElementById('player-modal')?.style.display==='flex';
+    x0=e.touches[0].clientX;y0=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(ignore||x0===null){x0=y0=null;return;}
+    const t=e.changedTouches[0];
+    const dx=t.clientX-x0,dy=t.clientY-y0;
+    x0=y0=null;
+    if(Math.abs(dx)<65||Math.abs(dy)>50)return;      // gesto claro y horizontal
+    if(_playerMode)return;                            // los jugadores solo tienen Stats
+    const cur=ts.findIndex(id=>document.getElementById(id)?.classList.contains('active'));
+    if(cur<0)return;
+    const next=dx<0?cur+1:cur-1;
+    if(next<0||next>=ts.length)return;
+    ST(ts[next]);
+    // dejar visible la pestaña activa en el menú deslizable
+    document.querySelectorAll('.nb')[next]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  },{passive:true});
+})();
+
+
+// ═══════════════════════════════════════════
+// 📱 MÓVIL: deslizar para cambiar de pestaña
+// ═══════════════════════════════════════════
+(function(){
+  let x0=null,y0=null,t0=0,lock=false;
+  const hint=document.createElement('div');
+  hint.className='swipe-hint';
+  document.body.appendChild(hint);
+
+  const showHint=(txt)=>{hint.textContent=txt;hint.classList.add('on');
+    clearTimeout(hint._t);hint._t=setTimeout(()=>hint.classList.remove('on'),900);};
+
+  // No interceptar gestos sobre elementos que ya se deslizan solos
+  const inScrollable=(el)=>{
+    while(el&&el!==document.body){
+      if(el.classList&&(el.classList.contains('tw')||el.classList.contains('nav')))return true;
+      if(el.tagName==='VIDEO'||el.tagName==='CANVAS'||el.tagName==='SELECT'||el.tagName==='INPUT')return true;
+      if(el.id==='player-modal'||el.id==='sc-clip-modal'||el.id==='v-container')return true;
+      el=el.parentElement;
+    }
+    return false;
+  };
+
+  document.addEventListener('touchstart',e=>{
+    if(window.innerWidth>820)return;
+    if(e.touches.length!==1){lock=true;return;}
+    lock=inScrollable(e.target);
+    x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now();
+  },{passive:true});
+
+  document.addEventListener('touchend',e=>{
+    if(lock||x0===null||window.innerWidth>820){x0=null;return;}
+    if(_playerMode){x0=null;return;} // los jugadores solo tienen Stats
+    const dx=e.changedTouches[0].clientX-x0;
+    const dy=e.changedTouches[0].clientY-y0;
+    const dt=Date.now()-t0;
+    x0=null;
+    if(dt>700)return;                       // gesto demasiado lento
+    if(Math.abs(dx)<70)return;              // recorrido insuficiente
+    if(Math.abs(dy)>Math.abs(dx)*0.6)return;// era scroll vertical
+    const cur=ts.findIndex(id=>document.getElementById(id)?.classList.contains('active'));
+    if(cur<0)return;
+    const next=dx<0?cur+1:cur-1;
+    if(next<0||next>=ts.length)return;
+    ST(ts[next]);
+    const label=document.querySelectorAll('.nb')[next]?.textContent.trim()||'';
+    showHint(label);
+    window.scrollTo({top:0,behavior:'smooth'});
+  },{passive:true});
+})();
+
+
+// ═══════════════════════════════════════════
+// 📄 PDF DE PARTIDO — informe para compartir tras el partido
+// ═══════════════════════════════════════════
+function exportMatchPDF(){
+  const mf=document.getElementById('st-mf')?.value||'';
+  const m=S.matches.find(x=>x.id==mf);
+  if(!m){toast('Selecciona un partido primero','err');return;}
+
+  const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
+
+  // Puntos por cuarto desde los eventos
+  const perQ={home:[0,0,0,0,0],away:[0,0,0,0,0]};
+  let maxQ=4;
+  (m.events||[]).forEach(e=>{
+    const p=e.type==='pts3'?3:e.type==='pts2'?2:e.type==='tl_in'?1:0;
+    if(!p)return;
+    const q=Math.min(5,Math.max(1,e.period||1));
+    if(q>maxQ)maxQ=q;
+    if(perQ[e.team])perQ[e.team][q-1]+=p;
+  });
+  const hasQ=perQ.home.some(v=>v)||perQ.away.some(v=>v);
+
+  const teamBlock=(side)=>{
+    const name=side==='home'?m.homeTeam:m.awayTeam;
+    const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(b.pts||0)-(a.pts||0));
+    const T=pls.reduce((t,p)=>{
+      ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','reb','ast','fc','min'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
+      return t;},{});
+    const anyReb=pls.some(p=>p.reb),anyAst=pls.some(p=>p.ast),anyMin=pls.some(p=>p.min);
+    return `<div style="margin-bottom:14px">
+      <h2 style="margin:0 0 6px">${name}${(won===side)?' <span style="color:#15803d;font-size:11px">GUANYADOR</span>':''}</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:10.5px">
+        <thead><tr style="background:#0f1f3d;color:#fff">
+          <th style="padding:5px 6px;text-align:left">#</th>
+          <th style="padding:5px 6px;text-align:left">Jugador</th>
+          ${anyMin?'<th style="padding:5px 6px">MIN</th>':''}
+          <th style="padding:5px 6px">PTS</th>
+          <th style="padding:5px 6px">TL</th><th style="padding:5px 6px">T2</th><th style="padding:5px 6px">T3</th>
+          ${anyReb?'<th style="padding:5px 6px">REB</th>':''}
+          ${anyAst?'<th style="padding:5px 6px">AST</th>':''}
+          <th style="padding:5px 6px">FC</th><th style="padding:5px 6px">+/-</th>
+        </tr></thead>
+        <tbody>
+        ${pls.map((p,i)=>`<tr style="background:${i%2?'#f8fafc':'#fff'}">
+          <td style="padding:4px 6px;color:#64748b">#${p.dorsal}</td>
+          <td style="padding:4px 6px;font-weight:600">${p.name}${p.starter?' <span style="color:#f59e0b">★</span>':''}</td>
+          ${anyMin?`<td style="padding:4px 6px;text-align:center">${Math.round(p.min||0)||'—'}</td>`:''}
+          <td style="padding:4px 6px;text-align:center;font-weight:800">${p.pts||0}</td>
+          <td style="padding:4px 6px;text-align:center">${p.tlMade||0}/${p.tlAtt||0}</td>
+          <td style="padding:4px 6px;text-align:center">${p.t2Made||0}/${p.t2Att||0}</td>
+          <td style="padding:4px 6px;text-align:center">${p.t3Made||0}/${p.t3Att||0}</td>
+          ${anyReb?`<td style="padding:4px 6px;text-align:center">${p.reb||0}</td>`:''}
+          ${anyAst?`<td style="padding:4px 6px;text-align:center">${p.ast||0}</td>`:''}
+          <td style="padding:4px 6px;text-align:center">${p.fc||0}</td>
+          <td style="padding:4px 6px;text-align:center;font-weight:700;color:${(p.pm||0)>0?'#15803d':(p.pm||0)<0?'#dc2626':'#64748b'}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
+        </tr>`).join('')}
+        </tbody>
+        <tfoot><tr style="background:#e8eef6;font-weight:800">
+          <td colspan="2" style="padding:5px 6px">TOTAL</td>
+          ${anyMin?`<td style="padding:5px 6px;text-align:center">${Math.round(T.min)}</td>`:''}
+          <td style="padding:5px 6px;text-align:center">${T.pts}</td>
+          <td style="padding:5px 6px;text-align:center">${T.tlMade}/${T.tlAtt}</td>
+          <td style="padding:5px 6px;text-align:center">${T.t2Made}/${T.t2Att}</td>
+          <td style="padding:5px 6px;text-align:center">${T.t3Made}/${T.t3Att}</td>
+          ${anyReb?`<td style="padding:5px 6px;text-align:center">${T.reb}</td>`:''}
+          ${anyAst?`<td style="padding:5px 6px;text-align:center">${T.ast}</td>`:''}
+          <td style="padding:5px 6px;text-align:center">${T.fc}</td><td></td>
+        </tr>
+        <tr style="background:#f1f5f9;font-size:10px">
+          <td colspan="2" style="padding:4px 6px;color:#64748b">Percentatges</td>
+          ${anyMin?'<td></td>':''}
+          <td></td>
+          <td style="padding:4px 6px;text-align:center">${pc(T.tlMade,T.tlAtt)}</td>
+          <td style="padding:4px 6px;text-align:center">${pc(T.t2Made,T.t2Att)}</td>
+          <td style="padding:4px 6px;text-align:center">${pc(T.t3Made,T.t3Att)}</td>
+          ${anyReb?'<td></td>':''}${anyAst?'<td></td>':''}<td></td><td></td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  };
+
+  // Destacados
+  const allP=[...(m.homePlayers||[]).map(p=>({...p,t:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,t:m.awayTeam}))];
+  const topS=[...allP].sort((a,b)=>(b.pts||0)-(a.pts||0))[0];
+  const topPM=[...allP].sort((a,b)=>(b.pm||0)-(a.pm||0))[0];
+  const top3=[...allP].filter(p=>(p.t3Made||0)>0).sort((a,b)=>(b.t3Made||0)-(a.t3Made||0))[0];
+
+  const w=window.open('','_blank');
+  if(!w){toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err');return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:22px;max-width:900px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#0f1f3d;border-bottom:2px solid #e8402a;padding-bottom:3px}
+    @media print{body{padding:10px}.nb{display:none}}
+    @page{margin:12mm}
+  </style></head><body>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f1f3d;padding-bottom:10px;margin-bottom:14px">
+    <div>
+      <div style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:.08em">BASCATAPP · ACTA DEL PARTIT</div>
+      <div style="font-size:20px;font-weight:900;margin-top:3px">${m.homeTeam} <span style="color:#e8402a">${m.scoreHome}</span> — <span style="color:#e8402a">${m.scoreAway}</span> ${m.awayTeam}</div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px">${m.date||''}</div>
+    </div>
+  </div>
+
+  ${hasQ?`<h2>Parcials per quart</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px">
+    <thead><tr style="background:#0f1f3d;color:#fff">
+      <th style="padding:5px 8px;text-align:left">Equip</th>
+      ${Array.from({length:maxQ},(_,i)=>`<th style="padding:5px 8px">${i<4?'Q'+(i+1):'PRÒR.'}</th>`).join('')}
+      <th style="padding:5px 8px">TOTAL</th>
+    </tr></thead>
+    <tbody>
+      ${['home','away'].map(sd=>`<tr>
+        <td style="padding:5px 8px;font-weight:700">${sd==='home'?m.homeTeam:m.awayTeam}</td>
+        ${Array.from({length:maxQ},(_,i)=>{
+          const mine=perQ[sd][i],other=perQ[sd==='home'?'away':'home'][i];
+          return `<td style="padding:5px 8px;text-align:center;font-weight:${mine>other?'800':'400'};color:${mine>other?'#15803d':'#0f172a'}">${mine}</td>`;
+        }).join('')}
+        <td style="padding:5px 8px;text-align:center;font-weight:900">${sd==='home'?m.scoreHome:m.scoreAway}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`:''}
+
+  ${(topS&&topS.pts)?`<h2>Destacats</h2>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
+      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Màxim anotador</div>
+      <div style="font-size:14px;font-weight:800">${topS.name}</div>
+      <div style="font-size:10px;color:#64748b">${topS.pts} punts · ${topS.t}</div>
+    </div>
+    ${(topPM&&topPM.pm)?`<div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
+      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Millor +/-</div>
+      <div style="font-size:14px;font-weight:800">${topPM.name}</div>
+      <div style="font-size:10px;color:#64748b">${topPM.pm>0?'+':''}${topPM.pm} · ${topPM.t}</div>
+    </div>`:''}
+    ${top3?`<div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
+      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Més triples</div>
+      <div style="font-size:14px;font-weight:800">${top3.name}</div>
+      <div style="font-size:10px;color:#64748b">${top3.t3Made}/${top3.t3Att} de 3 · ${top3.t}</div>
+    </div>`:''}
+  </div>`:''}
+
+  ${teamBlock('home')}
+  ${teamBlock('away')}
+
+  <div style="border-top:1px solid #e2e8f0;margin-top:14px;padding-top:8px;font-size:9px;color:#94a3b8;display:flex;justify-content:space-between">
+    <span>★ = quintet inicial</span>
+    <span>BascatApp · ${new Date().toLocaleDateString('es-ES')}</span>
+  </div>
+
+  <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -4551,7 +4985,7 @@ Object.assign(window,{
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
-  renderStats,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
+  renderStats,exportMatchPDF,ssort,renderMatchHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
   // Dashboard
   renderDash,
   // Scouting
@@ -4559,6 +4993,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,
   // Vídeo tab
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
+  vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vRewindTap,vClipMark,
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
   renderClub,clSort,

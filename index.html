@@ -4820,7 +4820,7 @@ function exportMatchPDF(){
   const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
   const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
 
-  // Puntos por cuarto desde los eventos
+  // Parciales por cuarto
   const perQ={home:[0,0,0,0,0],away:[0,0,0,0,0]};
   let maxQ=4;
   (m.events||[]).forEach(e=>{
@@ -4832,61 +4832,57 @@ function exportMatchPDF(){
   });
   const hasQ=perQ.home.some(v=>v)||perQ.away.some(v=>v);
 
-  const teamBlock=(side)=>{
+  // ¿Qué columnas tienen datos? (evita columnas de ceros)
+  const everyone=[...(m.homePlayers||[]),...(m.awayPlayers||[])];
+  const anyMin=everyone.some(p=>p.min),anyReb=everyone.some(p=>p.reb),anyAst=everyone.some(p=>p.ast);
+
+  const teamTable=(side)=>{
     const name=side==='home'?m.homeTeam:m.awayTeam;
+    const score=side==='home'?m.scoreHome:m.scoreAway;
     const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(b.pts||0)-(a.pts||0));
     const T=pls.reduce((t,p)=>{
       ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','reb','ast','fc','min'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
       return t;},{});
-    const anyReb=pls.some(p=>p.reb),anyAst=pls.some(p=>p.ast),anyMin=pls.some(p=>p.min);
-    return `<div style="margin-bottom:14px">
-      <h2 style="margin:0 0 6px">${name}${(won===side)?' <span style="color:#15803d;font-size:11px">GUANYADOR</span>':''}</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:10.5px">
-        <thead><tr style="background:#0f1f3d;color:#fff">
-          <th style="padding:5px 6px;text-align:left">#</th>
-          <th style="padding:5px 6px;text-align:left">Jugador</th>
-          ${anyMin?'<th style="padding:5px 6px">MIN</th>':''}
-          <th style="padding:5px 6px">PTS</th>
-          <th style="padding:5px 6px">TL</th><th style="padding:5px 6px">T2</th><th style="padding:5px 6px">T3</th>
-          ${anyReb?'<th style="padding:5px 6px">REB</th>':''}
-          ${anyAst?'<th style="padding:5px 6px">AST</th>':''}
-          <th style="padding:5px 6px">FC</th><th style="padding:5px 6px">+/-</th>
+    return `<div class="team">
+      <div class="tname">${name} <b>${score}</b>${won===side?' <span class="win">✓</span>':''}</div>
+      <table>
+        <thead><tr>
+          <th class="l">#</th><th class="l">Jugador</th>
+          ${anyMin?'<th>MIN</th>':''}<th>PTS</th>
+          <th>TL</th><th>T2</th><th>T3</th>
+          ${anyReb?'<th>REB</th>':''}${anyAst?'<th>AST</th>':''}
+          <th>FC</th><th>+/-</th>
         </tr></thead>
         <tbody>
-        ${pls.map((p,i)=>`<tr style="background:${i%2?'#f8fafc':'#fff'}">
-          <td style="padding:4px 6px;color:#64748b">#${p.dorsal}</td>
-          <td style="padding:4px 6px;font-weight:600">${p.name}${p.starter?' <span style="color:#f59e0b">★</span>':''}</td>
-          ${anyMin?`<td style="padding:4px 6px;text-align:center">${Math.round(p.min||0)||'—'}</td>`:''}
-          <td style="padding:4px 6px;text-align:center;font-weight:800">${p.pts||0}</td>
-          <td style="padding:4px 6px;text-align:center">${p.tlMade||0}/${p.tlAtt||0}</td>
-          <td style="padding:4px 6px;text-align:center">${p.t2Made||0}/${p.t2Att||0}</td>
-          <td style="padding:4px 6px;text-align:center">${p.t3Made||0}/${p.t3Att||0}</td>
-          ${anyReb?`<td style="padding:4px 6px;text-align:center">${p.reb||0}</td>`:''}
-          ${anyAst?`<td style="padding:4px 6px;text-align:center">${p.ast||0}</td>`:''}
-          <td style="padding:4px 6px;text-align:center">${p.fc||0}</td>
-          <td style="padding:4px 6px;text-align:center;font-weight:700;color:${(p.pm||0)>0?'#15803d':(p.pm||0)<0?'#dc2626':'#64748b'}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
+        ${pls.map((p,i)=>`<tr${i%2?' class="alt"':''}>
+          <td class="l dim">${p.dorsal}</td>
+          <td class="l nm">${p.name}${p.starter?'<span class="st">★</span>':''}</td>
+          ${anyMin?`<td>${Math.round(p.min||0)||'—'}</td>`:''}
+          <td class="b">${p.pts||0}</td>
+          <td>${p.tlMade||0}/${p.tlAtt||0}</td>
+          <td>${p.t2Made||0}/${p.t2Att||0}</td>
+          <td>${p.t3Made||0}/${p.t3Att||0}</td>
+          ${anyReb?`<td>${p.reb||0}</td>`:''}${anyAst?`<td>${p.ast||0}</td>`:''}
+          <td>${p.fc||0}</td>
+          <td class="b ${(p.pm||0)>0?'pos':(p.pm||0)<0?'neg':''}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
         </tr>`).join('')}
         </tbody>
-        <tfoot><tr style="background:#e8eef6;font-weight:800">
-          <td colspan="2" style="padding:5px 6px">TOTAL</td>
-          ${anyMin?`<td style="padding:5px 6px;text-align:center">${Math.round(T.min)}</td>`:''}
-          <td style="padding:5px 6px;text-align:center">${T.pts}</td>
-          <td style="padding:5px 6px;text-align:center">${T.tlMade}/${T.tlAtt}</td>
-          <td style="padding:5px 6px;text-align:center">${T.t2Made}/${T.t2Att}</td>
-          <td style="padding:5px 6px;text-align:center">${T.t3Made}/${T.t3Att}</td>
-          ${anyReb?`<td style="padding:5px 6px;text-align:center">${T.reb}</td>`:''}
-          ${anyAst?`<td style="padding:5px 6px;text-align:center">${T.ast}</td>`:''}
-          <td style="padding:5px 6px;text-align:center">${T.fc}</td><td></td>
-        </tr>
-        <tr style="background:#f1f5f9;font-size:10px">
-          <td colspan="2" style="padding:4px 6px;color:#64748b">Percentatges</td>
-          ${anyMin?'<td></td>':''}
-          <td></td>
-          <td style="padding:4px 6px;text-align:center">${pc(T.tlMade,T.tlAtt)}</td>
-          <td style="padding:4px 6px;text-align:center">${pc(T.t2Made,T.t2Att)}</td>
-          <td style="padding:4px 6px;text-align:center">${pc(T.t3Made,T.t3Att)}</td>
-          ${anyReb?'<td></td>':''}${anyAst?'<td></td>':''}<td></td><td></td>
-        </tr></tfoot>
+        <tfoot>
+          <tr class="tot">
+            <td colspan="2" class="l">TOTAL</td>
+            ${anyMin?`<td>${Math.round(T.min)}</td>`:''}
+            <td>${T.pts}</td>
+            <td>${T.tlMade}/${T.tlAtt}</td><td>${T.t2Made}/${T.t2Att}</td><td>${T.t3Made}/${T.t3Att}</td>
+            ${anyReb?`<td>${T.reb}</td>`:''}${anyAst?`<td>${T.ast}</td>`:''}
+            <td>${T.fc}</td><td></td>
+          </tr>
+          <tr class="pct">
+            <td colspan="2" class="l">%</td>
+            ${anyMin?'<td></td>':''}<td></td>
+            <td>${pc(T.tlMade,T.tlAtt)}</td><td>${pc(T.t2Made,T.t2Att)}</td><td>${pc(T.t3Made,T.t3Att)}</td>
+            ${anyReb?'<td></td>':''}${anyAst?'<td></td>':''}<td></td><td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>`;
   };
@@ -4896,72 +4892,86 @@ function exportMatchPDF(){
   const topS=[...allP].sort((a,b)=>(b.pts||0)-(a.pts||0))[0];
   const topPM=[...allP].sort((a,b)=>(b.pm||0)-(a.pm||0))[0];
   const top3=[...allP].filter(p=>(p.t3Made||0)>0).sort((a,b)=>(b.t3Made||0)-(a.t3Made||0))[0];
+  const card=(lbl,nm,sub)=>`<div class="card"><div class="cl">${lbl}</div><div class="cn">${nm}</div><div class="cs">${sub}</div></div>`;
 
   const w=window.open('','_blank');
   if(!w){toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err');return;}
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}</title>
   <style>
+    @page{size:A4 landscape;margin:7mm}
     *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:22px;max-width:900px}
-    h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#0f1f3d;border-bottom:2px solid #e8402a;padding-bottom:3px}
-    @media print{body{padding:10px}.nb{display:none}}
-    @page{margin:12mm}
+    body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:10px 12px}
+    .head{display:flex;align-items:flex-end;gap:16px;border-bottom:2.5px solid #0f1f3d;padding-bottom:7px;margin-bottom:8px}
+    .brand{font-size:8px;color:#64748b;font-weight:700;letter-spacing:.09em}
+    .sc{font-size:19px;font-weight:900;line-height:1.15;margin-top:1px}
+    .sc span{color:#e8402a}
+    .dt{font-size:9px;color:#64748b}
+    .qt{border-collapse:collapse;font-size:9px;margin-left:auto}
+    .qt th{background:#0f1f3d;color:#fff;padding:3px 8px;font-weight:700}
+    .qt td{padding:3px 8px;text-align:center;border-bottom:1px solid #eef2f7}
+    .qt td.tm{text-align:left;font-weight:700;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .qt td.w{font-weight:800;color:#15803d}
+    .cards{display:flex;gap:6px;margin-bottom:8px}
+    .card{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:5px 9px}
+    .cl{font-size:7.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .cn{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cs{font-size:8.5px;color:#64748b}
+    .teams{display:flex;gap:10px;align-items:flex-start}
+    .team{flex:1;min-width:0;page-break-inside:avoid;break-inside:avoid}
+    .tname{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;
+      border-bottom:2px solid #e8402a;padding-bottom:2px;margin-bottom:3px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tname b{color:#e8402a}
+    .win{color:#15803d;font-size:10px}
+    table{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed}
+    th{background:#0f1f3d;color:#fff;padding:3px 2px;text-align:center;font-weight:700;font-size:8px}
+    th.l{text-align:left;padding-left:4px}
+    td{padding:2.5px 2px;text-align:center;border-bottom:1px solid #f1f5f9}
+    td.l{text-align:left;padding-left:4px}
+    td.b{font-weight:800}
+    td.dim{color:#94a3b8}
+    td.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .st{color:#f59e0b;margin-left:2px}
+    tr.alt td{background:#f8fafc}
+    .pos{color:#15803d}.neg{color:#dc2626}
+    tfoot .tot td{background:#e8eef6;font-weight:800;border-top:1.5px solid #0f1f3d}
+    tfoot .pct td{background:#f1f5f9;font-size:8px;color:#475569;font-weight:700}
+    th:first-child,td:first-child{width:22px}
+    th:nth-child(2),td:nth-child(2){width:auto}
+    th:not(:first-child):not(:nth-child(2)),td:not(:first-child):not(:nth-child(2)){width:31px}
+    .foot{border-top:1px solid #e2e8f0;margin-top:7px;padding-top:4px;font-size:7.5px;color:#94a3b8;
+      display:flex;justify-content:space-between}
   </style></head><body>
 
-  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f1f3d;padding-bottom:10px;margin-bottom:14px">
+  <div class="head">
     <div>
-      <div style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:.08em">BASCATAPP · ACTA DEL PARTIT</div>
-      <div style="font-size:20px;font-weight:900;margin-top:3px">${m.homeTeam} <span style="color:#e8402a">${m.scoreHome}</span> — <span style="color:#e8402a">${m.scoreAway}</span> ${m.awayTeam}</div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px">${m.date||''}</div>
+      <div class="brand">BASCATAPP · ACTA DEL PARTIT</div>
+      <div class="sc">${m.homeTeam} <span>${m.scoreHome}</span> — <span>${m.scoreAway}</span> ${m.awayTeam}</div>
+      <div class="dt">${m.date||''}</div>
     </div>
-  </div>
-
-  ${hasQ?`<h2>Parcials per quart</h2>
-  <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px">
-    <thead><tr style="background:#0f1f3d;color:#fff">
-      <th style="padding:5px 8px;text-align:left">Equip</th>
-      ${Array.from({length:maxQ},(_,i)=>`<th style="padding:5px 8px">${i<4?'Q'+(i+1):'PRÒR.'}</th>`).join('')}
-      <th style="padding:5px 8px">TOTAL</th>
-    </tr></thead>
-    <tbody>
-      ${['home','away'].map(sd=>`<tr>
-        <td style="padding:5px 8px;font-weight:700">${sd==='home'?m.homeTeam:m.awayTeam}</td>
+    ${hasQ?`<table class="qt">
+      <thead><tr><th style="text-align:left">Parcials</th>
+        ${Array.from({length:maxQ},(_,i)=>`<th>${i<4?'Q'+(i+1):'PR'}</th>`).join('')}
+        <th>TOT</th></tr></thead>
+      <tbody>${['home','away'].map(sd=>`<tr>
+        <td class="tm">${sd==='home'?m.homeTeam:m.awayTeam}</td>
         ${Array.from({length:maxQ},(_,i)=>{
           const mine=perQ[sd][i],other=perQ[sd==='home'?'away':'home'][i];
-          return `<td style="padding:5px 8px;text-align:center;font-weight:${mine>other?'800':'400'};color:${mine>other?'#15803d':'#0f172a'}">${mine}</td>`;
-        }).join('')}
-        <td style="padding:5px 8px;text-align:center;font-weight:900">${sd==='home'?m.scoreHome:m.scoreAway}</td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`:''}
+          return `<td${mine>other?' class="w"':''}>${mine}</td>`;}).join('')}
+        <td style="font-weight:900">${sd==='home'?m.scoreHome:m.scoreAway}</td>
+      </tr>`).join('')}</tbody></table>`:''}
+  </div>
 
-  ${(topS&&topS.pts)?`<h2>Destacats</h2>
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Màxim anotador</div>
-      <div style="font-size:14px;font-weight:800">${topS.name}</div>
-      <div style="font-size:10px;color:#64748b">${topS.pts} punts · ${topS.t}</div>
-    </div>
-    ${(topPM&&topPM.pm)?`<div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Millor +/-</div>
-      <div style="font-size:14px;font-weight:800">${topPM.name}</div>
-      <div style="font-size:10px;color:#64748b">${topPM.pm>0?'+':''}${topPM.pm} · ${topPM.t}</div>
-    </div>`:''}
-    ${top3?`<div style="flex:1;min-width:150px;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px">
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase">Més triples</div>
-      <div style="font-size:14px;font-weight:800">${top3.name}</div>
-      <div style="font-size:10px;color:#64748b">${top3.t3Made}/${top3.t3Att} de 3 · ${top3.t}</div>
-    </div>`:''}
+  ${(topS&&topS.pts)?`<div class="cards">
+    ${card('Màxim anotador',topS.name,topS.pts+' punts · '+topS.t)}
+    ${(topPM&&topPM.pm)?card('Millor +/-',topPM.name,(topPM.pm>0?'+':'')+topPM.pm+' · '+topPM.t):''}
+    ${top3?card('Més triples',top3.name,top3.t3Made+'/'+top3.t3Att+' de 3 · '+top3.t):''}
   </div>`:''}
 
-  ${teamBlock('home')}
-  ${teamBlock('away')}
+  <div class="teams">${teamTable('home')}${teamTable('away')}</div>
 
-  <div style="border-top:1px solid #e2e8f0;margin-top:14px;padding-top:8px;font-size:9px;color:#94a3b8;display:flex;justify-content:space-between">
-    <span>★ = quintet inicial</span>
-    <span>BascatApp · ${new Date().toLocaleDateString('es-ES')}</span>
-  </div>
+  <div class="foot"><span>★ = quintet inicial</span><span>BascatApp · ${new Date().toLocaleDateString('es-ES')}</span></div>
 
   <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
   </body></html>`);

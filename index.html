@@ -2158,7 +2158,7 @@ function showImpPrev(m){
   const all=[...m.homePlayers.map(p=>({...p,side:'home',tn:m.homeTeam})),...m.awayPlayers.map(p=>({...p,side:'away',tn:m.awayTeam}))].sort((a,b)=>b.pts-a.pts);
   document.getElementById('p-tb').innerHTML=all.map(p=>{
     const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip ${p.side==='home'?'ch':'ca'}">${p.tn}</span></td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl}</td><td>${p.t2}</td><td>${p.t3}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
+    return `<tr style="cursor:pointer" data-n="${(p.name||'').replace(/"/g,'&quot;')}" data-t="${(p.tn||'').replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}</td><td><span class="chip ${p.side==='home'?'ch':'ca'}">${p.tn}</span></td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl}</td><td>${p.t2}</td><td>${p.t3}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
   }).join('');
 }
 function confImp(){if(!_parsed)return;S.matches=S.matches.filter(m=>m.id!==_parsed.id);S.matches.push(_parsed);_parsed=null;svL();document.getElementById('i-prev').style.display='none';setSt('i-st','✓ Desat. Total: '+S.matches.length+' partits.','ok');rAll();}
@@ -2927,23 +2927,22 @@ function undoDeleteMatch(){
 function renderShotsTodo(){
   const el=document.getElementById('sh-todo');
   if(!el)return;
-  // A match "needs locations" if it was imported (no live shots) and has players
-  // but has shots in S.shots that lack coordinates, OR has no shots at all
+  // Cuenta los tiros ya ubicados de un partido, estén en S.shots (ubicados a mano)
+  // o dentro del propio partido m.shots (importados de la FCBQ o en directo).
+  const placedFor=m=>S.shots.filter(s=>(s.mId||s.matchId)==m.id).length+((m.shots||[]).length);
+  // Un partido "necesita ubicaciones" si es importado y aún le faltan tiros por ubicar
   const todo=S.matches.filter(m=>{
-    if(m.type==='live')return false; // live matches already have locations
-    // Count shots already placed for this match
-    const placed=S.shots.filter(s=>(s.mId||s.matchId)==m.id).length;
-    // Count total FGA from player stats
+    if(m.type==='live')return false; // los partidos en directo ya tienen ubicaciones
     const totalFGA=(m.homePlayers||[]).concat(m.awayPlayers||[])
       .reduce((sum,p)=>sum+(p.t2Att||0)+(p.t3Att||0),0);
-    return placed<totalFGA; // still shots left to place
+    return placedFor(m)<totalFGA; // aún quedan tiros por ubicar
   });
   if(!todo.length){
     el.innerHTML='<div style="color:var(--gn);font-size:11px;font-weight:600;padding:4px 0">✅ Todos los partidos tienen ubicaciones completas</div>';
     return;
   }
   el.innerHTML=todo.map(m=>{
-    const placed=S.shots.filter(s=>(s.mId||s.matchId)==m.id).length;
+    const placed=placedFor(m);
     const totalFGA=(m.homePlayers||[]).concat(m.awayPlayers||[])
       .reduce((sum,p)=>sum+(p.t2Att||0)+(p.t3Att||0),0);
     const pct=totalFGA?Math.round(placed/totalFGA*100):0;
@@ -2957,10 +2956,7 @@ function renderShotsTodo(){
       </div>
       <button onclick="quickSelectMatch('${m.id}')" style="background:var(--ac);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">Ubicar →</button>
     </div>`;
-  }).join('')+((hidden>0||_histOpen)?`
-    <button onclick="toggleHistory()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px">
-      ${_histOpen?'▲ Mostrar menos':`▼ Ver los ${hidden} partidos restantes`}
-    </button>`:'');
+  }).join('');
 }
 function quickSelectMatch(id){
   // Switch to shots tab and pre-select this match
@@ -5118,6 +5114,36 @@ function _fcbqEnsureTeam(name,fcbqPlayers){
   return t;
 }
 
+// La FCBQ ya calcula los minutos jugados de forma oficial en el campo
+// `timePlayed` de cada jugador. Como recalcularlos parseando la cronología en
+// catalán es frágil (depende del texto exacto de "entra/surt del camp"), aquí
+// sobreescribimos S.matches[].homePlayers/awayPlayers[].min con ese dato oficial,
+// emparejando por dorsal (y por nombre como respaldo).
+function _fcbqApplyMinutes(match,stats){
+  if(!match||!stats)return;
+  const teams=stats.teams||[];
+  const byDorsal={home:{},away:{},nameHome:{},nameAway:{}};
+  teams.forEach(t=>{
+    const side=t.teamIdIntern===stats.localId?'home':(t.teamIdIntern===stats.visitId?'away':null);
+    if(!side)return;
+    (t.players||[]).forEach(p=>{
+      if(typeof p.timePlayed==='number'){
+        byDorsal[side][String(p.dorsal)]=p.timePlayed;
+        byDorsal[side==='home'?'nameHome':'nameAway'][(p.name||'').toLowerCase()]=p.timePlayed;
+      }
+    });
+  });
+  const apply=(players,side)=>{
+    (players||[]).forEach(pl=>{
+      let tp=byDorsal[side][String(pl.dorsal)];
+      if(tp==null)tp=byDorsal[side==='home'?'nameHome':'nameAway'][(pl.name||'').toLowerCase()];
+      if(typeof tp==='number')pl.min=tp;
+    });
+  };
+  apply(match.homePlayers,'home');
+  apply(match.awayPlayers,'away');
+}
+
 function _fcbqMovesToCrono(moves,stats){
   const teamName={};
   (stats.teams||[]).forEach(t=>{teamName[t.teamIdIntern]=t.name;});
@@ -5207,7 +5233,11 @@ async function importFromFCBQ(){
     if(typeof parseMatch==='function'){
       try{
         parseMatch();
-        if(_parsed){_parsed.shots=shots;svL();rAll();}
+        if(_parsed){
+          _parsed.shots=shots;
+          _fcbqApplyMinutes(_parsed,stats); // minutos oficiales de la FCBQ
+          svL();rAll();
+        }
       }catch(e){console.warn(e);}
     }
     setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos · ${shots.length} tiros ubicados. Revisa y pulsa "Processar" si algo no cuadra.`,'#15803d');

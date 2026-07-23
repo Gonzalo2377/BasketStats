@@ -48,7 +48,8 @@ body.player-mode #btn-codes,body.player-mode .btn-staff-only{display:none!import
 .brow{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px}
 /* FORMS */
 label{font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:3px}
-input[type=text],input[type=number],select,textarea{width:100%;padding:7px 9px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;color:var(--tx);font-size:12px}
+input[type=text],input[type=number],select,textarea{width:100%;padding:7px 9px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;color:var(--tx);font-size:12px;box-sizing:border-box;line-height:1.4}
+select{min-height:34px;line-height:normal;appearance:auto}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--nv)}
 textarea{resize:vertical;line-height:1.5}
 .fr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
@@ -347,6 +348,7 @@ input[type=file]{display:none}
   <button class="nb" onclick="ST('t-imp')">📋 Importar</button>
   <button class="nb" onclick="ST('t-live')">⚡ Directo</button>
   <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
+  <button class="nb" onclick="ST('t-standings')">🏆 Clasificación</button>
   <button class="nb nb-stats" onclick="ST('t-stats')">📊 Stats</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
   <button class="nb" onclick="ST('t-club')">🟡 Claret</button>
@@ -409,7 +411,32 @@ input[type=file]{display:none}
         </div>
       </div>
       <div class="fc" style="flex:0;min-width:100px"><label>Fecha</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
-      <div class="fc" style="flex:0;min-width:120px"><label>Competición</label><input type="text" id="i-comp" placeholder="Copa Catalunya..."></div>
+      <div class="fc" style="flex:0;min-width:150px"><label>Liga</label>
+        <select id="i-comp" style="width:100%">
+          <option value="">— selecciona liga —</option>
+          <option>Liga Acb</option>
+          <option>Segona Feb</option>
+          <option>Tercera Feb</option>
+          <option>Super Copa Masculina</option>
+          <option>Copa Catalunya Masculina</option>
+          <option>C.c. Primera Categoria Masculina</option>
+          <option>C.c. Segona Categoria Masculina</option>
+          <option>1a. Territorial Sènior Masculí</option>
+          <option>C.c. Sots-25 Masculí Nivell A</option>
+          <option>Liga U</option>
+          <option>C.c. U20 - Sots-20 Masculí Preferent</option>
+          <option>C.c. Sots-20 Masculí Nivell A-1</option>
+          <option>C.c. Júnior Masculí Preferent</option>
+          <option>C.c. Júnior Masculí Interterritorial</option>
+          <option>C.c. Júnior Masculí Nivell A</option>
+        </select>
+      </div>
+      <div class="fc" style="flex:0;min-width:80px"><label>Grupo</label>
+        <select id="i-group" style="width:100%">
+          <option value="1">Grupo 1</option>
+          <option value="2">Grupo 2</option>
+        </select>
+      </div>
     </div>
     <!-- Stats: OPTIONAL if teams in DB + crono provided -->
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
@@ -741,6 +768,13 @@ input[type=file]{display:none}
 </div>
 </div></div>
 
+<!-- ═══ TAB: CLASSIFICACIÓ ═══ -->
+<div id="t-standings" class="tab"><div class="main">
+<div class="card" style="margin-bottom:10px">
+  <div class="ct">🏆 Clasificación por liga y grupo</div>
+  <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Se construye con los partidos que vas importando. Cada combinación de liga + grupo genera su propia tabla. Orden: más victorias → menos derrotas → mejor diferencia (PF−PC).</div>
+  <div id="st-standings-content"><div class="empty">Importa partidos con liga y grupo para ver las clasificaciones.</div></div>
+</div>
 <!-- ═══ TAB: STATS ═══ -->
 <div id="t-stats" class="tab"><div class="main">
 <div class="card" style="margin-bottom:8px">
@@ -1299,7 +1333,7 @@ function toast(msg,type='ok'){
 // ═══════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════
-const ts=['t-eq','t-imp','t-live','t-shots','t-stats','t-dash','t-club','t-scout','t-video'];
+const ts=['t-eq','t-imp','t-live','t-shots','t-standings','t-stats','t-dash','t-club','t-scout','t-video'];
 function ST(id){
   if(_playerMode&&id!=='t-stats')return;
   try{const _i=ts.indexOf(id);if(_i>=0)document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}catch(e){}
@@ -1313,6 +1347,7 @@ function ST(id){
   if(id==='t-video')renderVideoLib();
   if(id==='t-club')renderClub();
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
+  if(id==='t-standings')renderStandings();
   if(id==='t-stats'){renderMatchHistory();renderStats();}
   if(id==='t-dash'){drawCourtOnCanvas('db-cv');renderDash();}
   if(id==='t-scout'){populateRivalSelect();renderScouting();}
@@ -2094,17 +2129,24 @@ function parseMatch(){
   let dt=document.getElementById('i-date').value.trim();
   if(!dt&&cr){const dm=cr.match(/(\d{2}\/\d{2}\/\d{4})/);if(dm)dt=dm[1];}
 
-  // Auto-detect competition
-  let comp=document.getElementById('i-comp').value.trim();
-  if(!comp&&cr){
-    const cm=cr.match(/^(COPA|LLIGA|CAMPIONAT|FASE)[^\n]*/im);
-    if(cm)comp=cm[0].trim().slice(0,60);
+  // Liga (desplegable) y grupo (1/2)
+  const comp=document.getElementById('i-comp')?.value.trim()||'';
+  const group=document.getElementById('i-group')?.value||'1';
+
+  // Temporada: se extrae automáticamente del link de la FCBQ (…/estadistiques/2025/…).
+  // Si no hay link, se deduce de la fecha del partido.
+  let season=_fcbqSeasonFromUrl(document.getElementById('i-fcbq-url')?.value||'');
+  if(!season&&dt){
+    const ym=dt.match(/\d{2}\/\d{2}\/(\d{4})/);
+    if(ym){const y=parseInt(ym[1]),mo=parseInt(dt.slice(3,5));
+      // Temporada de baloncesto: si el mes es ago-dic → año/año+1; si ene-jul → año-1/año
+      const start=mo>=8?y:y-1;season=`${start}-${String(start+1).slice(2)}`;}
   }
 
   _parsed={
     id:Date.now(),
     name:`${hn} vs ${an}`,
-    date:dt,competition:comp,
+    date:dt,competition:comp,group:group,season:season||'',
     homeTeam:hn,awayTeam:an,
     scoreHome:score.h,scoreAway:score.a,
     homePlayers:hSt,awayPlayers:aSt,
@@ -2162,7 +2204,7 @@ function showImpPrev(m){
   }).join('');
 }
 function confImp(){if(!_parsed)return;S.matches=S.matches.filter(m=>m.id!==_parsed.id);S.matches.push(_parsed);_parsed=null;svL();document.getElementById('i-prev').style.display='none';setSt('i-st','✓ Desat. Total: '+S.matches.length+' partits.','ok');rAll();}
-function clrImp(){['i-hs','i-as','i-cr','i-date','i-comp'].forEach(id=>document.getElementById(id).value='');document.getElementById('i-home-sel').value='';document.getElementById('i-away-sel').value='';document.getElementById('i-home-txt').value='';document.getElementById('i-away-txt').value='';document.getElementById('i-prev').style.display='none';document.getElementById('i-st').className='st-msg';}
+function clrImp(){['i-hs','i-as','i-cr','i-date'].forEach(id=>document.getElementById(id).value='');document.getElementById('i-comp').value='';document.getElementById('i-group').value='1';document.getElementById('i-home-sel').value='';document.getElementById('i-away-sel').value='';document.getElementById('i-home-txt').value='';document.getElementById('i-away-txt').value='';document.getElementById('i-prev').style.display='none';document.getElementById('i-st').className='st-msg';}
 
 // ═══════════════════════════════════════════
 // LIVE MATCH
@@ -4491,6 +4533,75 @@ function vDeleteMatch(mkKey){
 // ═══════════════════════════════════════════
 const isOurTeam=n=>/claret/i.test(n||'');
 
+// ══════════════════════════════════════════════════════════════
+// CLASIFICACIÓN — una tabla por cada combinación Liga + Grupo,
+// construida solo con los partidos importados (los que tienen liga+grupo).
+// Orden: más victorias → menos derrotas → mejor diferencia (PF−PC).
+// ══════════════════════════════════════════════════════════════
+function renderStandings(){
+  const el=document.getElementById('st-standings-content');if(!el)return;
+
+  // Agrupar partidos por "Liga · Grupo N"
+  const groups={};
+  S.matches.forEach(m=>{
+    if(!m.competition)return;                 // sin liga → no entra en clasificación
+    if(m.scoreHome==null||m.scoreAway==null)return;
+    const key=`${m.competition} · Grupo ${m.group||'1'}`;
+    (groups[key]=groups[key]||[]).push(m);
+  });
+
+  const keys=Object.keys(groups).sort();
+  if(!keys.length){
+    el.innerHTML='<div class="empty">Importa partidos con liga y grupo para ver las clasificaciones.</div>';
+    return;
+  }
+
+  el.innerHTML=keys.map(key=>{
+    const matches=groups[key];
+    // Acumular por equipo: victorias, derrotas, PF, PC
+    const T={};
+    const ensure=name=>{if(!T[name])T[name]={name,pj:0,v:0,d:0,pf:0,pc:0};return T[name];};
+    matches.forEach(m=>{
+      const h=ensure(m.homeTeam),a=ensure(m.awayTeam);
+      const sh=m.scoreHome,sa=m.scoreAway;
+      h.pj++;a.pj++;h.pf+=sh;h.pc+=sa;a.pf+=sa;a.pc+=sh;
+      if(sh>sa){h.v++;a.d++;}else if(sa>sh){a.v++;h.d++;}
+      // empate en baloncesto no existe, pero por seguridad no suma nada
+    });
+    const teams=Object.values(T).sort((x,y)=>
+      (y.v-x.v)                       // más victorias
+      ||(x.d-y.d)                     // menos derrotas
+      ||((y.pf-y.pc)-(x.pf-x.pc))     // mejor diferencia PF-PC
+      ||(y.pf-x.pf));                 // desempate final: más PF
+    const rows=teams.map((t,i)=>{
+      const diff=t.pf-t.pc;
+      const mine=isOurTeam(t.name);
+      return `<tr${mine?' style="background:#fef9c3;font-weight:700"':''}>
+        <td style="text-align:center;color:var(--t3)">${i+1}</td>
+        <td style="text-align:left">${t.name}</td>
+        <td style="text-align:center">${t.pj}</td>
+        <td style="text-align:center;color:var(--gn);font-weight:700">${t.v}</td>
+        <td style="text-align:center;color:#dc2626">${t.d}</td>
+        <td style="text-align:center">${t.pf}</td>
+        <td style="text-align:center">${t.pc}</td>
+        <td style="text-align:center;font-weight:700;color:${diff>0?'var(--gn)':diff<0?'#dc2626':'var(--t3)'}">${diff>0?'+':''}${diff}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="ct" style="font-size:13px">${key} <span style="font-size:11px;font-weight:600;color:var(--t3)">· ${matches.length} partido${matches.length!==1?'s':''}</span></div>
+      <div style="overflow-x:auto">
+      <table class="stbl" style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="border-bottom:2px solid var(--bd);font-size:10px;text-transform:uppercase;color:var(--t3)">
+          <th style="padding:5px 4px">#</th><th style="text-align:left;padding:5px 4px">Equipo</th>
+          <th style="padding:5px 4px">PJ</th><th style="padding:5px 4px">V</th><th style="padding:5px 4px">D</th>
+          <th style="padding:5px 4px">PF</th><th style="padding:5px 4px">PC</th><th style="padding:5px 4px">DIF</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+}
+
 function renderClub(){
   // Gather our matches (imported AND live both end up in S.matches)
   const ours=[];
@@ -5063,6 +5174,15 @@ function _fcbqExtractId(url){
   return m?m[1]:null;
 }
 
+// Extrae la temporada del link de la FCBQ, que lleva el año antes del id:
+//   .../estadistiques/2025/68d8...  →  "2025-26"
+function _fcbqSeasonFromUrl(url){
+  const m=(url||'').match(/\/(\d{4})\/[a-f0-9]{24}/i)||(url||'').match(/\/(20\d{2})\//);
+  if(!m)return '';
+  const y=parseInt(m[1]);
+  return `${y}-${String(y+1).slice(2)}`;
+}
+
 // Convierte xnormalize/ynormalize (0-100, calculados por la FCBQ sobre el
 // LARGO TOTAL de pista de 28m) a coordenadas del canvas de mediacancha que
 // usa BascatApp (CW=420,CH=400,BASE_Y=PAD=10,BY=52,BX=210).
@@ -5242,7 +5362,9 @@ async function importFromFCBQ(){
         }
       }catch(e){console.warn(e);}
     }
-    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos · ${shots.length} tiros ubicados. Revisa y pulsa "Processar" si algo no cuadra.`,'#15803d');
+    const compSel=document.getElementById('i-comp')?.value||'';
+    const compWarn=compSel?'':' ⚠️ Sin liga seleccionada — no saldrá en Clasificación (elige liga+grupo y reimporta).';
+    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos · ${shots.length} tiros ubicados.${compWarn}`,compSel?'#15803d':'#b45309');
   }catch(e){
     console.error('FCBQ import:',e);
     if(/Failed to fetch|CORS|NetworkError/i.test(e.message)){
@@ -5284,7 +5406,7 @@ Object.assign(window,{
   vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vRewindTap,vClipMark,
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
-  renderClub,clSort,
+  renderClub,clSort,renderStandings,
   // Utils
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
 });
@@ -5306,4 +5428,3 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
-

@@ -3075,12 +3075,13 @@ function populateRivalSelect() {
   const sel = document.getElementById('sc-rival');
   if (!sel) return;
   const v = sel.value;
-  // Get all unique team names that are NOT our teams (in S.teams)
-  const ourTeams = new Set(S.teams.map(t => t.name.toLowerCase()));
+  // Un rival es cualquier equipo que aparezca en algún partido y NO sea el nuestro
+  // (el Claret). Antes se excluía todo equipo presente en S.teams, pero como ahora
+  // el importador añade también a los rivales a la BD, quedaban ocultos.
   const rivals = new Set();
   S.matches.forEach(m => {
     [m.homeTeam, m.awayTeam].forEach(tn => {
-      if (!ourTeams.has(tn.toLowerCase())) rivals.add(tn);
+      if (tn && !isOurTeam(tn)) rivals.add(tn);
     });
   });
   sel.innerHTML = '<option value="">— Selecciona un rival —</option>' +
@@ -3988,7 +3989,8 @@ function openPlayerProfile(name,team){
   const myShots=allShots.filter(s=>{
     if(s.player!==name)return false;
     const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
-    return (s.team==='home'?m.homeTeam:m.awayTeam)===team;
+    const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
+    return team==='__CLARET__'?isOurTeam(shotTeam):shotTeam===team;
   });
 
   // Header
@@ -5304,3 +5306,4 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+

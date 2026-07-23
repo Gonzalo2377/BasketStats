@@ -5103,6 +5103,21 @@ function _fcbqStatsToShots(stats){
   return shots;
 }
 
+// Si el equipo (por nombre) no existe ya en la BD, lo crea con su plantilla
+// (dorsal+nombre) tal cual la trae la FCBQ. Así parseMatch() siempre tiene
+// jugadores disponibles sin necesitar pegar stats a mano.
+function _fcbqEnsureTeam(name,fcbqPlayers){
+  if(!name)return null;
+  let t=S.teams.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  if(!t){
+    t={id:Date.now()+Math.floor(Math.random()*999),name,color:'#0f1f3d',
+       players:(fcbqPlayers||[]).map(p=>({dorsal:String(p.dorsal),name:p.name}))};
+    S.teams.push(t);
+    if(typeof toast==='function')toast(`➕ Equipo añadido: ${name}`);
+  }
+  return t;
+}
+
 function _fcbqMovesToCrono(moves,stats){
   const teamName={};
   (stats.teams||[]).forEach(t=>{teamName[t.teamIdIntern]=t.name;});
@@ -5155,6 +5170,13 @@ async function importFromFCBQ(){
     const local=teams.find(t=>t.teamIdIntern===stats.localId)||teams[0]||{};
     const visit=teams.find(t=>t.teamIdIntern===stats.visitId)||teams[1]||{};
 
+    // Auto-añadir ambos equipos a la BD (con su plantilla) si no existen ya,
+    // así no hace falta pegar stats manuales para que parseMatch tenga jugadores.
+    _fcbqEnsureTeam(local.name,local.players);
+    _fcbqEnsureTeam(visit.name,visit.players);
+    if(typeof populateTeamSelects==='function')populateTeamSelects();
+    svL();
+
     // Rellenar el formulario de importación
     const setV=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
     // Si el equipo ya está en la BD, seleccionarlo (hereda plantilla); si no, texto libre
@@ -5166,6 +5188,7 @@ async function importFromFCBQ(){
     };
     pickTeam(local.name,'i-home-sel','i-home-txt');
     pickTeam(visit.name,'i-away-sel','i-away-txt');
+    if(typeof teamSelChange==='function'){teamSelChange('home');teamSelChange('away');}
     // Fecha: "Sep 27, 2025 8:00:00 PM" → dd/mm/yyyy
     if(stats.time){
       const d=new Date(stats.time);

@@ -412,7 +412,7 @@ input[type=file]{display:none}
       </div>
       <div class="fc" style="flex:0;min-width:100px"><label>Fecha</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
       <div class="fc" style="flex:0;min-width:150px"><label>Liga</label>
-        <select id="i-comp" style="width:100%">
+        <select id="i-comp" style="width:100%" onchange="onImpLeagueChange()">
           <option value="">— selecciona liga —</option>
           <option>Liga Acb</option>
           <option>Segona Feb</option>
@@ -431,10 +431,11 @@ input[type=file]{display:none}
           <option>C.c. Júnior Masculí Nivell A</option>
         </select>
       </div>
-      <div class="fc" style="flex:0;min-width:80px"><label>Grupo</label>
-        <select id="i-group" style="width:100%">
+      <div class="fc" style="flex:0;min-width:90px"><label>Grupo</label>
+        <select id="i-group" style="width:100%" onchange="onImpGroupChange()">
           <option value="1">Grupo 1</option>
           <option value="2">Grupo 2</option>
+          <option value="__new__">➕ Nuevo grupo…</option>
         </select>
       </div>
     </div>
@@ -772,7 +773,15 @@ input[type=file]{display:none}
 <div id="t-standings" class="tab"><div class="main">
 <div class="card" style="margin-bottom:10px">
   <div class="ct">🏆 Clasificación por liga y grupo</div>
-  <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Se construye con los partidos que vas importando. Cada combinación de liga + grupo genera su propia tabla. Orden: más victorias → menos derrotas → mejor diferencia (PF−PC).</div>
+  <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Se construye con los partidos que vas importando. Orden: más victorias → menos derrotas → mejor diferencia (PF−PC).</div>
+  <div class="fr" style="margin-bottom:10px">
+    <div class="fc"><label>Liga</label>
+      <select id="std-league" onchange="onStdLeagueChange()"><option value="">— todas —</option></select>
+    </div>
+    <div class="fc" style="flex:0;min-width:110px"><label>Grupo</label>
+      <select id="std-group" onchange="renderStandings()"><option value="">— todos —</option></select>
+    </div>
+  </div>
   <div id="st-standings-content"><div class="empty">Importa partidos con liga y grupo para ver las clasificaciones.</div></div>
 </div>
 </div></div>
@@ -1344,7 +1353,7 @@ function ST(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nb')[ts.indexOf(id)].classList.add('active');
   if(id==='t-eq')renderTeams();
-  if(id==='t-imp')populateTeamSelects();
+  if(id==='t-imp'){populateTeamSelects();_rebuildImpGroups();}
   if(id==='t-live'){populateLvTeamSelects();checkLiveResume();}
   if(id==='t-video')renderVideoLib();
   if(id==='t-club')renderClub();
@@ -1826,6 +1835,43 @@ function populateTeamSelects(){
   document.getElementById('i-away-sel').innerHTML=opts;
 }
 
+// ── Importador: grupos por liga ──────────────────────────────
+// Devuelve los números de grupo ya usados en partidos de una liga concreta.
+function _groupsForLeague(league){
+  const s=new Set();
+  S.matches.forEach(m=>{ if(m.competition===league&&m.group)s.add(String(m.group)); });
+  return [...s].map(Number).filter(n=>!isNaN(n)).sort((a,b)=>a-b).map(String);
+}
+
+// Reconstruye el desplegable de grupo del importador: siempre 1 y 2 como base,
+// más cualquier grupo ya creado para esa liga, más la opción "Nuevo grupo…".
+function _rebuildImpGroups(selectValue){
+  const gSel=document.getElementById('i-group');if(!gSel)return;
+  const league=document.getElementById('i-comp')?.value||'';
+  const existing=_groupsForLeague(league);
+  const cur=selectValue||gSel.value||'1';
+  const nums=new Set(['1','2',...existing]);
+  if(cur&&cur!=='__new__'&&!isNaN(Number(cur)))nums.add(String(cur)); // incluir el nuevo/forzado
+  const sorted=[...nums].map(Number).sort((a,b)=>a-b).map(String);
+  gSel.innerHTML=sorted.map(g=>`<option value="${g}"${g===cur?' selected':''}>Grupo ${g}</option>`).join('')
+    +'<option value="__new__">➕ Nuevo grupo…</option>';
+}
+
+function onImpLeagueChange(){
+  // Al cambiar de liga, refresca los grupos disponibles (conservando 1/2 + los ya creados)
+  _rebuildImpGroups('1');
+}
+
+function onImpGroupChange(){
+  const gSel=document.getElementById('i-group');if(!gSel)return;
+  if(gSel.value!=='__new__')return;
+  const raw=prompt('Número del nuevo grupo (ej. 3):','3');
+  const n=parseInt((raw||'').trim(),10);
+  if(!n||n<1){ _rebuildImpGroups('1'); return; } // cancelado o inválido → vuelve a Grupo 1
+  // Añade el nuevo número y lo selecciona
+  _rebuildImpGroups(String(n));
+}
+
 function populateLvTeamSelects(){
   const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   document.getElementById('lv-home-sel').innerHTML=opts;
@@ -2131,9 +2177,10 @@ function parseMatch(){
   let dt=document.getElementById('i-date').value.trim();
   if(!dt&&cr){const dm=cr.match(/(\d{2}\/\d{2}\/\d{4})/);if(dm)dt=dm[1];}
 
-  // Liga (desplegable) y grupo (1/2)
+  // Liga (desplegable) y grupo (1, 2, 3…)
   const comp=document.getElementById('i-comp')?.value.trim()||'';
-  const group=document.getElementById('i-group')?.value||'1';
+  let group=document.getElementById('i-group')?.value||'1';
+  if(group==='__new__'||isNaN(Number(group)))group='1'; // si quedó sin resolver → Grupo 1
 
   // Temporada: se extrae automáticamente del link de la FCBQ (…/estadistiques/2025/…).
   // Si no hay link, se deduce de la fecha del partido.
@@ -2155,7 +2202,15 @@ function parseMatch(){
     events,subEvents:_subEv,shots:[],type:'imported'
   };
   showImpPrev(_parsed);
-  if(window._lastAutoSavedId)S.matches=S.matches.filter(m=>m.id!==window._lastAutoSavedId);
+  // El "auto-guardado previo" solo debe eliminarse si estamos REPROCESANDO el
+  // mismo partido (mismos equipos + fecha). Antes se borraba SIEMPRE, lo que hacía
+  // que al importar un segundo partido se perdiera el primero. Ahora se acumulan.
+  if(window._lastAutoSavedId){
+    const prev=S.matches.find(m=>m.id===window._lastAutoSavedId);
+    const samMatch=prev&&prev.homeTeam===_parsed.homeTeam&&prev.awayTeam===_parsed.awayTeam
+      &&(prev.date||'')===(_parsed.date||'');
+    if(samMatch)S.matches=S.matches.filter(m=>m.id!==window._lastAutoSavedId);
+  }
   // Duplicate detection: same two teams + same date → replace (keeps id so placed shots survive)
   const dup=S.matches.find(m=>m.id!==_parsed.id&&m.id!==window._lastAutoSavedId
     &&m.homeTeam===_parsed.homeTeam&&m.awayTeam===_parsed.awayTeam
@@ -2206,7 +2261,7 @@ function showImpPrev(m){
   }).join('');
 }
 function confImp(){if(!_parsed)return;S.matches=S.matches.filter(m=>m.id!==_parsed.id);S.matches.push(_parsed);_parsed=null;svL();document.getElementById('i-prev').style.display='none';setSt('i-st','✓ Desat. Total: '+S.matches.length+' partits.','ok');rAll();}
-function clrImp(){['i-hs','i-as','i-cr','i-date'].forEach(id=>document.getElementById(id).value='');document.getElementById('i-comp').value='';document.getElementById('i-group').value='1';document.getElementById('i-home-sel').value='';document.getElementById('i-away-sel').value='';document.getElementById('i-home-txt').value='';document.getElementById('i-away-txt').value='';document.getElementById('i-prev').style.display='none';document.getElementById('i-st').className='st-msg';}
+function clrImp(){['i-hs','i-as','i-cr','i-date'].forEach(id=>document.getElementById(id).value='');document.getElementById('i-comp').value='';_rebuildImpGroups('1');document.getElementById('i-home-sel').value='';document.getElementById('i-away-sel').value='';document.getElementById('i-home-txt').value='';document.getElementById('i-away-txt').value='';document.getElementById('i-prev').style.display='none';document.getElementById('i-st').className='st-msg';}
 
 // ═══════════════════════════════════════════
 // LIVE MATCH
@@ -4539,28 +4594,79 @@ const isOurTeam=n=>/claret/i.test(n||'');
 // CLASIFICACIÓN — una tabla por cada combinación Liga + Grupo,
 // construida solo con los partidos importados (los que tienen liga+grupo).
 // Orden: más victorias → menos derrotas → mejor diferencia (PF−PC).
+// Con desplegables encadenados Liga → Grupo para filtrar.
 // ══════════════════════════════════════════════════════════════
+
+// Agrupa los partidos con liga en un mapa {liga: {grupo: [partidos]}}
+function _standingsIndex(){
+  const idx={};
+  S.matches.forEach(m=>{
+    if(!m.competition)return;
+    if(m.scoreHome==null||m.scoreAway==null)return;
+    const g=String(m.group||'1');
+    (idx[m.competition]=idx[m.competition]||{});
+    (idx[m.competition][g]=idx[m.competition][g]||[]).push(m);
+  });
+  return idx;
+}
+
+// Rellena el desplegable de ligas (conservando la selección actual)
+function _populateStdLeagues(){
+  const sel=document.getElementById('std-league');if(!sel)return;
+  const idx=_standingsIndex();
+  const cur=sel.value;
+  const ligas=Object.keys(idx).sort();
+  sel.innerHTML='<option value="">— todas —</option>'+ligas.map(l=>`<option${l===cur?' selected':''}>${l}</option>`).join('');
+  _populateStdGroups();
+}
+
+// Rellena el desplegable de grupos según la liga elegida (solo los que existan)
+function _populateStdGroups(){
+  const lSel=document.getElementById('std-league'),gSel=document.getElementById('std-group');
+  if(!lSel||!gSel)return;
+  const idx=_standingsIndex();
+  const liga=lSel.value;
+  const cur=gSel.value;
+  let grupos;
+  if(liga){
+    grupos=Object.keys(idx[liga]||{}).sort();
+  }else{
+    // "todas las ligas": unión de todos los grupos existentes
+    const s=new Set();Object.values(idx).forEach(g=>Object.keys(g).forEach(k=>s.add(k)));
+    grupos=[...s].sort();
+  }
+  gSel.innerHTML='<option value="">— todos —</option>'+grupos.map(g=>`<option value="${g}"${g===cur?' selected':''}>Grupo ${g}</option>`).join('');
+}
+
+function onStdLeagueChange(){
+  _populateStdGroups();
+  renderStandings();
+}
+
 function renderStandings(){
   const el=document.getElementById('st-standings-content');if(!el)return;
+  _populateStdLeagues();
 
-  // Agrupar partidos por "Liga · Grupo N"
-  const groups={};
-  S.matches.forEach(m=>{
-    if(!m.competition)return;                 // sin liga → no entra en clasificación
-    if(m.scoreHome==null||m.scoreAway==null)return;
-    const key=`${m.competition} · Grupo ${m.group||'1'}`;
-    (groups[key]=groups[key]||[]).push(m);
+  const idx=_standingsIndex();
+  const fLeague=document.getElementById('std-league')?.value||'';
+  const fGroup=document.getElementById('std-group')?.value||'';
+
+  // Construir la lista de bloques (liga+grupo) a mostrar según filtros
+  const blocks=[];
+  Object.keys(idx).sort().forEach(liga=>{
+    if(fLeague&&liga!==fLeague)return;
+    Object.keys(idx[liga]).sort().forEach(g=>{
+      if(fGroup&&g!==fGroup)return;
+      blocks.push({liga,g,matches:idx[liga][g]});
+    });
   });
 
-  const keys=Object.keys(groups).sort();
-  if(!keys.length){
-    el.innerHTML='<div class="empty">Importa partidos con liga y grupo para ver las clasificaciones.</div>';
+  if(!blocks.length){
+    el.innerHTML='<div class="empty">No hay partidos para esa combinación. Importa partidos con liga y grupo.</div>';
     return;
   }
 
-  el.innerHTML=keys.map(key=>{
-    const matches=groups[key];
-    // Acumular por equipo: victorias, derrotas, PF, PC
+  el.innerHTML=blocks.map(({liga,g,matches})=>{
     const T={};
     const ensure=name=>{if(!T[name])T[name]={name,pj:0,v:0,d:0,pf:0,pc:0};return T[name];};
     matches.forEach(m=>{
@@ -4568,13 +4674,9 @@ function renderStandings(){
       const sh=m.scoreHome,sa=m.scoreAway;
       h.pj++;a.pj++;h.pf+=sh;h.pc+=sa;a.pf+=sa;a.pc+=sh;
       if(sh>sa){h.v++;a.d++;}else if(sa>sh){a.v++;h.d++;}
-      // empate en baloncesto no existe, pero por seguridad no suma nada
     });
     const teams=Object.values(T).sort((x,y)=>
-      (y.v-x.v)                       // más victorias
-      ||(x.d-y.d)                     // menos derrotas
-      ||((y.pf-y.pc)-(x.pf-x.pc))     // mejor diferencia PF-PC
-      ||(y.pf-x.pf));                 // desempate final: más PF
+      (y.v-x.v)||(x.d-y.d)||((y.pf-y.pc)-(x.pf-x.pc))||(y.pf-x.pf));
     const rows=teams.map((t,i)=>{
       const diff=t.pf-t.pc;
       const mine=isOurTeam(t.name);
@@ -4590,7 +4692,7 @@ function renderStandings(){
       </tr>`;
     }).join('');
     return `<div class="card" style="margin-bottom:12px">
-      <div class="ct" style="font-size:13px">${key} <span style="font-size:11px;font-weight:600;color:var(--t3)">· ${matches.length} partido${matches.length!==1?'s':''}</span></div>
+      <div class="ct" style="font-size:13px">${liga} · Grupo ${g} <span style="font-size:11px;font-weight:600;color:var(--t3)">· ${matches.length} partido${matches.length!==1?'s':''}</span></div>
       <div style="overflow-x:auto">
       <table class="stbl" style="width:100%;font-size:12px;border-collapse:collapse">
         <thead><tr style="border-bottom:2px solid var(--bd);font-size:10px;text-transform:uppercase;color:var(--t3)">
@@ -5386,6 +5488,7 @@ Object.assign(window,{
   saveTeam,clearTeamForm,editTeam,deleteTeam,renderTeams,
   // Import
   populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,lvTeamSel,
+  onImpLeagueChange,onImpGroupChange,
   // Live
   startLive,endLive,lvAct,lvUndo,setLvCourtView,toggleKb,
   openSubModal,closeSubModal,subTapPlayer,syncSubFromTimer,onSubTimeChange,
@@ -5408,7 +5511,7 @@ Object.assign(window,{
   vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vRewindTap,vClipMark,
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
-  renderClub,clSort,renderStandings,
+  renderClub,clSort,renderStandings,onStdLeagueChange,
   // Utils
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
 });

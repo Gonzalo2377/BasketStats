@@ -423,6 +423,17 @@ input[type=file]{display:none}
       </div>
       <div style="font-size:11px;color:var(--t3);margin-top:4px">Si se pegan stats manuals + crono, la crono té prioritat per a tirs/TL/faltes, i les stats manuals aporten rebots/assistències/minuts.</div>
     </div>
+    <!-- Importar desde link de la FCBQ -->
+    <div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #86efac;border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:#15803d;margin-bottom:3px">⚡ Importar automáticamente desde la web de la FCBQ</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Pega el link de la página de estadísticas del partido y se rellenan equipos, fecha y cronología solos.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input type="text" id="i-fcbq-url" placeholder="https://www.basquetcatala.cat/.../estadistiques/2025/68d8..." style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <button onclick="importFromFCBQ()" id="i-fcbq-btn" class="btn bp" style="font-size:12px;white-space:nowrap">⬇ Cargar del link</button>
+      </div>
+      <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
+    </div>
+
     <label>Cronologia completa del partit</label>
     <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronología del partido&#10;#7 RAUL HERNANDEZ BARRERA&#10;Salt guanyat&#10;Min: &#10;0&#10; Período: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
     <div class="brow">
@@ -5037,6 +5048,100 @@ function exportMatchPDF(){
   w.document.close();
 }
 
+
+// ═══════════════════════════════════════════
+// ⚡ IMPORTAR DESDE LA FCBQ (link → cronología)
+// Endpoints públicos (CORS abierto), sin autenticación:
+//   .../v1/fcbq/getJsonWithMatchMoves/{id}   → play-by-play
+//   .../v1/fcbq/getJsonWithMatchStats/{id}   → equipos + jugadores + marcador
+// ═══════════════════════════════════════════
+const FCBQ_API='https://msstats.optimalwayconsulting.com/v1/fcbq';
+
+function _fcbqExtractId(url){
+  // El id es el hex de 24 chars al final del link de estadísticas
+  const m=(url||'').match(/([a-f0-9]{24})/i);
+  return m?m[1]:null;
+}
+
+function _fcbqMovesToCrono(moves,stats){
+  const teamName={};
+  (stats.teams||[]).forEach(t=>{teamName[t.teamIdIntern]=t.name;});
+  const lines=[];
+  moves.forEach(mv=>{
+    const who=(mv.actorShirtNumber&&mv.actorName)
+      ? `#${mv.actorShirtNumber} ${mv.actorName}`
+      : (teamName[mv.idTeam]||'');
+    lines.push(who);
+    lines.push(mv.move||'');
+    lines.push('Min: ');lines.push(String(mv.min??0));
+    lines.push(' Període: ');lines.push(String(mv.period??1));
+    lines.push(' Marcador: ');lines.push(mv.score||'0-0');
+  });
+  return lines.join('\n');
+}
+
+async function importFromFCBQ(){
+  const url=document.getElementById('i-fcbq-url')?.value.trim();
+  const st=document.getElementById('i-fcbq-status');
+  const btn=document.getElementById('i-fcbq-btn');
+  const setSt=(t,c)=>{if(st){st.textContent=t;st.style.color=c||'var(--t3)';}};
+  const id=_fcbqExtractId(url);
+  if(!id){setSt('❌ No encuentro el ID del partido en ese link','#dc2626');return;}
+
+  if(btn){btn.disabled=true;btn.style.opacity=.6;btn.textContent='⬇ Cargando…';}
+  setSt('Descargando datos de la FCBQ…');
+  try{
+    const [movesRes,statsRes]=await Promise.all([
+      fetch(`${FCBQ_API}/getJsonWithMatchMoves/${id}?currentSeason=false`),
+      fetch(`${FCBQ_API}/getJsonWithMatchStats/${id}?currentSeason=false`)
+    ]);
+    if(!movesRes.ok||!statsRes.ok)throw new Error(`El servidor respondió ${movesRes.status}/${statsRes.status}`);
+    const moves=await movesRes.json();
+    const stats=await statsRes.json();
+    if(!Array.isArray(moves)||!moves.length)throw new Error('El partido no tiene cronología disponible');
+
+    const teams=stats.teams||[];
+    const local=teams.find(t=>t.teamIdIntern===stats.localId)||teams[0]||{};
+    const visit=teams.find(t=>t.teamIdIntern===stats.visitId)||teams[1]||{};
+
+    // Rellenar el formulario de importación
+    const setV=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
+    // Si el equipo ya está en la BD, seleccionarlo (hereda plantilla); si no, texto libre
+    const pickTeam=(name,selId,txtId)=>{
+      const sel=document.getElementById(selId),txt=document.getElementById(txtId);
+      const found=S.teams.find(t=>t.name.toLowerCase()===(name||'').toLowerCase());
+      if(sel&&found){sel.value=found.id;if(txt)txt.value='';}
+      else{if(sel)sel.value='';if(txt)txt.value=name||'';}
+    };
+    pickTeam(local.name,'i-home-sel','i-home-txt');
+    pickTeam(visit.name,'i-away-sel','i-away-txt');
+    // Fecha: "Sep 27, 2025 8:00:00 PM" → dd/mm/yyyy
+    if(stats.time){
+      const d=new Date(stats.time);
+      if(!isNaN(d))setV('i-date',`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`);
+    }
+    // Cronología
+    const crono=_fcbqMovesToCrono(moves,stats);
+    setV('i-cr',crono);
+
+    // Marcador final (para el status)
+    const last=moves[moves.length-1];
+    const finalSc=last?.score||'';
+    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos. Revisa y pulsa "Processar".`,'#15803d');
+    // Auto-procesar para que quede listo
+    if(typeof parseMatch==='function'){try{parseMatch();}catch(e){console.warn(e);}}
+  }catch(e){
+    console.error('FCBQ import:',e);
+    if(/Failed to fetch|CORS|NetworkError/i.test(e.message)){
+      setSt('❌ El navegador bloqueó la descarga (CORS). Prueba desde Chrome/Edge, o dímelo para darte el método alternativo.','#dc2626');
+    }else{
+      setSt('❌ '+e.message,'#dc2626');
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.style.opacity=1;btn.textContent='⬇ Cargar del link';}
+  }
+}
+
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
   ST,toast,
@@ -5060,6 +5165,7 @@ Object.assign(window,{
   // Scouting
   renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
   jumpToClip,closeClipModal,
+  importFromFCBQ,
   // Vídeo tab
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vRewindTap,vClipMark,

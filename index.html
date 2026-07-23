@@ -1979,22 +1979,32 @@ function parseCrono(txt,hPl,aPl){
     fc:0,pm:0,minOn:0,onSince:null
   };});
 
-  // ── Pre-scan: infer starting five (first sub is 'Surt', or acts before first 'Entra')
-  const firstSub={},seenIn=new Set(),actedBefore=new Set();
+  // ── Pre-scan: inferir el quinteto INICIAL (solo período 1).
+  // Un titular es quien realiza una acción de juego en el Q1 ANTES de su primer
+  // "Entra al camp". Se ignoran eventos de equipo (líneas sin "#N") y se corta al
+  // llegar al período 2, para no arrastrar como titulares a jugadores que entran
+  // más tarde (bug que inflaba el +/-).
+  const seenIn=new Set(),actedBefore=new Set();
   {
-    let scanCur=null;
-    for(const l of lines){
+    let scanCur=null,scanPeriod=1;
+    for(let k=0;k<lines.length;k++){
+      const l=lines[k];
+      // Detectar cambio de período mirando las líneas de metadatos
+      const pm=l.match(/^Per[íi]ode?:\s*(\d+)/i)||l.match(/^Período:\s*(\d+)/);
+      if(pm){scanPeriod=parseInt(pm[1]);}
+      else if(/^Per[íi]ode?:?$/i.test(l)&&k+1<lines.length&&/^\d+$/.test(lines[k+1])){scanPeriod=parseInt(lines[k+1]);}
+      if(scanPeriod>=2)break; // solo nos interesa el Q1 para el quinteto inicial
       if(/^#\d+\s+/.test(l)){scanCur=l.replace(/^#\d+\s+/,'');continue;}
-      if(!scanCur||!byName[scanCur])continue;
+      if(!scanCur||!byName[scanCur])continue; // ignora eventos de equipo (nombre no está en byName)
       if(/^Min:|^Per|^Marcador:|^\d+$|^\d+-\d+$/.test(l))continue;
-      if(/entra al camp/i.test(l)){seenIn.add(scanCur);if(!(scanCur in firstSub))firstSub[scanCur]='in';}
-      else if(/surt del camp/i.test(l)){if(!(scanCur in firstSub))firstSub[scanCur]='out';}
-      else if(/cistella|intent fallat|personal|falta|pèrdua|salt|tècnica/i.test(l)){
-        if(!seenIn.has(scanCur))actedBefore.add(scanCur);
+      if(/entra al camp/i.test(l)){seenIn.add(scanCur);}
+      else if(/surt del camp/i.test(l)){/* salida: no afecta a la detección de titular */}
+      else if(/cistella|intent fallat|personal|falta|pèrdua|rebot|assist|tap|salt|tècnica/i.test(l)){
+        if(!seenIn.has(scanCur))actedBefore.add(scanCur); // actuó antes de entrar → titular
       }
     }
   }
-  const starters=new Set([...Object.keys(firstSub).filter(k=>firstSub[k]==='out'),...actedBefore]);
+  const starters=new Set(actedBefore);
   let onCt={home:new Set(),away:new Set()};
   starters.forEach(n=>{
     if(!ps[n])return;
@@ -3731,178 +3741,221 @@ function exportScoutPDF() {
   w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Scouting — ${rival}</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#0f172a;background:#fff;padding:24px;font-size:13px}
-.cover{text-align:center;padding:32px 0 24px;border-bottom:3px solid #e8402a;margin-bottom:20px}
-.cover h1{font-size:28px;font-weight:900;color:#0f172a;letter-spacing:-.5px}
-.cover .sub{font-size:12px;color:#64748b;margin-top:6px}
-.cover .badge{display:inline-block;background:#e8402a;color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:3px 12px;margin-top:8px}
-h2{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:20px 0 8px;padding-bottom:4px;border-bottom:1.5px solid #e2e8f0}
-h2 span{float:right;font-size:18px;font-weight:900;color:#0f172a;letter-spacing:0}
-.kgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
-.kbox{background:#f8fafc;border-radius:8px;padding:10px 6px;text-align:center;border:1px solid #e2e8f0}
-.kbox .v{font-size:20px;font-weight:900;color:#0f172a;line-height:1}
-.kbox .l{font-size:9px;color:#94a3b8;text-transform:uppercase;margin-top:3px}
-.kbox .s{font-size:10px;color:#64748b;margin-top:1px}
-.kbox.hi{border-color:#fca5a5;background:#fef2f2}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#1e293b;background:#fff;font-size:12px;line-height:1.45}
+.wrap{max-width:800px;margin:0 auto;padding:0 4px}
+/* ── Cabecera ── */
+.hero{background:linear-gradient(120deg,#0f172a 0%,#1e293b 60%,#334155 100%);color:#fff;border-radius:14px;padding:26px 30px;margin-bottom:20px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-40px;right:-30px;width:180px;height:180px;background:radial-gradient(circle,rgba(232,64,42,.35),transparent 70%)}
+.hero .eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#94a3b8}
+.hero h1{font-size:26px;font-weight:900;letter-spacing:-.4px;margin:3px 0 2px}
+.hero .rival{font-size:20px;font-weight:800;color:#fb7185}
+.hero .meta{font-size:11px;color:#cbd5e1;margin-top:10px}
+.hero .pills{margin-top:12px;position:relative;z-index:1}
+.hero .pill{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 12px;margin-right:6px}
+/* ── Secciones ── */
+.sec{margin-bottom:18px;break-inside:avoid;page-break-inside:avoid}
+.sec-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}
+.sec-h .ico{font-size:14px}
+.card{background:#fff;border:1px solid #e8edf3;border-radius:10px;padding:14px;break-inside:avoid;page-break-inside:avoid;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+/* ── KPIs ── */
+.kgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}
+.kbox{background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:12px 6px;text-align:center;break-inside:avoid}
+.kbox .v{font-size:21px;font-weight:900;color:#0f172a;line-height:1.05}
+.kbox .l{font-size:8.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em;margin-top:4px;font-weight:600}
+.kbox .s{font-size:10px;color:#64748b;margin-top:2px}
+.kbox.hi{border-color:#fecaca;background:#fef2f2}
 .kbox.hi .v{color:#dc2626}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
-th{background:#1e293b;color:#fff;padding:5px 7px;text-align:left;font-size:10px;font-weight:700}
-td{padding:5px 7px;border-bottom:1px solid #f0f4f8}
+/* ── Grids ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* ── Quinteto ── */
+.five{background:linear-gradient(90deg,#fffbeb,#fff);border:1px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:18px;break-inside:avoid}
+.five-t{font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.five-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1.5px solid #f59e0b;border-radius:22px;padding:4px 12px;margin:2px;font-size:12px;font-weight:700}
+.five-chip small{color:#b45309;font-size:9px;font-weight:600}
+/* ── Tabla ── */
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{display:table-header-group}
+tr{break-inside:avoid}
+th{background:#0f172a;color:#fff;padding:7px 8px;text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+th:first-child{border-radius:6px 0 0 0}th:last-child{border-radius:0 6px 0 0}
+td{padding:6px 8px;border-bottom:1px solid #eef2f7}
 tr:nth-child(even) td{background:#f8fafc}
+.threat td{background:#fff5f5!important}
 .threat td:first-child{border-left:3px solid #dc2626}
-.tag{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;margin:1px;background:#e2e8f0;color:#334155}
-.tag.atk{background:#dcfce7;color:#15803d}
-.tag.def{background:#dbeafe;color:#1e40af}
-.tag.sp{background:#fef9c3;color:#854d0e}
-.zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}
-.zone-row{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:6px;font-size:11px}
-.zone-row.hot{background:#fef2f2}
-.zone-row.cold{background:#eff6ff}
-.zone-row.mid{background:#f8fafc}
-.pct{font-weight:800;font-size:13px;min-width:36px;text-align:right}
-.hot .pct{color:#dc2626}
-.cold .pct{color:#3b82f6}
-.note-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-size:12px;min-height:55px;white-space:pre-wrap;color:#334155;line-height:1.5}
-.alert-box{background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:6px;font-size:11px}
-.tend-item{padding:4px 0;border-bottom:1px solid #f0f4f8;font-size:11px}
-.cl-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f4f8}
-.cl-num{width:20px;height:20px;border-radius:50%;background:#1e293b;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* ── Zonas ── */
+.zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.zone-row{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:8px;font-size:11px;border:1px solid transparent}
+.zone-row.hot{background:#fef2f2;border-color:#fecaca}
+.zone-row.cold{background:#eff6ff;border-color:#dbeafe}
+.zone-row.mid{background:#f8fafc;border-color:#eef2f7}
+.pct{font-weight:800;font-size:14px;min-width:40px;text-align:right}
+.hot .pct{color:#dc2626}.cold .pct{color:#3b82f6}.mid .pct{color:#475569}
+/* ── Notas ── */
+.note-box{background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:10px 12px;font-size:11px;min-height:46px;white-space:pre-wrap;color:#334155;line-height:1.5}
+.note-lbl{font-size:9.5px;font-weight:700;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+/* ── Tendencias ── */
+.tend-item{padding:6px 10px;margin-bottom:5px;font-size:11px;background:#f8fafc;border-radius:7px;border-left:3px solid #cbd5e1}
+.tend-item.alert{background:#fef2f2;border-left-color:#dc2626}
+/* ── Barras cuarto ── */
+.q-bar{text-align:center}
+.q-bar .barwrap{height:56px;display:flex;align-items:flex-end;justify-content:center}
+.q-bar .bar{width:66%;background:linear-gradient(180deg,#fb7185,#e8402a);border-radius:6px 6px 0 0;min-height:6px}
+.q-bar .qv{font-weight:800;font-size:15px;margin-top:3px}
+.q-bar .ql{font-size:8.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
+/* ── Clutch ── */
+.cl-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #eef2f7}
+.cl-num{width:22px;height:22px;border-radius:50%;background:#0f172a;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cl-num.top{background:#dc2626}
-footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
+/* ── Matches ── */
+.match-row{display:flex;gap:9px;align-items:center;padding:6px 0;border-bottom:1px solid #eef2f7;font-size:11px}
+.res-badge{width:20px;height:20px;border-radius:5px;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
+.page-break{page-break-before:always;break-before:page}
 @media print{
-  body{padding:12px}
-  .page-break{page-break-before:always}
+  body{font-size:11px}
+  .wrap{max-width:none;padding:0}
+  @page{margin:14mm 12mm}
 }
-</style></head><body>
+</style></head><body><div class="wrap">
 
-<!-- COVER -->
-<div class="cover">
-  <div style="font-size:28px;margin-bottom:6px">🔍</div>
-  <h1>Informe de Scouting</h1>
-  <h1 style="color:#e8402a">${rival}</h1>
-  <div class="sub">Generado por BascatApp · ${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
-  <div class="badge">${n} partido${n!==1?'s':''} analizados</div>
+<!-- CABECERA -->
+<div class="hero">
+  <div class="eyebrow">Informe de Scouting</div>
+  <h1>${rival}</h1>
+  <div class="meta">Generado por BascatApp · ${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  <div class="pills">
+    <span class="pill">${n} partido${n!==1?'s':''} analizado${n!==1?'s':''}</span>
+    <span class="pill">${Math.round(totPts/n)} pts/partido</span>
+    <span class="pill">${t3Rate}% tiros de 3</span>
+  </div>
 </div>
 
 ${startersRank.length?`
-<div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:14px">
-  <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">⭐ Quinteto inicial habitual</div>
-  <div>${startersRank.map(p=>`<span style="display:inline-block;background:#fff;border:1.5px solid #f59e0b;border-radius:20px;padding:3px 11px;margin:2px;font-size:12px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]} <span style="color:#92400e;font-size:9px">(${p.starts}/${p.games})</span></span>`).join('')}</div>
+<div class="five">
+  <div class="five-t">⭐ Quinteto inicial habitual</div>
+  <div>${startersRank.map(p=>`<span class="five-chip">#${p.dorsal} ${p.name.split(' ')[0]} <small>${p.starts}/${p.games}</small></span>`).join('')}</div>
 </div>`:''}
 
 <!-- KPIs -->
-<h2>📊 Estadísticas globales</h2>
-<div class="kgrid">
-  <div class="kbox"><div class="v">${Math.round(totPts/n)}</div><div class="l">Pts/partido</div></div>
-  <div class="kbox ${t3A&&Math.round(t3M/t3A*100)>=37?'hi':''}"><div class="v">${pf2(t3M,t3A)}</div><div class="l">T3%</div><div class="s">${t3M}/${t3A}</div></div>
-  <div class="kbox ${t2A&&Math.round(t2M/t2A*100)>=52?'hi':''}"><div class="v">${pf2(t2M,t2A)}</div><div class="l">T2%</div><div class="s">${t2M}/${t2A}</div></div>
-  <div class="kbox"><div class="v">${pf2(tlM,tlA)}</div><div class="l">TL%</div><div class="s">${tlM}/${tlA}</div></div>
-  <div class="kbox ${t3Rate>=40?'hi':''}"><div class="v">${t3Rate}%</div><div class="l">% tiros T3</div><div class="s">de ${t2A+t3A} FGA</div></div>
-  <div class="kbox"><div class="v">${n}</div><div class="l">Partidos</div></div>
-</div>
-
-<!-- JUGADORES + TENDENCIAS -->
-<div class="g2">
-<div>
-<h2>⚠️ Jugadores a vigilar</h2>
-<table>
-<thead><tr><th>#</th><th>Jugador</th><th>Min/p</th><th>Pts/p</th><th>T2%</th><th>T3%</th><th>TL%</th><th>+/-</th><th>P</th></tr></thead>
-<tbody>
-${rp.filter(p=>p.pts>0||p.t2Att>0||p.t3Att>0).map(p=>{
-  const ppg=Math.round(p.pts/p.games*10)/10;
-  const t2p=p.t2Att?Math.round(p.t2Made/p.t2Att*100):0;
-  const t3p=p.t3Att?Math.round(p.t3Made/p.t3Att*100):0;
-  const tlp=p.tlAtt?Math.round(p.tlMade/p.tlAtt*100):0;
-  const threat=ppg>=10||(p.t3Att>=5&&t3p>=38);
-  return `<tr${threat?' class="threat"':''}>
-    <td><b>#${p.dorsal}</b></td>
-    <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}${threat?' 🚨':''}</td>
-    <td>${p.min?Math.round(p.min/p.games):'—'}</td>
-    <td><b>${ppg}</b></td>
-    <td>${p.t2Att?t2p+'%':'—'}</td>
-    <td>${p.t3Att?t3p+'%':'—'}</td>
-    <td>${p.tlAtt?tlp+'%':'—'}</td>
-    <td style="color:${p.pm>0?'#15803d':p.pm<0?'#dc2626':'#64748b'}">${p.pm>0?'+':''}${p.pm}</td>
-    <td style="color:#94a3b8">${p.games}</td>
-  </tr>`;
-}).join('')}
-</tbody>
-</table>
-</div>
-<div>
-<h2>📈 Tendencias</h2>
-<div style="margin-bottom:10px">
-${[
-  t3Rate>=40?`🎯 <b>Equipo perimetral</b> (${t3Rate}% T3). Presionar en el arco.`:
-  t3Rate<=25?`🏀 <b>Equipo interior</b> (${t3Rate}% T3). Defender bloqueo directo.`:
-  `⚖️ <b>Equipo equilibrado</b> (${t3Rate}% T3 / ${100-t3Rate}% T2).`,
-  t3A&&Math.round(t3M/t3A*100)>=37?`🚨 <b>Peligrosos desde 3</b>: ${Math.round(t3M/t3A*100)}% acierto.`:'',
-  t2A&&Math.round(t2M/t2A*100)>=52?`🚨 <b>Muy eficientes en T2</b>: ${Math.round(t2M/t2A*100)}%.`:'',
-  rp[0]&&Math.round(rp[0].pts/rp[0].games*10)/10>=15?`🚨 <b>${rp[0].name}</b>: prioridad defensiva (${Math.round(rp[0].pts/rp[0].games*10)/10}pts/p).`:'',
-].filter(Boolean).map(t=>`<div class="tend-item">• ${t}</div>`).join('')}
-</div>
-<h2>📅 Partidos analizados</h2>
-${matchList.map(mm=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid #f0f4f8;font-size:11px">
-  <span style="width:18px;height:18px;border-radius:4px;background:${mm.res==='W'?'#dcfce7':mm.res==='L'?'#fee2e2':'#f1f5f9'};color:${mm.res==='W'?'#15803d':mm.res==='L'?'#dc2626':'#64748b'};font-weight:800;display:flex;align-items:center;justify-content:center;font-size:10px">${mm.res}</span>
-  <span style="flex:1">${mm.name}</span>
-  <b>${mm.my}-${mm.op}</b>
-  <span style="color:#94a3b8;font-size:10px">${mm.date}</span>
-</div>`).join('')}
-
-<h2>📊 Puntos por cuarto (promedio)</h2>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-${perQAvg.map((v,i)=>`<div style="text-align:center">
-  <div style="height:52px;display:flex;align-items:flex-end;justify-content:center">
-    <div style="width:70%;height:${Math.max(8,v/perQMax*52)}px;background:linear-gradient(180deg,#e8402a,#f97316);border-radius:5px 5px 0 0"></div>
+<div class="sec">
+  <div class="sec-h"><span class="ico">📊</span> Estadísticas globales</div>
+  <div class="kgrid">
+    <div class="kbox"><div class="v">${Math.round(totPts/n)}</div><div class="l">Pts/partido</div></div>
+    <div class="kbox ${t3A&&Math.round(t3M/t3A*100)>=37?'hi':''}"><div class="v">${pf2(t3M,t3A)}</div><div class="l">T3%</div><div class="s">${t3M}/${t3A}</div></div>
+    <div class="kbox ${t2A&&Math.round(t2M/t2A*100)>=52?'hi':''}"><div class="v">${pf2(t2M,t2A)}</div><div class="l">T2%</div><div class="s">${t2M}/${t2A}</div></div>
+    <div class="kbox"><div class="v">${pf2(tlM,tlA)}</div><div class="l">TL%</div><div class="s">${tlM}/${tlA}</div></div>
+    <div class="kbox ${t3Rate>=40?'hi':''}"><div class="v">${t3Rate}%</div><div class="l">% tiros T3</div><div class="s">de ${t2A+t3A} FGA</div></div>
+    <div class="kbox"><div class="v">${n}</div><div class="l">Partidos</div></div>
   </div>
-  <div style="font-weight:800;font-size:14px">${v}</div>
-  <div style="font-size:9px;color:#94a3b8">CUARTO ${i+1}</div>
-</div>`).join('')}
 </div>
 
-<h2>⏰ Clutch (últ. 3 min del 4Q + prórrogas)</h2>
-<div class="g3" style="margin-bottom:8px">
-  <div class="kbox"><div class="v">${cPts.reduce((s,e)=>s+(e.type==='pts3'?3:e.type==='pts2'?2:1),0)}</div><div class="l">Pts clutch</div></div>
-  <div class="kbox"><div class="v">${cT3A?Math.round(cT3/cT3A*100)+'%':'—'}</div><div class="l">T3% clutch</div></div>
-  <div class="kbox"><div class="v">${clutchEvs.filter(e=>['pts2','miss2'].includes(e.type)).length?Math.round(clutchEvs.filter(e=>e.type==='pts2').length/clutchEvs.filter(e=>['pts2','miss2'].includes(e.type)).length*100)+'%':'—'}</div><div class="l">T2% clutch</div></div>
-</div>
-${topCl.map((s,i)=>`<div class="cl-row"><div class="cl-num${i===0?' top':''}">${i+1}</div><span style="flex:1;font-weight:600">${s[0]}</span><b>${s[1]}pts</b></div>`).join('')||'<div style="color:#94a3b8;font-size:11px">Sin datos de eventos</div>'}
-</div>
+<!-- JUGADORES -->
+<div class="sec">
+  <div class="sec-h"><span class="ico">⚠️</span> Jugadores a vigilar</div>
+  <table>
+  <thead><tr><th>#</th><th>Jugador</th><th>Min</th><th>Pts</th><th>T2%</th><th>T3%</th><th>TL%</th><th>+/-</th><th>PJ</th></tr></thead>
+  <tbody>
+  ${rp.filter(p=>p.pts>0||p.t2Att>0||p.t3Att>0).map(p=>{
+    const ppg=Math.round(p.pts/p.games*10)/10;
+    const t2p=p.t2Att?Math.round(p.t2Made/p.t2Att*100):0;
+    const t3p=p.t3Att?Math.round(p.t3Made/p.t3Att*100):0;
+    const tlp=p.tlAtt?Math.round(p.tlMade/p.tlAtt*100):0;
+    const threat=ppg>=10||(p.t3Att>=5&&t3p>=38);
+    return `<tr${threat?' class="threat"':''}>
+      <td><b>#${p.dorsal}</b></td>
+      <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}${threat?' 🚨':''}</td>
+      <td>${p.min?Math.round(p.min/p.games):'—'}</td>
+      <td><b>${ppg}</b></td>
+      <td>${p.t2Att?t2p+'%':'—'}</td>
+      <td>${p.t3Att?t3p+'%':'—'}</td>
+      <td>${p.tlAtt?tlp+'%':'—'}</td>
+      <td style="color:${p.pm>0?'#15803d':p.pm<0?'#dc2626':'#64748b'};font-weight:700">${p.pm>0?'+':''}${p.pm}</td>
+      <td style="color:#94a3b8">${p.games}</td>
+    </tr>`;
+  }).join('')}
+  </tbody>
+  </table>
 </div>
 
-<!-- MAPA DE TIRO + ZONAS -->
+<!-- TENDENCIAS + PARTIDOS -->
+<div class="g2">
+  <div class="sec">
+    <div class="sec-h"><span class="ico">📈</span> Tendencias clave</div>
+    ${[
+      {t:t3Rate>=40?`🎯 <b>Equipo perimetral</b> (${t3Rate}% T3). Presionar en el arco.`:
+        t3Rate<=25?`🏀 <b>Equipo interior</b> (${t3Rate}% T3). Defender bloqueo directo.`:
+        `⚖️ <b>Equipo equilibrado</b> (${t3Rate}% T3 / ${100-t3Rate}% T2).`,a:false},
+      {t:t3A&&Math.round(t3M/t3A*100)>=37?`🚨 <b>Peligrosos desde 3</b>: ${Math.round(t3M/t3A*100)}% de acierto.`:'',a:true},
+      {t:t2A&&Math.round(t2M/t2A*100)>=52?`🚨 <b>Muy eficientes en T2</b>: ${Math.round(t2M/t2A*100)}%.`:'',a:true},
+      {t:rp[0]&&Math.round(rp[0].pts/rp[0].games*10)/10>=15?`🚨 <b>${rp[0].name}</b>: prioridad defensiva (${Math.round(rp[0].pts/rp[0].games*10)/10} pts/p).`:'',a:true},
+    ].filter(x=>x.t).map(x=>`<div class="tend-item${x.a?' alert':''}">${x.t}</div>`).join('')}
+  </div>
+  <div class="sec">
+    <div class="sec-h"><span class="ico">📅</span> Partidos analizados</div>
+    ${matchList.map(mm=>`<div class="match-row">
+      <span class="res-badge" style="background:${mm.res==='W'?'#dcfce7':mm.res==='L'?'#fee2e2':'#f1f5f9'};color:${mm.res==='W'?'#15803d':mm.res==='L'?'#dc2626':'#64748b'}">${mm.res}</span>
+      <span style="flex:1">${mm.name}</span>
+      <b>${mm.my}-${mm.op}</b>
+      <span style="color:#94a3b8;font-size:10px">${mm.date}</span>
+    </div>`).join('')}
+  </div>
+</div>
+
+<!-- CUARTOS + CLUTCH -->
+<div class="g2">
+  <div class="sec">
+    <div class="sec-h"><span class="ico">📊</span> Puntos por cuarto (media)</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+    ${perQAvg.map((v,i)=>`<div class="q-bar">
+      <div class="barwrap"><div class="bar" style="height:${Math.max(6,v/perQMax*56)}px"></div></div>
+      <div class="qv">${v}</div><div class="ql">Cuarto ${i+1}</div>
+    </div>`).join('')}
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-h"><span class="ico">⏰</span> Clutch · últ. 3min 4Q + prórrogas</div>
+    <div class="g3" style="margin-bottom:10px">
+      <div class="kbox"><div class="v">${cPts.reduce((s,e)=>s+(e.type==='pts3'?3:e.type==='pts2'?2:1),0)}</div><div class="l">Pts clutch</div></div>
+      <div class="kbox"><div class="v">${cT3A?Math.round(cT3/cT3A*100)+'%':'—'}</div><div class="l">T3% clutch</div></div>
+      <div class="kbox"><div class="v">${clutchEvs.filter(e=>['pts2','miss2'].includes(e.type)).length?Math.round(clutchEvs.filter(e=>e.type==='pts2').length/clutchEvs.filter(e=>['pts2','miss2'].includes(e.type)).length*100)+'%':'—'}</div><div class="l">T2% clutch</div></div>
+    </div>
+    ${topCl.map((s,i)=>`<div class="cl-row"><div class="cl-num${i===0?' top':''}">${i+1}</div><span style="flex:1;font-weight:600">${s[0]}</span><b>${s[1]} pts</b></div>`).join('')||'<div style="color:#94a3b8;font-size:11px">Sin datos de eventos clutch</div>'}
+  </div>
+</div>
+
+<!-- PÁGINA 2: MAPA + ZONAS + NOTAS -->
 <div class="page-break"></div>
-<div class="g2" style="margin-top:16px">
-<div>
-<h2>🎯 Mapa de tiro del equipo</h2>
-${heatImg?`<img src="${heatImg}" style="width:100%;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px">`:'<div style="background:#f8fafc;border-radius:8px;height:200px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:8px">Sin tiros ubicados · Añade en pestaña 🎯 Tiros</div>'}
-<div class="zone-grid">
-${activeZones.map(z=>{
-  const pct=Math.round(zs[z].m/zs[z].a*100);
-  const isHot=pct>=50&&zs[z].a>=3,isCold=pct<33&&zs[z].a>=3;
-  return `<div class="zone-row ${isHot?'hot':isCold?'cold':'mid'}">
-    <span style="font-size:13px">${isHot?'🔥':isCold?'❄️':'📍'}</span>
-    <div style="flex:1"><div style="font-weight:700;font-size:10px">${z}</div><div style="font-size:9px;color:#94a3b8">${zs[z].m}/${zs[z].a} intentos</div></div>
-    <span class="pct">${pct}%</span>
-  </div>`;
-}).join('')||'<div style="color:#94a3b8;font-size:11px;grid-column:span 2">Sin tiros ubicados</div>'}
-</div>
-</div>
-<div>
-<h2>📝 Notas del staff</h2>
-<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px">🤝 PICK & ROLL</div><div class="note-box">${notes.pr||'—'}</div></div>
-<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px">📐 JUGADAS DE BANDA</div><div class="note-box">${notes.side||'—'}</div></div>
-<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px">🛡️ DEFENSA RIVAL</div><div class="note-box">${notes.def||'—'}</div></div>
-<div><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px">📋 OTRAS OBSERVACIONES</div><div class="note-box">${notes.other||'—'}</div></div>
-</div>
+<div class="g2" style="margin-top:4px">
+  <div class="sec">
+    <div class="sec-h"><span class="ico">🎯</span> Mapa de tiro del equipo</div>
+    ${heatImg?`<img src="${heatImg}" style="width:100%;border-radius:10px;border:1px solid #e8edf3;margin-bottom:10px">`:'<div style="background:#f8fafc;border-radius:10px;height:200px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:10px">Sin tiros ubicados</div>'}
+    <div class="zone-grid">
+    ${activeZones.map(z=>{
+      const pct=Math.round(zs[z].m/zs[z].a*100);
+      const isHot=pct>=50&&zs[z].a>=3,isCold=pct<33&&zs[z].a>=3;
+      return `<div class="zone-row ${isHot?'hot':isCold?'cold':'mid'}">
+        <span style="font-size:13px">${isHot?'🔥':isCold?'❄️':'📍'}</span>
+        <div style="flex:1"><div style="font-weight:700;font-size:10px">${z}</div><div style="font-size:9px;color:#94a3b8">${zs[z].m}/${zs[z].a} intentos</div></div>
+        <span class="pct">${pct}%</span>
+      </div>`;
+    }).join('')||'<div style="color:#94a3b8;font-size:11px;grid-column:span 2">Sin tiros ubicados</div>'}
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-h"><span class="ico">📝</span> Notas del staff</div>
+    <div style="margin-bottom:10px"><div class="note-lbl">🤝 Pick &amp; Roll</div><div class="note-box">${notes.pr||'—'}</div></div>
+    <div style="margin-bottom:10px"><div class="note-lbl">📐 Jugadas de banda</div><div class="note-box">${notes.side||'—'}</div></div>
+    <div style="margin-bottom:10px"><div class="note-lbl">🛡️ Defensa rival</div><div class="note-box">${notes.def||'—'}</div></div>
+    <div><div class="note-lbl">📋 Otras observaciones</div><div class="note-box">${notes.other||'—'}</div></div>
+  </div>
 </div>
 
 ${clips.length?`
 <div class="page-break"></div>
-<h2 style="margin-top:16px">🎬 Clips de vídeo (${clips.length})</h2>
+<div class="sec" style="margin-top:4px">
+  <div class="sec-h"><span class="ico">🎬</span> Clips de vídeo (${clips.length})</div>
 ${['ataque','defensa'].map(cat=>{
   const folders=clipsByCatFolder[cat]||{};
   const names=Object.keys(folders).sort();
@@ -3910,14 +3963,14 @@ ${['ataque','defensa'].map(cat=>{
   const lbl=cat==='ataque'?'⚔️ ATAQUE':'🛡️ DEFENSA';
   const col=cat==='ataque'?'#15803d':'#1e40af';
   const bg =cat==='ataque'?'#f0fdf4':'#eff6ff';
-  return `<div style="margin-bottom:14px">
-    <div style="background:${bg};border-left:4px solid ${col};padding:5px 10px;font-weight:800;font-size:11px;color:${col};margin-bottom:6px">${lbl}</div>
+  return `<div style="margin-bottom:14px;break-inside:avoid">
+    <div style="background:${bg};border-left:4px solid ${col};padding:6px 11px;font-weight:800;font-size:11px;color:${col};margin-bottom:7px;border-radius:0 6px 6px 0">${lbl}</div>
     ${names.map(f=>`
-    <div style="margin-bottom:8px">
-      <div style="font-size:10px;font-weight:700;color:#64748b;background:#f8fafc;padding:4px 8px;border-radius:4px;margin-bottom:4px">📁 ${f} (${folders[f].length})</div>
+    <div style="margin-bottom:9px;break-inside:avoid">
+      <div style="font-size:10px;font-weight:700;color:#64748b;background:#f8fafc;padding:5px 9px;border-radius:5px;margin-bottom:5px">📁 ${f} (${folders[f].length})</div>
       ${folders[f].slice().sort((a,b)=>a.timeSecs-b.timeSecs).map(cl=>`
-      <div style="display:flex;gap:8px;padding:4px 8px;border-bottom:1px solid #f0f4f8">
-        <span style="font-weight:800;font-size:11px;font-family:monospace;min-width:78px">▶ ${cl.time}${cl.timeEndFmt?' → '+cl.timeEndFmt:''}</span>
+      <div style="display:flex;gap:9px;padding:5px 9px;border-bottom:1px solid #eef2f7">
+        <span style="font-weight:800;font-size:11px;font-family:'Courier New',monospace;min-width:82px;color:#0f172a">▶ ${cl.time}${cl.timeEndFmt?' → '+cl.timeEndFmt:''}</span>
         <div style="flex:1">
           <div style="font-weight:600;font-size:11px">${cl.label||'Sin título'}</div>
           ${cl.note?`<div style="font-size:10px;color:#64748b">${cl.note}</div>`:''}
@@ -3926,10 +3979,11 @@ ${['ataque','defensa'].map(cat=>{
     </div>`).join('')}
   </div>`;
 }).join('')}
+</div>
 `:''}
 
-<footer>BascatApp · Scouting — ${rival} · ${new Date().toLocaleDateString('es-ES')} · Confidencial</footer>
-
+<footer>BascatApp · Scouting — ${rival} · ${new Date().toLocaleDateString('es-ES')} · Documento confidencial</footer>
+</div>
 <script>window.onload=function(){var i=document.images;if(i.length){var n=0;for(var k=0;k<i.length;k++){if(i[k].complete){n++}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250)}}}if(n===i.length)setTimeout(function(){window.print()},250);}else{setTimeout(function(){window.print()},250);}};<\/script>
 </body></html>`);
   w.document.close();

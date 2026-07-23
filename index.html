@@ -5397,14 +5397,39 @@ function _fcbqSeasonFromUrl(url){
 }
 
 // Convierte xnormalize/ynormalize (0-100, calculados por la FCBQ sobre el
-// LARGO TOTAL de pista de 28m) a coordenadas del canvas de mediacancha que
-// usa BascatApp (CW=420,CH=400,BASE_Y=PAD=10,BY=52,BX=210).
+// LARGO TOTAL de pista de 28m) a coordenadas del canvas de mediacancha.
 //   xnormalize: distancia desde la línea de fondo (5.625%≈aro, 50%≈mig camp)
 //   ynormalize: posición lateral (0-100%, 50%=centro)
+// Anclamos el mapeo al ARO (xnorm≈5.625) en vez de a la línea de fondo: así el
+// aro queda cerca del borde superior y no se ve una franja de fondo vacía (nadie
+// tira desde detrás del aro). La línea de 3 (~xnorm 40) queda en el mismo sitio.
 function _fcbqShotXY(xnorm,ynorm){
-  const y=Math.round(PAD+((xnorm||0)/50)*(CH-2*PAD)); // baseline (0%) → mig camp (50%)
-  const x=Math.round(((ynorm??50)/100)*CW);            // lateral: 0-100%, 50%=centro
+  const HOOP_NORM=5.625;          // % del largo total donde está el aro
+  const HALF_NORM=50;             // % = línea de medio campo
+  const HOOP_Y=30;                // px del aro en el canvas (cerca del fondo)
+  const HALF_Y=CH-PAD;            // px del medio campo
+  const xn=xnorm||0;
+  const y=Math.round(HOOP_Y+((xn-HOOP_NORM)/(HALF_NORM-HOOP_NORM))*(HALF_Y-HOOP_Y));
+  const x=Math.round(((ynorm??50)/100)*CW); // lateral: 0-100%, 50%=centro
   return {x:Math.max(0,Math.min(CW,x)),y:Math.max(0,Math.min(CH,y))};
+}
+
+// Recalcula x,y de todos los tiros que tengan xn/yn originales guardados,
+// aplicando la fórmula actual. Útil si se reajusta la calibración: no hace falta
+// reimportar, basta con llamar a esto. Los tiros viejos sin xn/yn no se tocan
+// (habría que reimportar ese partido para recalcularlos).
+function recalcAllShots(){
+  let n=0;
+  S.matches.forEach(m=>{
+    (m.shots||[]).forEach(s=>{
+      if(typeof s.xn==='number'&&typeof s.yn==='number'){
+        const{x,y}=_fcbqShotXY(s.xn,s.yn);s.x=x;s.y=y;n++;
+      }
+    });
+  });
+  if(n){svL();rAll();if(typeof toast==='function')toast(`📍 ${n} tiros recolocados`);}
+  else if(typeof toast==='function')toast('No hay tiros con datos originales; reimporta los partidos');
+  return n;
 }
 
 // Extrae todos los tiros ubicados (2 y 3, encestados y fallados) del
@@ -5422,7 +5447,9 @@ function _fcbqStatsToShots(stats){
         (arr||[]).forEach(s=>{
           if(typeof s.xnormalize!=='number'||typeof s.ynormalize!=='number')return;
           const{x,y}=_fcbqShotXY(s.xnormalize,s.ynormalize);
-          shots.push({x,y,made,player:p.name,team:side,period:s.period||1,min:s.min??0,type});
+          // Guardamos también xn/yn originales para poder recalcular x,y si se
+          // reajusta la fórmula, sin necesidad de reimportar el partido.
+          shots.push({x,y,xn:s.xnormalize,yn:s.ynormalize,made,player:p.name,team:side,period:s.period||1,min:s.min??0,type});
         });
       };
       add(d.shootingOfTwoSuccessfulPoint,true,'T2');
@@ -5639,7 +5666,7 @@ Object.assign(window,{
   vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vRewindTap,vClipMark,
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
-  renderClub,clSort,renderStandings,onStdLeagueChange,
+  renderClub,clSort,renderStandings,onStdLeagueChange,recalcAllShots,
   // Utils
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
 });

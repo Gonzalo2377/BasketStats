@@ -5050,17 +5050,57 @@ function exportMatchPDF(){
 
 
 // ═══════════════════════════════════════════
-// ⚡ IMPORTAR DESDE LA FCBQ (link → cronología)
-// Endpoints públicos (CORS abierto), sin autenticación:
+// ⚡ IMPORTAR DESDE LA FCBQ (link → cronología + tiros ubicados)
+// Se llama vía proxy de Netlify Function (evita CORS en producción).
+// Endpoints origen (públicos, sin autenticación):
 //   .../v1/fcbq/getJsonWithMatchMoves/{id}   → play-by-play
-//   .../v1/fcbq/getJsonWithMatchStats/{id}   → equipos + jugadores + marcador
+//   .../v1/fcbq/getJsonWithMatchStats/{id}   → equipos + jugadores + marcador + tiros con coords
 // ═══════════════════════════════════════════
 const FCBQ_API='https://msstats.optimalwayconsulting.com/v1/fcbq';
+const FCBQ_PROXY='/.netlify/functions/fcbq-proxy';
 
 function _fcbqExtractId(url){
   // El id es el hex de 24 chars al final del link de estadísticas
   const m=(url||'').match(/([a-f0-9]{24})/i);
   return m?m[1]:null;
+}
+
+// Convierte xnormalize/ynormalize (0-100, calculados por la FCBQ sobre el
+// LARGO TOTAL de pista de 28m) a coordenadas del canvas de mediacancha que
+// usa BascatApp (CW=420,CH=400,BASE_Y=PAD=10,BY=52,BX=210).
+//   xnormalize: distancia desde la línea de fondo (5.625%≈aro, 50%≈mig camp)
+//   ynormalize: posición lateral (0-100%, 50%=centro)
+function _fcbqShotXY(xnorm,ynorm){
+  const y=Math.round(PAD+((xnorm||0)/50)*(CH-2*PAD)); // baseline (0%) → mig camp (50%)
+  const x=Math.round(((ynorm??50)/100)*CW);            // lateral: 0-100%, 50%=centro
+  return {x:Math.max(0,Math.min(CW,x)),y:Math.max(0,Math.min(CH,y))};
+}
+
+// Extrae todos los tiros ubicados (2 y 3, encestados y fallados) del
+// endpoint getJsonWithMatchStats, en el formato {x,y,made,player,team,period,min,type}
+// que espera S.matches[].shots / renderShotMap.
+function _fcbqStatsToShots(stats){
+  const shots=[];
+  const teams=stats.teams||[];
+  teams.forEach(t=>{
+    const side=t.teamIdIntern===stats.localId?'home':(t.teamIdIntern===stats.visitId?'away':null);
+    if(!side)return;
+    (t.players||[]).forEach(p=>{
+      const d=p.data||{};
+      const add=(arr,made,type)=>{
+        (arr||[]).forEach(s=>{
+          if(typeof s.xnormalize!=='number'||typeof s.ynormalize!=='number')return;
+          const{x,y}=_fcbqShotXY(s.xnormalize,s.ynormalize);
+          shots.push({x,y,made,player:p.name,team:side,period:s.period||1,min:s.min??0,type});
+        });
+      };
+      add(d.shootingOfTwoSuccessfulPoint,true,'T2');
+      add(d.shootingOfTwoFailedPoint,false,'T2');
+      add(d.shootingOfThreeSuccessfulPoint,true,'T3');
+      add(d.shootingOfThreeFailedPoint,false,'T3');
+    });
+  });
+  return shots;
 }
 
 function _fcbqMovesToCrono(moves,stats){
@@ -5090,10 +5130,21 @@ async function importFromFCBQ(){
 
   if(btn){btn.disabled=true;btn.style.opacity=.6;btn.textContent='⬇ Cargando…';}
   setSt('Descargando datos de la FCBQ…');
+  // Intenta primero el proxy de Netlify Function (evita CORS); si no está desplegado
+  // (ej. probando en local sin `netlify dev`), cae al fetch directo.
+  const fcbqFetch=async(endpoint,path)=>{
+    try{
+      const r=await fetch(`${FCBQ_PROXY}?endpoint=${endpoint}&id=${id}`);
+      if(r.ok)return r;
+      throw new Error('proxy-not-ok');
+    }catch(_e){
+      return fetch(`${FCBQ_API}/${path}/${id}?currentSeason=false`);
+    }
+  };
   try{
     const [movesRes,statsRes]=await Promise.all([
-      fetch(`${FCBQ_API}/getJsonWithMatchMoves/${id}?currentSeason=false`),
-      fetch(`${FCBQ_API}/getJsonWithMatchStats/${id}?currentSeason=false`)
+      fcbqFetch('moves','getJsonWithMatchMoves'),
+      fcbqFetch('stats','getJsonWithMatchStats')
     ]);
     if(!movesRes.ok||!statsRes.ok)throw new Error(`El servidor respondió ${movesRes.status}/${statsRes.status}`);
     const moves=await movesRes.json();
@@ -5123,17 +5174,24 @@ async function importFromFCBQ(){
     // Cronología
     const crono=_fcbqMovesToCrono(moves,stats);
     setV('i-cr',crono);
+    // Tiros ubicados (coordenadas ya calculadas por la FCBQ)
+    const shots=_fcbqStatsToShots(stats);
 
     // Marcador final (para el status)
     const last=moves[moves.length-1];
     const finalSc=last?.score||'';
-    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos. Revisa y pulsa "Processar".`,'#15803d');
-    // Auto-procesar para que quede listo
-    if(typeof parseMatch==='function'){try{parseMatch();}catch(e){console.warn(e);}}
+    // Auto-procesar para que quede listo, y adjuntar los tiros al partido creado
+    if(typeof parseMatch==='function'){
+      try{
+        parseMatch();
+        if(_parsed){_parsed.shots=shots;svL();rAll();}
+      }catch(e){console.warn(e);}
+    }
+    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos · ${shots.length} tiros ubicados. Revisa y pulsa "Processar" si algo no cuadra.`,'#15803d');
   }catch(e){
     console.error('FCBQ import:',e);
     if(/Failed to fetch|CORS|NetworkError/i.test(e.message)){
-      setSt('❌ El navegador bloqueó la descarga (CORS). Prueba desde Chrome/Edge, o dímelo para darte el método alternativo.','#dc2626');
+      setSt('❌ El navegador bloqueó la descarga (CORS). Comprueba que /netlify/functions/fcbq-proxy esté desplegado, o dímelo para el método alternativo.','#dc2626');
     }else{
       setSt('❌ '+e.message,'#dc2626');
     }

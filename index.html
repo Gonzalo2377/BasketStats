@@ -809,10 +809,24 @@ input[type=file]{display:none}
   </div>
   <!-- Aggregated view -->
   <div id="st-agg-wrap" class="tw tsk">
-    <table><thead><tr>
-      <th>#</th><th>Jugador</th><th>Equipo</th><th>MIN</th><th>PTS</th>
-      <th>TL</th><th>TL%</th><th>T2</th><th>T2%</th><th>T3</th><th>T3%</th>
-      <th>REB</th><th>AST</th><th>FC</th><th>VAL</th><th>+/-</th><th></th>
+    <table><thead><tr id="st-agg-head">
+      <th>#</th>
+      <th onclick="stAggSort('name')" style="cursor:pointer" title="Ordenar">Jugador</th>
+      <th onclick="stAggSort('team')" style="cursor:pointer" title="Ordenar">Equipo</th>
+      <th onclick="stAggSort('min')" style="cursor:pointer" title="Ordenar">MIN</th>
+      <th onclick="stAggSort('pts')" style="cursor:pointer" title="Ordenar">PTS</th>
+      <th onclick="stAggSort('tlm')" style="cursor:pointer" title="Ordenar">TL</th>
+      <th onclick="stAggSort('tl')" style="cursor:pointer" title="Ordenar por %">TL%</th>
+      <th onclick="stAggSort('t2m')" style="cursor:pointer" title="Ordenar">T2</th>
+      <th onclick="stAggSort('t2')" style="cursor:pointer" title="Ordenar por %">T2%</th>
+      <th onclick="stAggSort('t3m')" style="cursor:pointer" title="Ordenar">T3</th>
+      <th onclick="stAggSort('t3')" style="cursor:pointer" title="Ordenar por %">T3%</th>
+      <th onclick="stAggSort('reb')" style="cursor:pointer" title="Ordenar">REB</th>
+      <th onclick="stAggSort('ast')" style="cursor:pointer" title="Ordenar">AST</th>
+      <th onclick="stAggSort('fc')" style="cursor:pointer" title="Ordenar">FC</th>
+      <th onclick="stAggSort('val')" style="cursor:pointer" title="Ordenar">VAL</th>
+      <th onclick="stAggSort('pm')" style="cursor:pointer" title="Ordenar">+/-</th>
+      <th></th>
     </tr></thead><tbody id="st-tb-agg"></tbody></table>
   </div>
   <!-- All records view (original) -->
@@ -1558,6 +1572,17 @@ function drawHeatmap(cvId,shots){
     ctx.drawImage(off,0,0,gw,gh,0,0,CW,CH);
   }
   drawCourtLinesOnly(ctx);
+}
+
+// Clutch = últimos 3 minutos del 4º cuarto + prórrogas completas.
+// OJO: el tiempo de la FCBQ es CUENTA ATRÁS. El evento guarda min=globalMinutes,
+// así que perMin = min-(period-1)*10 son los MINUTOS RESTANTES en el cuarto
+// (10 al inicio, 0 al final). "Últimos 3 min" = quedan 3 o menos = perMin<=3.
+function isClutch(e){
+  if(!e||e.period==null||e.min==null)return false;
+  if(e.period>=5)return true;                     // prórroga completa
+  const perMin=e.min-(e.period-1)*10;             // minutos restantes en el cuarto
+  return e.period===4&&perMin<=3;                 // últimos 3 min del 4º
 }
 
 function isThree(x,y){
@@ -2726,16 +2751,21 @@ function renderDash(){
   const pf2=document.getElementById('db-pf')?.value||'';
   const mv=document.getElementById('db-mv')?.value||'shots';
   const mf=document.getElementById('db-mf')?.value||''; // match filter (no selector → all matches)
-  // Match selector — most recent first
+  // Match selector — most recent first. Si hay equipo seleccionado, solo partidos de ese equipo.
   const msel=document.getElementById('db-mf');
   if(msel){
     const v=msel.value;
-    const ms=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
+    let ms=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
+    if(tf)ms=ms.filter(m=>m.homeTeam===tf||m.awayTeam===tf);
+    // Si el partido antes seleccionado ya no pertenece al equipo, se resetea a "Todos"
+    const stillValid=!v||ms.some(m=>String(m.id)===v);
     msel.innerHTML='<option value="">Todos (acumulado)</option>'+ms.map(m=>
-      `<option value="${m.id}"${String(m.id)===v?' selected':''}>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
+      `<option value="${m.id}"${String(m.id)===v&&stillValid?' selected':''}>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
+    if(!stillValid)msel.value='';
   }
+  const mfEff=document.getElementById('db-mf')?.value||'';
   let all=[],allT=new Set();
-  const srcMatches=mf?S.matches.filter(m=>String(m.id)===String(mf)):S.matches;
+  const srcMatches=mfEff?S.matches.filter(m=>String(m.id)===String(mfEff)):S.matches;
   srcMatches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{allT.add(p.team);all.push(p);});});
   const tsel=document.getElementById('db-tf');if(tsel){const v=tsel.value;tsel.innerHTML='<option value="">Todos los equipos</option>'+[...allT].sort().map(t=>`<option value="${t}"${t===v?' selected':''}>${t}</option>`).join('');}
   let filt=all;if(tf)filt=filt.filter(p=>p.team===tf);
@@ -2777,29 +2807,41 @@ function renderDash(){
   if(dbzs)dbzs.innerHTML=zwd.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px">${zwd.map(z=>`<div class="kpi"><div class="kv" style="font-size:15px">${pf(zs[z].m,zs[z].a)}</div><div class="kl">${z}</div><div class="ks">${zs[z].m}/${zs[z].a}</div></div>`).join('')}</div>`:'';
 
   // Top players
-  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);});
+  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=(p.min||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
   const topL=Object.values(agg).sort((a,b)=>b.pts-a.pts).slice(0,8);
   const dbTop=document.getElementById('db-top');
   if(dbTop)dbTop.innerHTML=topL.length?topL.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px"><span style="width:19px;height:19px;border-radius:50%;background:${i<3?'var(--gd)':'var(--bg)'};color:${i<3?'#fff':'var(--t2)'};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><div style="flex:1"><div style="font-weight:700">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.team} · ${p.g} part.</div></div><b style="color:var(--nv)">${p.pts}</b><span style="font-size:10px;color:var(--t3)">pts</span></div>`).join(''):'<div class="empty">Cap dada</div>';
 
   // Insights
   const ins=[],pl=Object.values(agg);
-  const top=pl.sort((a,b)=>b.pts-a.pts)[0];
-  if(top)ins.push(`🏀 <b>${top.name}</b>: màxim anotador amb <b>${top.pts} punts</b> en ${top.g} partit${top.g>1?'s':''}.`);
-  const t3pl=pl.filter(p=>p.t3A>=10).sort((a,b)=>(b.t3M/b.t3A)-(a.t3M/a.t3A));
-  if(t3pl.length)ins.push(`🎯 Millor tirador T3 (mínim 10i): <b>${t3pl[0].name}</b> → <b>${Math.round(t3pl[0].t3M/t3pl[0].t3A*100)}%</b> (${t3pl[0].t3M}/${t3pl[0].t3A}).`);
-  if(shots.length>=5){const out=shots.filter(s=>isThree(s.x,s.y));ins.push(`📍 <b>${Math.round(out.length/shots.length*100)}% dels tirs</b> des de fora de l'arc (${out.length}/${shots.length}).`);}
+  const isSingleMatch=!!mfEff; // ¿estamos viendo un solo partido?
+  const top=[...pl].sort((a,b)=>b.pts-a.pts)[0];
+  if(top)ins.push(`🏀 <b>${top.name}</b>: máximo anotador con <b>${top.pts} punts</b>${isSingleMatch?'':` en ${top.g} partido${top.g>1?'s':''} (${(top.pts/top.g).toFixed(1)}/partit)`}.`);
+  const t3pl=pl.filter(p=>p.t3A>=(isSingleMatch?3:10)).sort((a,b)=>(b.t3M/b.t3A)-(a.t3M/a.t3A));
+  if(t3pl.length)ins.push(`🎯 Mejor tirador T3 (mín. ${isSingleMatch?3:10}i): <b>${t3pl[0].name}</b> → <b>${Math.round(t3pl[0].t3M/t3pl[0].t3A*100)}%</b> (${t3pl[0].t3M}/${t3pl[0].t3A}).`);
+  if(shots.length>=5){const out=shots.filter(s=>isThree(s.x,s.y));ins.push(`📍 <b>${Math.round(out.length/shots.length*100)}% de los tiros</b> desde fuera del arco (${out.length}/${shots.length}).`);}
   const corn=shots.filter(s=>shotZone(s).includes('Cantonada'));
-  if(corn.length)ins.push(`📐 Cantonades: <b>${pf(corn.filter(s=>s.made).length,corn.length)}</b> d'encert.`);
-  const foulPl=filt.filter(p=>p.fc>=3);if(foulPl.length)ins.push(`⚠️ Jugadors con 3+ faltas: <b>${foulPl.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
-  const pmPl=[...filt].sort((a,b)=>(b.pm||0)-(a.pm||0));if(pmPl[0]&&pmPl[0].pm>0)ins.push(`📈 Millor +/-: <b>${pmPl[0].name}</b> amb <b>+${pmPl[0].pm}</b>.`);
+  if(corn.length)ins.push(`📐 Esquinas: <b>${pf(corn.filter(s=>s.made).length,corn.length)}</b> de acierto.`);
+  // ── FALTAS (leídas correctamente) ──
+  if(isSingleMatch){
+    // En un partido: jugadores que llegaron a 4+ faltas (peligro de eliminación) o 5 (eliminados)
+    const elim=pl.filter(p=>p.fc>=5);
+    const danger=pl.filter(p=>p.fc===4);
+    if(elim.length)ins.push(`🟥 Eliminados por faltas (5): <b>${elim.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
+    if(danger.length)ins.push(`⚠️ Con 4 faltas (al límite): <b>${danger.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
+  }else{
+    // Acumulado: media de faltas por partido más alta (mín. 2 partidos jugados)
+    const foulRate=pl.filter(p=>p.g>=2).map(p=>({name:p.name,avg:p.fc/p.g,tot:p.fc,g:p.g})).sort((a,b)=>b.avg-a.avg);
+    if(foulRate.length&&foulRate[0].avg>=2.5)ins.push(`⚠️ Más cargado de faltas: <b>${foulRate[0].name.split(' ')[0]}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
+  }
+  const pmPl=[...pl].sort((a,b)=>(b.pm||0)-(a.pm||0));if(pmPl[0]&&pmPl[0].pm>0)ins.push(`📈 Mejor +/-: <b>${pmPl[0].name}</b> con <b>+${pmPl[0].pm}</b>${isSingleMatch?'':` (${pmPl.length} jug.)`}.`);
   const dbIns=document.getElementById('db-ins');
   if(dbIns)dbIns.innerHTML=ins.map(i=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">• ${i}</div>`).join('')||'<div class="empty">Cap conclusió disponible</div>';
 
   // Pairs — real +/- based on shared time on court (not individual pm sum)
   const pairMap={};
   const pKey=(tname,a,b)=>tname+'|'+[a,b].sort().join('|');
-  const matchesToUse=mf?S.matches.filter(m=>m.id==mf):S.matches;
+  const matchesToUse=mfEff?S.matches.filter(m=>m.id==mfEff):S.matches;
   matchesToUse.forEach(m=>{
     // Reconstruct court state over time using subEvents
     const subs=(m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
@@ -3067,6 +3109,14 @@ function quickSelectMatch(id){
 // ══════════════════════════════════════════════════════════════
 // STATS TAB — aggregate per player with expandable match rows
 // ══════════════════════════════════════════════════════════════
+// Estado de ordenación de la tabla agregada de Stats. dir: -1 = mayor→menor.
+let _stAggSort={field:'pts',dir:-1};
+function stAggSort(field){
+  if(_stAggSort.field===field)_stAggSort.dir*=-1;       // mismo campo → invierte
+  else _stAggSort={field,dir:(field==='name'||field==='team')?1:-1}; // texto asc, números desc
+  renderStatsAggregated();
+}
+
 function renderStatsAggregated(){
   const mf=document.getElementById('st-mf')?.value||'';
   const tf=document.getElementById('st-tf')?.value||'';
@@ -3095,7 +3145,34 @@ function renderStatsAggregated(){
   const el=document.getElementById('st-tb-agg');
   if(!el)return;
   if(!players.length){el.innerHTML=`<tr><td colspan="17" class="no-d">Sin datos</td></tr>`;return;}
-  players.sort((a,b)=>b.pts-a.pts);
+  // Ordenación por columna (clic en la cabecera). Por defecto: PTS desc.
+  const sf=_stAggSort.field, dir=_stAggSort.dir;
+  const val=(p)=>{
+    switch(sf){
+      case 'dorsal':return parseInt(p.dorsal)||0;
+      case 'name':return p.name.toLowerCase();
+      case 'team':return p.team.toLowerCase();
+      case 'min':return p.min||0;
+      case 'pts':return p.pts||0;
+      case 'tl':return p.tlAtt?p.tlMade/p.tlAtt:-1;
+      case 'tlm':return p.tlMade||0;
+      case 't2':return p.t2Att?p.t2Made/p.t2Att:-1;
+      case 't2m':return p.t2Made||0;
+      case 't3':return p.t3Att?p.t3Made/p.t3Att:-1;
+      case 't3m':return p.t3Made||0;
+      case 'reb':return p.reb||0;
+      case 'ast':return p.ast||0;
+      case 'fc':return p.fc||0;
+      case 'val':return p.val||0;
+      case 'pm':return p.pm||0;
+      default:return p.pts||0;
+    }
+  };
+  players.sort((a,b)=>{
+    const va=val(a),vb=val(b);
+    if(typeof va==='string')return dir*va.localeCompare(vb);
+    return dir*(va-vb);
+  });
   el.innerHTML=players.map(p=>{
     const t2p=p.t2Att?Math.round(p.t2Made/p.t2Att*100)+'%':'—';
     const t3p=p.t3Att?Math.round(p.t3Made/p.t3Att*100)+'%':'—';
@@ -3143,6 +3220,19 @@ function renderStatsAggregated(){
       </td>
     </tr>`;
   }).join('');
+  // Indicadores de orden (▲▼) en la cabecera activa
+  const head=document.getElementById('st-agg-head');
+  if(head){
+    const map={name:1,team:2,min:3,pts:4,tlm:5,tl:6,t2m:7,t2:8,t3m:9,t3:10,reb:11,ast:12,fc:13,val:14,pm:15};
+    [...head.children].forEach(th=>{th.querySelector('.sar')?.remove();});
+    const idx=map[_stAggSort.field];
+    if(idx!=null&&head.children[idx]){
+      const arrow=document.createElement('span');arrow.className='sar';
+      arrow.textContent=_stAggSort.dir<0?' ▼':' ▲';
+      arrow.style.cssText='font-size:9px;color:var(--ac)';
+      head.children[idx].appendChild(arrow);
+    }
+  }
 }
 function togglePlayerGames(id){
   const el=document.getElementById(id);if(!el)return;
@@ -3174,17 +3264,14 @@ function populateRivalSelect() {
   const sel = document.getElementById('sc-rival');
   if (!sel) return;
   const v = sel.value;
-  // Un rival es cualquier equipo que aparezca en algún partido y NO sea el nuestro
-  // (el Claret). Antes se excluía todo equipo presente en S.teams, pero como ahora
-  // el importador añade también a los rivales a la BD, quedaban ocultos.
+  // Cualquier equipo que aparezca en algún partido (incluido el Claret, para poder
+  // hacer scouting de nosotros mismos). Se muestran todos.
   const rivals = new Set();
   S.matches.forEach(m => {
-    [m.homeTeam, m.awayTeam].forEach(tn => {
-      if (tn && !isOurTeam(tn)) rivals.add(tn);
-    });
+    [m.homeTeam, m.awayTeam].forEach(tn => { if (tn) rivals.add(tn); });
   });
-  sel.innerHTML = '<option value="">— Selecciona un rival —</option>' +
-    [...rivals].sort().map(r => `<option value="${r}"${r === v ? ' selected' : ''}>${r}</option>`).join('');
+  sel.innerHTML = '<option value="">— Selecciona un equipo —</option>' +
+    [...rivals].sort().map(r => `<option value="${r}"${r === v ? ' selected' : ''}>${isOurTeam(r)?'⭐ '+r:r}</option>`).join('');
 }
 
 function renderScouting() {
@@ -3360,14 +3447,11 @@ function renderScoutShots() {
 
 function renderScoutClutch(matches) {
   const el = document.getElementById('sc-clutch'); if (!el) return;
-  // "Últimos 2 minutos" = min >= 8 in each period
+  // Clutch = últimos 3 min del 4º cuarto + prórrogas completas
   const clutchEvents = [];
   matches.forEach(m => {
     const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-    (m.events || []).filter(e => {
-      const perMin = e.min - (e.period - 1) * 10; // minute within period
-      return e.team === rivalSide && perMin >= 8;
-    }).forEach(e => clutchEvents.push(e));
+    (m.events || []).filter(e => e.team === rivalSide && isClutch(e)).forEach(e => clutchEvents.push(e));
   });
 
   if (!clutchEvents.length) {
@@ -3398,7 +3482,7 @@ function renderScoutClutch(matches) {
       <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${pts2+miss2 ? Math.round(pts2/(pts2+miss2)*100)+'%' : '—'}</div><div class="kl">T2% clutch</div></div>
     </div>
     ${topScorers.length ? `
-    <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Ejecutores en últimos 2min</div>
+    <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Ejecutores en clutch (últ. 3min + prórrogas)</div>
     ${topScorers.map((s, i) => `
       <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd)">
         <span style="width:18px;height:18px;border-radius:50%;background:${i===0?'#dc2626':'var(--nv)'};color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
@@ -3410,43 +3494,67 @@ function renderScoutClutch(matches) {
 
 function renderScoutTimeout(matches) {
   const el = document.getElementById('sc-timeout'); if (!el) return;
-  // Events in the 2 minutes after a timeout (we detect timeouts by gaps in events)
-  // Since federation crono doesn't always mark timeouts explicitly,
-  // we look at "Temps mort" events in the crono parsing (stored in events as type 'timeout')
-  // For now, analyze first possession after each quarter break (period start)
-  const firstPossessions = [];
+
+  // Convierte min/sec de cuenta atrás a "segundos transcurridos" dentro del cuarto,
+  // para poder comparar orden temporal (0 = inicio del cuarto, 600 = final).
+  const elapsed = (period, minLeft, secLeft) => (period-1)*600 + (600 - (minLeft*60 + secLeft));
+
+  const startEvents = [];   // primera acción ofensiva de cada cuarto
+  const afterTO = [];       // primera acción ofensiva tras cada tiempo muerto propio
+
   matches.forEach(m => {
     const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-    const events = (m.events || []).slice().sort((a,b) => (a.min||0)-(b.min||0));
-    // First scoring action in each period
-    for (let per = 1; per <= 4; per++) {
-      const firstInPer = events.find(e => e.period === per && e.team === rivalSide &&
-        ['pts2','pts3','tl_in','miss2','miss3'].includes(e.type));
-      if (firstInPer) firstPossessions.push(firstInPer);
+    const scoring = ['pts2','pts3','tl_in','miss2','miss3'];
+    const evs = (m.events || []).filter(e => e.team === rivalSide && scoring.includes(e.type));
+
+    // Inicio de cuarto: primera acción ofensiva de cada período (por minuto restante mayor)
+    for (let per = 1; per <= 6; per++) {
+      const inPer = evs.filter(e => e.period === per);
+      if (!inPer.length) continue;
+      // el evento con MÁS minutos restantes (perMin mayor) es el primero del cuarto
+      const first = inPer.reduce((a,b)=>{
+        const pa=a.min-(a.period-1)*10, pb=b.min-(b.period-1)*10;
+        return pb>pa?b:a; // mayor perMin = antes
+      });
+      startEvents.push(first);
     }
+
+    // Tras tiempo muerto: para cada TO del rival, la primera acción ofensiva que
+    // ocurre DESPUÉS (menos tiempo restante) en el mismo cuarto.
+    const tos = (m.timeouts || []).filter(t => t.team === rivalSide);
+    tos.forEach(to => {
+      const toElapsed = elapsed(to.period, to.minLeft, to.secLeft);
+      const cand = evs
+        .filter(e => e.period === to.period)
+        .map(e => ({e, el: elapsed(e.period, e.min - (e.period-1)*10, 0)}))
+        .filter(x => x.el >= toElapsed)   // ocurre después del TO
+        .sort((a,b) => a.el - b.el);
+      if (cand.length) afterTO.push(cand[0].e);
+    });
   });
 
-  if (!firstPossessions.length) {
-    el.innerHTML = '<div class="empty">Sin datos suficientes (necesita más partidos con cronología)</div>';
-    return;
-  }
-
-  const pts = firstPossessions.filter(e => ['pts2','pts3','tl_in'].includes(e.type));
-  const miss = firstPossessions.filter(e => ['miss2','miss3'].includes(e.type));
-  const t3 = firstPossessions.filter(e => e.type === 'pts3' || e.type === 'miss3');
-  const t2 = firstPossessions.filter(e => e.type === 'pts2' || e.type === 'miss2');
+  const hasTO = afterTO.length > 0;
+  const box = (title, arr, note) => {
+    if (!arr.length) return `<div style="font-size:11px;color:var(--t3);padding:6px 0">${title}: sin datos suficientes</div>`;
+    const pts = arr.filter(e => ['pts2','pts3','tl_in'].includes(e.type));
+    const t3 = arr.filter(e => e.type === 'pts3' || e.type === 'miss3');
+    const t2 = arr.filter(e => e.type === 'pts2' || e.type === 'miss2');
+    const eff = Math.round(pts.length / arr.length * 100);
+    return `
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--nv);margin-bottom:5px;text-transform:uppercase">${title} <span style="color:var(--t3);font-weight:400">· ${arr.length} posesiones</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:17px">${eff}%</div><div class="kl">Eficiencia</div></div>
+          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:17px">${Math.round(t3.length/arr.length*100)}%</div><div class="kl">Inician con T3</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Tendencia: <b>${t3.length >= t2.length ? 'Tiro exterior (T3)' : 'Penetración / T2'}</b>${note?' · '+note:''}</div>
+      </div>`;
+  };
 
   el.innerHTML = `
-    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Primera acción ofensiva de cada cuarto (indica tendencias tras pausa)</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${Math.round(pts.length/(pts.length+miss.length)*100)}%</div><div class="kl">Eficiencia inicio cuarto</div></div>
-      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${Math.round(t3.length/firstPossessions.length*100)}%</div><div class="kl">Inician con T3</div></div>
-    </div>
-    <div style="font-size:11px;line-height:1.7">
-      • Primeras posesiones de cuarto: <b>${firstPossessions.length}</b> analizadas<br>
-      • Tipo más frecuente: <b>${t3.length >= t2.length ? 'Tiro de 3' : 'Penetración/T2'}</b><br>
-      • Eficiencia: <b>${pts.length} de ${firstPossessions.length}</b> acciones positivas
-    </div>`;
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Compara qué hace el rival tras el descanso entre cuartos vs. tras pedir tiempo muerto.</div>
+    ${box('🕐 Tras inicio de cuarto', startEvents)}
+    ${hasTO ? box('⏸️ Tras tiempo muerto', afterTO) : '<div style="font-size:11px;color:var(--t3);padding:6px 0;border-top:1px solid var(--bd)">⏸️ <b>Tras tiempo muerto:</b> sin datos (los tiempos muertos solo se detectan en partidos importados de la FCBQ con esta versión; reimporta el partido si es antiguo).</div>'}`;
 }
 
 function renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A) {
@@ -3544,7 +3652,7 @@ function exportScoutPDF() {
   const clutchEvs=[];
   matches.forEach(m=>{
     const rivalSide=m.homeTeam===rival?'home':'away';
-    (m.events||[]).filter(e=>{const pm=e.min-(e.period-1)*10;return e.team===rivalSide&&pm>=8;}).forEach(e=>clutchEvs.push(e));
+    (m.events||[]).filter(e=>e.team===rivalSide&&isClutch(e)).forEach(e=>clutchEvs.push(e));
   });
   const cScorers={};
   clutchEvs.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).forEach(e=>{
@@ -3755,7 +3863,7 @@ ${perQAvg.map((v,i)=>`<div style="text-align:center">
 </div>`).join('')}
 </div>
 
-<h2>⏰ Clutch (últ. 2 min por cuarto)</h2>
+<h2>⏰ Clutch (últ. 3 min del 4Q + prórrogas)</h2>
 <div class="g3" style="margin-bottom:8px">
   <div class="kbox"><div class="v">${cPts.reduce((s,e)=>s+(e.type==='pts3'?3:e.type==='pts2'?2:1),0)}</div><div class="l">Pts clutch</div></div>
   <div class="kbox"><div class="v">${cT3A?Math.round(cT3/cT3A*100)+'%':'—'}</div><div class="l">T3% clutch</div></div>
@@ -4785,6 +4893,7 @@ function clSort(f){
 function _clRenderRows(){
   const tb=document.getElementById('cl-players');if(!tb)return;
   const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
+  const pctMA=(m,a)=>a?`${Math.round(m/a*100)}% <span style="color:var(--t3);font-weight:400;font-size:10px">${m}/${a}</span>`:'—';
   const arr=[..._clPlayers];
   arr.sort((a,b)=>_clSortDir===-1?(b[_clSortF]??-1e9)-(a[_clSortF]??-1e9):(a[_clSortF]??1e9)-(b[_clSortF]??1e9));
   tb.innerHTML=arr.map(p=>`<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
@@ -4793,9 +4902,9 @@ function _clRenderRows(){
       <td>${p.g}</td>
       <td>${Math.round(p.min)||'—'}</td>
       <td><b>${p.pts}</b></td>
-      <td>${pct(p.t2m,p.t2a)}</td>
-      <td>${pct(p.t3m,p.t3a)}</td>
-      <td>${pct(p.tlm,p.tla)}</td>
+      <td style="white-space:nowrap">${pctMA(p.t2m,p.t2a)}</td>
+      <td style="white-space:nowrap">${pctMA(p.t3m,p.t3a)}</td>
+      <td style="white-space:nowrap">${pctMA(p.tlm,p.tla)}</td>
       <td>${p.reb||0}</td>
       <td>${p.ast||0}</td>
       <td>${p.fc}</td>
@@ -5387,6 +5496,22 @@ function _fcbqMovesToCrono(moves,stats){
   return lines.join('\n');
 }
 
+// Extrae los tiempos muertos del array de moves como eventos {type:'timeout',team,period,min,sec}.
+// El tiempo de la FCBQ es CUENTA ATRÁS (min=10→0). Guardamos min tal cual (minutos restantes)
+// y también secRestantes para poder ordenar "qué pasó justo después".
+function _fcbqTimeouts(moves,stats){
+  const homeId=stats.localId,awayId=stats.visitId;
+  const outs=[];
+  (moves||[]).forEach(mv=>{
+    if(mv.idMove===113||/temps?\s*mort|tiempo\s*muerto|time\s*out/i.test(mv.move||'')){
+      const side=mv.idTeam===homeId?'home':mv.idTeam===awayId?'away':null;
+      if(side)outs.push({type:'timeout',team:side,period:mv.period||1,
+        minLeft:mv.min??0,secLeft:mv.sec??0});
+    }
+  });
+  return outs;
+}
+
 async function importFromFCBQ(){
   const url=document.getElementById('i-fcbq-url')?.value.trim();
   const st=document.getElementById('i-fcbq-status');
@@ -5451,6 +5576,8 @@ async function importFromFCBQ(){
     setV('i-cr',crono);
     // Tiros ubicados (coordenadas ya calculadas por la FCBQ)
     const shots=_fcbqStatsToShots(stats);
+    // Tiempos muertos (para segmentar "tras tiempo muerto" en scouting)
+    const timeouts=_fcbqTimeouts(moves,stats);
 
     // Marcador final (para el status)
     const last=moves[moves.length-1];
@@ -5461,6 +5588,7 @@ async function importFromFCBQ(){
         parseMatch();
         if(_parsed){
           _parsed.shots=shots;
+          _parsed.timeouts=timeouts; // eventos de tiempo muerto {team,period,minLeft,secLeft}
           _fcbqApplyMinutes(_parsed,stats); // minutos oficiales de la FCBQ
           svL();rAll();
         }
@@ -5499,7 +5627,7 @@ Object.assign(window,{
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
-  renderStats,exportMatchPDF,ssort,renderMatchHistory,toggleHistory,deleteMatch,renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,
+  renderStats,exportMatchPDF,ssort,renderMatchHistory,toggleHistory,deleteMatch,renderStatsAggregated,setStatsView,stAggSort,togglePlayerGames,openPlayerProfile,closePlayerProfile,
   // Dashboard
   renderDash,
   // Scouting

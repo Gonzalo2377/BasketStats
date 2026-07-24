@@ -3713,8 +3713,30 @@ function exportScoutPDF() {
   });
 
   // ── Heatmap canvas → image ───────────────────────────────────────────────
-  const scCv=document.getElementById('sc-cv');
-  const heatImg=scCv?scCv.toDataURL('image/png'):'';
+  // ── Mapas para el PDF: mapa de tiros individuales + mapa de calor ──────────
+  // Filtrar los tiros del rival (mismos que usa renderScoutShots)
+  let rivalShots=[...S.shots,...S.matches.flatMap(m=>(m.shots||[]).map(s=>({...s,mId:m.id})))];
+  rivalShots=rivalShots.filter(s=>{
+    const m=S.matches.find(m=>m.id===(s.mId||s.matchId));if(!m)return false;
+    const rs=m.homeTeam===rival?'home':m.awayTeam===rival?'away':null;
+    return rs&&s.team===rs;
+  });
+  // Canvas temporal fuera de pantalla para renderizar cada mapa a imagen
+  const tmpCv=document.createElement('canvas');tmpCv.width=CW;tmpCv.height=CH;tmpCv.id='_tmppdf';
+  document.body.appendChild(tmpCv);
+  let shotImg='',heatImg='';
+  try{
+    if(rivalShots.length){
+      // 1) Mapa de tiros individuales (puntos verde/rojo)
+      const ctx=tmpCv.getContext('2d');ctx.clearRect(0,0,CW,CH);
+      drawCourt(ctx);drawShots(ctx,rivalShots);
+      shotImg=tmpCv.toDataURL('image/png');
+      // 2) Mapa de calor (usa la función existente sobre el mismo canvas temporal)
+      drawHeatmap('_tmppdf',rivalShots);
+      heatImg=tmpCv.toDataURL('image/png');
+    }
+  }catch(e){console.warn('PDF maps:',e);}
+  document.body.removeChild(tmpCv);
 
   // ── Video clips: legacy (S.clips by rival) + new (S.clips2 by match→team) ──
   const clipsByCatFolder={ataque:{},defensa:{}};
@@ -3925,12 +3947,25 @@ ${startersRank.length?`
   </div>
 </div>
 
-<!-- PÁGINA 2: MAPA + ZONAS + NOTAS -->
+<!-- PÁGINA 2: MAPAS + ZONAS + NOTAS -->
 <div class="page-break"></div>
-<div class="g2" style="margin-top:4px">
+<div class="sec" style="margin-top:4px">
+  <div class="sec-h"><span class="ico">🎯</span> Mapas de tiro del equipo</div>
+  ${(shotImg||heatImg)?`<div class="g2" style="gap:14px">
+    <div>
+      <div style="font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;text-align:center">Tiros individuales</div>
+      ${shotImg?`<img src="${shotImg}" style="width:100%;border-radius:10px;border:1px solid #e8edf3">`:'<div style="background:#f8fafc;border-radius:10px;height:180px"></div>'}
+    </div>
+    <div>
+      <div style="font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;text-align:center">Mapa de calor</div>
+      ${heatImg?`<img src="${heatImg}" style="width:100%;border-radius:10px;border:1px solid #e8edf3">`:'<div style="background:#f8fafc;border-radius:10px;height:180px"></div>'}
+    </div>
+  </div>`:'<div style="background:#f8fafc;border-radius:10px;height:180px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px">Sin tiros ubicados</div>'}
+</div>
+
+<div class="g2">
   <div class="sec">
-    <div class="sec-h"><span class="ico">🎯</span> Mapa de tiro del equipo</div>
-    ${heatImg?`<img src="${heatImg}" style="width:100%;border-radius:10px;border:1px solid #e8edf3;margin-bottom:10px">`:'<div style="background:#f8fafc;border-radius:10px;height:200px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:10px">Sin tiros ubicados</div>'}
+    <div class="sec-h"><span class="ico">📍</span> Eficiencia por zona</div>
     <div class="zone-grid">
     ${activeZones.map(z=>{
       const pct=Math.round(zs[z].m/zs[z].a*100);
@@ -5233,6 +5268,14 @@ function exportMatchPDF(){
   const mf=document.getElementById('st-mf')?.value||'';
   const m=S.matches.find(x=>x.id==mf);
   if(!m){toast('Selecciona un partido primero','err');return;}
+  // Si además hay un equipo seleccionado, el PDF sale SOLO de ese equipo.
+  const tf=(document.getElementById('st-tf')?.value||'').trim();
+  let onlySide=null;
+  if(tf){
+    if(m.homeTeam===tf)onlySide='home';
+    else if(m.awayTeam===tf)onlySide='away';
+    // si el equipo seleccionado no juega este partido, se ignora (salen ambos)
+  }
 
   const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
   const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
@@ -5417,8 +5460,7 @@ function exportMatchPDF(){
     .ml span{font-weight:500;text-transform:none;letter-spacing:0;color:#64748b;font-size:10px;margin-left:5px}
     .mapbox img{width:100%;height:auto;max-height:132mm;object-fit:contain;border:1.5px solid #e2e8f0;border-radius:8px;display:block}
   </style></head><body>
-  ${teamPage('home')}
-  ${teamPage('away')}
+  ${onlySide?teamPage(onlySide):teamPage('home')+teamPage('away')}
   <script>window.onload=function(){var i=document.images,n=0;if(!i.length){setTimeout(function(){window.print()},200);return;}for(var k=0;k<i.length;k++){if(i[k].complete){if(++n===i.length)setTimeout(function(){window.print()},250);}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250);};}}};<\/script>
   </body></html>`);
   w.document.close();
@@ -5521,11 +5563,18 @@ function _fcbqStatsToShots(stats){
 function _fcbqEnsureTeam(name,fcbqPlayers){
   if(!name)return null;
   let t=S.teams.find(t=>t.name.toLowerCase()===name.toLowerCase());
+  const incoming=(fcbqPlayers||[]).map(p=>({dorsal:String(p.dorsal),name:p.name}));
   if(!t){
-    t={id:Date.now()+Math.floor(Math.random()*999),name,color:'#0f1f3d',
-       players:(fcbqPlayers||[]).map(p=>({dorsal:String(p.dorsal),name:p.name}))};
+    t={id:Date.now()+Math.floor(Math.random()*999),name,color:'#0f1f3d',players:incoming};
     S.teams.push(t);
     if(typeof toast==='function')toast(`➕ Equipo añadido: ${name}`);
+  }else{
+    // Fusionar: añadir jugadores nuevos que no estuvieran ya (por dorsal+nombre),
+    // para que la plantilla acumule todas las rotaciones vistas a lo largo de la liga.
+    t.players=t.players||[];
+    incoming.forEach(np=>{
+      if(!t.players.some(ep=>ep.name.toLowerCase()===np.name.toLowerCase()))t.players.push(np);
+    });
   }
   return t;
 }
@@ -5628,8 +5677,10 @@ async function importFromFCBQ(){
     const local=teams.find(t=>t.teamIdIntern===stats.localId)||teams[0]||{};
     const visit=teams.find(t=>t.teamIdIntern===stats.visitId)||teams[1]||{};
 
-    // Auto-añadir ambos equipos a la BD (con su plantilla) si no existen ya,
-    // así no hace falta pegar stats manuales para que parseMatch tenga jugadores.
+    // Auto-añadir/actualizar ambos equipos en la BD. IMPORTANTE: para el parseo
+    // usamos los jugadores de ESTE partido (rotaciones, ida/vuelta con distinta
+    // plantilla), no la plantilla vieja guardada — si no, faltan jugadores y el
+    // +/- y las stats salen mal (típico en clubes con mucha rotación como el Barça).
     _fcbqEnsureTeam(local.name,local.players);
     _fcbqEnsureTeam(visit.name,visit.players);
     if(typeof populateTeamSelects==='function')populateTeamSelects();
@@ -5637,16 +5688,20 @@ async function importFromFCBQ(){
 
     // Rellenar el formulario de importación
     const setV=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
-    // Si el equipo ya está en la BD, seleccionarlo (hereda plantilla); si no, texto libre
-    const pickTeam=(name,selId,txtId)=>{
-      const sel=document.getElementById(selId),txt=document.getElementById(txtId);
-      const found=S.teams.find(t=>t.name.toLowerCase()===(name||'').toLowerCase());
-      if(sel&&found){sel.value=found.id;if(txt)txt.value='';}
-      else{if(sel)sel.value='';if(txt)txt.value=name||'';}
+    // Formato de jugadores para el textarea: "#dorsal Nombre" por línea
+    const rosterText=(players)=>(players||[]).map(p=>`#${p.dorsal} ${p.name}`).join('\n');
+    // NO seleccionamos el equipo de la BD (usaría su plantilla fija). Ponemos el
+    // NOMBRE en el campo de texto y los JUGADORES DEL PARTIDO en el textarea de stats.
+    const setTeam=(name,selId,txtId,statsId,players)=>{
+      const sel=document.getElementById(selId),txt=document.getElementById(txtId),st=document.getElementById(statsId);
+      if(sel)sel.value='';               // no usar plantilla de BD
+      if(txt)txt.value=name||'';         // nombre del equipo (texto libre)
+      if(st)st.value=rosterText(players);// jugadores reales de este partido
     };
-    pickTeam(local.name,'i-home-sel','i-home-txt');
-    pickTeam(visit.name,'i-away-sel','i-away-txt');
-    if(typeof teamSelChange==='function'){teamSelChange('home');teamSelChange('away');}
+    setTeam(local.name,'i-home-sel','i-home-txt','i-hs',local.players);
+    setTeam(visit.name,'i-away-sel','i-away-txt','i-as',visit.players);
+    // Asegurar que los textareas de stats (con los jugadores del partido) sean visibles
+    ['i-hs-wrap','i-as-wrap'].forEach(id=>{const w=document.getElementById(id);if(w)w.style.display='block';});
     // Fecha: "Sep 27, 2025 8:00:00 PM" → dd/mm/yyyy
     if(stats.time){
       const d=new Date(stats.time);

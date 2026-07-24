@@ -90,15 +90,15 @@ textarea{resize:vertical;line-height:1.5}
   .tw>table{font-size:12px}
   .tw>table th{padding:9px 8px;font-size:10px}
   .tw>table td{padding:9px 8px}
-  .tw>table>thead>tr>th:first-child,
-  .tw>table>tbody>tr>td:first-child{position:sticky;left:0;z-index:3;width:34px;min-width:34px;max-width:34px}
-  .tw>table>thead>tr>th:nth-child(2),
-  .tw>table>tbody>tr>td:nth-child(2){position:sticky;left:34px;z-index:3;max-width:132px;overflow:hidden;text-overflow:ellipsis;
+  .tw:not(.pp-games)>table>thead>tr>th:first-child,
+  .tw:not(.pp-games)>table>tbody>tr>td:first-child{position:sticky;left:0;z-index:3;width:34px;min-width:34px;max-width:34px}
+  .tw:not(.pp-games)>table>thead>tr>th:nth-child(2),
+  .tw:not(.pp-games)>table>tbody>tr>td:nth-child(2){position:sticky;left:34px;z-index:3;max-width:132px;overflow:hidden;text-overflow:ellipsis;
     box-shadow:6px 0 8px -6px rgba(0,0,0,.28)}
-  .tw>table>tbody>tr>td:first-child,
-  .tw>table>tbody>tr>td:nth-child(2){background:var(--cd)}
-  .tw>table>thead>tr>th:first-child,
-  .tw>table>thead>tr>th:nth-child(2){background:var(--nv);z-index:6}
+  .tw:not(.pp-games)>table>tbody>tr>td:first-child,
+  .tw:not(.pp-games)>table>tbody>tr>td:nth-child(2){background:var(--cd)}
+  .tw:not(.pp-games)>table>thead>tr>th:first-child,
+  .tw:not(.pp-games)>table>thead>tr>th:nth-child(2){background:var(--nv);z-index:6}
 
   /* Filtros a pantalla completa */
   .fr{gap:6px}
@@ -123,8 +123,8 @@ textarea{resize:vertical;line-height:1.5}
   #pp-body{padding:12px 14px!important}
   .pp-kpis{grid-template-columns:repeat(3,1fr)!important}
   .pp-charts{grid-template-columns:1fr!important}
-  .pp-maps{grid-template-columns:1fr!important}
-  .pp-games{max-height:none!important}
+  .pp-maps{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .pp-games{max-height:340px!important}
 
   /* Vídeo */
   #v-video{max-height:46vh!important}
@@ -247,9 +247,14 @@ input[type=file]{display:none}
 }
 /* Perfil de jugador en móvil: apilar mapas y partido-a-partido, mapa más pequeño */
 @media(max-width:700px){
-  #pp-map-grid{grid-template-columns:1fr!important}
-  #pp-map-grid .cw{max-width:280px;margin:0 auto}
-  #pp-cv,#pp-cv2{max-width:280px!important}
+  #pp-map-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  #pp-map-grid .cw{max-width:100%;margin:0}
+  #pp-cv,#pp-cv2{width:100%!important;height:auto!important}
+  /* Gráficos del perfil: uno por fila para que sean grandes y deslizables */
+  .pp-charts{grid-template-columns:1fr!important}
+  /* Barra de scroll visible en los gráficos y la tabla del perfil */
+  .pp-scroll::-webkit-scrollbar,.pp-games::-webkit-scrollbar{height:7px}
+  .pp-scroll::-webkit-scrollbar-thumb,.pp-games::-webkit-scrollbar-thumb{background:rgba(15,31,61,.3);border-radius:7px}
 }
 
 /* ═══════════ MÓVIL: mejoras de lectura y navegación ═══════════ */
@@ -303,12 +308,11 @@ input[type=file]{display:none}
     min-height:100vh}
   #pp-header{position:sticky;top:0;z-index:10}
   #pp-body{padding:12px!important}
-  #pp-body .g2,#pp-map-grid{grid-template-columns:1fr!important}
+  #pp-body .g2{grid-template-columns:1fr!important}
   #pp-body>div[style*="grid-template-columns:repeat(6"]{grid-template-columns:repeat(3,1fr)!important}
 
   /* Gráficos del perfil: deslizables si no caben */
-  #pp-body svg{min-width:280px}
-  #pp-body div[style*="overflow-x"]{-webkit-overflow-scrolling:touch}
+  #pp-body div[style*="overflow-x"],.pp-scroll{-webkit-overflow-scrolling:touch}
 
   /* Indicador de swipe entre pestañas */
   .swipe-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
@@ -2013,14 +2017,18 @@ function parseCrono(txt,hPl,aPl){
     let scanCur=null,scanPeriod=1;
     for(let k=0;k<lines.length;k++){
       const l=lines[k];
-      // Detectar cambio de período mirando las líneas de metadatos
-      const pm=l.match(/^Per[íi]ode?:\s*(\d+)/i)||l.match(/^Período:\s*(\d+)/);
-      if(pm){scanPeriod=parseInt(pm[1]);}
-      else if(/^Per[íi]ode?:?$/i.test(l)&&k+1<lines.length&&/^\d+$/.test(lines[k+1])){scanPeriod=parseInt(lines[k+1]);}
+      // Detectar cambio de período. OJO: _fcbqMovesToCrono genera " Període: " con
+      // espacio inicial y el número en la LÍNEA SIGUIENTE, así que toleramos ambos.
+      const lt=l.trim();
+      const pmSame=lt.match(/^Per[íi]ode?:\s*(\d+)/i);
+      if(pmSame){scanPeriod=parseInt(pmSame[1]);}
+      else if(/^Per[íi]ode?:?$/i.test(lt)&&k+1<lines.length&&/^\d+$/.test(lines[k+1].trim())){
+        scanPeriod=parseInt(lines[k+1].trim());
+      }
       if(scanPeriod>=2)break; // solo nos interesa el Q1 para el quinteto inicial
       if(/^#\d+\s+/.test(l)){scanCur=l.replace(/^#\d+\s+/,'');continue;}
       if(!scanCur||!byName[scanCur])continue; // ignora eventos de equipo (nombre no está en byName)
-      if(/^Min:|^Per|^Marcador:|^\d+$|^\d+-\d+$/.test(l))continue;
+      if(/^Min:|^Per|^Marcador:|^\d+$|^\d+-\d+$/.test(lt))continue;
       if(/entra al camp/i.test(l)){seenIn.add(scanCur);}
       else if(/surt del camp/i.test(l)){/* salida: no afecta a la detección de titular */}
       else if(/cistella|intent fallat|personal|falta|pèrdua|rebot|assist|tap|salt|tècnica/i.test(l)){
@@ -4238,46 +4246,47 @@ function _parseDMY(d){ // "27/09/2025 18:00" → timestamp
 }
 
 // Tiny SVG chart helpers (no libraries)
-function _svgBars(values,labels,{color='#e8402a',neg=false,h=110}={}){
+function _svgBars(values,labels,{color='#e8402a',neg=false,h=150}={}){
   const n=values.length;if(!n)return'';
-  const W=Math.max(220,n*46),PB=18,PT=14;
+  const BW=54; // ancho fijo por partido → el gráfico crece y se desliza, no se comprime
+  const W=Math.max(240,n*BW),PB=22,PT=18;
   const maxV=Math.max(...values.map(v=>Math.abs(v)),1);
   const zero=neg?(h-PB+PT)/2:h-PB;
   const scale=(neg?(h-PB-PT)/2:(h-PB-PT))/maxV;
-  let s=`<svg viewBox="0 0 ${W} ${h}" style="width:100%;max-width:${W}px">`;
+  // Ancho REAL en px (no 100%) para que las barras no se aplasten; el wrapper hace scroll.
+  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block">`;
   if(neg)s+=`<line x1="0" y1="${zero}" x2="${W}" y2="${zero}" stroke="#cbd5e1" stroke-width="1"/>`;
   values.forEach((v,i)=>{
-    const x=i*(W/n)+(W/n-26)/2;
+    const bw=30,x=i*BW+(BW-bw)/2;
     const bh=Math.max(2,Math.abs(v)*scale);
     const y=v>=0?zero-bh:zero;
     const col=neg?(v>=0?'#16a34a':'#dc2626'):color;
-    s+=`<rect x="${x}" y="${y}" width="26" height="${bh}" rx="4" fill="${col}"/>`;
-    s+=`<text x="${x+13}" y="${v>=0?y-4:y+bh+11}" text-anchor="middle" font-size="10" font-weight="800" fill="#0f172a">${v}</text>`;
-    s+=`<text x="${x+13}" y="${h-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${labels[i]||''}</text>`;
+    s+=`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="${col}"/>`;
+    s+=`<text x="${x+bw/2}" y="${v>=0?y-5:y+bh+13}" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">${v}</text>`;
+    s+=`<text x="${x+bw/2}" y="${h-5}" text-anchor="middle" font-size="9" fill="#94a3b8">${labels[i]||''}</text>`;
   });
   return s+'</svg>';
 }
-function _svgLines(series,labels,{h=110}={}){ // series: [{name,color,values(null=no attempt)}]
+function _svgLines(series,labels,{h=150}={}){ // series: [{name,color,values(null=no attempt)}]
   const n=labels.length;if(!n)return'';
-  const W=Math.max(220,n*46),PB=18,PT=12;
-  let s=`<svg viewBox="0 0 ${W} ${h}" style="width:100%;max-width:${W}px">`;
+  const BW=54;
+  const W=Math.max(240,n*BW),PB=22,PT=16;
+  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block">`;
   [0,50,100].forEach(g=>{
     const y=h-PB-(g/100)*(h-PB-PT);
-    s+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#f0f4f8" stroke-width="1"/><text x="2" y="${y-2}" font-size="7" fill="#cbd5e1">${g}%</text>`;
+    s+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#f0f4f8" stroke-width="1"/><text x="2" y="${y-2}" font-size="8" fill="#cbd5e1">${g}%</text>`;
   });
-  const X=i=>i*(W/n)+(W/n)/2;
+  const X=i=>i*BW+BW/2;
   const Y=v=>h-PB-(Math.min(100,v)/100)*(h-PB-PT);
   series.forEach(sr=>{
-    const pts=sr.values.map((v,i)=>v==null?null:`${X(i)},${Y(v)}`);
-    // draw segments skipping nulls
     let path='';let open=false;
-    pts.forEach(p=>{if(p==null){open=false;return;}path+=(open?' L':' M')+p;open=true;});
+    sr.values.map((v,i)=>v==null?null:`${X(i)},${Y(v)}`).forEach(p=>{if(p==null){open=false;return;}path+=(open?' L':' M')+p;open=true;});
     s+=`<path d="${path.trim()}" fill="none" stroke="${sr.color}" stroke-width="2.5" stroke-linecap="round"/>`;
     sr.values.forEach((v,i)=>{if(v==null)return;
-      s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${sr.color}"/>`;
-      s+=`<text x="${X(i)}" y="${Y(v)-7}" text-anchor="middle" font-size="9" font-weight="800" fill="${sr.color}">${v}</text>`;});
+      s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="${sr.color}"/>`;
+      s+=`<text x="${X(i)}" y="${Y(v)-8}" text-anchor="middle" font-size="10" font-weight="800" fill="${sr.color}">${v}</text>`;});
   });
-  labels.forEach((l,i)=>{s+=`<text x="${X(i)}" y="${h-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${l}</text>`;});
+  labels.forEach((l,i)=>{s+=`<text x="${X(i)}" y="${h-5}" text-anchor="middle" font-size="9" fill="#94a3b8">${l}</text>`;});
   return s+'</svg>';
 }
 
@@ -4325,7 +4334,7 @@ function openPlayerProfile(name,team){
 
   const labels=games.map((g,i)=>g.date?g.date.slice(0,5):('P'+(i+1)));
   const kpi=(v,l,s2)=>`<div class="kpi" style="padding:9px 6px"><div class="kv" style="font-size:19px">${v}</div><div class="kl">${l}</div>${s2?`<div class="ks">${s2}</div>`:''}</div>`;
-  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div style="overflow-x:auto">${inner}</div></div>`;
+  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div class="pp-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch">${inner}</div></div>`;
 
   document.getElementById('pp-body').innerHTML=`
     <div class="pp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
@@ -4346,30 +4355,32 @@ function openPlayerProfile(name,team){
       ${chart('⏱ Minutos por partido',_svgBars(games.map(g=>Math.round(g.min||0)),labels,{color:'#0f1f3d'}))}
       ${chart('📈 +/- por partido',_svgBars(games.map(g=>g.pm||0),labels,{neg:true}))}
     </div>
-    <div class="pp-maps" style="display:grid;grid-template-columns:300px 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
+    <div class="pp-maps" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
       <div>
         <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro <span style="font-weight:600" id="pp-shot-count"></span></div>
         <div class="cw"><canvas id="pp-cv"></canvas></div>
-        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin:8px 0 4px">% por zona</div>
-        <div class="cw"><canvas id="pp-cv2"></canvas></div>
       </div>
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido</div>
-        <div class="pp-games tw" style="max-height:260px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">
-          <thead><tr style="background:#1e293b;position:sticky;top:0">${['Rival','','MIN','PTS','TL','T2','T3','FC','+/-'].map(h=>`<th style="padding:4px 7px;text-align:left;color:#fff">${h}</th>`).join('')}</tr></thead>
-          <tbody>${games.slice().reverse().map(g=>`<tr style="border-top:1px solid #f0f4f8">
-            <td style="padding:4px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.opp}${g.starter?' <span style="color:#f59e0b">★</span>':''}</td>
-            <td style="padding:4px 7px"><span style="font-weight:800;color:${g.res==='W'?'#15803d':g.res==='L'?'#dc2626':'#64748b'}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
-            <td style="padding:4px 7px">${Math.round(g.min)||'—'}</td>
-            <td style="padding:4px 7px;font-weight:800">${g.pts||0}</td>
-            <td style="padding:4px 7px">${(g.tlMade||0)}/${(g.tlAtt||0)}</td>
-            <td style="padding:4px 7px">${(g.t2Made||0)}/${(g.t2Att||0)}</td>
-            <td style="padding:4px 7px">${(g.t3Made||0)}/${(g.t3Att||0)}</td>
-            <td style="padding:4px 7px">${g.fc||0}</td>
-            <td style="padding:4px 7px;font-weight:800;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
-          </tr>`).join('')}</tbody>
-        </table></div>
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🎯 % por zona</div>
+        <div class="cw"><canvas id="pp-cv2"></canvas></div>
       </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
+      <div class="pp-games tw" style="max-height:340px;overflow:auto"><table style="min-width:520px;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#0f172a;position:sticky;top:0;z-index:2">${['Rival','Res','MIN','PTS','TL','T2','T3','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap">${h}</th>`).join('')}</tr></thead>
+        <tbody>${games.slice().reverse().map(g=>`<tr style="border-top:1px solid #eef2f7">
+          <td style="padding:7px 9px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.opp}${g.starter?' <span style="color:#f59e0b">★</span>':''}</td>
+          <td style="padding:7px 9px;white-space:nowrap"><span style="font-weight:800;color:${g.res==='W'?'#15803d':g.res==='L'?'#dc2626':'#64748b'}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
+          <td style="padding:7px 9px">${Math.round(g.min)||'—'}</td>
+          <td style="padding:7px 9px;font-weight:800">${g.pts||0}</td>
+          <td style="padding:7px 9px;white-space:nowrap">${(g.tlMade||0)}/${(g.tlAtt||0)}</td>
+          <td style="padding:7px 9px;white-space:nowrap">${(g.t2Made||0)}/${(g.t2Att||0)}</td>
+          <td style="padding:7px 9px;white-space:nowrap">${(g.t3Made||0)}/${(g.t3Att||0)}</td>
+          <td style="padding:7px 9px">${g.fc||0}</td>
+          <td style="padding:7px 9px;font-weight:800;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
     </div>`;
 
   // Draw the shot map

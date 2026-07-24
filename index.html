@@ -147,6 +147,16 @@ textarea{resize:vertical;line-height:1.5}
 .ks{font-size:10px;color:var(--t2);margin-top:2px}
 /* TABLES */
 .tw{overflow-x:auto;border-radius:7px;border:1px solid var(--bd)}
+/* Perfil de jugador: los contenedores de gráficos deben limitar su ancho y
+   deslizar (no expandirse con el SVG). min-width:0 evita el desborde en grid. */
+.pp-charts{min-width:0}
+.pp-charts>div{min-width:0;overflow:hidden}
+.pp-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.pp-scroll::-webkit-scrollbar{height:8px}
+.pp-scroll::-webkit-scrollbar-thumb{background:rgba(15,31,61,.32);border-radius:8px}
+.pp-scroll::-webkit-scrollbar-track{background:rgba(15,31,61,.05)}
+.pp-scroll{scrollbar-width:thin;scrollbar-color:rgba(15,31,61,.32) transparent}
+.pp-games{max-width:100%}
 table{border-collapse:collapse;width:100%;font-size:11px}
 thead th{background:var(--nv);color:#fff;padding:6px 7px;text-align:left;font-size:10px;font-weight:700;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
 thead th:hover{background:var(--nv2)}
@@ -4254,7 +4264,7 @@ function _svgBars(values,labels,{color='#e8402a',neg=false,h=150}={}){
   const zero=neg?(h-PB+PT)/2:h-PB;
   const scale=(neg?(h-PB-PT)/2:(h-PB-PT))/maxV;
   // Ancho REAL en px (no 100%) para que las barras no se aplasten; el wrapper hace scroll.
-  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block">`;
+  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block;min-width:${W}px;flex-shrink:0">`;
   if(neg)s+=`<line x1="0" y1="${zero}" x2="${W}" y2="${zero}" stroke="#cbd5e1" stroke-width="1"/>`;
   values.forEach((v,i)=>{
     const bw=30,x=i*BW+(BW-bw)/2;
@@ -4271,7 +4281,7 @@ function _svgLines(series,labels,{h=150}={}){ // series: [{name,color,values(nul
   const n=labels.length;if(!n)return'';
   const BW=54;
   const W=Math.max(240,n*BW),PB=22,PT=16;
-  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block">`;
+  let s=`<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" style="display:block;min-width:${W}px;flex-shrink:0">`;
   [0,50,100].forEach(g=>{
     const y=h-PB-(g/100)*(h-PB-PT);
     s+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#f0f4f8" stroke-width="1"/><text x="2" y="${y-2}" font-size="8" fill="#cbd5e1">${g}%</text>`;
@@ -4334,7 +4344,7 @@ function openPlayerProfile(name,team){
 
   const labels=games.map((g,i)=>g.date?g.date.slice(0,5):('P'+(i+1)));
   const kpi=(v,l,s2)=>`<div class="kpi" style="padding:9px 6px"><div class="kv" style="font-size:19px">${v}</div><div class="kl">${l}</div>${s2?`<div class="ks">${s2}</div>`:''}</div>`;
-  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div class="pp-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch">${inner}</div></div>`;
+  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px;overflow:hidden;min-width:0"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div class="pp-scroll">${inner}</div></div>`;
 
   document.getElementById('pp-body').innerHTML=`
     <div class="pp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
@@ -4345,7 +4355,7 @@ function openPlayerProfile(name,team){
       ${kpi((pm>0?'+':'')+pm,'+/- total','')}
       ${kpi(fc,'Faltas','')}
     </div>
-    <div class="pp-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="pp-charts" style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px">
       ${chart('🏀 Puntos por partido',_svgBars(games.map(g=>g.pts||0),labels))}
       ${chart('🎯 % de tiro por partido <span style="font-weight:600;text-transform:none;letter-spacing:0">· <span style="color:#e8402a">●</span> T2 <span style="color:#0ea5e9">●</span> T3</span>',
         _svgLines([
@@ -4357,7 +4367,7 @@ function openPlayerProfile(name,team){
     </div>
     <div class="pp-maps" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro <span style="font-weight:600" id="pp-shot-count"></span></div>
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro</div>
         <div class="cw"><canvas id="pp-cv"></canvas></div>
       </div>
       <div>
@@ -4389,9 +4399,6 @@ function openPlayerProfile(name,team){
     if(myShots.length>=5)drawHeatmap('pp-cv',myShots);
     else{cv.width=CW;cv.height=CH;drawCourt(cv.getContext('2d'));drawShots(cv.getContext('2d'),myShots);}
     drawZoneMap('pp-cv2',myShots);
-    const made=myShots.filter(s=>s.made).length;
-    const cnt=document.getElementById('pp-shot-count');
-    if(cnt)cnt.textContent=myShots.length?`· ${made}/${myShots.length} ubicados (${Math.round(made/myShots.length*100)}%)`:'· sin tiros ubicados';
   }
   document.getElementById('player-modal').style.display='flex';
  }catch(e){console.error('openPlayerProfile:',e);toast('Error abriendo el perfil: '+e.message,'err');}

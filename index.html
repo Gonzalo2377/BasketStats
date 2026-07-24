@@ -270,8 +270,24 @@ input[type=file]{display:none}
   .tsk table th:nth-child(1),.tsk table td:nth-child(1){min-width:32px;padding-left:6px;padding-right:2px}
 
   /* Filas y celdas más cómodas al dedo */
-  .tw table td,.tw table th{padding:8px 7px;font-size:11.5px}
+  .tw table td,.tw table th{padding:8px 7px;font-size:11.5px;white-space:nowrap}
   .tw{max-height:none}
+
+  /* CLAVE: la tabla NO se comprime para caber. Mantiene columnas legibles y
+     el wrapper .tw se desplaza horizontalmente con barra visible. Así no hay
+     que hacer zoom en el móvil para leer minutos, puntos, %, etc. */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tw table{min-width:640px;width:auto}
+  /* Tablas de stats con muchas columnas necesitan más ancho para no comprimirse */
+  #st-agg-wrap table,#st-all-wrap table{min-width:820px}
+  /* Barra de scroll visible y cómoda en móvil */
+  .tw::-webkit-scrollbar{height:8px;-webkit-appearance:none}
+  .tw::-webkit-scrollbar-thumb{background:rgba(15,31,61,.35);border-radius:8px}
+  .tw::-webkit-scrollbar-track{background:rgba(15,31,61,.06)}
+  .tw{scrollbar-width:thin;scrollbar-color:rgba(15,31,61,.35) transparent}
+
+  /* Pista visual de que la tabla se puede deslizar (sombra en el borde derecho) */
+  .tw{position:relative;background-image:linear-gradient(to left,rgba(15,31,61,.08),transparent 24px);background-position:right;background-repeat:no-repeat;background-attachment:local}
 
   /* Filtros: uno por línea, altura táctil */
   .fr{gap:6px}

@@ -403,7 +403,7 @@ input[type=file]{display:none}
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Bascat<span>App</span></div>
-  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0807</span>
+  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0902</span>
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
@@ -1017,7 +1017,8 @@ input[type=file]{display:none}
         <th onclick="stAggSort('stl')" style="cursor:pointer" title="Robos">STL</th>
         <th onclick="stAggSort('blk')" style="cursor:pointer" title="Tapones">BLK</th>
         <th onclick="stAggSort('to')" style="cursor:pointer" title="Pérdidas">TO</th>
-        <th onclick="stAggSort('fc')" style="cursor:pointer" title="Ordenar">FC</th>
+        <th onclick="stAggSort('fc')" style="cursor:pointer" title="Faltas cometidas">FC</th>
+        <th onclick="stAggSort('fr')" style="cursor:pointer" title="Faltas recibidas">FR</th>
         <th onclick="stAggSort('val')" style="cursor:pointer" title="Ordenar">VAL</th>
         <th onclick="stAggSort('pm')" style="cursor:pointer" title="Ordenar">+/-</th>
         <th></th>
@@ -1057,7 +1058,7 @@ input[type=file]{display:none}
     <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Partit</label><select id="db-mf" onchange="renderDash()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
-    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="db-q" oninput="renderDash()" placeholder="nombre o dorsal…" style="width:100%"></div>
+    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="db-search" oninput="renderDash()" placeholder="nombre o dorsal…" style="width:100%"></div>
     <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option><option value="zones">Mapa por zonas (%)</option></select></div>
   </div>
 </div>
@@ -1090,12 +1091,12 @@ input[type=file]{display:none}
     <div class="tw tsk"><table><thead><tr>
       <th>#</th><th>Jugador</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">P ⇅</th>
       <th onclick="clSort('min')" style="cursor:pointer">MIN ⇅</th>
-      <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th>
+      <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th><th onclick="clSort('ppg')" style="cursor:pointer">PTS/P ⇅</th>
       <th onclick="clSort('t2p')" style="cursor:pointer">T2% ⇅</th>
       <th onclick="clSort('t3p')" style="cursor:pointer">T3% ⇅</th>
       <th onclick="clSort('tlp')" style="cursor:pointer">TL% ⇅</th>
       <th onclick="clSort('reb')" style="cursor:pointer">REB ⇅</th>
-      <th onclick="clSort('ast')" style="cursor:pointer">AST ⇅</th>
+      <th onclick="clSort('ast')" style="cursor:pointer">AST ⇅</th><th onclick="clSort('stl')" style="cursor:pointer">STL ⇅</th><th onclick="clSort('blk')" style="cursor:pointer">BLK ⇅</th><th onclick="clSort('to')" style="cursor:pointer">TO ⇅</th>
       <th onclick="clSort('fc')" style="cursor:pointer">FC ⇅</th>
       <th onclick="clSort('pm')" style="cursor:pointer">+/- ⇅</th>
       <th onclick="clSort('per10')" style="cursor:pointer">+/-/10min ⇅</th>
@@ -1903,61 +1904,71 @@ function closeSP(made){
 // ─── SMART FOUL POPUP ─────────────────────────────────────────────────────
 function showFoulPopup(fouledBy,fouledByTeam){
   const shooterTeam=fouledByTeam==='home'?'away':'home';
-  // Players on court for the rival team
+  // Jugadores del RIVAL en pista: son los que pueden haber recibido la falta
   const courtPl=[...lv.onCourt[shooterTeam]]
-    .map(n=>lv.pl[shooterTeam].find(p=>p.name===n))
-    .filter(Boolean);
-  // All rival players if court is empty
-  const shooterOptions=courtPl.length>0?courtPl:lv.pl[shooterTeam];
+    .map(n=>lv.pl[shooterTeam].find(p=>p.name===n)).filter(Boolean);
+  const opciones=courtPl.length>0?courtPl:lv.pl[shooterTeam];
+  window._foulCtx={fouledBy,fouledByTeam,shooterTeam,nTL:0,shooter:null};
 
   const popup=document.getElementById('shot-popup');
   const inner=document.getElementById('shot-popup-inner');
-  window._foulCtx={fouledBy,fouledByTeam,shooterTeam,nTL:0,shooter:null};
-
+  // PASO 1: ¿quién recibe la falta? (un toque, sin confirmar)
   inner.innerHTML=`
-    <div style="font-weight:700;color:var(--tx);font-size:13px;text-align:center;margin-bottom:8px">
-      ⚠️ Falta de <b>${fouledBy.split(' ')[0]}</b>
+    <div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:2px">⚠️ Falta de ${_esc(fouledBy.split(' ')[0])}</div>
+    <div style="font-size:10.5px;color:var(--t3);text-align:center;margin-bottom:9px">¿A quién se la hace?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${opciones.map((p,ix)=>`<button onclick="foulVictimSel(${ix})"
+        style="display:flex;align-items:center;gap:6px;background:#eff6ff;border:2px solid #3b82f6;border-radius:10px;padding:11px 8px;cursor:pointer;text-align:left">
+        <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800;flex-shrink:0">#${_esc(p.dorsal)}</span>
+        <span style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(p.name.split(' ')[0])}</span>
+      </button>`).join('')}
     </div>
-    <div style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:6px">¿Cuántos tiros libres?</div>
-    <div style="display:flex;gap:7px;justify-content:center;margin-bottom:10px">
+    <button onclick="foulVictimSel(-1)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:9px;font-size:12px;font-weight:600;cursor:pointer">Sin especificar / falta en ataque</button>`;
+  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:15px;border:2px solid var(--bd);display:block;min-width:270px;max-width:350px;max-height:88vh;overflow-y:auto';
+  window._foulOpciones=opciones;
+}
+
+// PASO 2: elegido quién la recibe → preguntar cuántos tiros libres
+function foulVictimSel(ix){
+  const c=window._foulCtx;if(!c)return;
+  const p=ix>=0?(window._foulOpciones||[])[ix]:null;
+  if(p){
+    c.shooter=p.name;
+    // Registrar la falta recibida en las estadísticas del que la recibe
+    const st=lv.st[c.shooterTeam]?.[p.name];
+    if(st)st.fr=(st.fr||0)+1;
+  }
+  const inner=document.getElementById('shot-popup-inner');
+  inner.innerHTML=`
+    <div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:2px">⚠️ Falta de ${_esc(c.fouledBy.split(' ')[0])}</div>
+    <div style="font-size:10.5px;color:var(--t3);text-align:center;margin-bottom:9px">${p?'sobre <b>'+_esc(p.name.split(' ')[0])+'</b> · ':''}¿cuántos tiros libres?</div>
+    <div style="display:flex;gap:8px;justify-content:center">
       ${[0,1,2,3].map(n=>`<button onclick="setFoulTL(${n})"
-        style="width:54px;height:54px;border-radius:12px;font-size:22px;font-weight:900;cursor:pointer;border:2.5px solid ${n===0?'#cbd5e1':'#3b82f6'};background:${n===0?'#f1f5f9':n===1?'#dbeafe':n===2?'#bfdbfe':'#93c5fd'};color:${n===0?'var(--t2)':'#1e3a8a'};transition:all .12s"
-        onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">${n}</button>`).join('')}
+        style="width:58px;height:58px;border-radius:13px;font-size:23px;font-weight:900;cursor:pointer;border:2.5px solid ${n===0?'#cbd5e1':'#3b82f6'};background:${n===0?'#f1f5f9':n===1?'#dbeafe':n===2?'#bfdbfe':'#93c5fd'};color:${n===0?'var(--t2)':'#1e3a8a'}">${n}</button>`).join('')}
     </div>
-    <div id="fl-shooter-wrap" style="display:none">
-      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px">¿Quién tira? (▶ en pista)</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;max-height:180px;overflow-y:auto" id="fl-shooter-grid"></div>
-    </div>
-    <button onclick="closeSP(null)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:7px;padding:5px;font-size:11px;cursor:pointer">✕ Cancelar</button>`;
-  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:16px;border:2px solid var(--bd);display:block;min-width:260px;max-width:320px';
-
-  // Populate shooter grid
-  const grid=document.getElementById('fl-shooter-grid');
-  if(grid) grid.innerHTML=shooterOptions.map(p=>{
-    const onc=lv.onCourt[shooterTeam].has(p.name);
-    return `<button class="pb${onc?' on':''}" onclick="foulShooterSel('${p.name.replace(/'/g,"\'")}')"
-      style="justify-content:flex-start">
-      <span class="d" style="background:${onc?'var(--gn)':'var(--nv)'}">#${p.dorsal}</span>
-      <span style="font-size:10px">${p.name.split(' ')[0]}</span>
-      ${onc?'<span style="margin-left:auto;font-size:9px;color:var(--gn)">▶</span>':''}
-    </button>`;
-  }).join('');
-
-  // Outside click to close
-  setTimeout(()=>{
-    function outside(ev){if(!popup.contains(ev.target)){closeSP(null);document.removeEventListener('click',outside);}}
-    document.addEventListener('click',outside);
-  },200);
+    <button onclick="closeSP(null)" style="width:100%;margin-top:10px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✕ Cerrar</button>`;
 }
 
 function setFoulTL(n){
-  window._foulCtx.nTL=n;
+  const c=window._foulCtx;if(!c)return;
+  c.nTL=n;
+  rLvAll();svL();
   if(n===0){closeSP(null);return;}
-  // Show shooter grid
-  const wrap=document.getElementById('fl-shooter-wrap');
-  if(wrap)wrap.style.display='block';
-  // Scroll popup into view
-  document.getElementById('shot-popup').scrollTop=0;
+  // Si no se indicó quién la recibe, hay que elegir el tirador ahora
+  if(!c.shooter){
+    const opts=window._foulOpciones||[];
+    const inner=document.getElementById('shot-popup-inner');
+    inner.innerHTML=`<div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:9px">¿Quién tira los ${n} tiros libres?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${opts.map((p,ix)=>`<button onclick="foulShooterSel('${p.name.replace(/'/g,"\\'")}')"
+          style="display:flex;align-items:center;gap:6px;background:#eff6ff;border:2px solid #3b82f6;border-radius:10px;padding:11px 8px;cursor:pointer;text-align:left">
+          <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800">#${_esc(p.dorsal)}</span>
+          <span style="font-size:12px;font-weight:700">${_esc(p.name.split(' ')[0])}</span></button>`).join('')}
+      </div>`;
+    return;
+  }
+  closeSP(null);
+  askTL(c.shooter,n);
 }
 
 function foulShooterSel(name){
@@ -2863,7 +2874,7 @@ function startLive(){
   lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
   if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
   lv.st={home:{},away:{}};lv.periodScores=[];
-  ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0};}));
+  ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,fr:0,tech:0,anti:0};}));
   lv.timer={running:false,seconds:600,interval:null};
   lv.score={home:0,away:0};lv.period=1;lv.curMin=0;
   lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
@@ -3029,7 +3040,7 @@ function _lvEventLabel(ev){
 // lo tiene, se reparte entre todos como respaldo.
 function _lvReplay(){
   ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{
-    lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0,
+    lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,tech:0,anti:0,fr:0,
       min:lv.st[t][p.name]?.min||0,sec:lv.st[t][p.name]?.sec||0};
   }));
   lv.score={home:0,away:0};
@@ -3759,6 +3770,7 @@ function _renderStPlusMinus(scoped,m){
   });
   // Total exacto = todas las canastas con el jugador en pista
   const totalPM=scoring.filter(onCourtAt).reduce((a2,e)=>a2+deltaOf(e),0);
+  const totalOn=segs.reduce((a2,sg)=>a2+sg.min,0);   // minutos totales en pista
   // Valor que muestra la tabla, para poder avisar si no cuadra
   const plRow=((side==='home'?m.homePlayers:m.awayPlayers)||[]).find(p=>p.name===player);
   const tablePM=plRow?(plRow.pm||0):null;
@@ -3864,6 +3876,11 @@ function _renderStPlusMinus(scoped,m){
           <td style="text-align:center">${Math.round(sg.min)}</td>
           <td style="text-align:center;font-weight:800;color:${sg.pm>0?'var(--gn)':sg.pm<0?'#dc2626':'inherit'}">${sg.pm>0?'+':''}${sg.pm}</td>
         </tr>`).join('')||'<tr><td colspan="5" class="no-d">Sin datos de entradas y salidas para este jugador</td></tr>'}</tbody>
+        ${segs.length?`<tfoot><tr style="border-top:2px solid var(--bd);background:var(--bg)">
+          <td colspan="3"><b>TOTAL DEL PARTIDO</b></td>
+          <td style="text-align:center;font-weight:800">${Math.round(totalOn)}'</td>
+          <td style="text-align:center;font-weight:900;font-size:14px;color:${totalPM>0?'var(--gn)':totalPM<0?'#dc2626':'inherit'}">${totalPM>0?'+':''}${totalPM}</td>
+        </tr></tfoot>`:''}
       </table></div>
     </div>`;
 }
@@ -4089,7 +4106,7 @@ function renderDash(){
   let filt=all;if(tfEff)filt=filt.filter(p=>p.team===tfEff);
   // Buscador de texto (nombre o dorsal, ignorando acentos)
   const dnorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const dq=dnorm(document.getElementById('db-q')?.value.trim());
+  const dq=dnorm(document.getElementById('db-search')?.value.trim());
   if(dq)filt=filt.filter(p=>dnorm(p.name).includes(dq)||String(p.dorsal||'').includes(dq));
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
   // Jugador encadenado al equipo/partido: si el que estaba elegido ya no existe
@@ -4637,13 +4654,13 @@ function renderStatsAggregated(){
       if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
       const key=p.name+'|'+p.team;
       if(!playerMap[key]){
-        playerMap[key]={name:p.name,dorsal:p.dorsal,team:p.team,pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,reb:0,ast:0,fc:0,pm:0,val:0,min:0,games:[]};
+        playerMap[key]={name:p.name,dorsal:p.dorsal,team:p.team,pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,reb:0,ast:0,stl:0,blk:0,to:0,fr:0,fc:0,pm:0,val:0,min:0,games:[]};
       }
       const agg=playerMap[key];
       agg.pts+=(p.pts||0);agg.t2Made+=(p.t2Made||0);agg.t2Att+=(p.t2Att||0);
       agg.t3Made+=(p.t3Made||0);agg.t3Att+=(p.t3Att||0);
       agg.tlMade+=(p.tlMade||0);agg.tlAtt+=(p.tlAtt||0);
-      agg.reb+=(p.reb||0);agg.ast+=(p.ast||0);agg.fc+=(p.fc||0);
+      agg.reb+=(p.reb||0);agg.ast+=(p.ast||0);agg.stl+=(p.stl||0);agg.blk+=(p.blk||0);agg.to+=(p.to||0);agg.fr+=(p.fr||0);agg.fc+=(p.fc||0);
       agg.pm+=(p.pm||0);agg.val+=(p.val||0);agg.min+=(p.min||0);
       agg.games.push(p);
     });
@@ -4661,7 +4678,7 @@ function renderStatsAggregated(){
       case 'team':return p.team.toLowerCase();
       case 'min':return p.min||0;
       case 'pts':return p.pts||0;
-      case 'ppg':return p.g?(p.pts||0)/p.g:0;
+      case 'ppg':return (p.games&&p.games.length)?(p.pts||0)/p.games.length:0;
       case 'tl':return p.tlAtt?p.tlMade/p.tlAtt:-1;
       case 'tlm':return p.tlMade||0;
       case 't2':return p.t2Att?p.t2Made/p.t2Att:-1;
@@ -4674,6 +4691,7 @@ function renderStatsAggregated(){
       case 'blk':return p.blk||0;
       case 'to':return p.to||0;
       case 'fc':return p.fc||0;
+      case 'fr':return p.fr||0;
       case 'val':return p.val||0;
       case 'pm':return p.pm||0;
       default:return p.pts||0;
@@ -4708,7 +4726,7 @@ function renderStatsAggregated(){
       <td style="padding:5px 6px">${p.stl||'—'}</td>
       <td style="padding:5px 6px">${p.blk||'—'}</td>
       <td style="padding:5px 6px">${p.to||'—'}</td>
-      <td style="padding:5px 6px">${p.fc}</td>
+      <td style="padding:5px 6px">${p.fc}</td><td style="padding:5px 6px">${p.fr||'—'}</td>
       <td style="padding:5px 6px;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val}</td>
       <td style="padding:5px 6px;font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
       <td style="padding:5px 6px;color:var(--t3);font-size:11px" title="Ver perfil del jugador">👤</td>
@@ -4738,7 +4756,7 @@ function renderStatsAggregated(){
   // Indicadores de orden (▲▼) en la cabecera activa
   const head=document.getElementById('st-agg-head');
   if(head){
-    const map={name:1,team:2,min:3,pts:4,ppg:5,tlm:6,tl:7,t2m:8,t2:9,t3m:10,t3:11,reb:12,ast:13,stl:14,blk:15,to:16,fc:17,val:18,pm:19};
+    const map={name:1,team:2,min:3,pts:4,ppg:5,tlm:6,tl:7,t2m:8,t2:9,t3m:10,t3:11,reb:12,ast:13,stl:14,blk:15,to:16,fc:17,fr:18,val:19,pm:20};
     [...head.children].forEach(th=>{th.querySelector('.sar')?.remove();});
     const idx=map[_stAggSort.field];
     if(idx!=null&&head.children[idx]){
@@ -6050,7 +6068,7 @@ const _MEDIT_COLS=[
   {k:'t2Made',label:'T2✓'},{k:'t2Att',label:'T2i'},
   {k:'t3Made',label:'T3✓'},{k:'t3Att',label:'T3i'},
   {k:'reb',  label:'REB'},{k:'ast',label:'AST'},
-  {k:'fc',   label:'FC'}, {k:'pm', label:'+/-'},
+  {k:'fc',   label:'FC'}, {k:'fr', label:'FR'}, {k:'pm', label:'+/-'},
 ];
 
 function openMatchEdit(id){
@@ -7230,7 +7248,17 @@ function _clRenderRows(){
   const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
   const pctMA=(m,a)=>a?`${Math.round(m/a*100)}% <span style="color:var(--t3);font-weight:400;font-size:10px">${m}/${a}</span>`:'—';
   const arr=[..._clPlayers];
-  arr.sort((a,b)=>_clSortDir===-1?(b[_clSortF]??-1e9)-(a[_clSortF]??-1e9):(a[_clSortF]??1e9)-(b[_clSortF]??1e9));
+  // Campos derivados (no existen como propiedad): puntos por partido y porcentajes
+  const valOf=(p)=>{
+    switch(_clSortF){
+      case 'ppg':return p.g?(p.pts||0)/p.g:0;
+      case 't2m':return p.t2a?p.t2m/p.t2a:-1;
+      case 't3m':return p.t3a?p.t3m/p.t3a:-1;
+      case 'tlm':return p.tla?p.tlm/p.tla:-1;
+      default:return p[_clSortF];
+    }
+  };
+  arr.sort((a,b)=>_clSortDir===-1?(valOf(b)??-1e9)-(valOf(a)??-1e9):(valOf(a)??1e9)-(valOf(b)??1e9));
   tb.innerHTML=arr.map(p=>`<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
       <td>#${p.dorsal}</td>
       <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}</td>
@@ -7918,6 +7946,7 @@ function _fcbqApplyMinutes(match,stats){
         min: typeof p.timePlayed==='number'?p.timePlayed:null,
         reb: n(d.rebounds), ro: n(d.offensiveRebound), rd: n(d.defensiveRebound),
         ast: n(d.assists),  stl: n(d.steals), blk: n(d.block), to: n(d.lost),
+        fr:  n(d.faultReceived),   // faltas recibidas
       };
       idx[side][String(p.dorsal)]=info;
       idx[side==='home'?'nameHome':'nameAway'][(p.name||'').toLowerCase()]=info;
@@ -7930,7 +7959,7 @@ function _fcbqApplyMinutes(match,stats){
       if(!info)return;
       if(typeof info.min==='number')pl.min=info.min;
       // Solo se escriben si la FCBQ trae algo, para no pisar datos puestos a mano
-      ['reb','ro','rd','ast','stl','blk','to'].forEach(k=>{
+      ['reb','ro','rd','ast','stl','blk','to','fr'].forEach(k=>{
         if(info[k])pl[k]=info[k];
       });
       // Recalcular la valoración con los datos completos
@@ -8114,7 +8143,7 @@ Object.assign(window,{
   openLvEdit,closeLvEdit,applyLvEdit,lvEditAdd,lvEditRemove,lvDeleteEvent,
   _lvCourtDown,_lvCourtUp,_lvCourtClick,_lvBenchClick,
   openLiveStatsModal,closeLiveStatsModal,
-  showFoulPopup,setFoulTL,foulShooterSel,pickAssist,askRebound,pickRebound,lvAstFor,
+  showFoulPopup,setFoulTL,foulShooterSel,foulVictimSel,pickAssist,askRebound,pickRebound,lvAstFor,
   closeSP,tlClick,setPer,toggleTimer,resetTimer,
   // Shots
   shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,

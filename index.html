@@ -403,7 +403,7 @@ input[type=file]{display:none}
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Bascat<span>App</span></div>
-  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0902</span>
+  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0927</span>
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
@@ -501,6 +501,7 @@ input[type=file]{display:none}
       <div class="fc" style="flex:0;min-width:150px"><label>Liga</label>
         <select id="i-comp" style="width:100%" onchange="onImpLeagueChange()">
           <option value="">— selecciona liga —</option>
+          <option>🤝 Amistoso</option>
           <option>Liga Acb</option>
           <option>Segona Feb</option>
           <option>Tercera Feb</option>
@@ -600,6 +601,38 @@ input[type=file]{display:none}
         </div>
       </div>
       <div class="fc" style="flex:0;min-width:90px"><label>Fecha</label><input type="text" id="lv-dt"></div>
+    </div>
+    <div class="fr">
+      <div class="fc"><label>Categoría</label>
+        <select id="lv-comp" style="width:100%">
+          <option value="">— selecciona —</option>
+          <option>🤝 Amistoso</option>
+          <option>Liga Acb</option>
+          <option>Segona Feb</option>
+          <option>Tercera Feb</option>
+          <option>Super Copa Masculina</option>
+          <option>Copa Catalunya Masculina</option>
+          <option>C.c. Primera Categoria Masculina</option>
+          <option>C.c. Segona Categoria Masculina</option>
+          <option>1a. Territorial Sènior Masculí</option>
+          <option>C.c. Sots-25 Masculí Nivell A</option>
+          <option>Liga U</option>
+          <option>C.c. U20 - Sots-20 Masculí Preferent</option>
+          <option>C.c. Sots-20 Masculí Nivell A-1</option>
+          <option>C.c. Júnior Masculí Preferent</option>
+          <option>C.c. Júnior Masculí Interterritorial</option>
+          <option>C.c. Júnior Masculí Nivell A</option>
+        </select>
+      </div>
+      <div class="fc" style="flex:0;min-width:95px"><label>Grupo</label>
+        <select id="lv-group" style="width:100%">
+          <option value="1">Grupo 1</option><option value="2">Grupo 2</option>
+          <option value="3">Grupo 3</option><option value="4">Grupo 4</option>
+        </select>
+      </div>
+      <div class="fc" style="flex:0;min-width:120px"><label>Temporada</label>
+        <select id="lv-season" style="width:100%"></select>
+      </div>
     </div>
     <div class="g2" style="gap:8px;margin-bottom:8px">
       <div id="lv-hp-wrap"><label>Jugadores locales (si no está en la BD)</label><textarea id="lv-hp" rows="5" placeholder="#4 NOMBRE APELLIDO&#10;#5 NOMBRE APELLIDO"></textarea></div>
@@ -1625,6 +1658,7 @@ function ST(id){
   if(id==='t-eq'){renderTeams();renderWatchGroups();}
   if(id==='t-imp'){populateTeamSelects();_rebuildImpGroups();_populateSeasonSelect();}
   if(id==='t-live'){populateLvTeamSelects();checkLiveResume();}
+  if(id==='t-live')_populateLvSeason();
   if(id==='t-video')renderVideoLib();
   if(id==='t-club')renderClub();
   if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
@@ -2105,7 +2139,9 @@ function tlClick(idx,made){
     }
     s.tlAtt=(s.tlAtt||0)+1;
     lv.log.unshift({team:shooterTeam,msg:`${made?'✅':'❌'} TL${idx} — ${ts.player.split(' ')[0]}`,period:lv.period});
-    lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin,oc:_lvOC()});
+    // El marcador es imprescindible: la cronología de Stats descarta los eventos
+    // que no lo llevan, y por eso los TL desaparecían al terminar el partido.
+    lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
   }
   ts.done++;
   if(ts.done>=ts.total){closeSP(null);rLvAll();svL();}
@@ -2392,6 +2428,19 @@ function onImpLeagueChange(){
 
 // Rellena el desplegable de año/temporada: las últimas 6 temporadas + las que ya
 // existan en partidos guardados. "auto" queda como primera opción.
+// Temporadas para el formulario del Directo (últimas 6 + las ya usadas)
+function _populateLvSeason(){
+  const sel=document.getElementById('lv-season');if(!sel)return;
+  const cur=sel.value;
+  const set=new Set();
+  const now=new Date();const y0=now.getMonth()>=7?now.getFullYear():now.getFullYear()-1;
+  for(let y=y0;y>=y0-5;y--)set.add(`${y}-${String(y+1).slice(2)}`);
+  S.matches.forEach(m=>{if(m.season)set.add(m.season);});
+  const list=[...set].sort().reverse();
+  sel.innerHTML=list.map(x=>`<option value="${_esc(x)}"${x===cur?' selected':''}>${_esc(x)}</option>`).join('');
+  if(!cur&&list.length)sel.value=list[0];   // por defecto, la temporada actual
+}
+
 function _populateSeasonSelect(){
   const sel=document.getElementById('i-season');if(!sel)return;
   const cur=sel.value;
@@ -2857,7 +2906,7 @@ function bindLvCourt(){
       } else {
         if(type==='T3'){s.t3Att++;}else{s.t2Att++;}
         lv.log.unshift({team:lv.actTeam,msg:`❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`,period:lv.period});
-        lv.events.push({type:type==='T3'?'miss3':'miss2',player:lv.selPl,team:lv.actTeam,period:lv.period});
+        lv.events.push({type:type==='T3'?'miss3':'miss2',player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,score:{...lv.score}});
         // Tras fallo: preguntar quién coge el rebote (of./def. automático)
         const _st=lv.actTeam;setTimeout(()=>askRebound(_st),120);
       }
@@ -3159,7 +3208,11 @@ function endLive(){
     let mn=s.min||0;
     if(s._enteredMin!=null)mn+=Math.max(0,finalMin-s._enteredMin); // still on court at the end
     return{...p,...s,pts:s.pts||0,min:Math.round(mn),starter:!!s.starter,tl:`${s.tlMade||0}/${s.tlAtt||0}`,t2:`${s.t2Made||0}/${s.t2Att||0}`,t3:`${s.t3Made||0}/${s.t3Att||0}`,val:calcV(s),reb:(s.ro||0)+(s.rd||0),ast:s.ast||0,tlMade:s.tlMade||0,tlAtt:s.tlAtt||0,tlPct:s.tlAtt>0?s.tlMade/s.tlAtt:null,t2Made:s.t2Made||0,t2Att:s.t2Att||0,t2Pct:s.t2Att>0?s.t2Made/s.t2Att:null,t3Made:s.t3Made||0,t3Att:s.t3Att||0,t3Pct:s.t3Att>0?s.t3Made/s.t3Att:null,fc:s.fc||0,stl:s.stl||0,blk:s.blk||0,to:s.to||0,pm:s.pm||0};});
-  const m={id:Date.now(),name:`${lv.hn} vs ${lv.an}`,date:document.getElementById('lv-dt').value||new Date().toLocaleDateString('ca'),competition:'',homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
+  const _lvComp=document.getElementById('lv-comp')?.value||'';
+  if(!_lvComp&&!confirm('No has elegido categoría.\n\nEl partido no aparecerá en la Clasificación ni se podrá filtrar por liga.\n\n¿Guardar de todas formas?'))return;
+  const _lvGrp=document.getElementById('lv-group')?.value||'1';
+  const _lvSea=document.getElementById('lv-season')?.value||'';
+  const m={id:Date.now(),name:`${lv.hn} vs ${lv.an}`,date:document.getElementById('lv-dt').value||new Date().toLocaleDateString('ca'),competition:_lvComp,group:_lvGrp,season:_lvSea,homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
   S.matches.push(m);svL();
   _lvClearPersist();
   const top=[...mkPl('home'),...mkPl('away')].sort((a,b)=>b.pts-a.pts)[0];
@@ -3257,8 +3310,25 @@ function undoLastShot(){
     if((S.shots[i].mId||S.shots[i].matchId)==mid){S.shots.splice(i,1);removed=true;break;}
   }
   if(!removed){const m=S.matches.find(m=>m.id==mid);if(m&&m.shots&&m.shots.length){m.shots.pop();removed=true;}}
-  if(removed){svL();renderShotMap();updateShStickyCount();toast('↩ Tir eliminat');}
-  else toast('Sense tirs per eliminar','err');
+  if(removed){svL();renderShotMap();updateShStickyCount();renderShotsTodo();rAll();toast('↩ Tiro eliminado');}
+  else toast('Sin tiros para eliminar','err');
+}
+
+// Borrar un tiro CONCRETO tocándolo en el mapa (el más cercano al clic)
+function shDeleteShotAt(cx,cy){
+  const mid=sh.selMatch;if(!mid)return false;
+  const cand=[];
+  S.shots.forEach((s2,i)=>{if((s2.mId||s2.matchId)==mid)cand.push({d:Math.hypot(s2.x-cx,s2.y-cy),src:'g',i});});
+  const m=S.matches.find(x=>x.id==mid);
+  (m?.shots||[]).forEach((s2,i)=>{cand.push({d:Math.hypot(s2.x-cx,s2.y-cy),src:'m',i});});
+  if(!cand.length)return false;
+  cand.sort((a,b)=>a.d-b.d);
+  const best=cand[0];
+  if(best.d>22)return false;          // demasiado lejos: no era un tiro
+  if(best.src==='g')S.shots.splice(best.i,1); else m.shots.splice(best.i,1);
+  svL();renderShotMap();updateShStickyCount();renderShotsTodo();rAll();
+  toast('🗑️ Tiro eliminado');
+  return true;
 }
 function shGetShots(){
   const view=document.getElementById('sh-view')?.value||'all';
@@ -3282,7 +3352,29 @@ function renderShotMap(){
   const cnt=document.getElementById('sh-count');if(cnt)cnt.textContent=`${shots.length} tirs (${made} anotats, ${shots.length-made} fallats)`;
   const pct=document.getElementById('sh-pct');if(pct)pct.textContent=shots.length?pf(made,shots.length):'';
   // Set up click handler
+  // Clic derecho (o pulsación larga en móvil) = borrar el tiro de ese punto
+  cv.oncontextmenu=e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect();
+    const x=Math.round((e.clientX-r.left)/r.width*CW);
+    const y=Math.round((e.clientY-r.top)/r.height*CH);
+    if(!shDeleteShotAt(x,y))toast('No hay ningún tiro ahí','err');
+    return false;
+  };
+  let _lp=null;
+  cv.ontouchstart=e=>{
+    const t=e.touches[0];if(!t)return;
+    const r=cv.getBoundingClientRect();
+    const x=Math.round((t.clientX-r.left)/r.width*CW);
+    const y=Math.round((t.clientY-r.top)/r.height*CH);
+    _lp=setTimeout(()=>{_lp='done';if(navigator.vibrate)navigator.vibrate(30);
+      if(!shDeleteShotAt(x,y))toast('No hay ningún tiro ahí','err');},550);
+  };
+  const _cancelLP=()=>{if(_lp&&_lp!=='done')clearTimeout(_lp);};
+  cv.ontouchmove=_cancelLP;
+  cv.ontouchend=()=>{const era=_lp;_cancelLP();if(era==='done'){_lp=null;}};
   cv.onclick=e=>{
+    if(_lp==='done'){_lp=null;return;}   // venía de una pulsación larga: no añadir
     if(!sh.selPl){toast('¡Selecciona un jugador primero!','err');return;}
     if(!sh.selMatch){toast('¡Selecciona un partido primero!','err');return;}
     const r=cv.getBoundingClientRect();
@@ -8136,7 +8228,7 @@ Object.assign(window,{
   renderWatchGroups,wgCreate,wgRename,wgDelete,wgEdit,closeWgEdit,saveWgEdit,
   // Import
   populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,lvTeamSel,
-  onImpLeagueChange,onImpGroupChange,_populateSeasonSelect,
+  onImpLeagueChange,onImpGroupChange,_populateSeasonSelect,_populateLvSeason,
   // Live
   startLive,endLive,lvAct,lvUndo,setLvCourtView,toggleKb,
   openSubModal,closeSubModal,subTapPlayer,syncSubFromTimer,onSubTimeChange,
@@ -8146,7 +8238,7 @@ Object.assign(window,{
   showFoulPopup,setFoulTL,foulShooterSel,foulVictimSel,pickAssist,askRebound,pickRebound,lvAstFor,
   closeSP,tlClick,setPer,toggleTimer,resetTimer,
   // Shots
-  shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,renderShotMap,renderShotsTodo,quickSelectMatch,
+  shMatchChange,shTeamChange,shSelPl,clearStickyPlayer,undoLastShot,shDeleteShotAt,renderShotMap,renderShotsTodo,quickSelectMatch,
   // Stats
   renderStats,exportMatchPDF,ssort,renderMatchHistory,setStSub,setStBoxSide,toggleStQ,toggleHistory,deleteMatch,renderStatsAggregated,setStatsView,stAggSort,togglePlayerGames,openPlayerProfile,closePlayerProfile,savePlayerNote,exportPlayerPDF,
   // Dashboard

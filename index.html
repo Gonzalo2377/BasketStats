@@ -186,6 +186,25 @@ textarea{resize:vertical;line-height:1.5}
 .stsb.active{background:var(--nv);border-color:var(--nv);color:#fff}
 .stsub{-webkit-overflow-scrolling:touch}
 .stsub::-webkit-scrollbar{height:0}
+/* Desplegable con buscador */
+.sbox{position:relative;width:100%}
+.sbtn{width:100%;min-height:38px;display:flex;align-items:center;gap:6px;padding:7px 10px;
+  border:1.5px solid var(--b2);border-radius:8px;background:#fff;cursor:pointer;font-size:12.5px;text-align:left}
+.sbtn:hover{border-color:var(--nv)}
+.sbtxt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--tx)}
+.sbtxt.ph{color:var(--t3);font-weight:400}
+.sbar{color:var(--t3);font-size:10px;flex-shrink:0}
+.sbpanel{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:400;background:#fff;
+  border:1.5px solid var(--b2);border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.18);overflow:hidden}
+.sbq{width:100%;border:none;border-bottom:1.5px solid var(--bd);padding:10px 12px;font-size:13px;outline:none;border-radius:0}
+.sblist{max-height:250px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sbopt{display:block;width:100%;text-align:left;padding:9px 12px;border:none;background:none;
+  font-size:12.5px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.sbopt:hover{background:var(--bg)}
+.sbgrp{padding:6px 12px 3px;font-size:9.5px;font-weight:800;color:var(--t3);text-transform:uppercase;
+  letter-spacing:.05em;background:var(--bg);position:sticky;top:0}
+.sbempty{padding:14px 12px;font-size:12px;color:var(--t3);text-align:center}
+@media(max-width:520px){.sblist{max-height:45vh}.sbq{font-size:16px}}
 /* Filtros de Stats: compactos y de dos en dos en móvil, para no empujar el
    contenido hacia abajo. */
 .st-filters .fc{flex:1 1 140px;min-width:0}
@@ -403,7 +422,7 @@ input[type=file]{display:none}
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Bascat<span>App</span></div>
-  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0927</span>
+  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0947</span>
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
@@ -699,16 +718,6 @@ input[type=file]{display:none}
         <div id="lv-court-strip-away" style="display:flex;gap:4px;flex-wrap:wrap;min-height:42px;background:#eff6ff;border:2px solid #bfdbfe;border-radius:8px;padding:5px"></div>
       </div>
     </div>
-    <div class="g2" style="gap:8px;margin-top:6px">
-      <div>
-        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUILLO LOCAL</div>
-        <div id="lv-bench-strip-home" style="display:flex;gap:4px;flex-wrap:wrap;min-height:30px;background:var(--bg);border-radius:7px;padding:4px"></div>
-      </div>
-      <div>
-        <div style="font-size:8px;color:var(--t3);font-weight:700;margin-bottom:2px">⬛ BANQUILLO RIVAL</div>
-        <div id="lv-bench-strip-away" style="display:flex;gap:4px;flex-wrap:wrap;min-height:30px;background:var(--bg);border-radius:7px;padding:4px"></div>
-      </div>
-    </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
     <div>
@@ -991,7 +1000,7 @@ input[type=file]{display:none}
     <div class="fc" style="flex:0;min-width:140px"><label>👁 Seguimiento</label><select id="st-gf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
     <div class="fc"><label>Equipo</label><select id="st-tf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
     <div class="fc"><label>Partido</label><select id="st-mf" onchange="renderStats()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
-    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="st-q" oninput="renderStats()" placeholder="escribe un nombre o dorsal…" style="width:100%"></div>
+
   </div>
 </div>
 
@@ -1070,7 +1079,7 @@ input[type=file]{display:none}
 <div id="stv-pm" class="stv" style="display:none">
   <div class="card" style="margin-bottom:9px">
     <div class="fr" style="margin-bottom:0">
-      <div class="fc"><label>Jugador</label><select id="st-pm-pl" onchange="renderStats()" style="width:100%"><option value="">— elige jugador —</option></select></div>
+      <div class="fc"><label>Jugador</label><div id="st-pm-holder"></div></div>
     </div>
   </div>
   <div id="st-pm-body"></div>
@@ -1091,7 +1100,6 @@ input[type=file]{display:none}
     <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Partit</label><select id="db-mf" onchange="renderDash()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
-    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="db-search" oninput="renderDash()" placeholder="nombre o dorsal…" style="width:100%"></div>
     <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option><option value="zones">Mapa por zonas (%)</option></select></div>
   </div>
 </div>
@@ -2340,6 +2348,70 @@ function _refreshTeamSelects(){
   }catch(e){console.warn(e);}
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔍 DESPLEGABLE CON BUSCADOR
+// Sustituye a un <select> normal: al abrirlo aparece una caja de texto arriba
+// y la lista debajo, que se filtra según escribes (por nombre o dorsal, sin
+// distinguir mayúsculas ni acentos).
+// ═══════════════════════════════════════════════════════════════════════════
+const _sbNorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+let _sbOpen=null;
+
+// items: [{value, label, group}]  ·  onPick(value) se llama al elegir
+function searchSelect(id,items,valorActual,placeholder,onPickName){
+  const sel=items.find(i=>i.value===valorActual);
+  const txt=sel?sel.label:(placeholder||'— elige —');
+  return `<div class="sbox" id="sb-${id}" data-pick="${onPickName}">
+    <button type="button" class="sbtn" onclick="sbToggle('${id}')">
+      <span class="sbtxt${sel?'':' ph'}">${_esc(txt)}</span><span class="sbar">▾</span>
+    </button>
+    <div class="sbpanel" id="sbp-${id}" style="display:none">
+      <input type="text" class="sbq" id="sbq-${id}" placeholder="🔍 escribe para buscar…"
+        oninput="sbFilter('${id}')" onclick="event.stopPropagation()">
+      <div class="sblist" id="sbl-${id}"></div>
+    </div>
+  </div>`;
+}
+function _sbItems(id){return (window._sbData||{})[id]||[];}
+function sbToggle(id){
+  const panel=document.getElementById('sbp-'+id);if(!panel)return;
+  const abierto=panel.style.display!=='none';
+  document.querySelectorAll('.sbpanel').forEach(p2=>p2.style.display='none');
+  if(abierto){_sbOpen=null;return;}
+  panel.style.display='block';_sbOpen=id;
+  sbFilter(id);
+  const q=document.getElementById('sbq-'+id);
+  if(q){q.value='';setTimeout(()=>q.focus(),40);}
+}
+function sbFilter(id){
+  const q=_sbNorm(document.getElementById('sbq-'+id)?.value.trim());
+  const list=document.getElementById('sbl-'+id);if(!list)return;
+  const items=_sbItems(id);
+  const vis=items.filter(i=>!q||_sbNorm(i.label).includes(q)||_sbNorm(i.sub||'').includes(q));
+  if(!vis.length){list.innerHTML='<div class="sbempty">Sin resultados</div>';return;}
+  // Agrupar si los elementos traen grupo
+  let html='',grupoActual=null;
+  vis.forEach(i=>{
+    if(i.group&&i.group!==grupoActual){grupoActual=i.group;html+=`<div class="sbgrp">${_esc(i.group)}</div>`;}
+    html+=`<button type="button" class="sbopt" onclick="sbPick('${id}',this.dataset.v)" data-v="${_esc(i.value)}">${_esc(i.label)}</button>`;
+  });
+  list.innerHTML=html;
+}
+function sbPick(id,value){
+  const cont=document.getElementById('sb-'+id);
+  const panel=document.getElementById('sbp-'+id);
+  if(panel)panel.style.display='none';
+  _sbOpen=null;
+  const fn=cont?.dataset.pick;
+  if(fn&&typeof window[fn]==='function')window[fn](value);
+}
+// Cerrar al tocar fuera
+document.addEventListener('click',e=>{
+  if(_sbOpen&&!e.target.closest('.sbox')){
+    document.querySelectorAll('.sbpanel').forEach(p2=>p2.style.display='none');_sbOpen=null;
+  }
+});
+
 function renderTeams(){
   // Filtro por grupo de seguimiento: al importar partidos se cuelan equipos que
   // no te interesan ("rivales del rival"). Esto los oculta de la lista sin
@@ -2997,7 +3069,9 @@ function renderLvTeamStrip(team){
   const cs=document.getElementById(`lv-court-strip-${team}`);
   const bs=document.getElementById(`lv-bench-strip-${team}`);
   if(cs)cs.innerHTML=court.map(cCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Ningún jugador en pista</span>';
-  if(bs)bs.innerHTML=bench.map(bCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Banquillo vacío</span>';
+  // El banquillo ya no se muestra: los cambios se hacen con el botón CAMBIOS,
+  // así que en pantalla solo aparecen los 5 de cada equipo que están en pista.
+  if(bs){bs.innerHTML='';bs.style.display='none';}
   const lbl=document.getElementById(team==='home'?'lv-home-label-strip':'lv-away-label-strip');
   if(lbl)lbl.textContent=(team==='home'?lv.hn:lv.an)||(team==='home'?'LOCAL':'RIVAL');
 }
@@ -3020,10 +3094,10 @@ function renderLiveStatsModal(){
   const pe=document.getElementById('lsm-periods');
   if(pe){if(!Object.keys(byPer).length)pe.innerHTML='<div class="empty">Sin datos</div>';
   else pe.innerHTML=`<table style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="text-align:left;padding:4px;color:var(--t3)">Período</th><th style="padding:4px;color:var(--ac)">${lv.hn||'Local'}</th><th style="padding:4px;color:#3b82f6">${lv.an||'Rival'}</th></tr>${Object.entries(byPer).map(([p,s])=>`<tr style="border-top:1px solid var(--bd)"><td style="padding:4px">${p==5?'PT':'P'+p}</td><td style="text-align:center;font-weight:700">${s.h}</td><td style="text-align:center;font-weight:700">${s.a}</td></tr>`).join('')}<tr style="border-top:2px solid var(--nv);font-weight:800"><td style="padding:4px">Total</td><td style="text-align:center">${lv.score.home}</td><td style="text-align:center">${lv.score.away}</td></tr></table>`;}
-  const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','FC','ST','BLK','PER','+/-'];
+  const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','ST','BLK','PER','FC','FR','+/-'];
   const head=cols.map(c=>`<th style="font-size:9px;padding:3px">${c}</th>`).join('');
   const rows=(team)=>lv.pl[team].map(p=>{const s=lv.st[team][p.name]||{},pm=s.pm||0;const bg=lv.onCourt[team].has(p.name)?'background:#f0fdf4':'';
-    return `<tr style="${bg}"><td>#${p.dorsal}</td><td style="font-size:10px">${p.name.split(' ')[0]}${s.fc>=4?'⚠️':''}</td><td><b>${s.pts||0}</b></td><td>${s.t2Made||0}/${s.t2Att||0}</td><td>${s.t3Made||0}/${s.t3Att||0}</td><td>${s.tlMade||0}/${s.tlAtt||0}</td><td>${s.ro||0}</td><td>${s.rd||0}</td><td>${s.ast||0}</td><td>${s.fc||0}</td><td>${s.stl||0}</td><td>${s.blk||0}</td><td>${s.to||0}</td><td class="${pm>0?'pp':pm<0?'pn':''}">${pm>0?'+':''}${pm}</td></tr>`;}).join('');
+    return `<tr style="${bg}"><td>#${p.dorsal}</td><td style="font-size:10px">${p.name.split(' ')[0]}${s.fc>=4?'⚠️':''}</td><td><b>${s.pts||0}</b></td><td>${s.t2Made||0}/${s.t2Att||0}</td><td>${s.t3Made||0}/${s.t3Att||0}</td><td>${s.tlMade||0}/${s.tlAtt||0}</td><td>${s.ro||0}</td><td>${s.rd||0}</td><td>${s.ast||0}</td><td>${s.stl||0}</td><td>${s.blk||0}</td><td>${s.to||0}</td><td>${s.fc||0}</td><td>${s.fr||0}</td><td class="${pm>0?'pp':pm<0?'pn':''}">${pm>0?'+':''}${pm}</td></tr>`;}).join('');
   const hh=document.getElementById('lsm-home-head');if(hh)hh.innerHTML='<tr>'+head+'</tr>';
   const ah=document.getElementById('lsm-away-head');if(ah)ah.innerHTML='<tr>'+head+'</tr>';
   const hb=document.getElementById('lsm-home-body');if(hb)hb.innerHTML=rows('home');
@@ -3820,21 +3894,33 @@ function _playerStints(m,player,side){
   return {stints:stints.filter(x=>x.b>x.a),totalMin};
 }
 
+// Selección de jugador en la pestaña +/- (viene del desplegable con buscador)
+function stPmPick(v){window._stPmSel=v||'';renderStats();}
+
 function _renderStPlusMinus(scoped,m){
   const body=document.getElementById('st-pm-body');
-  const sel=document.getElementById('st-pm-pl');
+  const sel=document.getElementById('st-pm-holder');
   if(!body||!sel)return;
   if(!m){
-    sel.innerHTML='<option value="">— elige jugador —</option>';
+    sel.innerHTML='';
     body.innerHTML='<div class="card"><div class="empty">Elige un partido concreto arriba para ver el +/- por tramos.</div></div>';
     return;
   }
-  const cur=sel.value;
-  const opts=(pl,side,tn)=>`<optgroup label="${_esc(tn||side)}">`+
-    (pl||[]).map(p=>`<option value="${_esc(side+'|'+p.name)}"${(side+'|'+p.name)===cur?' selected':''}>${p.dorsal?'#'+_esc(p.dorsal)+' ':''}${_esc(p.name)}</option>`).join('')+`</optgroup>`;
-  sel.innerHTML='<option value="">— elige jugador —</option>'+opts(m.homePlayers,'home',m.homeTeam)+opts(m.awayPlayers,'away',m.awayTeam);
-  if(cur&&sel.value!==cur)sel.value='';
-  const v=sel.value;
+  const cur=window._stPmSel||'';
+  // Lista de jugadores agrupada por equipo, con buscador integrado
+  const items=[];
+  [['home',m.homeTeam,m.homePlayers],['away',m.awayTeam,m.awayPlayers]].forEach(([side,tn,pl])=>{
+    (pl||[]).forEach(p=>items.push({
+      value:side+'|'+p.name,
+      label:(p.dorsal?'#'+p.dorsal+' ':'')+p.name,
+      sub:String(p.dorsal||''),
+      group:tn||side}));
+  });
+  window._sbData=window._sbData||{};window._sbData['stpm']=items;
+  const valido=cur&&items.some(i=>i.value===cur);
+  if(!valido)window._stPmSel='';
+  sel.innerHTML=searchSelect('stpm',items,valido?cur:'','— elige jugador —','stPmPick');
+  const v=valido?cur:'';
   if(!v){body.innerHTML='<div class="card"><div class="empty">Elige un jugador para ver en qué tramos estuvo en pista y su +/- en cada uno.</div></div>';return;}
   const [side,player]=v.split('|');
   const {stints,totalMin}=_playerStints(m,player,side);
@@ -4100,7 +4186,7 @@ function renderStats(){
 
   // Buscador de texto: filtra por nombre o dorsal (sin distinguir acentos)
   const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const q=norm(document.getElementById('st-q')?.value.trim());
+  const q='';   // el filtrado por texto vive ahora dentro de cada desplegable
   let all=[],teams=new Set();
   const scoped=S.matches.filter(inScope);
   scoped.forEach(m=>{
@@ -4198,7 +4284,7 @@ function renderDash(){
   let filt=all;if(tfEff)filt=filt.filter(p=>p.team===tfEff);
   // Buscador de texto (nombre o dorsal, ignorando acentos)
   const dnorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const dq=dnorm(document.getElementById('db-search')?.value.trim());
+  const dq='';  // idem: la búsqueda está integrada en los desplegables
   if(dq)filt=filt.filter(p=>dnorm(p.name).includes(dq)||String(p.dorsal||'').includes(dq));
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
   // Jugador encadenado al equipo/partido: si el que estaba elegido ya no existe
@@ -4734,7 +4820,7 @@ function renderStatsAggregated(){
   const gf=ctx.gf||'';
   const fuente=ctx.scoped||S.matches;
   const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const q=norm(document.getElementById('st-q')?.value.trim());
+  const q='';   // el filtrado por texto vive ahora dentro de cada desplegable
   // Build aggregated player map
   const playerMap={};
   fuente.forEach(m=>{
@@ -8222,6 +8308,7 @@ async function importFromFCBQ(){
 
 // Expose all functions used by inline onclick= to window (required for ES modules)
 Object.assign(window,{
+  searchSelect,sbToggle,sbFilter,sbPick,stPmPick,
   ST,toast,
   // Teams
   saveTeam,clearTeamForm,editTeam,deleteTeam,renderTeams,removeTeamPlayer,

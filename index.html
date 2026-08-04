@@ -403,7 +403,7 @@ input[type=file]{display:none}
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Bascat<span>App</span></div>
-  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260731-1250</span>
+  <span class="bge">β</span><span id="app-ver" style="font-size:9px;color:rgba(255,255,255,.45);margin-left:4px">20260804-0807</span>
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
@@ -938,6 +938,9 @@ input[type=file]{display:none}
     <div class="fc" style="flex:0;min-width:110px"><label>Grupo</label>
       <select id="std-group" onchange="renderStandings()"><option value="">— todos —</option></select>
     </div>
+    <div class="fc" style="flex:0;min-width:120px"><label>Año</label>
+      <select id="std-season" onchange="renderStandings()"><option value="">— todos —</option></select>
+    </div>
   </div>
   <div id="st-standings-content"><div class="empty">Importa partidos con liga y grupo para ver las clasificaciones.</div></div>
 </div>
@@ -955,6 +958,7 @@ input[type=file]{display:none}
     <div class="fc" style="flex:0;min-width:140px"><label>👁 Seguimiento</label><select id="st-gf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
     <div class="fc"><label>Equipo</label><select id="st-tf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
     <div class="fc"><label>Partido</label><select id="st-mf" onchange="renderStats()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
+    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="st-q" oninput="renderStats()" placeholder="escribe un nombre o dorsal…" style="width:100%"></div>
   </div>
 </div>
 
@@ -1001,6 +1005,7 @@ input[type=file]{display:none}
         <th onclick="stAggSort('team')" style="cursor:pointer" title="Ordenar">Equipo</th>
         <th onclick="stAggSort('min')" style="cursor:pointer" title="Ordenar">MIN</th>
         <th onclick="stAggSort('pts')" style="cursor:pointer" title="Ordenar">PTS</th>
+        <th onclick="stAggSort('ppg')" style="cursor:pointer" title="Puntos por partido">PTS/P</th>
         <th onclick="stAggSort('tlm')" style="cursor:pointer" title="Ordenar">TL</th>
         <th onclick="stAggSort('tl')" style="cursor:pointer" title="Ordenar por %">TL%</th>
         <th onclick="stAggSort('t2m')" style="cursor:pointer" title="Ordenar">T2</th>
@@ -1009,6 +1014,9 @@ input[type=file]{display:none}
         <th onclick="stAggSort('t3')" style="cursor:pointer" title="Ordenar por %">T3%</th>
         <th onclick="stAggSort('reb')" style="cursor:pointer" title="Ordenar">REB</th>
         <th onclick="stAggSort('ast')" style="cursor:pointer" title="Ordenar">AST</th>
+        <th onclick="stAggSort('stl')" style="cursor:pointer" title="Robos">STL</th>
+        <th onclick="stAggSort('blk')" style="cursor:pointer" title="Tapones">BLK</th>
+        <th onclick="stAggSort('to')" style="cursor:pointer" title="Pérdidas">TO</th>
         <th onclick="stAggSort('fc')" style="cursor:pointer" title="Ordenar">FC</th>
         <th onclick="stAggSort('val')" style="cursor:pointer" title="Ordenar">VAL</th>
         <th onclick="stAggSort('pm')" style="cursor:pointer" title="Ordenar">+/-</th>
@@ -1049,6 +1057,7 @@ input[type=file]{display:none}
     <div class="fc"><label>Equip</label><select id="db-tf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Jugador</label><select id="db-pf" onchange="renderDash()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc"><label>Partit</label><select id="db-mf" onchange="renderDash()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
+    <div class="fc"><label>🔍 Buscar jugador</label><input type="text" id="db-q" oninput="renderDash()" placeholder="nombre o dorsal…" style="width:100%"></div>
     <div class="fc"><label>Vista</label><select id="db-mv" onchange="renderDash()" style="width:100%"><option value="shots">Tiros individuales</option><option value="heat">Mapa de calor</option><option value="zones">Mapa por zonas (%)</option></select></div>
   </div>
 </div>
@@ -1062,10 +1071,9 @@ input[type=file]{display:none}
 </div>
 <div class="g2" style="margin-bottom:10px">
   <div class="card"><div class="ct">🏆 Top Anotadors</div><div id="db-top"></div></div>
-  <div class="card"><div class="ct">🔍 Conclusions</div><div id="db-ins" style="font-size:12px;line-height:1.7"></div></div>
+  <div class="card"><div class="ct">🔍 Conclusions</div><div id="db-ins" style="font-size:12px;line-height:1.7"></div><div id="db-league-card" style="display:none;margin-top:12px;padding-top:11px;border-top:1px solid var(--bd)"><div class="ct" style="margin-bottom:8px">📊 Comparativa con la liga <span id="db-league-team" style="font-size:11px;font-weight:600;color:var(--t3);text-transform:none"></span></div><div id="db-league"></div></div></div>
 </div>
 <div class="card"><div class="ct">👥 Millors Parelles</div><div id="db-q"></div></div>
-<div class="card" id="db-league-card" style="display:none;margin-top:10px"><div class="ct">📊 Comparativa con la liga <span id="db-league-team" style="font-size:11px;font-weight:600;color:var(--t3);text-transform:none"></span></div><div id="db-league"></div></div>
 </div></div>
 <!-- ═══ TAB: CLARET ═══ -->
 <div id="t-club" class="tab"><div class="main">
@@ -3981,12 +3989,18 @@ function renderStats(){
   const inScope=m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&
     (!tf||m.homeTeam===tf||m.awayTeam===tf)&&(!mfEff||String(m.id)===String(mfEff));
 
+  // Buscador de texto: filtra por nombre o dorsal (sin distinguir acentos)
+  const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const q=norm(document.getElementById('st-q')?.value.trim());
   let all=[],teams=new Set();
   const scoped=S.matches.filter(inScope);
   scoped.forEach(m=>{
     [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{
       if(!_inGroup(p.team,gf))return;   // fuera del grupo de seguimiento → no se muestra
-      teams.add(p.team);if(!tf||p.team===tf)all.push(p);});
+      teams.add(p.team);
+      if(tf&&p.team!==tf)return;
+      if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
+      all.push(p);});
   });
   // Datos que usan las mini-pestañas
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
@@ -4073,6 +4087,10 @@ function renderDash(){
     if(!ok)tsel.value='';}
   const tfEff=document.getElementById('db-tf')?.value||'';
   let filt=all;if(tfEff)filt=filt.filter(p=>p.team===tfEff);
+  // Buscador de texto (nombre o dorsal, ignorando acentos)
+  const dnorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const dq=dnorm(document.getElementById('db-q')?.value.trim());
+  if(dq)filt=filt.filter(p=>dnorm(p.name).includes(dq)||String(p.dorsal||'').includes(dq));
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
   // Jugador encadenado al equipo/partido: si el que estaba elegido ya no existe
   // en la selección actual, se resetea a "Todos" (antes filtraba por un jugador
@@ -4121,7 +4139,7 @@ function renderDash(){
   if(dbzs)dbzs.innerHTML=zwd.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px">${zwd.map(z=>`<div class="kpi"><div class="kv" style="font-size:15px">${pf(zs[z].m,zs[z].a)}</div><div class="kl">${z}</div><div class="ks">${zs[z].m}/${zs[z].a}</div></div>`).join('')}</div>`:'';
 
   // Top players
-  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=(p.min||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
+  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=(p.min||0);a.stl=(a.stl||0)+(p.stl||0);a.blk=(a.blk||0)+(p.blk||0);a.to=(a.to||0)+(p.to||0);a.reb=(a.reb||0)+(p.reb||0);a.ast=(a.ast||0)+(p.ast||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
   const topL=Object.values(agg).sort((a,b)=>b.pts-a.pts).slice(0,8);
   const dbTop=document.getElementById('db-top');
   if(dbTop)dbTop.innerHTML=topL.length?topL.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px"><span style="width:19px;height:19px;border-radius:50%;background:${i<3?'var(--gd)':'var(--bg)'};color:${i<3?'#fff':'var(--t2)'};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><div style="flex:1"><div style="font-weight:700">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.team} · ${p.g} part.</div></div><b style="color:var(--nv)">${p.pts}</b><span style="font-size:10px;color:var(--t3)">pts</span></div>`).join(''):'<div class="empty">Cap dada</div>';
@@ -4599,16 +4617,24 @@ function stAggSort(field){
 }
 
 function renderStatsAggregated(){
-  const mf=document.getElementById('st-mf')?.value||'';
-  const tf=document.getElementById('st-tf')?.value||'';
+  // Usa EXACTAMENTE los mismos filtros que renderStats (categoría, año, grupo de
+  // liga, grupo de seguimiento, equipo, partido y buscador). Antes releía los
+  // partidos por su cuenta y se saltaba todos esos filtros.
+  const ctx=window._stCtx||{};
+  const tf=ctx.tf||'';
+  const gf=ctx.gf||'';
+  const fuente=ctx.scoped||S.matches;
+  const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const q=norm(document.getElementById('st-q')?.value.trim());
   // Build aggregated player map
   const playerMap={};
-  S.matches.forEach(m=>{
-    if(mf&&m.id!=mf)return;
+  fuente.forEach(m=>{
     [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id,mName:m.name,mScoreH:m.scoreHome,mScoreA:m.scoreAway})),
      ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id,mName:m.name,mScoreH:m.scoreHome,mScoreA:m.scoreAway}))]
     .forEach(p=>{
       if(tf&&p.team!==tf)return;
+      if(gf&&!_inGroup(p.team,gf))return;
+      if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
       const key=p.name+'|'+p.team;
       if(!playerMap[key]){
         playerMap[key]={name:p.name,dorsal:p.dorsal,team:p.team,pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,reb:0,ast:0,fc:0,pm:0,val:0,min:0,games:[]};
@@ -4625,7 +4651,7 @@ function renderStatsAggregated(){
   const players=Object.values(playerMap);
   const el=document.getElementById('st-tb-agg');
   if(!el)return;
-  if(!players.length){el.innerHTML=`<tr><td colspan="17" class="no-d">Sin datos</td></tr>`;return;}
+  if(!players.length){el.innerHTML=`<tr><td colspan="21" class="no-d">Sin datos</td></tr>`;return;}
   // Ordenación por columna (clic en la cabecera). Por defecto: PTS desc.
   const sf=_stAggSort.field, dir=_stAggSort.dir;
   const val=(p)=>{
@@ -4635,6 +4661,7 @@ function renderStatsAggregated(){
       case 'team':return p.team.toLowerCase();
       case 'min':return p.min||0;
       case 'pts':return p.pts||0;
+      case 'ppg':return p.g?(p.pts||0)/p.g:0;
       case 'tl':return p.tlAtt?p.tlMade/p.tlAtt:-1;
       case 'tlm':return p.tlMade||0;
       case 't2':return p.t2Att?p.t2Made/p.t2Att:-1;
@@ -4643,6 +4670,9 @@ function renderStatsAggregated(){
       case 't3m':return p.t3Made||0;
       case 'reb':return p.reb||0;
       case 'ast':return p.ast||0;
+      case 'stl':return p.stl||0;
+      case 'blk':return p.blk||0;
+      case 'to':return p.to||0;
       case 'fc':return p.fc||0;
       case 'val':return p.val||0;
       case 'pm':return p.pm||0;
@@ -4666,6 +4696,7 @@ function renderStatsAggregated(){
       <td style="padding:5px 6px"><span class="chip cgr">${p.team}</span></td>
       <td style="padding:5px 6px">${Math.round(p.min)||'—'}</td>
       <td style="padding:5px 6px;font-weight:700">${p.pts}</td>
+      <td style="padding:5px 6px;font-weight:700;color:var(--ac)">${g?(p.pts/g).toFixed(1):'—'}</td>
       <td style="padding:5px 6px">${p.tlMade}/${p.tlAtt}</td>
       <td style="padding:5px 6px">${tlp}</td>
       <td style="padding:5px 6px">${p.t2Made}/${p.t2Att}</td>
@@ -4674,6 +4705,9 @@ function renderStatsAggregated(){
       <td style="padding:5px 6px">${t3p}</td>
       <td style="padding:5px 6px">${p.reb||'—'}</td>
       <td style="padding:5px 6px">${p.ast||'—'}</td>
+      <td style="padding:5px 6px">${p.stl||'—'}</td>
+      <td style="padding:5px 6px">${p.blk||'—'}</td>
+      <td style="padding:5px 6px">${p.to||'—'}</td>
       <td style="padding:5px 6px">${p.fc}</td>
       <td style="padding:5px 6px;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val}</td>
       <td style="padding:5px 6px;font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
@@ -4704,7 +4738,7 @@ function renderStatsAggregated(){
   // Indicadores de orden (▲▼) en la cabecera activa
   const head=document.getElementById('st-agg-head');
   if(head){
-    const map={name:1,team:2,min:3,pts:4,tlm:5,tl:6,t2m:7,t2:8,t3m:9,t3:10,reb:11,ast:12,fc:13,val:14,pm:15};
+    const map={name:1,team:2,min:3,pts:4,ppg:5,tlm:6,tl:7,t2m:8,t2:9,t3m:10,t3:11,reb:12,ast:13,stl:14,blk:15,to:16,fc:17,val:18,pm:19};
     [...head.children].forEach(th=>{th.querySelector('.sar')?.remove();});
     const idx=map[_stAggSort.field];
     if(idx!=null&&head.children[idx]){
@@ -6977,22 +7011,29 @@ const isOurTeam=n=>/claret/i.test(n||'');
 // ══════════════════════════════════════════════════════════════
 
 // Agrupa los partidos con liga en un mapa {liga: {grupo: [partidos]}}
-function _standingsIndex(){
+function _standingsIndex(seasonFilter){
   const idx={};
   S.matches.forEach(m=>{
     if(!m.competition)return;
     if(m.scoreHome==null||m.scoreAway==null)return;
+    if(seasonFilter&&m.season!==seasonFilter)return;
     const g=String(m.group||'1');
     (idx[m.competition]=idx[m.competition]||{});
     (idx[m.competition][g]=idx[m.competition][g]||[]).push(m);
   });
   return idx;
 }
+// Temporadas disponibles entre los partidos que tienen liga
+function _standingsSeasons(){
+  const s2=new Set();
+  S.matches.forEach(m=>{if(m.competition&&m.season)s2.add(m.season);});
+  return [...s2].sort().reverse();
+}
 
 // Rellena el desplegable de ligas (conservando la selección actual)
 function _populateStdLeagues(){
   const sel=document.getElementById('std-league');if(!sel)return;
-  const idx=_standingsIndex();
+  const idx=_standingsIndex(document.getElementById('std-season')?.value||'');
   const cur=sel.value;
   const ligas=Object.keys(idx).sort();
   sel.innerHTML='<option value="">— todas —</option>'+ligas.map(l=>`<option${l===cur?' selected':''}>${l}</option>`).join('');
@@ -7003,7 +7044,7 @@ function _populateStdLeagues(){
 function _populateStdGroups(){
   const lSel=document.getElementById('std-league'),gSel=document.getElementById('std-group');
   if(!lSel||!gSel)return;
-  const idx=_standingsIndex();
+  const idx=_standingsIndex(document.getElementById('std-season')?.value||'');
   const liga=lSel.value;
   const cur=gSel.value;
   let grupos;
@@ -7024,9 +7065,18 @@ function onStdLeagueChange(){
 
 function renderStandings(){
   const el=document.getElementById('st-standings-content');if(!el)return;
+  // Desplegable de temporada
+  const ssel=document.getElementById('std-season');
+  if(ssel){
+    const cur=ssel.value, list=_standingsSeasons();
+    const ok=!cur||list.includes(cur);
+    ssel.innerHTML='<option value="">— todos —</option>'+
+      list.map(x=>`<option value="${_esc(x)}"${x===cur&&ok?' selected':''}>${_esc(x)}</option>`).join('');
+    if(!ok)ssel.value='';
+  }
   _populateStdLeagues();
 
-  const idx=_standingsIndex();
+  const idx=_standingsIndex(document.getElementById('std-season')?.value||'');
   const fLeague=document.getElementById('std-league')?.value||'';
   const fGroup=document.getElementById('std-group')?.value||'';
 
@@ -7186,12 +7236,12 @@ function _clRenderRows(){
       <td><b>${p.name}</b>${p.starts>0?' <span style="color:#f59e0b">★</span>':''}</td>
       <td>${p.g}</td>
       <td>${Math.round(p.min)||'—'}</td>
-      <td><b>${p.pts}</b></td>
+      <td><b>${p.pts}</b></td><td style="font-weight:700;color:var(--ac)">${p.g?(p.pts/p.g).toFixed(1):"—"}</td>
       <td style="white-space:nowrap">${pctMA(p.t2m,p.t2a)}</td>
       <td style="white-space:nowrap">${pctMA(p.t3m,p.t3a)}</td>
       <td style="white-space:nowrap">${pctMA(p.tlm,p.tla)}</td>
       <td>${p.reb||0}</td>
-      <td>${p.ast||0}</td>
+      <td>${p.ast||0}</td><td>${p.stl||0}</td><td>${p.blk||0}</td><td>${p.to||0}</td>
       <td>${p.fc}</td>
       <td style="font-weight:700;color:${p.pm>0?'var(--gn)':p.pm<0?'#dc2626':'inherit'}">${p.pm>0?'+':''}${p.pm}</td>
       <td style="font-weight:700;color:${p.per10>0?'var(--gn)':p.per10<0?'#dc2626':'inherit'}">${p.per10>0?'+':''}${p.per10}</td>
@@ -7851,25 +7901,41 @@ function _fcbqEnsureTeam(name,fcbqPlayers){
 // catalán es frágil (depende del texto exacto de "entra/surt del camp"), aquí
 // sobreescribimos S.matches[].homePlayers/awayPlayers[].min con ese dato oficial,
 // emparejando por dorsal (y por nombre como respaldo).
+// Vuelca a cada jugador los datos oficiales de la FCBQ: minutos jugados y las
+// estadísticas que NO están en la cronología (rebotes, asistencias, robos,
+// tapones y pérdidas). Están en players[].data del endpoint de estadísticas.
 function _fcbqApplyMinutes(match,stats){
   if(!match||!stats)return;
   const teams=stats.teams||[];
-  const byDorsal={home:{},away:{},nameHome:{},nameAway:{}};
+  const idx={home:{},away:{},nameHome:{},nameAway:{}};
   teams.forEach(t=>{
     const side=t.teamIdIntern===stats.localId?'home':(t.teamIdIntern===stats.visitId?'away':null);
     if(!side)return;
     (t.players||[]).forEach(p=>{
-      if(typeof p.timePlayed==='number'){
-        byDorsal[side][String(p.dorsal)]=p.timePlayed;
-        byDorsal[side==='home'?'nameHome':'nameAway'][(p.name||'').toLowerCase()]=p.timePlayed;
-      }
+      const d=p.data||{};
+      const n=(x)=>typeof x==='number'?x:0;
+      const info={
+        min: typeof p.timePlayed==='number'?p.timePlayed:null,
+        reb: n(d.rebounds), ro: n(d.offensiveRebound), rd: n(d.defensiveRebound),
+        ast: n(d.assists),  stl: n(d.steals), blk: n(d.block), to: n(d.lost),
+      };
+      idx[side][String(p.dorsal)]=info;
+      idx[side==='home'?'nameHome':'nameAway'][(p.name||'').toLowerCase()]=info;
     });
   });
   const apply=(players,side)=>{
     (players||[]).forEach(pl=>{
-      let tp=byDorsal[side][String(pl.dorsal)];
-      if(tp==null)tp=byDorsal[side==='home'?'nameHome':'nameAway'][(pl.name||'').toLowerCase()];
-      if(typeof tp==='number')pl.min=tp;
+      let info=idx[side][String(pl.dorsal)];
+      if(!info)info=idx[side==='home'?'nameHome':'nameAway'][(pl.name||'').toLowerCase()];
+      if(!info)return;
+      if(typeof info.min==='number')pl.min=info.min;
+      // Solo se escriben si la FCBQ trae algo, para no pisar datos puestos a mano
+      ['reb','ro','rd','ast','stl','blk','to'].forEach(k=>{
+        if(info[k])pl[k]=info[k];
+      });
+      // Recalcular la valoración con los datos completos
+      const miss=((pl.tlAtt||0)-(pl.tlMade||0))+((pl.t2Att||0)-(pl.t2Made||0))+((pl.t3Att||0)-(pl.t3Made||0));
+      pl.val=(pl.pts||0)+(pl.reb||0)+(pl.ast||0)+(pl.stl||0)+(pl.blk||0)-miss-(pl.to||0)-(pl.fc||0);
     });
   };
   apply(match.homePlayers,'home');

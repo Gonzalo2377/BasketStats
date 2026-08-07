@@ -1104,7 +1104,7 @@ input[type=file]{display:none}
   </div>
 </div>
 <div class="g2" style="margin-bottom:10px">
-  <div class="card"><div class="ct">Resum</div><div id="db-kpis" class="g4" style="gap:7px"></div></div>
+  <div class="card"><div class="ct">Resum</div><div id="db-kpis" class="g4" style="gap:7px"></div><div id="db-ha-card" style="margin-top:10px"></div></div>
   <div class="card">
     <div class="ct">🔥 Mapa de tir</div>
     <div class="cw"><canvas id="db-cv"></canvas></div>
@@ -1187,6 +1187,7 @@ input[type=file]{display:none}
     <div class="card" style="margin-bottom:10px">
       <div class="ct">📊 Estadísticas globales del rival</div>
       <div id="sc-kpis" class="g4" style="gap:7px"></div>
+      <div id="sc-ha-card" style="margin-top:10px"></div>
     </div>
 
     <!-- Dos columnas principales -->
@@ -2413,10 +2414,6 @@ document.addEventListener('click',e=>{
 });
 
 function renderTeams(){
-  // Filtro por grupo de seguimiento: al importar partidos se cuelan equipos que
-  // no te interesan ("rivales del rival"). Esto los oculta de la lista sin
-  // borrarlos, porque borrarlos NO los quitaría de Stats ni del resto de vistas
-  // (esas leen los partidos, no esta lista).
   const gsel=document.getElementById('eq-gf');
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
@@ -2427,7 +2424,7 @@ function renderTeams(){
   el.innerHTML=lista.map(t=>`
     <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px;border-left:4px solid ${t.color||'#E8402A'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-weight:700;font-size:14px">${t.name}</span>
+        <span style="font-weight:700;font-size:14px">${t.name} <span style="font-size:10px;font-weight:600;color:var(--t3);margin-left:4px;border:1px solid var(--bd);padding:2px 6px;border-radius:4px">${t.season || 'Anterior'}</span></span>
         <span style="font-size:11px;color:var(--t3)">${t.players.length} jugadors</span>
         <div style="margin-left:auto;display:flex;gap:5px">
           <button class="btn bo bxs" onclick="editTeam(${t.id})">✏️ Editar</button>
@@ -2466,7 +2463,7 @@ function removeTeamPlayer(teamId,idx){
 }
 
 function populateTeamSelects(){
-  const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${t.name} ${t.season ? '('+t.season+')' : ''}</option>`).join('');
   document.getElementById('i-home-sel').innerHTML=opts;
   document.getElementById('i-away-sel').innerHTML=opts;
 }
@@ -2790,6 +2787,17 @@ function parseCrono(txt,hPl,aPl){
 }
 
 let _parsed=null;
+function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
+function setPer(n){
+  if(lv.period>0&&n!==lv.period)lv.periodScores[lv.period-1]={h:lv.score.home,a:lv.score.away};
+  lv.period=n;clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=n>4?300:600;renderTimer();
+  document.getElementById('lv-pd').textContent=n>4?'PT'+(n>5?n-4:''):'P'+n;
+  for(let i=1;i<=5;i++){const b=document.getElementById('pb'+i);if(b)b.className='per-btn'+(i===n?' active-per':'');}
+  redrawLvCourt();rLvAll();
+}
+
+// ... Mantén todo tu código igual hasta la función parseMatch ...
+
 function parseMatch(){
   // Team names
   const homeSelId=document.getElementById('i-home-sel').value;
@@ -2816,25 +2824,18 @@ function parseMatch(){
   let hSt,aSt,events=[],score={h:0,a:0},_subEv=[];
 
   if(cr&&hp.length&&ap.length){
-    // ★ MAIN PATH: extract ALL stats from cronologia alone
     const r=parseCrono(cr,hp,ap);
     hSt=r.homePlayers;
     aSt=r.awayPlayers;
     events=r.events;
     _subEv=r.subEvents||[];
     score=r.score;
-    // If manual stats also provided, merge to fill gaps (reb, ast, min)
     if(hsText&&extractPlayers(hsText).length){
       const hManual=extractStats(hsText,extractPlayers(hsText));
       hSt=hSt.map(p=>{
         const manual=hManual.find(m=>m.name===p.name||m.dorsal===p.dorsal);
         if(!manual)return p;
-        // Prefer crono for scoring, manual for reb/ast/min if crono has 0
-        return{...p,
-          reb:manual.reb||p.reb,
-          ast:manual.ast||p.ast,
-          min:p.min||manual.min,
-        };
+        return{...p, reb:manual.reb||p.reb, ast:manual.ast||p.ast, min:p.min||manual.min};
       });
     }
     if(asText&&extractPlayers(asText).length){
@@ -2846,7 +2847,6 @@ function parseMatch(){
       });
     }
   } else if(hsText&&asText){
-    // Fallback: only manual stats (no crono or no players)
     const hpText=extractPlayers(hsText),apText=extractPlayers(asText);
     hSt=extractStats(hsText,hpText.length?hpText:hp);
     aSt=extractStats(asText,apText.length?apText:ap);
@@ -2857,16 +2857,13 @@ function parseMatch(){
     setSt('i-st','Falta la cronología (o les stats manuals dels dos equips).','err');return;
   }
 
-  // Auto-detect date from crono header
   let dt=document.getElementById('i-date').value.trim();
   if(!dt&&cr){const dm=cr.match(/(\d{2}\/\d{2}\/\d{4})/);if(dm)dt=dm[1];}
 
-  // Liga (desplegable) y grupo (1, 2, 3…)
   const comp=document.getElementById('i-comp')?.value.trim()||'';
   let group=document.getElementById('i-group')?.value||'1';
-  if(group==='__new__'||isNaN(Number(group)))group='1'; // si quedó sin resolver → Grupo 1
+  if(group==='__new__'||isNaN(Number(group)))group='1';
 
-  // Temporada: prioridad al desplegable manual; si es "auto", del link o la fecha.
   let season=document.getElementById('i-season')?.value||'';
   if(!season){
     season=_fcbqSeasonFromUrl(document.getElementById('i-fcbq-url')?.value||'');
@@ -2887,40 +2884,40 @@ function parseMatch(){
     events,subEvents:_subEv,shots:[],type:'imported'
   };
   showImpPrev(_parsed);
-  // El "auto-guardado previo" solo debe eliminarse si estamos REPROCESANDO el
-  // mismo partido (mismos equipos + fecha). Antes se borraba SIEMPRE, lo que hacía
-  // que al importar un segundo partido se perdiera el primero. Ahora se acumulan.
+  
   if(window._lastAutoSavedId){
     const prev=S.matches.find(m=>m.id===window._lastAutoSavedId);
     const samMatch=prev&&prev.homeTeam===_parsed.homeTeam&&prev.awayTeam===_parsed.awayTeam
       &&(prev.date||'')===(_parsed.date||'');
     if(samMatch)S.matches=S.matches.filter(m=>m.id!==window._lastAutoSavedId);
   }
-  // Duplicate detection: same two teams + same date → replace (keeps id so placed shots survive)
+  
   const dup=S.matches.find(m=>m.id!==_parsed.id&&m.id!==window._lastAutoSavedId
     &&m.homeTeam===_parsed.homeTeam&&m.awayTeam===_parsed.awayTeam
     &&(m.date||'')===( _parsed.date||''));
   if(dup){
     if(confirm(`Ya existe "${dup.homeTeam} vs ${dup.awayTeam}"${dup.date?' del '+dup.date:''}.\n\n¿Reemplazarlo con esta importación? (se conservan los tiros ubicados)`)){
-      _parsed.id=dup.id; // keep id → S.shots links survive
+      _parsed.id=dup.id; 
       _parsed.shots=dup.shots||[];
       S.matches=S.matches.filter(m=>m.id!==dup.id);
-    } // if declined: keep both (new one gets its own id)
+    } 
   }
   S.matches=S.matches.filter(m=>m.id!==_parsed.id);
   S.matches.push(_parsed);
-  // Auto-add both teams to the Equipos tab if they don't exist yet
+  
+  // EQUIPOS CON TEMPORADA
   [[_parsed.homeTeam,_parsed.homePlayers],[_parsed.awayTeam,_parsed.awayPlayers]].forEach(([tn,pls])=>{
     if(!tn)return;
-    if(!S.teams.some(t=>t.name.toLowerCase()===tn.toLowerCase())){
-      S.teams.push({id:Date.now()+Math.floor(Math.random()*999),name:tn,color:'#0f1f3d',
+    const matchSeason = _parsed.season || 'Sin temporada';
+    if(!S.teams.some(t=>t.name.toLowerCase()===tn.toLowerCase() && t.season === matchSeason)){
+      S.teams.push({id:Date.now()+Math.floor(Math.random()*999),name:tn, season:matchSeason, color:'#0f1f3d',
         players:(pls||[]).map(p=>({dorsal:p.dorsal,name:p.name}))});
-      toast(`➕ Equipo añadido: ${tn}`);
+      toast(`➕ Equipo añadido: ${tn} (${matchSeason})`);
     }
   });
+
   window._lastAutoSavedId=_parsed.id;
   svL();
-  const src=cr?'cronologia':'stats manuals';
   setSt('i-st',`✅ PARTIDO GUARDADO — ${hSt.length}+${aSt.length} jugadors · ${score.h}-${score.a}. Ya puedes verlo en Estadísticas y Dashboard.`,'ok');
   rAll();
 }
@@ -4253,28 +4250,25 @@ function renderDash(){
   const tf=document.getElementById('db-tf')?.value||'';
   const pf2=document.getElementById('db-pf')?.value||'';
   const mv=document.getElementById('db-mv')?.value||'shots';
-  const mf=document.getElementById('db-mf')?.value||''; // match filter (no selector → all matches)
-  // Match selector — most recent first. Si hay equipo seleccionado, solo partidos de ese equipo.
+  const mf=document.getElementById('db-mf')?.value||''; 
   const msel=document.getElementById('db-mf');
   if(msel){
     const v=msel.value;
     let ms=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
     if(tf)ms=ms.filter(m=>m.homeTeam===tf||m.awayTeam===tf);
-    // Si el partido antes seleccionado ya no pertenece al equipo, se resetea a "Todos"
     const stillValid=!v||ms.some(m=>String(m.id)===v);
     msel.innerHTML='<option value="">Todos (acumulado)</option>'+ms.map(m=>
       `<option value="${m.id}"${String(m.id)===v&&stillValid?' selected':''}>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
     if(!stillValid)msel.value='';
   }
   const mfEff=document.getElementById('db-mf')?.value||'';
-  // Filtro por grupo de seguimiento (👁)
   const gsel=document.getElementById('db-gf');
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
   let all=[],allT=new Set();
   const srcMatches=mfEff?S.matches.filter(m=>String(m.id)===String(mfEff)):S.matches;
   srcMatches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{
-    if(!_inGroup(p.team,gf))return;   // fuera del grupo → no entra
+    if(!_inGroup(p.team,gf))return;   
     allT.add(p.team);all.push(p);});});
   const tsel=document.getElementById('db-tf');
   if(tsel){const v=tsel.value;const ok=!v||allT.has(v);
@@ -4282,14 +4276,10 @@ function renderDash(){
     if(!ok)tsel.value='';}
   const tfEff=document.getElementById('db-tf')?.value||'';
   let filt=all;if(tfEff)filt=filt.filter(p=>p.team===tfEff);
-  // Buscador de texto (nombre o dorsal, ignorando acentos)
   const dnorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const dq='';  // idem: la búsqueda está integrada en los desplegables
+  const dq='';  
   if(dq)filt=filt.filter(p=>dnorm(p.name).includes(dq)||String(p.dorsal||'').includes(dq));
   const pnames=[...new Set(filt.map(p=>p.name))].sort();
-  // Jugador encadenado al equipo/partido: si el que estaba elegido ya no existe
-  // en la selección actual, se resetea a "Todos" (antes filtraba por un jugador
-  // inexistente y la vista salía vacía).
   const psel=document.getElementById('db-pf');
   let pfEff=pf2;
   if(psel){
@@ -4316,16 +4306,25 @@ function renderDash(){
     <div class="kpi"><div class="kv">${totAst}</div><div class="kl">Assistències</div></div>
     <div class="kpi"><div class="kv">${filt.length}</div><div class="kl">Jugadors</div></div>`;
 
-  // Shots
+  // TARJETA CASA VS FUERA
+  const dbHa = document.getElementById('db-ha-card');
+  if (dbHa) {
+    if (tfEff) {
+      const teamMatches = S.matches.filter(m => (m.homeTeam === tfEff || m.awayTeam === tfEff) && _inGroup(m.homeTeam, gf));
+      dbHa.innerHTML = _generateHomeAwayHTML(tfEff, teamMatches);
+    } else {
+      dbHa.innerHTML = '';
+    }
+  }
+
   let shots=[...S.shots,...S.matches.flatMap(m=>(m.shots||[]).map(s=>({...s,mId:m.id})))];
   if(mf)shots=shots.filter(s=>String(s.mId||s.matchId)===String(mf));
   if(tfEff)shots=shots.filter(s=>{const m=S.matches.find(m=>m.id===(s.mId||s.matchId));if(!m)return false;return(s.team==='home'?m.homeTeam:m.awayTeam)===tfEff;});
   if(pfEff)shots=shots.filter(s=>s.player===pfEff);
-  // Draw
   if(mv==='heat')drawHeatmap('db-cv',shots);
   else if(mv==='zones')drawZoneMap('db-cv',shots);
   else{drawCourtOnCanvas('db-cv');const ctx=document.getElementById('db-cv')?.getContext('2d');if(ctx&&shots.length)drawShots(ctx,shots);}
-  // Zone stats
+  
   const zones=['Zona rest.','Zona baixa','Mig rang E.','Mig rang D.','Mig rang C.','Cantonada E.','Cantonada D.','T3 Lateral E.','T3 Lateral D.','T3 Centre'];
   const zs={};zones.forEach(z=>zs[z]={m:0,a:0});
   shots.forEach(s=>{const z=shotZone(s);if(zs[z]){zs[z].a++;if(s.made)zs[z].m++;}});
@@ -4333,15 +4332,13 @@ function renderDash(){
   const dbzs=document.getElementById('db-zs');
   if(dbzs)dbzs.innerHTML=zwd.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px">${zwd.map(z=>`<div class="kpi"><div class="kv" style="font-size:15px">${pf(zs[z].m,zs[z].a)}</div><div class="kl">${z}</div><div class="ks">${zs[z].m}/${zs[z].a}</div></div>`).join('')}</div>`:'';
 
-  // Top players
   const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=(p.min||0);a.stl=(a.stl||0)+(p.stl||0);a.blk=(a.blk||0)+(p.blk||0);a.to=(a.to||0)+(p.to||0);a.reb=(a.reb||0)+(p.reb||0);a.ast=(a.ast||0)+(p.ast||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
   const topL=Object.values(agg).sort((a,b)=>b.pts-a.pts).slice(0,8);
   const dbTop=document.getElementById('db-top');
   if(dbTop)dbTop.innerHTML=topL.length?topL.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px"><span style="width:19px;height:19px;border-radius:50%;background:${i<3?'var(--gd)':'var(--bg)'};color:${i<3?'#fff':'var(--t2)'};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><div style="flex:1"><div style="font-weight:700">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.team} · ${p.g} part.</div></div><b style="color:var(--nv)">${p.pts}</b><span style="font-size:10px;color:var(--t3)">pts</span></div>`).join(''):'<div class="empty">Cap dada</div>';
 
-  // Insights
   const ins=[],pl=Object.values(agg);
-  const isSingleMatch=!!mfEff; // ¿estamos viendo un solo partido?
+  const isSingleMatch=!!mfEff; 
   const top=[...pl].sort((a,b)=>b.pts-a.pts)[0];
   if(top)ins.push(`🏀 <b>${top.name}</b>: máximo anotador con <b>${top.pts} punts</b>${isSingleMatch?'':` en ${top.g} partido${top.g>1?'s':''} (${(top.pts/top.g).toFixed(1)}/partit)`}.`);
   const t3pl=pl.filter(p=>p.t3A>=(isSingleMatch?3:10)).sort((a,b)=>(b.t3M/b.t3A)-(a.t3M/a.t3A));
@@ -4349,15 +4346,12 @@ function renderDash(){
   if(shots.length>=5){const out=shots.filter(s=>isThree(s.x,s.y));ins.push(`📍 <b>${Math.round(out.length/shots.length*100)}% de los tiros</b> desde fuera del arco (${out.length}/${shots.length}).`);}
   const corn=shots.filter(s=>shotZone(s).includes('Cantonada'));
   if(corn.length)ins.push(`📐 Esquinas: <b>${pf(corn.filter(s=>s.made).length,corn.length)}</b> de acierto.`);
-  // ── FALTAS (leídas correctamente) ──
   if(isSingleMatch){
-    // En un partido: jugadores que llegaron a 4+ faltas (peligro de eliminación) o 5 (eliminados)
     const elim=pl.filter(p=>p.fc>=5);
     const danger=pl.filter(p=>p.fc===4);
     if(elim.length)ins.push(`🟥 Eliminados por faltas (5): <b>${elim.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
     if(danger.length)ins.push(`⚠️ Con 4 faltas (al límite): <b>${danger.map(p=>p.name.split(' ')[0]).join(', ')}</b>.`);
   }else{
-    // Acumulado: media de faltas por partido más alta (mín. 2 partidos jugados)
     const foulRate=pl.filter(p=>p.g>=2).map(p=>({name:p.name,avg:p.fc/p.g,tot:p.fc,g:p.g})).sort((a,b)=>b.avg-a.avg);
     if(foulRate.length&&foulRate[0].avg>=2.5)ins.push(`⚠️ Más cargado de faltas: <b>${foulRate[0].name.split(' ')[0]}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
   }
@@ -4365,12 +4359,10 @@ function renderDash(){
   const dbIns=document.getElementById('db-ins');
   if(dbIns)dbIns.innerHTML=ins.map(i=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">• ${i}</div>`).join('')||'<div class="empty">Cap conclusió disponible</div>';
 
-  // Pairs — real +/- based on shared time on court (not individual pm sum)
   const pairMap={};
   const pKey=(tname,a,b)=>tname+'|'+[a,b].sort().join('|');
   const matchesToUse=mfEff?S.matches.filter(m=>m.id==mfEff):S.matches;
   matchesToUse.forEach(m=>{
-    // Reconstruct court state over time using subEvents
     const subs=(m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
     const court={home:new Set((m.homePlayers||[]).slice(0,5).map(p=>p.name)),
                  away:new Set((m.awayPlayers||[]).slice(0,5).map(p=>p.name))};
@@ -4400,15 +4392,12 @@ function renderDash(){
     });
   });
   let pairs=Object.values(pairMap);
-  // Team filter: only pairs of that team
   if(tf)pairs=pairs.filter(p=>p.tname===tf);
-  // Player filter: pairs (of the selected team if any) involving that player
   if(pf2)pairs=pairs.filter(p=>p.f1===pf2||p.f2===pf2);
   pairs.sort((a,b)=>b.pm-a.pm);
   const dbq=document.getElementById('db-q');
   if(dbq)dbq.innerHTML=pairs.length?`<div><div class="sh">📈 Mejores parejas por +/-</div>${pairs.slice(0,10).map((p,i)=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px"><span style="color:var(--t3);width:14px">${i+1}</span><span style="flex:1;font-weight:600">${p.n1} + ${p.n2}${tf?'':` <span style="color:var(--t3);font-weight:400;font-size:9px">(${p.tname})</span>`}</span><span style="color:${p.pm>=0?'var(--gn)':'#dc2626'};font-weight:700">${p.pm>0?'+':''}${p.pm}</span></div>`).join('')}</div>`:'<div class="empty">Cal dades de com a mínim 4 jugadors</div>';
 
-  // Comparativa con su liga: solo si hay un equipo concreto seleccionado
   const lcard=document.getElementById('db-league-card'),lel=document.getElementById('db-league'),ltn=document.getElementById('db-league-team');
   if(lcard&&lel){
     if(tfEff){
@@ -4997,11 +4986,9 @@ function renderScouting() {
   document.getElementById('sc-empty').style.display = _scoutRival ? 'none' : 'block';
   if (!_scoutRival) return;
 
-  // Get all matches where rival played
   const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
   document.getElementById('sc-match-count').textContent = `${matches.length} partido${matches.length !== 1 ? 's' : ''}`;
 
-  // Get all rival players across matches
   const rivalPlayers = {};
   matches.forEach(m => {
     const isHome = m.homeTeam === _scoutRival;
@@ -5024,7 +5011,6 @@ function renderScouting() {
   });
   const rpList = Object.values(rivalPlayers);
 
-  // ── KPIs ──────────────────────────────────────────────────────────────────
   const totPts = rpList.reduce((s,p) => s + p.pts, 0);
   const t2M = rpList.reduce((s,p) => s + p.t2Made, 0);
   const t2A = rpList.reduce((s,p) => s + p.t2Att, 0);
@@ -5041,11 +5027,9 @@ function renderScouting() {
     <div class="kpi"><div class="kv">${t3A ? Math.round(t3A/(t2A+t3A)*100)+'%' : '—'}</div><div class="kl">% tiros de 3</div><div class="ks">de ${t2A+t3A} FGA</div></div>
     <div class="kpi"><div class="kv">${matches.length}</div><div class="kl">Partidos</div></div>`;
 
-  // ── Jugadores amenaza ─────────────────────────────────────────────────────
   rpList.sort((a, b) => b.pts - a.pts);
-  // Habitual starting five (most frequent starters)
   const startersRank = rpList.filter(p => p.starts > 0).sort((a,b) => b.starts - a.starts || b.min - a.min).slice(0, 5);
-  const top5Starters = new Set(startersRank.map(p => p.name)); // solo estos 5 llevan estrella
+  const top5Starters = new Set(startersRank.map(p => p.name)); 
   const startersHtml = startersRank.length ? `
     <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:8px 10px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">⭐ Quinteto inicial habitual</div>
@@ -5058,7 +5042,6 @@ function renderScouting() {
     const t2p = p.t2Att ? Math.round(p.t2Made/p.t2Att*100) : 0;
     const t3p = p.t3Att ? Math.round(p.t3Made/p.t3Att*100) : 0;
     const ptsPerGame = Math.round(p.pts / p.games * 10) / 10;
-    // Threat level: high scorer or high % shooter with volume
     const isThreat = ptsPerGame >= 10 || (p.t3Att >= 5 && t3p >= 38);
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,_scoutRival)" title="Ver perfil">
       <div style="width:30px;height:30px;border-radius:50%;background:${isThreat?'#dc2626':'var(--nv)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</div>
@@ -5073,32 +5056,26 @@ function renderScouting() {
     </div>`;
   }).join('') || '<div class="empty">Sin datos</div>';
 
-  // ── Populate player selector for shot map ─────────────────────────────────
   const scShotPl = document.getElementById('sc-shot-player');
   if (scShotPl) {
     scShotPl.innerHTML = '<option value="">Todo el equipo</option>' +
       rpList.map(p => `<option value="${p.name}">${p.name.split(' ')[0]} (#${p.dorsal})</option>`).join('');
   }
 
-  // ── Shot map ──────────────────────────────────────────────────────────────
   renderScoutShots();
-
-  // ── Últimos 2 minutos ─────────────────────────────────────────────────────
   renderScoutClutch(matches);
-
-  // ── Post-timeout ──────────────────────────────────────────────────────────
   renderScoutTimeout(matches);
-
-  // ── Tendencias ofensivas ──────────────────────────────────────────────────
   renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A);
 
-  // ── Load saved notes ──────────────────────────────────────────────────────
   const notes = _scoutNotes[_scoutRival] || {};
   ['pr','side','def','other'].forEach(k => {
     const el = document.getElementById('sc-note-' + k);
     if (el) el.value = notes[k] || '';
   });
 
+  // TARJETA DE CASA VS FUERA PARA SCOUTING
+  const scHa = document.getElementById('sc-ha-card');
+  if (scHa) scHa.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
 }
 
 function renderScoutShots() {
@@ -8359,6 +8336,46 @@ try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.p
 setTimeout(()=>{
   drawCourtOnCanvas('db-cv');
 },300);
+function _generateHomeAwayHTML(teamName, matchesArray) {
+  const t = { home: {g:0, pts:0, ptsA:0}, away: {g:0, pts:0, ptsA:0} };
+  
+  matchesArray.forEach(m => {
+    if (m.homeTeam === teamName) {
+      t.home.g++; t.home.pts += (m.scoreHome||0); t.home.ptsA += (m.scoreAway||0);
+    } else if (m.awayTeam === teamName) {
+      t.away.g++; t.away.pts += (m.scoreAway||0); t.away.ptsA += (m.scoreHome||0);
+    }
+  });
+
+  const calc = (s) => ({
+    g: s.g,
+    pts: s.g ? (s.pts / s.g).toFixed(1) : '0.0',
+    ptsA: s.g ? (s.ptsA / s.g).toFixed(1) : '0.0',
+    dif: s.g ? ((s.pts - s.ptsA) / s.g).toFixed(1) : '0.0'
+  });
+  
+  const h = calc(t.home), a = calc(t.away);
+
+  return `<div class="card" style="margin-bottom:10px">
+    <div class="ct">🏠 Casa vs ✈️ Fuera <span style="font-weight:600;text-transform:none;color:var(--t3)">· ${_esc(teamName)}</span></div>
+    <div class="g2">
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px; text-align:center">
+        <div style="font-size:11px; font-weight:800; color:#15803d; margin-bottom:5px; text-transform:uppercase">Local</div>
+        <div style="font-size:18px; font-weight:900; color:#16a34a">${h.g} <span style="font-size:10px;font-weight:600">part.</span></div>
+        <div style="font-size:12px; margin-top:4px">Anota: <b>${h.pts}</b></div>
+        <div style="font-size:12px">Recibe: <b>${h.ptsA}</b></div>
+        <div style="font-size:11px; margin-top:4px; font-weight:700; color:${h.dif > 0 ? '#15803d' : h.dif < 0 ? '#dc2626' : '#64748b'}">Dif: ${h.dif > 0 ? '+' : ''}${h.dif}</div>
+      </div>
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px; text-align:center">
+        <div style="font-size:11px; font-weight:800; color:#1e40af; margin-bottom:5px; text-transform:uppercase">Visitante</div>
+        <div style="font-size:18px; font-weight:900; color:#3b82f6">${a.g} <span style="font-size:10px;font-weight:600">part.</span></div>
+        <div style="font-size:12px; margin-top:4px">Anota: <b>${a.pts}</b></div>
+        <div style="font-size:12px">Recibe: <b>${a.ptsA}</b></div>
+        <div style="font-size:11px; margin-top:4px; font-weight:700; color:${a.dif > 0 ? '#15803d' : a.dif < 0 ? '#dc2626' : '#64748b'}">Dif: ${a.dif > 0 ? '+' : ''}${a.dif}</div>
+      </div>
+    </div>
+  </div>`;
+}
 </script>
 </body>
 </html>

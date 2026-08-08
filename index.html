@@ -2787,8 +2787,8 @@ function parseCrono(txt,hPl,aPl){
 }
 
 let _parsed=null;
-function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
-function setPer(n){
+function _resetTimerLegacyA(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
+function _setPerLegacyA(n){
   if(lv.period>0&&n!==lv.period)lv.periodScores[lv.period-1]={h:lv.score.home,a:lv.score.away};
   lv.period=n;clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=n>4?300:600;renderTimer();
   document.getElementById('lv-pd').textContent=n>4?'PT'+(n>5?n-4:''):'P'+n;
@@ -3203,7 +3203,7 @@ function lvUndo(){
   lv.events.pop();
   _lvReplay();rLvAll();svL();
 }
-function renderTimer(){const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60;const el=document.getElementById('lv-timer');if(!el)return;el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');el.style.background=lv.timer.running?'rgba(232,64,42,.4)':'rgba(255,255,255,.13)';const dur=lv.period>4?300:600;const elapsedInPer=Math.max(0,(dur-lv.timer.seconds)/60);const me=document.getElementById('lv-min');if(me)me.value=Math.floor(elapsedInPer);lv.curMin=(lv.period-1)*10+elapsedInPer;}
+function _renderTimerLegacy(){const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60;const el=document.getElementById('lv-timer');if(!el)return;el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');el.style.background=lv.timer.running?'rgba(232,64,42,.4)':'rgba(255,255,255,.13)';const dur=lv.period>4?300:600;const elapsedInPer=Math.max(0,(dur-lv.timer.seconds)/60);const me=document.getElementById('lv-min');if(me)me.value=Math.floor(elapsedInPer);lv.curMin=(lv.period-1)*10+elapsedInPer;}
 function toggleTimer(){if(lv.timer.running){clearInterval(lv.timer.interval);lv.timer.running=false;}else{
   // First start: require exactly 5 on court per team (starting fives)
   if(!lv._startersOk){
@@ -3222,8 +3222,8 @@ function toggleTimer(){if(lv.timer.running){clearInterval(lv.timer.interval);lv.
     lv.log.unshift({team:'home',msg:`⭐ Quintetos confirmados`,period:lv.period});
     toast('⭐ Quintetos iniciales confirmados');
   }lv.timer.interval=setInterval(()=>{if(lv.timer.seconds>0){lv.timer.seconds--;renderTimer();}else{clearInterval(lv.timer.interval);lv.timer.running=false;toast('⏱ Final del període!');}},1000);lv.timer.running=true;}renderTimer();}
-function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
-function setPer(n){
+function _resetTimerLegacyB(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
+function _setPerLegacyB(n){
   if(lv.period>0&&n!==lv.period)lv.periodScores[lv.period-1]={h:lv.score.home,a:lv.score.away};
   lv.period=n;clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=n>4?300:600;renderTimer();
   document.getElementById('lv-pd').textContent=n>4?'PT'+(n>5?n-4:''):'P'+n;
@@ -4431,7 +4431,7 @@ function rAll(){
 // INIT
 // ═══════════════════════════════════════════
 // ── CAMBIOS ─────────────────────────────────────────────────────────────────
-function _subGetElapsedMin(){
+function _subGetElapsedMinLegacy(){
   const timerEl=document.getElementById('lv-timer');
   if(!timerEl)return lv.curMin||0;
   const [mm,ss]=timerEl.textContent.split(':').map(Number);
@@ -8336,7 +8336,7 @@ try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.p
 setTimeout(()=>{
   drawCourtOnCanvas('db-cv');
 },300);
-function _generateHomeAwayHTML(teamName, matchesArray) {
+function _generateHomeAwayHTMLLegacy(teamName, matchesArray) {
   const t = { home: {g:0, pts:0, ptsA:0}, away: {g:0, pts:0, ptsA:0} };
   
   matchesArray.forEach(m => {
@@ -8378,7 +8378,7 @@ function _generateHomeAwayHTML(teamName, matchesArray) {
 }
 /* ── Mejoras: temporadas, casa/fuera y estadísticas avanzadas ── */
 function _teamLabel(t){return `${t.name}${t.season&&t.season!=='Sin temporada'?` (${t.season})`:''}`;}
-function populateLvTeamSelects(){
+function _populateLvTeamSelectsLegacy(){
   const opts='<option value="">— base de datos —</option>'+S.teams.map(t=>`<option value="${t.id}">${_esc(_teamLabel(t))}</option>`).join('');
   ['lv-home-sel','lv-away-sel'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
 }

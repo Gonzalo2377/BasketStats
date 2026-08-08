@@ -8427,6 +8427,43 @@ _installAdvancedUI();
 // El módulo publica los handlers antes de estas sustituciones; actualizarlos evita
 // que los onclick usen implementaciones antiguas.
 Object.assign(window,{populateLvTeamSelects,renderDash,renderStats,renderScouting,renderClub,openPlayerProfile,setStSub,toggleAdvancedColumns,renderTimer,resetTimer,setPer});
+
+/* Mejoras v2: equipo+temporada, avanzadas ordenables y comparativa local/fuera */
+let _advSort={field:'pts',dir:-1};
+function _seasonTeamOptionsV2(matches,selected){
+  const items=[];const seen=new Set();(matches||S.matches).forEach(m=>[[m.homeTeam,m.season||'Sin temporada'],[m.awayTeam,m.season||'Sin temporada']].forEach(([name,season])=>{if(!name)return;const key=`${name}@@${season}`;if(!seen.has(key)){seen.add(key);items.push({key,name,season});}}));
+  return `<option value="">Todos los equipos</option>`+items.sort((a,b)=>a.name.localeCompare(b.name)||b.season.localeCompare(a.season)).map(x=>`<option value="${_esc(x.key)}"${x.key===selected?' selected':''}>${_esc(x.name)} (${_esc(x.season)})</option>`).join('');
+}
+const _renderStatsV1=renderStats;
+renderStats=function(){
+  const teamSel=document.getElementById('st-tf'),seasonSel=document.getElementById('st-sf');let chosen=teamSel?.value||'',restore='';
+  if(chosen.includes('@@')){const [name,season]=chosen.split('@@');restore=chosen;if(seasonSel)seasonSel.value=season;if(teamSel)teamSel.value=name;}
+  _renderStatsV1();
+  const ctx=window._stCtx||{};if(teamSel){const keep=restore||((ctx.tf&&seasonSel?.value)?`${ctx.tf}@@${seasonSel.value}`:'');teamSel.innerHTML=_seasonTeamOptionsV2(ctx.scoped||S.matches,keep);if(keep)teamSel.value=keep;}
+  _renderAdvancedStats();_renderAdvancedPlayerTableV2('st');
+};
+function _renderAdvancedPlayerTableV2(scope){
+  const classic=scope==='st'?document.getElementById('st-agg-wrap'):document.getElementById('cl-players')?.closest('.tw');if(!classic)return;
+  let box=document.getElementById(scope==='st'?'st-advanced-players':'cl-advanced-players');if(!box){box=document.createElement('div');box.id=scope==='st'?'st-advanced-players':'cl-advanced-players';box.className='tw tsk';classic.parentNode.insertBefore(box,classic);}
+  if(!_advancedMode[scope]){box.style.display='none';classic.style.display='';return;}
+  const ctx=window._stCtx||{},code=document.getElementById('st-tf')?.value||'',selected=code.includes('@@')?code.split('@@')[0]:ctx.tf||'';
+  const source=scope==='st'?(ctx.scoped||S.matches):S.matches.filter(m=>isOurTeam(m.homeTeam)||isOurTeam(m.awayTeam));const people=new Map();
+  source.forEach(m=>[['home',m.homeTeam,m.homePlayers],['away',m.awayTeam,m.awayPlayers]].forEach(([,team,players])=>{if((scope==='st'&&selected&&team!==selected)||(scope==='cl'&&!isOurTeam(team)))return;(players||[]).forEach(p=>{const key=p.name+'|'+team;if(!people.has(key))people.set(key,{name:p.name,team,dorsal:p.dorsal,pts:0});people.get(key).pts+=p.pts||0;});}));
+  const value=(p)=>{const a=_advancedPlayer(p.name,p.team,source);return _advSort.field==='name'?p.name:_advSort.field==='team'?p.team:_advSort.field==='pts'?p.pts:a[{efg:'efg',ts:'ts',usg:'usg',astTo:'astTo'}[_advSort.field]]||0;};
+  const players=[...people.values()].sort((a,b)=>{const x=value(a),y=value(b);return typeof x==='string'?_advSort.dir*x.localeCompare(y):_advSort.dir*(x-y);});
+  const head=(label,field)=>`<th onclick="sortAdvancedPlayers('${scope}','${field}')" style="cursor:pointer">${label}${_advSort.field===field?(_advSort.dir>0?' ▲':' ▼'):''}</th>`;
+  const pc=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',num=x=>Number.isFinite(x)?x.toFixed(2):'—';
+  box.innerHTML=`<table><thead><tr>${head('#','dorsal')}${head('Jugador','name')}${head('Equipo','team')}${head('PTS','pts')}${head('eFG%','efg')}${head('TS%','ts')}${head('USG%','usg')}${head('AST/TO','astTo')}</tr></thead><tbody>${players.map(p=>{const a=_advancedPlayer(p.name,p.team,source);return `<tr data-n="${_esc(p.name)}" data-t="${_esc(p.team)}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)" style="cursor:pointer"><td>#${p.dorsal||'—'}</td><td><b>${_esc(p.name)}</b></td><td>${_esc(p.team)}</td><td>${p.pts}</td><td>${pc(a.efg)}</td><td>${pc(a.ts)}</td><td>${num(a.usg)}</td><td>${num(a.astTo)}</td></tr>`;}).join('')||'<tr><td colspan="8" class="no-d">Sin datos</td></tr>'}</tbody></table>`;box.style.display='block';classic.style.display='none';
+}
+function sortAdvancedPlayers(scope,field){_advSort.dir=_advSort.field===field?-_advSort.dir:(field==='name'||field==='team'?1:-1);_advSort.field=field;_renderAdvancedPlayerTableV2(scope);}
+function _advancedLegendV2(){return `<div style="font-size:10px;color:var(--t3);line-height:1.55;margin:7px 0 10px;padding:7px 9px;background:#f8fafc;border:1px solid var(--bd);border-radius:7px"><b>Guía:</b> Pace = posesiones por partido · ORtg/DRtg = puntos anotados/recibidos por 100 posesiones · eFG% = eficacia de tiro ajustada por el valor del triple · TS% = eficacia total incluyendo tiros libres · USG% = porcentaje de posesiones finalizadas por el jugador · AST/TO = asistencias por pérdida · ORB%/DRB% = rebote ofensivo/defensivo.</div>`;}
+const _installV2=_installAdvancedUI;_installAdvancedUI=function(){_installV2();const sub=document.querySelector('.stsub'),tog=document.getElementById('st-view-btns');if(sub&&!document.getElementById('st-advanced-legend'))sub.insertAdjacentHTML('afterend',`<div id="st-advanced-legend">${_advancedLegendV2()}</div>`);if(tog&&!document.getElementById('st-toggle-legend'))tog.insertAdjacentHTML('afterend',`<div id="st-toggle-legend">${_advancedLegendV2()}</div>`);};_installAdvancedUI();
+_generateHomeAwayHTML=function(team,matches){
+  const stat=(side)=>{const a=_advancedTeam((matches||[]).filter(m=>(side==='home'?m.homeTeam:m.awayTeam)===team),team);return {pj:a.n,pf:a.pts/a.n,pc:a.opp/a.n,dif:(a.pts-a.opp)/a.n,t2:a.t2a?100*a.t2m/a.t2a:0,t3:a.t3a?100*a.t3m/a.t3a:0,tl:a.fta?100*a.ftm/a.fta:0,efg:100*a.efg,pace:a.pace,ortg:a.ortg,drtg:a.drtg};};const h=stat('home'),a=stat('away'),metrics=[['PJ','pj',x=>x],['Pts a favor','pf',x=>x.toFixed(1)],['Pts en contra','pc',x=>x.toFixed(1)],['Diferencia','dif',x=>(x>0?'+':'')+x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>x.toFixed(1)+'%'],['Pace','pace',x=>x.toFixed(1)],['ORtg','ortg',x=>x.toFixed(1)],['DRtg','drtg',x=>x.toFixed(1)]];
+  return `<div class="card" style="margin:10px 0"><div class="ct">🏠 Local vs ✈️ Visitante · <span style="text-transform:none;font-weight:500">${_esc(team)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:8px"><span style="color:#15803d">◀ LOCAL</span><span style="color:#2563eb">VISITANTE ▶</span></div>${metrics.map(([label,key,fmt])=>{const hv=h[key],av=a[key],mx=Math.max(Math.abs(hv),Math.abs(av),1);return `<div style="margin-bottom:7px"><div style="display:grid;grid-template-columns:42px 1fr 54px 1fr 42px;gap:5px;align-items:center;font-size:11px"><b style="text-align:right;color:#15803d">${fmt(hv)}</b><div style="height:7px;background:#dcfce7;border-radius:9px;overflow:hidden"><div style="margin-left:auto;width:${Math.abs(hv)/mx*100}%;height:100%;background:#16a34a"></div></div><span style="text-align:center;font-size:9px;font-weight:800;color:var(--t3)">${label}</span><div style="height:7px;background:#dbeafe;border-radius:9px;overflow:hidden"><div style="width:${Math.abs(av)/mx*100}%;height:100%;background:#2563eb"></div></div><b style="color:#2563eb">${fmt(av)}</b></div></div>`;}).join('')}</div>`;
+};
+const _renderClubV2=renderClub;renderClub=function(){_renderClubV2();_renderAdvancedPlayerTableV2('cl');};
+Object.assign(window,{renderStats,renderClub,toggleAdvancedColumns,sortAdvancedPlayers,_installAdvancedUI});
 </script>
 </body>
 </html>

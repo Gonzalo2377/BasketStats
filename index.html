@@ -569,7 +569,7 @@ input[type=file]{display:none}
       <div style="font-size:12px;font-weight:800;color:#15803d;margin-bottom:3px">⚡ Importar automáticamente desde la web de la FCBQ</div>
       <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Pega el link de la página de estadísticas del partido y se rellenan equipos, fecha y cronología solos.</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <input type="text" id="i-fcbq-url" placeholder="https://www.basquetcatala.cat/.../estadistiques/2025/68d8..." style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+          <textarea id="i-fcbq-url" rows="4" placeholder="Pega aquí todos tus enlaces de la FCBQ (uno por línea)..." style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--b2);border-radius:6px;resize:vertical;font-family:monospace;"></textarea>
         <button onclick="importFromFCBQ()" id="i-fcbq-btn" class="btn bp" style="font-size:12px;white-space:nowrap">⬇ Cargar del link</button>
       </div>
       <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
@@ -8181,128 +8181,131 @@ function _fcbqTimeouts(moves,stats){
   return outs;
 }
 
+// Función de importación masiva de enlaces FCBQ
 async function importFromFCBQ(){
-  const url=document.getElementById('i-fcbq-url')?.value.trim();
-  const st=document.getElementById('i-fcbq-status');
-  const btn=document.getElementById('i-fcbq-btn');
-  const setSt=(t,c)=>{if(st){st.textContent=t;st.style.color=c||'var(--t3)';}};
-  const id=_fcbqExtractId(url);
-  if(!id){setSt('❌ No encuentro el ID del partido en ese link','#dc2626');return;}
+  const rawText = document.getElementById('i-fcbq-url')?.value.trim();
+  const st = document.getElementById('i-fcbq-status');
+  const btn = document.getElementById('i-fcbq-btn');
+  const setSt = (t, c) => { if(st){ st.textContent = t; st.style.color = c || 'var(--t3)'; } };
 
-  if(btn){btn.disabled=true;btn.style.opacity=.6;btn.textContent='⬇ Cargando…';}
-  setSt('Descargando datos de la FCBQ…');
-  // Intenta primero el proxy de Netlify Function (evita CORS); si no está desplegado
-  // (ej. probando en local sin `netlify dev`), cae al fetch directo.
-  // Cadena de intentos para saltarse el CORS, en orden de fiabilidad. Así la
-  // importación funciona esté donde esté alojada la app (Netlify, Cloudflare
-  // Pages, GitHub Pages…) sin depender de un único proveedor.
-  const fcbqFetch=async(endpoint,path)=>{
-    const direct=`${FCBQ_API}/${path}/${id}?currentSeason=false`;
-    const intentos=[
-      `${FCBQ_PROXY}?endpoint=${endpoint}&id=${id}`,          // 1. función de Netlify
-      `/api/fcbq-proxy?endpoint=${endpoint}&id=${id}`,        // 2. función de Cloudflare Pages
-      direct,                                                 // 3. directo (si algún día abren CORS)
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,  // 4. proxy público
-      `https://corsproxy.io/?${encodeURIComponent(direct)}`,               // 5. otro proxy público
-    ];
-    let ultimoError=null;
-    for(const url of intentos){
-      try{
-        const r=await fetch(url);
-        if(!r.ok){ultimoError=new Error('respuesta '+r.status);continue;}
-        // OJO: si la ruta del proxy no existe, el hosting devuelve su index.html
-        // con código 200. Por eso NO basta con r.ok: hay que comprobar que lo que
-        // llega es JSON de verdad antes de darlo por bueno.
-        const txt=await r.text();
-        const t=txt.trim();
-        if(!t||(t[0]!=='{'&&t[0]!=='[')){ultimoError=new Error('no-es-json');continue;}
-        let datos;
-        try{datos=JSON.parse(t);}catch(_p){ultimoError=new Error('json-invalido');continue;}
-        return {ok:true,status:r.status,json:async()=>datos};   // compatible con el resto del código
-      }catch(e){ultimoError=e;}
-    }
-    throw ultimoError||new Error('No se pudo contactar con la FCBQ');
-  };
-  try{
-    const [movesRes,statsRes]=await Promise.all([
-      fcbqFetch('moves','getJsonWithMatchMoves'),
-      fcbqFetch('stats','getJsonWithMatchStats')
-    ]);
-    if(!movesRes.ok||!statsRes.ok)throw new Error(`El servidor respondió ${movesRes.status}/${statsRes.status}`);
-    const moves=await movesRes.json();
-    const stats=await statsRes.json();
-    if(!Array.isArray(moves)||!moves.length)throw new Error('El partido no tiene cronología disponible');
+  if(!rawText){ setSt('❌ Pega al menos un enlace de la FCBQ', '#dc2626'); return; }
 
-    const teams=stats.teams||[];
-    const local=teams.find(t=>t.teamIdIntern===stats.localId)||teams[0]||{};
-    const visit=teams.find(t=>t.teamIdIntern===stats.visitId)||teams[1]||{};
+  // Extraer todas las líneas que contengan un ID válido
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const idsToImport = [];
+  lines.forEach(line => {
+    const id = _fcbqExtractId(line);
+    if(id && !idsToImport.includes(id)) idsToImport.push(id);
+  });
 
-    // Auto-añadir/actualizar ambos equipos en la BD. IMPORTANTE: para el parseo
-    // usamos los jugadores de ESTE partido (rotaciones, ida/vuelta con distinta
-    // plantilla), no la plantilla vieja guardada — si no, faltan jugadores y el
-    // +/- y las stats salen mal (típico en clubes con mucha rotación como el Barça).
-    _fcbqEnsureTeam(local.name,local.players);
-    _fcbqEnsureTeam(visit.name,visit.players);
-    if(typeof populateTeamSelects==='function')populateTeamSelects();
-    svL();
+  if(!idsToImport.length){ setSt('❌ No se encontró ningún ID de partido válido en los enlaces', '#dc2626'); return; }
 
-    // Rellenar el formulario de importación
-    const setV=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
-    // Formato de jugadores para el textarea: "#dorsal Nombre" por línea
-    const rosterText=(players)=>(players||[]).map(p=>`#${p.dorsal} ${p.name}`).join('\n');
-    // NO seleccionamos el equipo de la BD (usaría su plantilla fija). Ponemos el
-    // NOMBRE en el campo de texto y los JUGADORES DEL PARTIDO en el textarea de stats.
-    const setTeam=(name,selId,txtId,statsId,players)=>{
-      const sel=document.getElementById(selId),txt=document.getElementById(txtId),st=document.getElementById(statsId);
-      if(sel)sel.value='';               // no usar plantilla de BD
-      if(txt)txt.value=name||'';         // nombre del equipo (texto libre)
-      if(st)st.value=rosterText(players);// jugadores reales de este partido
+  // Bloqueamos el botón para evitar doble clic
+  if(btn){ btn.disabled = true; btn.style.opacity = .6; }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  // Bucle secuencial para procesar cada link de la lista
+  for (let i = 0; i < idsToImport.length; i++) {
+    const id = idsToImport[i];
+    
+    if(btn) btn.textContent = `⬇ Importando (${i + 1}/${idsToImport.length})…`;
+    setSt(`Descargando partido ${i + 1} de ${idsToImport.length}...`);
+
+    const fcbqFetch = async(endpoint, path) => {
+      const direct = `${FCBQ_API}/${path}/${id}?currentSeason=false`;
+      const intentos = [
+        `${FCBQ_PROXY}?endpoint=${endpoint}&id=${id}`,
+        `/api/fcbq-proxy?endpoint=${endpoint}&id=${id}`,
+        direct,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,
+        `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+      ];
+      let ultimoError = null;
+      for(const url of intentos){
+        try{
+          const r = await fetch(url);
+          if(!r.ok){ ultimoError = new Error('respuesta '+r.status); continue; }
+          const txt = await r.text();
+          const t = txt.trim();
+          if(!t || (t[0] !== '{' && t[0] !== '[')){ ultimoError = new Error('no-es-json'); continue; }
+          let datos;
+          try{ datos = JSON.parse(t); }catch(_p){ ultimoError = new Error('json-invalido'); continue; }
+          return { ok: true, status: r.status, json: async() => datos };
+        }catch(e){ ultimoError = e; }
+      }
+      throw ultimoError || new Error('No se pudo contactar con la FCBQ');
     };
-    setTeam(local.name,'i-home-sel','i-home-txt','i-hs',local.players);
-    setTeam(visit.name,'i-away-sel','i-away-txt','i-as',visit.players);
-    // Asegurar que los textareas de stats (con los jugadores del partido) sean visibles
-    ['i-hs-wrap','i-as-wrap'].forEach(id=>{const w=document.getElementById(id);if(w)w.style.display='block';});
-    // Fecha: "Sep 27, 2025 8:00:00 PM" → dd/mm/yyyy
-    if(stats.time){
-      const d=new Date(stats.time);
-      if(!isNaN(d))setV('i-date',`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`);
-    }
-    // Cronología
-    const crono=_fcbqMovesToCrono(moves,stats);
-    setV('i-cr',crono);
-    // Tiros ubicados (coordenadas ya calculadas por la FCBQ)
-    const shots=_fcbqStatsToShots(stats);
-    // Tiempos muertos (para segmentar "tras tiempo muerto" en scouting)
-    const timeouts=_fcbqTimeouts(moves,stats);
 
-    // Marcador final (para el status)
-    const last=moves[moves.length-1];
-    const finalSc=last?.score||'';
-    // Auto-procesar para que quede listo, y adjuntar los tiros al partido creado
-    if(typeof parseMatch==='function'){
-      try{
-        parseMatch();
-        if(_parsed){
-          _parsed.shots = shots;
-          _parsed.timeouts = timeouts; 
-          _parsed.fcbqMoves = moves; // <--- ¡AQUÍ GUARDAMOS LA CRONOLOGÍA CON SEGUNDOS!
-          _fcbqApplyMinutes(_parsed,stats); 
-          svL(); rAll();
-        }
-      }catch(e){console.warn(e);}
+    try {
+      const [movesRes, statsRes] = await Promise.all([
+        fcbqFetch('moves', 'getJsonWithMatchMoves'),
+        fcbqFetch('stats', 'getJsonWithMatchStats')
+      ]);
+      if(!movesRes.ok || !statsRes.ok) throw new Error(`Error servidor`);
+      const moves = await movesRes.json();
+      const stats = await statsRes.json();
+      if(!Array.isArray(moves) || !moves.length) throw new Error('Sin cronología');
+
+      const teams = stats.teams || [];
+      const local = teams.find(t => t.teamIdIntern === stats.localId) || teams[0] || {};
+      const visit = teams.find(t => t.teamIdIntern === stats.visitId) || teams[1] || {};
+
+      _fcbqEnsureTeam(local.name, local.players);
+      _fcbqEnsureTeam(visit.name, visit.players);
+
+      // Rellenamos los campos de la interfaz para que parseMatch() los pille
+      const rosterText = (players) => (players || []).map(p => `#${p.dorsal} ${p.name}`).join('\n');
+      const setTeam = (name, selId, txtId, statsId, players) => {
+        const sel = document.getElementById(selId), txt = document.getElementById(txtId), st = document.getElementById(statsId);
+        if(sel) sel.value = '';
+        if(txt) txt.value = name || '';
+        if(st) st.value = rosterText(players);
+      };
+      setTeam(local.name, 'i-home-sel', 'i-home-txt', 'i-hs', local.players);
+      setTeam(visit.name, 'i-away-sel', 'i-away-txt', 'i-as', visit.players);
+      
+      let dt = '';
+      if(stats.time){
+        const d = new Date(stats.time);
+        if(!isNaN(d)) dt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      }
+      const setV = (id, v) => { const e = document.getElementById(id); if(e && v != null) e.value = v; };
+      setV('i-date', dt);
+      setV('i-cr', _fcbqMovesToCrono(moves, stats));
+
+      const shots = _fcbqStatsToShots(stats);
+      const timeouts = _fcbqTimeoutsV2(moves, stats);
+
+      // Guardamos el partido
+      if(typeof parseMatch === 'function'){
+        try {
+          parseMatch();
+          if(_parsed){
+            _parsed.shots = shots;
+            _parsed.timeouts = timeouts;
+            _parsed.fcbqMoves = moves; // Guardamos los segundos para el reloj de posesión
+            _fcbqApplyMinutes(_parsed, stats);
+            svL(); rAll();
+          }
+        } catch(err){ console.warn(err); }
+      }
+      successCount++;
+    } catch(err) {
+      console.warn(`Fallo al importar partido ${id}:`, err);
+      failCount++;
     }
-    const compSel=document.getElementById('i-comp')?.value||'';
-    const compWarn=compSel?'':' ⚠️ Sin liga seleccionada — no saldrá en Clasificación (elige liga+grupo y reimporta).';
-    setSt(`✅ Cargado: ${local.name} ${finalSc} ${visit.name} · ${moves.length} eventos · ${shots.length} tiros ubicados.${compWarn}`,compSel?'#15803d':'#b45309');
-  }catch(e){
-    console.error('FCBQ import:',e);
-    if(/Failed to fetch|CORS|NetworkError/i.test(e.message)){
-      setSt('❌ No se pudo descargar de la FCBQ. Se han probado el proxy propio y dos públicos. Puede que los proxys públicos estén caídos: prueba de nuevo en un rato.','#dc2626');
-    }else{
-      setSt('❌ '+e.message,'#dc2626');
-    }
-  }finally{
-    if(btn){btn.disabled=false;btn.style.opacity=1;btn.textContent='⬇ Cargar del link';}
+  }
+
+  // Refrescamos selectores y limpiamos estado
+  if(typeof populateTeamSelects === 'function') populateTeamSelects();
+  setSt(`✅ Importación masiva completada: ${successCount} partidos guardados${failCount > 0 ? ` (${failCount} fallos)` : ''}.`, successCount > 0 ? '#15803d' : '#dc2626');
+  
+  if(btn){ 
+    btn.disabled = false; 
+    btn.style.opacity = 1; 
+    btn.textContent = '⬇ Cargar del link'; 
   }
 }
 

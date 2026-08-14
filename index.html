@@ -8825,6 +8825,26 @@ _renderAdvancedStatsV3 = function() {
 // 4. SCOUTING DE POSESIÓN POR SEGUNDOS (24-14, 14-5, 5-0)
 // ============================================================================
 
+// Actualizamos la captura de tiempos muertos para que use min y sec reales de la FCBQ
+function _fcbqTimeoutsV2(moves, stats) {
+  const homeId = stats.localId, awayId = stats.visitId;
+  const outs = [];
+  (moves || []).forEach(mv => {
+    if (mv.idMove === 113 || /temps?\s*mort|tiempo\s*muerto|time\s*out/i.test(mv.move || '')) {
+      const side = mv.idTeam === homeId ? 'home' : mv.idTeam === awayId ? 'away' : null;
+      if (side) {
+        outs.push({
+          team: side,
+          period: mv.period || 1,
+          min: mv.min ?? 0,
+          sec: mv.sec ?? 0
+        });
+      }
+    }
+  });
+  return outs;
+}
+
 function _analyzePossessionClocks(matches, rivalTeam) {
   const statsByZone = {
     '24-14': { att: 0, made: 0 },

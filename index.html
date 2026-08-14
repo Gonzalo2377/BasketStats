@@ -8843,6 +8843,7 @@ function _fcbqTimeoutsV2(moves, stats) {
 }
 
 // Algoritmo central de posesiones y franjas de tiempo
+// Algoritmo central de posesiones y franjas de tiempo (Versión Definitiva con Autocorrección)
 function _analyzePossessionClocks(matches, rivalTeam) {
   const statsByZone = {
     '24-14': { att: 0, made: 0 },
@@ -8856,19 +8857,23 @@ function _analyzePossessionClocks(matches, rivalTeam) {
     if (!isHomeRival && !isAwayRival) return;
     const rivalSide = isHomeRival ? 'home' : 'away';
 
-    const moves = m.fcbqMoves || m.events || [];
+    let moves = m.fcbqMoves || [];
+    if (!moves.length && m.events && m.events.length) {
+       moves = m.events.map(e => ({ 
+           move: e.type, period: e.period, min: e.min, sec: 0, 
+           idTeam: e.team === 'home' ? m.localId : m.visitId 
+       }));
+    }
     if (!moves.length) return;
 
-    // Mapeo dinámico de IDs numéricos de la FCBQ por si no están en localId/visitId
+    // Determinar IDs de los equipos de forma robusta
     let homeId = m.localId, awayId = m.visitId;
     if (!homeId || !awayId) {
       const homeNames = (m.homePlayers || []).map(p => p.name.toUpperCase());
-      const awayNames = (m.awayPlayers || []).map(p => p.name.toUpperCase());
       for (const mv of moves) {
         if (mv.idTeam && mv.actorName) {
-          const act = mv.actorName.toUpperCase();
-          if (homeNames.includes(act)) homeId = mv.idTeam;
-          else if (awayNames.includes(act)) awayId = mv.idTeam;
+          if (homeNames.includes(mv.actorName.toUpperCase())) homeId = mv.idTeam;
+          else awayId = mv.idTeam;
         }
         if (homeId && awayId) break;
       }
@@ -8883,93 +8888,83 @@ function _analyzePossessionClocks(matches, rivalTeam) {
 
     let possessingTeamId = null;
     let possessionStartSecs = null;
+    let pendingMiss = false; // Memoria inteligente para tiros sin rebote anotado
 
-    // Función interna para clasificar el tiro en su franja
-    const processShot = (shotTeamId, currentSecs, text) => {
-      // Ignorar tiros libres (de 1)
-      if (!text.includes('de 2') && !text.includes('de 3') && !text.includes('esmaixada')) return;
-      
-      if (shotTeamId === rivalIdTeam && possessionStartSecs !== null) {
-        const timeSpent = currentSecs - possessionStartSecs;
-        const shotClockSecs = Math.max(0, 24 - timeSpent);
-
-        let zone = '5-0';
-        if (shotClockSecs >= 14) zone = '24-14';
-        else if (shotClockSecs >= 5) zone = '14-5';
-
-        const isMade = text.includes('cistella') || text.includes('esmaixada') || text.includes('cesta');
-        statsByZone[zone].att++;
-        if (isMade) statsByZone[zone].made++;
-      }
-    };
-
-    // Máquina de estados: recorremos las jugadas de inicio a fin
     sortedMoves.forEach(mv => {
       const text = (mv.move || '').toLowerCase();
-      // Aseguramos de tener un TeamID para la acción (por ID o mapeando del equipo)
-      const teamId = mv.idTeam || (mv.team === 'home' ? homeId : mv.team === 'away' ? awayId : null);
+      const teamId = mv.idTeam;
       if (!teamId) return;
-
       const otherTeamId = (teamId === homeId) ? awayId : homeId;
 
-      if (text.includes('salt guanyat') || text.includes('salto ganado')) {
+      // 1. Autocorrección de rebotes "fantasma" de la mesa
+      if (pendingMiss) {
+          if (!text.includes('rebot') && !text.includes('rebote')) {
+              // Si la siguiente jugada no es un rebote, deducimos qué pasó
+              if (teamId !== possessingTeamId) {
+                  // Si la toca el otro equipo, fue rebote defensivo
+                  possessingTeamId = teamId;
+                  possessionStartSecs = mv.elapsedSecs;
+              } else {
+                  // Si la toca el mismo equipo, fue rebote ofensivo (reloj a 14s)
+                  possessionStartSecs = Math.max(0, mv.elapsedSecs - 10); 
+              }
+          }
+          pendingMiss = false;
+      }
+
+      // 2. Máquina de estados reglamentaria FIBA
+      if (text.includes('salt guanyat') || text.includes('salto ganado') || text.includes('recuperació') || text.includes('rebot defensiu')) {
         possessingTeamId = teamId;
         possessionStartSecs = mv.elapsedSecs;
-      }
-      else if (text.includes('rebot defensiu') || text.includes('rebote defensivo')) {
-        possessingTeamId = teamId;
-        possessionStartSecs = mv.elapsedSecs;
-      }
-      else if (text.includes('recuperació') || text.includes('recuperacion')) {
-        possessingTeamId = teamId;
-        possessionStartSecs = mv.elapsedSecs;
-      }
-      else if (text.includes('pèrdua') || text.includes('perdida')) {
-        // En una pérdida, la posesión pasa al otro equipo
-        possessingTeamId = otherTeamId;
-        possessionStartSecs = mv.elapsedSecs;
-      }
-      else if (text.includes('cistella') || text.includes('esmaixada') || text.includes('cesta')) {
-        if (possessingTeamId === teamId && possessionStartSecs !== null) {
-          processShot(teamId, mv.elapsedSecs, text);
-        } else if (possessionStartSecs === null) {
-          possessionStartSecs = mv.elapsedSecs - 10; // Fallback
-          processShot(teamId, mv.elapsedSecs, text);
-        }
-        // Tras anotar, la bola pasa al otro
-        possessingTeamId = otherTeamId;
-        possessionStartSecs = mv.elapsedSecs;
-      }
-      else if (text.includes('intent fallat') || text.includes('fallado')) {
-        if (possessingTeamId === teamId && possessionStartSecs !== null) {
-          processShot(teamId, mv.elapsedSecs, text);
-        } else if (possessionStartSecs === null) {
-          possessionStartSecs = mv.elapsedSecs - 10;
-          processShot(teamId, mv.elapsedSecs, text);
-        }
-        // Tras fallar NO cambiamos la bola aún, hay que esperar al evento de Rebote
       }
       else if (text.includes('rebot ofensiu') || text.includes('rebote ofensivo')) {
         possessingTeamId = teamId;
-        // FIBA: Si hay rebote ofensivo, el reloj SIEMPRE se ajusta a 14s.
-        possessionStartSecs = mv.elapsedSecs - 10; // Virtualmente fuerza 14s restantes
+        possessionStartSecs = Math.max(0, mv.elapsedSecs - 10); // Ajuste a 14 segundos
       }
-      else if (text.includes('falta rebuda') || text.includes('falta recibida')) {
-        if (possessingTeamId === teamId && possessionStartSecs !== null) {
-          const elapsedInPoss = mv.elapsedSecs - possessionStartSecs;
-          // Si hicieron falta cuando quedaban menos de 14s, se reinicia a 14s
-          if (elapsedInPoss > 10) {
-            possessionStartSecs = mv.elapsedSecs - 10;
-          }
-        }
-      }
-      else if (text.includes('falta en atac') || text.includes('falta en ataque')) {
-        possessingTeamId = otherTeamId;
+      else if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('surt del camp') || text.includes('passos') || text.includes('dobles')) {
+        possessingTeamId = otherTeamId; // Cambio de posesión
         possessionStartSecs = mv.elapsedSecs;
       }
+      else if (text.includes('cistella') || text.includes('esmaixada')) {
+        if (text.includes('de 2') || text.includes('de 3') || text.includes('esmaixada')) {
+            // Guardar estadística si es del rival
+            if (teamId === rivalIdTeam && possessionStartSecs !== null) {
+                const elapsed = mv.elapsedSecs - possessionStartSecs;
+                const shotClock = Math.max(0, Math.min(24, 24 - elapsed));
+                let zone = '5-0';
+                if (shotClock >= 14) zone = '24-14';
+                else if (shotClock >= 5) zone = '14-5';
+                statsByZone[zone].att++;
+                statsByZone[zone].made++;
+            }
+            possessingTeamId = otherTeamId; // El rival saca de fondo
+            possessionStartSecs = mv.elapsedSecs;
+        }
+      }
+      else if (text.includes('intent fallat') && (text.includes('de 2') || text.includes('de 3'))) {
+          // Guardar estadística de tiro fallado si es del rival
+          if (teamId === rivalIdTeam && possessionStartSecs !== null) {
+              const elapsed = mv.elapsedSecs - possessionStartSecs;
+              const shotClock = Math.max(0, Math.min(24, 24 - elapsed));
+              let zone = '5-0';
+              if (shotClock >= 14) zone = '24-14';
+              else if (shotClock >= 5) zone = '14-5';
+              statsByZone[zone].att++;
+          }
+          pendingMiss = true; // Activamos la alerta de autocorrección para la siguiente jugada
+      }
+      else if (text.includes('falta rebuda') || text.includes('falta recibida')) {
+          if (teamId === possessingTeamId && possessionStartSecs !== null) {
+              // Si quedan menos de 14 segundos, el reloj se reinicia a 14s
+              if (mv.elapsedSecs - possessionStartSecs > 10) {
+                  possessionStartSecs = mv.elapsedSecs - 10;
+              }
+          }
+      }
       else if (text.includes('final de')) {
-        possessingTeamId = null;
-        possessionStartSecs = null;
+          possessingTeamId = null;
+          possessionStartSecs = null;
+          pendingMiss = false;
       }
     });
   });

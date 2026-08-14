@@ -8855,6 +8855,7 @@ function _analyzePossessionClocks(matches, rivalTeam) {
     const rivalSide = m.homeTeam === rivalTeam ? 'home' : m.awayTeam === rivalTeam ? 'away' : null;
     if (!rivalSide) return;
 
+    // Buscamos los movimientos en fcbqMoves (guardados al importar) o en events como respaldo
     const moves = m.fcbqMoves || m.events || [];
     if (!moves.length) return;
 
@@ -9007,6 +9008,7 @@ renderScouting = function() {
 
 // Re-vincular las funciones actualizadas a `window` para que el HTML pueda llamarlas
 Object.assign(window,{saveTeam, editTeam, clearTeamForm, renderTeams, populateTeamSelects, populateLvTeamSelects});
+window.renderClipsLibrary = window.renderVideoLib || renderVideoLib;
 
 </script>
 </body>

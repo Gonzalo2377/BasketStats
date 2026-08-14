@@ -1261,8 +1261,7 @@ input[type=file]{display:none}
     </div>
 
     <!-- Notas manuales del staff -->
-    <div class="card">    <!-- Notas manuales del staff -->
-    <div class="card">
+     <div class="card">
       <div class="ct">📝 Notas del staff
         <button onclick="saveScoutNotes()" class="btn bg bxs">💾 Guardar</button>
       </div>
@@ -8957,7 +8956,11 @@ function _analyzePossessionClocks(matches, rivalTeam) {
 }
 
 // Inyectamos el renderizado en la pestaña de Scouting
-function renderScoutPossessionClocks(matches) {
+// ============================================================================
+// RENDERIZADO DEL RELOJ DE POSESIÓN (VERSIÓN BLINDADA Y AUTÓNOMA)
+// ============================================================================
+
+function _renderScoutPossessionClocksSeguro() {
   const container = document.getElementById('sc-possession-clock');
   if (!container) return;
 
@@ -8969,7 +8972,22 @@ function renderScoutPossessionClocks(matches) {
     return;
   }
 
-  const data = _analyzePossessionClocks(matches, currentRival);
+  // ACCESO SEGURO A LOS PARTIDOS (Sin depender de S global)
+  let matches = [];
+  if (typeof S !== 'undefined' && S && S.matches) {
+      matches = S.matches;
+  } else {
+      try { 
+          const localStore = JSON.parse(localStorage.getItem('bascatStore') || '{}');
+          matches = localStore.matches || window._state?.matches || []; 
+      } catch(e){}
+  }
+
+  const teamMatches = matches.filter(m => m.homeTeam === currentRival || m.awayTeam === currentRival);
+  const data = _analyzePossessionClocks(teamMatches, currentRival);
+  
+  if (!data || !data['24-14']) return; 
+
   const totalAtt = data['24-14'].att + data['14-5'].att + data['5-0'].att;
 
   if (!totalAtt) {
@@ -8980,7 +8998,7 @@ function renderScoutPossessionClocks(matches) {
            <span style="font-size:20px;display:block;margin-bottom:5px">⏳</span>
            Sin datos de posesión exactos.<br><br>
            <b>¿Cómo solucionarlo?</b><br>
-           Ve a la base de datos, <b>elimina este partido</b> y vuelve a importarlo desde el link de la FCBQ. Así el sistema guardará los segundos de cada acción.
+           Ve a la base de datos, <b>elimina este partido</b> y vuelve a importarlo desde el link de la FCBQ.
         </div>
       </div>`;
     return;
@@ -9012,38 +9030,37 @@ function renderScoutPossessionClocks(matches) {
     </div>`;
 }
 
-// Enganchamos esto al renderizado general de Scouting
-const _baseRenderScoutingForClock = renderScouting;
-renderScouting = function() {
-  _baseRenderScoutingForClock();
-  const rivalSelect = document.getElementById('sc-rival');
-  const currentRival = rivalSelect ? rivalSelect.value : '';
-  const matches = S.matches.filter(m => m.homeTeam === currentRival || m.awayTeam === currentRival);
-  renderScoutPossessionClocks(matches);
-};
+// Enganchamos esto al renderizado general de Scouting de forma 100% segura
+if (typeof renderScouting === 'function') {
+    const _baseRenderScoutingForClock = renderScouting;
+    window.renderScouting = function() {
+      _baseRenderScoutingForClock();
+      // Le damos 50 milisegundos de respiro para asegurar que el DOM cargó
+      setTimeout(_renderScoutPossessionClocksSeguro, 50);
+    };
+}
 
-// Reparador automático para partidos importados antiguos que no tengan fcbqMoves
+// Reparador automático para partidos importados antiguos (Versión Segura)
 (function repairOldImportedMatches() {
-  if (!S || !Array.isArray(S.matches)) return;
-  let fixed = 0;
-  S.matches.forEach(m => {
-    // Si es un partido importado y tiene eventos pero no fcbqMoves, 
-    // intentamos usar m.events como respaldo temporal para que el reloj de posesión no falle.
-    if (m.type === 'imported' && !m.fcbqMoves && Array.isArray(m.events) && m.events.length) {
-      m.fcbqMoves = m.events.map(e => ({
-        move: e.type,
-        period: e.period,
-        min: e.min,
-        sec: 0, // Si no tenía segundos exactos, ponemos 0 como base
-        team: e.team
-      }));
-      fixed++;
-    }
-  });
-  if (fixed > 0) {
-    svL();
-    console.log(`✓ Reparados ${fixed} partidos antiguos para el reloj de posesión.`);
-  }
+  try {
+      let matches = [];
+      if (typeof S !== 'undefined' && S && S.matches) matches = S.matches;
+      if (!Array.isArray(matches)) return;
+      
+      let fixed = 0;
+      matches.forEach(m => {
+        if (m.type === 'imported' && !m.fcbqMoves && Array.isArray(m.events) && m.events.length) {
+          m.fcbqMoves = m.events.map(e => ({
+            move: e.type, period: e.period, min: e.min, sec: 0, team: e.team
+          }));
+          fixed++;
+        }
+      });
+      if (fixed > 0 && typeof svL === 'function') {
+        svL();
+        console.log(`✓ Reparados ${fixed} partidos antiguos para el reloj de posesión.`);
+      }
+  } catch(e) {}
 })();
 
 // Re-vincular las funciones actualizadas a `window` para que el HTML pueda llamarlas

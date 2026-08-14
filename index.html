@@ -8284,7 +8284,9 @@ async function importFromFCBQ(){
           if(_parsed){
             _parsed.shots = shots;
             _parsed.timeouts = timeouts;
-            _parsed.fcbqMoves = moves; // Guardamos los segundos para el reloj de posesión
+            _parsed.fcbqMoves = moves; 
+            _parsed.localId = stats.localId; // ¡NUEVO! Guardamos el ID del local
+            _parsed.visitId = stats.visitId; // ¡NUEVO! Guardamos el ID del visitante
             _fcbqApplyMinutes(_parsed, stats);
             svL(); rAll();
           }
@@ -8972,7 +8974,7 @@ function _renderScoutPossessionClocksSeguro() {
     return;
   }
 
-  // ACCESO SEGURO A LOS PARTIDOS (Sin depender de S global)
+  // ACCESO SEGURO A LOS PARTIDOS
   let matches = [];
   if (typeof S !== 'undefined' && S && S.matches) {
       matches = S.matches;
@@ -8983,7 +8985,14 @@ function _renderScoutPossessionClocksSeguro() {
       } catch(e){}
   }
 
-  const teamMatches = matches.filter(m => m.homeTeam === currentRival || m.awayTeam === currentRival);
+  // FILTRO BLINDADO (Ignora mayúsculas y espacios extra)
+  const rName = currentRival.trim().toLowerCase();
+  const teamMatches = matches.filter(m => {
+      const h = (m.homeTeam || '').trim().toLowerCase();
+      const a = (m.awayTeam || '').trim().toLowerCase();
+      return h === rName || a === rName;
+  });
+
   const data = _analyzePossessionClocks(teamMatches, currentRival);
   
   if (!data || !data['24-14']) return; 

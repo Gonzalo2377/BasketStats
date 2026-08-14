@@ -8982,12 +8982,12 @@ function renderScoutPossessionClocks(matches) {
   const container = document.getElementById('sc-possession-clock');
   if (!container) return;
 
-  // Forzamos la lectura directa del selector HTML por si la variable global va desincronizada
+  // Leemos el rival directamente del desplegable de la interfaz
   const rivalSelect = document.getElementById('sc-rival');
-  const currentRival = _scoutRival || (rivalSelect ? rivalSelect.value : '');
+  const currentRival = rivalSelect ? rivalSelect.value : '';
 
   if (!currentRival) {
-    container.innerHTML = ''; // Si no hay rival, dejamos el espacio completamente limpio en vez de mostrar avisos confusos
+    container.innerHTML = ''; // Si no hay rival, se limpia el espacio
     return;
   }
 
@@ -8998,7 +8998,7 @@ function renderScoutPossessionClocks(matches) {
     container.innerHTML = `
       <div class="card" style="margin-bottom:10px">
         <div class="ct">⏱️ Distribución de tiro por segundos de posesión</div>
-        <div class="empty" style="font-size:11px; padding: 10px;">Sin datos de posesión por segundos. <b>Reimporta los partidos de este rival</b> desde su link de la FCBQ para activar esta analítica de reloj de posesión.</div>
+        <div class="empty" style="font-size:11px; padding: 10px;">Sin datos de posesión por segundos. <b>Reimporta los partidos de este rival</b> desde su link de la FCBQ para activar esta analítica.</div>
       </div>`;
     return;
   }
@@ -9029,11 +9029,13 @@ function renderScoutPossessionClocks(matches) {
     </div>`;
 }
 
-// Enganchamos esto al renderizado general de Scouting
+// Enganchamos esto al renderizado general de Scouting sin usar variables fantasma
 const _baseRenderScoutingForClock = renderScouting;
 renderScouting = function() {
   _baseRenderScoutingForClock();
-  const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+  const rivalSelect = document.getElementById('sc-rival');
+  const currentRival = rivalSelect ? rivalSelect.value : '';
+  const matches = S.matches.filter(m => m.homeTeam === currentRival || m.awayTeam === currentRival);
   renderScoutPossessionClocks(matches);
 };
 

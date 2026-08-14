@@ -8844,7 +8844,6 @@ function _fcbqTimeoutsV2(moves, stats) {
 
 // Algoritmo central de posesiones y franjas de tiempo
 function _analyzePossessionClocks(matches, rivalTeam) {
-  // Franjas: '24-14' (transición/temprano), '14-5' (sistema/medio), '5-0' (clutch/tardío)
   const statsByZone = {
     '24-14': { att: 0, made: 0 },
     '14-5':  { att: 0, made: 0 },
@@ -8852,55 +8851,58 @@ function _analyzePossessionClocks(matches, rivalTeam) {
   };
 
   matches.forEach(m => {
-    const rivalSide = m.homeTeam === rivalTeam ? 'home' : m.awayTeam === rivalTeam ? 'away' : null;
-    if (!rivalSide) return;
+    const isHomeRival = m.homeTeam === rivalTeam;
+    const isAwayRival = m.awayTeam === rivalTeam;
+    if (!isHomeRival && !isAwayRival) return;
+    
+    // Identificamos si el rival juega como local o visitante en este partido específico
+    const rivalSide = isHomeRival ? 'home' : 'away';
 
-    // Buscamos los movimientos en fcbqMoves (guardados al importar) o en events como respaldo
     const moves = m.fcbqMoves || m.events || [];
     if (!moves.length) return;
 
-    // Ordenar cronológicamente por período y tiempo descendente (min/sec restantes)
-    // En la FCBQ los segundos van de 600 a 0 por cuarto.
+    // Ordenar cronológicamente por período y tiempo restante descendente
     const sortedMoves = [...moves].map(ev => ({
       ...ev,
-      // Segundos totales restantes desde el inicio del partido (o del cuarto)
       absoluteSecLeft: ((ev.period || 1) - 1) * 600 + (ev.min ?? 0) * 60 + (ev.sec ?? 0)
     })).sort((a, b) => b.absoluteSecLeft - a.absoluteSecLeft);
 
-    let currentPossessionStart = null; // En qué absoluteSecLeft arrancó la posesión
-    let isRivalTurn = false;
+    let currentPossessionStart = null;
 
     sortedMoves.forEach(mv => {
-      const isRivalAction = mv.team === rivalSide || (mv.idTeam && ((rivalSide === 'home' && mv.idTeam === m.homeId) || (rivalSide === 'away' && mv.idTeam === m.visitId)));
+      // Determinamos si la acción pertenece al rival basándonos en su bando o ID de equipo
+      let isRivalAction = false;
+      if (m.localId && m.visitId) {
+        const rivalIdTeam = (rivalSide === 'home') ? m.localId : m.visitId;
+        isRivalAction = (mv.idTeam === rivalIdTeam) || (mv.team === rivalSide);
+      } else {
+        isRivalAction = (mv.team === rivalSide);
+      }
+
       const moveText = (mv.move || '').toLowerCase();
 
-      // Cambios de posesión / Reinicios de reloj (24s o 14s)
+      // Detección de cambios de posesión o reinicios de reloj
       const isTurnover = /pèrdua|perdida|recuperació|recuperacion/i.test(moveText);
       const isDefRebound = moveText.includes('rebot defensiu') || moveText.includes('rebote defensivo');
       const isOffRebound = moveText.includes('rebot ofensiu') || moveText.includes('rebote ofensivo');
       const isShot = /cistella de [23]|intent fallat de [23]|cesta de [23]|fallado de [23]/i.test(moveText);
-      const isFoul = moveText.includes('personal') && !moveText.includes('tir lliure');
 
-      // Si hay cambio de posesión o rebote defensivo, arranca nueva posesión a 24s
-      if (isDefRebound || isTurnover) {
+      // Si hay rebote defensivo del rival o pérdida del rival (cambio de posesión)
+      if (isRivalAction && (isDefRebound || isTurnover)) {
         currentPossessionStart = mv.absoluteSecLeft;
-        isRivalTurn = isRivalAction || isDefRebound; // Simplificación de turno
       }
 
-      // Si hay rebote ofensivo, el reloj se reinicia a 14s (virtualmente ajustamos el inicio de posesión)
-      if (isOffRebound && currentPossessionStart !== null) {
-        // Si el tiempo transcurrido superaba los 14s, lo recortamos a 14s
+      // Si hay rebote ofensivo del rival, ajustamos el reloj de posesión virtual a 14s
+      if (isRivalAction && isOffRebound && currentPossessionStart !== null) {
         const elapsed = currentPossessionStart - mv.absoluteSecLeft;
         if (elapsed > 14) {
           currentPossessionStart = mv.absoluteSecLeft + 14;
         }
       }
 
-      // Si se produce un tiro de campo (2 o 3 puntos)
-      if (isShot && currentPossessionStart !== null) {
+      // Si el rival ejecuta un tiro de campo (2 o 3 puntos)
+      if (isRivalAction && isShot && currentPossessionStart !== null) {
         const timeSpent = currentPossessionStart - mv.absoluteSecLeft;
-        // El reloj de posesión empieza en 24 y baja hasta 0. 
-        // Segundos restantes en el reloj de posesión = 24 - timeSpent (acotado entre 0 y 24)
         const shotClockSecs = Math.max(0, Math.min(24, 24 - timeSpent));
 
         let zone = '5-0';
@@ -8913,7 +8915,6 @@ function _analyzePossessionClocks(matches, rivalTeam) {
           if (isMade) statsByZone[zone].made++;
         }
 
-        // Tras el tiro, la posesión expira/cambia
         currentPossessionStart = mv.absoluteSecLeft;
       }
     });

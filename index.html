@@ -8817,6 +8817,161 @@ _renderAdvancedStatsV3 = function() {
   _renderAdvancedStatsV4();
 };
 
+// ============================================================================
+// 4. SCOUTING DE POSESIÓN POR SEGUNDOS (24-14, 14-5, 5-0)
+// ============================================================================
+
+// Actualizamos la captura de tiempos muertos para que use min y sec reales de la FCBQ
+function _fcbqTimeoutsV2(moves, stats) {
+  const homeId = stats.localId, awayId = stats.visitId;
+  const outs = [];
+  (moves || []).forEach(mv => {
+    if (mv.idMove === 113 || /temps?\s*mort|tiempo\s*muerto|time\s*out/i.test(mv.move || '')) {
+      const side = mv.idTeam === homeId ? 'home' : mv.idTeam === awayId ? 'away' : null;
+      if (side) {
+        outs.push({
+          team: side,
+          period: mv.period || 1,
+          min: mv.min ?? 0,
+          sec: mv.sec ?? 0
+        });
+      }
+    }
+  });
+  return outs;
+}
+
+// Algoritmo central de posesiones y franjas de tiempo
+function _analyzePossessionClocks(matches, rivalTeam) {
+  // Franjas: '24-14' (transición/temprano), '14-5' (sistema/medio), '5-0' (clutch/tardío)
+  const statsByZone = {
+    '24-14': { att: 0, made: 0 },
+    '14-5':  { att: 0, made: 0 },
+    '5-0':   { att: 0, made: 0 }
+  };
+
+  matches.forEach(m => {
+    const rivalSide = m.homeTeam === rivalTeam ? 'home' : m.awayTeam === rivalTeam ? 'away' : null;
+    if (!rivalSide) return;
+
+    const moves = m.fcbqMoves || m.events || [];
+    if (!moves.length) return;
+
+    // Ordenar cronológicamente por período y tiempo descendente (min/sec restantes)
+    // En la FCBQ los segundos van de 600 a 0 por cuarto.
+    const sortedMoves = [...moves].map(ev => ({
+      ...ev,
+      // Segundos totales restantes desde el inicio del partido (o del cuarto)
+      absoluteSecLeft: ((ev.period || 1) - 1) * 600 + (ev.min ?? 0) * 60 + (ev.sec ?? 0)
+    })).sort((a, b) => b.absoluteSecLeft - a.absoluteSecLeft);
+
+    let currentPossessionStart = null; // En qué absoluteSecLeft arrancó la posesión
+    let isRivalTurn = false;
+
+    sortedMoves.forEach(mv => {
+      const isRivalAction = mv.team === rivalSide || (mv.idTeam && ((rivalSide === 'home' && mv.idTeam === m.homeId) || (rivalSide === 'away' && mv.idTeam === m.visitId)));
+      const moveText = (mv.move || '').toLowerCase();
+
+      // Cambios de posesión / Reinicios de reloj (24s o 14s)
+      const isTurnover = /pèrdua|perdida|recuperació|recuperacion/i.test(moveText);
+      const isDefRebound = moveText.includes('rebot defensiu') || moveText.includes('rebote defensivo');
+      const isOffRebound = moveText.includes('rebot ofensiu') || moveText.includes('rebote ofensivo');
+      const isShot = /cistella de [23]|intent fallat de [23]|cesta de [23]|fallado de [23]/i.test(moveText);
+      const isFoul = moveText.includes('personal') && !moveText.includes('tir lliure');
+
+      // Si hay cambio de posesión o rebote defensivo, arranca nueva posesión a 24s
+      if (isDefRebound || isTurnover) {
+        currentPossessionStart = mv.absoluteSecLeft;
+        isRivalTurn = isRivalAction || isDefRebound; // Simplificación de turno
+      }
+
+      // Si hay rebote ofensivo, el reloj se reinicia a 14s (virtualmente ajustamos el inicio de posesión)
+      if (isOffRebound && currentPossessionStart !== null) {
+        // Si el tiempo transcurrido superaba los 14s, lo recortamos a 14s
+        const elapsed = currentPossessionStart - mv.absoluteSecLeft;
+        if (elapsed > 14) {
+          currentPossessionStart = mv.absoluteSecLeft + 14;
+        }
+      }
+
+      // Si se produce un tiro de campo (2 o 3 puntos)
+      if (isShot && currentPossessionStart !== null) {
+        const timeSpent = currentPossessionStart - mv.absoluteSecLeft;
+        // El reloj de posesión empieza en 24 y baja hasta 0. 
+        // Segundos restantes en el reloj de posesión = 24 - timeSpent (acotado entre 0 y 24)
+        const shotClockSecs = Math.max(0, Math.min(24, 24 - timeSpent));
+
+        let zone = '5-0';
+        if (shotClockSecs > 14) zone = '24-14';
+        else if (shotClockSecs > 5) zone = '14-5';
+
+        const isMade = moveText.includes('cistella') || moveText.includes('cesta');
+        if (statsByZone[zone]) {
+          statsByZone[zone].att++;
+          if (isMade) statsByZone[zone].made++;
+        }
+
+        // Tras el tiro, la posesión expira/cambia
+        currentPossessionStart = mv.absoluteSecLeft;
+      }
+    });
+  });
+
+  return statsByZone;
+}
+
+// Inyectamos el renderizado en la pestaña de Scouting
+function renderScoutPossessionClocks(matches) {
+  const container = document.getElementById('sc-possession-clock');
+  if (!container) return;
+
+  if (!_scoutRival) {
+    container.innerHTML = '<div class="empty">Selecciona un rival</div>';
+    return;
+  }
+
+  const data = _analyzePossessionClocks(matches, _scoutRival);
+  const totalAtt = data['24-14'].att + data['14-5'].att + data['5-0'].att;
+
+  if (!totalAtt) {
+    container.innerHTML = `<div class="empty" style="font-size:11px">Sin datos de posesión por segundos. <b>Reimporta los partidos de este rival</b> desde su link de la FCBQ para activar esta analítica.</div>`;
+    return;
+  }
+
+  const renderBar = (zoneName, label, desc) => {
+    const z = data[zoneName];
+    const pctVol = totalAtt ? Math.round((z.att / totalAtt) * 100) : 0;
+    const pctAcc = z.att ? Math.round((z.made / z.att) * 100) : 0;
+    return `
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:2px">
+          <span>${label} <span style="font-size:9px;color:var(--t3);font-weight:400">(${desc})</span></span>
+          <span><b>${z.att} tiros</b> (${pctVol}% del total) · <b style="color:var(--nv)">${pctAcc}% acierto</b></span>
+        </div>
+        <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pctVol}%;background:var(--ac)"></div>
+        </div>
+      </div>`;
+  };
+
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:10px">
+      <div class="ct">⏱️ Distribución de tiro por segundos de posesión</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Analiza en qué momento de la posesión gastan los tiros (excluyendo tiros libres).</div>
+      ${renderBar('24-14', '24s – 14s', 'Ataque temprano / Transición')}
+      ${renderBar('14-5', '14s – 5s', 'Sistema / Desarrollo medio')}
+      ${renderBar('5-0', '5s – 0s', 'Ataque tardío / Clutch / Urgencia')}
+    </div>`;
+}
+
+// Enganchamos esto al renderizado general de Scouting
+const _baseRenderScoutingForClock = renderScouting;
+renderScouting = function() {
+  _baseRenderScoutingForClock();
+  const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+  renderScoutPossessionClocks(matches);
+};
+
 // Re-vincular las funciones actualizadas a `window` para que el HTML pueda llamarlas
 Object.assign(window,{saveTeam, editTeam, clearTeamForm, renderTeams, populateTeamSelects, populateLvTeamSelects});
 

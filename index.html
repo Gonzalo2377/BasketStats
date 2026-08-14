@@ -8283,10 +8283,11 @@ async function importFromFCBQ(){
       try{
         parseMatch();
         if(_parsed){
-          _parsed.shots=shots;
-          _parsed.timeouts=timeouts; // eventos de tiempo muerto {team,period,minLeft,secLeft}
-          _fcbqApplyMinutes(_parsed,stats); // minutos oficiales de la FCBQ
-          svL();rAll();
+          _parsed.shots = shots;
+          _parsed.timeouts = timeouts; 
+          _parsed.fcbqMoves = moves; // <--- ¡AQUÍ GUARDAMOS LA CRONOLOGÍA CON SEGUNDOS!
+          _fcbqApplyMinutes(_parsed,stats); 
+          svL(); rAll();
         }
       }catch(e){console.warn(e);}
     }
@@ -8979,6 +8980,30 @@ renderScouting = function() {
   const matches = S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
   renderScoutPossessionClocks(matches);
 };
+
+// Reparador automático para partidos importados antiguos que no tengan fcbqMoves
+(function repairOldImportedMatches() {
+  if (!S || !Array.isArray(S.matches)) return;
+  let fixed = 0;
+  S.matches.forEach(m => {
+    // Si es un partido importado y tiene eventos pero no fcbqMoves, 
+    // intentamos usar m.events como respaldo temporal para que el reloj de posesión no falle.
+    if (m.type === 'imported' && !m.fcbqMoves && Array.isArray(m.events) && m.events.length) {
+      m.fcbqMoves = m.events.map(e => ({
+        move: e.type,
+        period: e.period,
+        min: e.min,
+        sec: 0, // Si no tenía segundos exactos, ponemos 0 como base
+        team: e.team
+      }));
+      fixed++;
+    }
+  });
+  if (fixed > 0) {
+    svL();
+    console.log(`✓ Reparados ${fixed} partidos antiguos para el reloj de posesión.`);
+  }
+})();
 
 // Re-vincular las funciones actualizadas a `window` para que el HTML pueda llamarlas
 Object.assign(window,{saveTeam, editTeam, clearTeamForm, renderTeams, populateTeamSelects, populateLvTeamSelects});

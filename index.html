@@ -352,6 +352,116 @@ tbody tr:hover td { background: rgba(0, 113, 227, 0.03); }
   }
 }
 
+@media (min-width: 768px) and (max-width: 1180px) {
+  @media (orientation: portrait) {
+    .g4,
+    .g5,
+    [style*="repeat(4"],
+    [style*="repeat(5"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (orientation: landscape) {
+    .g4,
+    .g5,
+    [style*="repeat(4"],
+    [style*="repeat(5"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  #wg-edit-modal > div,
+  #medit-modal > div,
+  #lvedit-modal > div,
+  #sub-modal > div,
+  #live-stats-modal > div,
+  #sc-clip-modal > div,
+  #player-modal > div {
+    width: 90vw !important;
+    height: 85vh !important;
+    max-width: 90vw !important;
+    max-height: 85vh !important;
+    margin: auto !important;
+  }
+
+  #player-modal {
+    align-items: center !important;
+  }
+
+  #player-modal > div,
+  #wg-edit-modal > div,
+  #medit-modal > div,
+  #lvedit-modal > div,
+  #sub-modal > div,
+  #live-stats-modal > div {
+    overflow-y: auto !important;
+  }
+
+  .tw,
+  .pp-scroll {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tw > table {
+    min-width: max-content;
+  }
+
+  .btn,
+  .ab,
+  .per-btn,
+  #kb-toggle,
+  .nb,
+  .sbtn,
+  .sbopt,
+  #lv-court-strip-home button,
+  #lv-court-strip-away button {
+    min-height: 48px;
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    button {
+      transition: none;
+    }
+
+    .tb:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .nb:hover {
+      color: rgba(255, 255, 255, 0.65);
+      background: none;
+    }
+
+    .bp:hover {
+      background: var(--ac);
+    }
+
+    .bn:hover {
+      background: var(--nv);
+    }
+
+    .bo:hover {
+      background: #fff;
+    }
+
+    .stsb:hover {
+      background: #ffffff;
+      color: var(--t2);
+    }
+
+    .sbopt:hover {
+      background: none;
+      color: var(--tx);
+    }
+
+    tbody tr:hover td {
+      background: transparent;
+    }
+  }
+}
 /* SCROLL HORIZONTAL DE GRÁFICOS DEL PERFIL DE JUGADOR */
 .pp-scroll {
   max-width: 100%;
@@ -499,6 +609,129 @@ svg.ring text {
   background: #eff6ff;
   color: var(--ac);
 }
+
+@media (max-width: 767px) {
+  .g2,
+  .g3,
+  .g4,
+  .g5,
+  [style*="repeat(2"],
+  [style*="repeat(3"],
+  [style*="repeat(4"],
+  [style*="repeat(5"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .main {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #wg-edit-modal > div,
+  #medit-modal > div,
+  #lvedit-modal > div,
+  #sub-modal > div,
+  #live-stats-modal > div,
+  #sc-clip-modal > div,
+  #player-modal > div {
+    width: 94vw !important;
+    height: 90vh !important;
+    max-width: 94vw !important;
+    max-height: 90vh !important;
+    margin: auto !important;
+  }
+
+  #player-modal {
+    align-items: center !important;
+  }
+
+  .tw,
+  .pp-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tw > table {
+    min-width: max-content;
+  }
+
+  .btn,
+  .ab,
+  .per-btn,
+  #kb-toggle,
+  .nb,
+  .sbtn,
+  .sbopt {
+    min-height: 48px;
+  }
+
+  .ab {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .bsm,
+  .bxs {
+    min-height: 48px;
+  }
+
+  .fr,
+  .brow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fc {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .top {
+    height: auto;
+    min-height: 48px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .tr {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .nav {
+    top: 0;
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    button {
+      transition: none;
+    }
+
+    .tb:hover,
+    .nb:hover,
+    .bp:hover,
+    .bn:hover,
+    .bo:hover,
+    .stsb:hover,
+    .sbopt:hover {
+      background: initial;
+      color: initial;
+    }
+
+    tbody tr:hover td {
+      background: transparent;
+    }
+  }
+}
+
 /* --- LAYOUT DEL MODAL DE DIRECTO Y ORÍGENES --- */
 .lsm-layout { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; }
 .lsm-sidebar { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 220px; flex-shrink: 0; }
@@ -4950,16 +5183,26 @@ function deleteMatch(id){
   if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
   const m=S.matches.find(m=>m.id===id);if(!m)return;
   if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?'))return;
-  // Soft delete: keep in local trash (last 10) and offer instant undo
+  
+  // Soft delete: guardamos en la papelera local para el botón "Deshacer"
   const shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)==id);
   try{
     const tr=JSON.parse(localStorage.getItem('bascatTrash')||'[]');
     tr.unshift({match:m,shots,deletedAt:Date.now()});
     localStorage.setItem('bascatTrash',JSON.stringify(tr.slice(0,10)));
   }catch(e){}
+  
   S.matches=S.matches.filter(m=>m.id!==id);
   S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
-  svL();renderMatchHistory();renderStats();
+  
+  // 🔥 LA CLAVE: Destruir el documento real en Firebase para que no vuelva a descargarse
+  try {
+    deleteDoc(doc(db, 'bascatapp', 'data', 'matches', String(id))).catch(e => console.warn('Error borrando en nube:', e));
+  } catch(e) {}
+  
+  svL();
+  renderMatchHistory();
+  renderStats();
   _showUndoDelete(m.homeTeam+' vs '+m.awayTeam);
 }
 

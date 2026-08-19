@@ -742,6 +742,52 @@ svg.ring text {
 .origin-title { font-size: 11px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 .origin-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
 .origin-bar-bg { flex: 1; height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: hidden; }
+
+/* SCROLL TACTIL PARA POP-UPS, INFORMES Y BANNERS */
+@media (max-width: 1180px) {
+  #shot-popup,
+  [id$="-modal"],
+  [id*="-modal"] {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #shot-popup,
+  [id$="-modal"] > div,
+  [id*="-modal"] > div {
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  #player-modal,
+  #sc-clip-modal,
+  #radar-modal,
+  #merge-modal {
+    align-items: center !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+  }
+
+  #lv-resume-banner,
+  #sh-sticky-banner,
+  [id*="-banner"] {
+    max-height: min(40dvh, 280px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 767px) {
+  #shot-popup,
+  [id$="-modal"] > div,
+  [id*="-modal"] > div {
+    max-height: calc(100dvh - 16px) !important;
+  }
+}
 </style>
 </head>
 <body>

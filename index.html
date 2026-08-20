@@ -4724,6 +4724,23 @@ function renderStats(){
   _renderStTeamStats(scoped,selMatch,tf);
   _renderStPlusMinus(scoped,selMatch);
   _renderStMaps(scoped,selMatch,tf,gf);
+
+  // 1️⃣ Forzamos el recalculo interno de los datos avanzados con el equipo seleccionado
+  const advCont = document.getElementById('stv-adv');
+  if(advCont && typeof renderAdvancedStats === 'function') {
+      renderAdvancedStats(tf);
+  }
+
+  // 2️⃣ Forzamos el repintado visual haciendo "clic" en la pestaña activa
+  setTimeout(() => {
+    const activeTab = document.querySelector('.st-tabs .active, .adv-tabs .active, button.active');
+    if (activeTab) {
+      activeTab.click(); 
+    } else {
+      const firstTab = document.querySelector('.st-tabs button, .adv-tabs button');
+      if (firstTab) firstTab.click();
+    }
+  }, 50);
 }
 
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
@@ -4831,7 +4848,9 @@ function renderDash(){
   if (dbHa) {
     if (tfEff) {
       const teamMatches = srcMatches.filter(m => (m.homeTeam === tfEff || m.awayTeam === tfEff) && _inGroup(m.homeTeam, gf));
-      dbHa.innerHTML = _generateHomeAwayHTML(tfEff, teamMatches);
+      
+      // ✅ AQUÍ ESTÁ EL CAMBIO: Le pasamos 'pfEff' para que cambie si hay un jugador seleccionado
+      dbHa.innerHTML = _generateHomeAwayHTML(tfEff, teamMatches, pfEff);
 
       // ── ORIGEN DE PUNTOS EN EL DASHBOARD (DUAL) ──
       const evFor = teamMatches.flatMap(m => {
@@ -9802,16 +9821,49 @@ function _generateSplitInsights(A, B, lblA, lblB) {
   return ins;
 }
 
-function _generateHomeAwayHTML(team, matches) {
+// Añadimos el parámetro playerName al final
+function _generateHomeAwayHTML(team, matches, playerName = '') {
   const stat=(side)=>{
-    const a=_advancedTeam((matches||[]).filter(m=>(side==='home'?m.homeTeam:m.awayTeam)===team),team);
-    return {pj:a.n,pf:a.pts/a.n,pc:a.opp/a.n,dif:(a.pts-a.opp)/a.n,t2:a.t2a?100*a.t2m/a.t2a:0,t3:a.t3a?100*a.t3m/a.t3a:0,tl:a.fta?100*a.ftm/a.fta:0,efg:a.efg,pace:a.pace,ortg:a.ortg,drtg:a.drtg,to:a.to,orbPct:a.orbPct,n:a.n,t2a:a.t2a,t3a:a.t3a,fta:a.fta};
+    const sideMatches = (matches||[]).filter(m=>(side==='home'?m.homeTeam:m.awayTeam)===team);
+    
+    // Si NO hay jugador, calculamos las avanzadas del equipo (tu código original)
+    if (!playerName) {
+        const a=_advancedTeam(sideMatches, team);
+        return {pj:a.n,pf:a.pts/a.n,pc:a.opp/a.n,dif:(a.pts-a.opp)/a.n,t2:a.t2a?100*a.t2m/a.t2a:0,t3:a.t3a?100*a.t3m/a.t3a:0,tl:a.fta?100*a.ftm/a.fta:0,efg:a.efg,pace:a.pace,ortg:a.ortg,drtg:a.drtg,to:a.to,orbPct:a.orbPct,n:a.n,t2a:a.t2a,t3a:a.t3a,fta:a.fta};
+    } 
+    // Si SÍ hay jugador, extraemos solo sus promedios
+    else {
+        let n=0, pts=0, opp=0, t2m=0, t2a=0, t3m=0, t3a=0, ftm=0, fta=0, reb=0, ast=0, to=0;
+        sideMatches.forEach(m => {
+            const isHome = m.homeTeam === team;
+            const p = (isHome ? m.homePlayers : m.awayPlayers)?.find(x => x.name === playerName);
+            if(p) {
+                n++; pts+=p.pts||0; t2m+=p.t2Made||0; t2a+=p.t2Att||0;
+                t3m+=p.t3Made||0; t3a+=p.t3Att||0; ftm+=p.tlMade||0; fta+=p.tlAtt||0;
+                reb+=p.reb||0; ast+=p.ast||0; to+=p.to||0;
+            }
+        });
+        const efg = (t2a+t3a) > 0 ? (t2m + 1.5*t3m)/(t2a+t3a) : 0;
+        return {
+            pj:n, pf:n?pts/n:0, pc:n?opp/n:0, dif:0, t2:t2a?100*t2m/t2a:0, t3:t3a?100*t3m/t3a:0, 
+            tl:fta?100*ftm/fta:0, efg:efg, pace:0, ortg:0, drtg:0, to:n?to/n:0, reb:n?reb/n:0, ast:n?ast/n:0, n, t2a, t3a, fta
+        };
+    }
   };
+
   const h=stat('home'), a=stat('away');
-  const insights = _generateSplitInsights(h, a, 'CASA', 'FUERA');
+  
+  // Las conclusiones de IA solo tienen sentido para el equipo global
+  const insights = !playerName ? _generateSplitInsights(h, a, 'CASA', 'FUERA') : [];
   const insightsHtml = insights.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:6px">💡 Conclusiones Local vs Visitante</div>${insights.map(i => `<div style="font-size:11px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
-  const metrics=[['PJ','pj',x=>x],['Pts a favor','pf',x=>x.toFixed(1)],['Pts en contra','pc',x=>x.toFixed(1)],['Diferencia','dif',x=>(x>0?'+':'')+x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%'],['Pace','pace',x=>x.toFixed(1)],['ORtg','ortg',x=>x.toFixed(1)],['DRtg','drtg',x=>x.toFixed(1)]];
-  return `<div class="card" style="margin:10px 0"><div class="ct">🏠 Local vs ✈️ Visitante · <span style="text-transform:none;font-weight:500">${_esc(team)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:8px"><span style="color:#15803d">◀ LOCAL</span><span style="color:#2563eb">VISITANTE ▶</span></div>${metrics.map(([label,key,fmt])=>{const hv=h[key],av=a[key],mx=Math.max(Math.abs(hv),Math.abs(av),1);return `<div style="margin-bottom:7px"><div style="display:grid;grid-template-columns:42px 1fr 54px 1fr 42px;gap:5px;align-items:center;font-size:11px"><b style="text-align:right;color:#15803d">${fmt(hv)}</b><div style="height:7px;background:#dcfce7;border-radius:9px;overflow:hidden"><div style="margin-left:auto;width:${Math.abs(hv)/mx*100}%;height:100%;background:#16a34a"></div></div><span style="text-align:center;font-size:9px;font-weight:800;color:var(--t3)">${label}</span><div style="height:7px;background:#dbeafe;border-radius:9px;overflow:hidden"><div style="width:${Math.abs(av)/mx*100}%;height:100%;background:#2563eb"></div></div><b style="color:#2563eb">${fmt(av)}</b></div></div>`;}).join('')}${insightsHtml}</div>`;
+  
+  // Adaptamos las etiquetas dependiendo de si es equipo o jugador
+  const metrics = !playerName ? 
+    [['PJ','pj',x=>x],['Pts a favor','pf',x=>x.toFixed(1)],['Pts en contra','pc',x=>x.toFixed(1)],['Diferencia','dif',x=>(x>0?'+':'')+x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%'],['Pace','pace',x=>x.toFixed(1)],['ORtg','ortg',x=>x.toFixed(1)],['DRtg','drtg',x=>x.toFixed(1)]]
+    : 
+    [['PJ','pj',x=>x],['Puntos (Pts)','pf',x=>x.toFixed(1)],['Rebotes','reb',x=>x.toFixed(1)],['Asistencias','ast',x=>x.toFixed(1)],['Pérdidas','to',x=>x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%']];
+
+  return `<div class="card" style="margin:10px 0"><div class="ct">🏠 Local vs ✈️ Visitante · <span style="text-transform:none;font-weight:500">${_esc(playerName || team)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:8px"><span style="color:#15803d">◀ LOCAL</span><span style="color:#2563eb">VISITANTE ▶</span></div>${metrics.map(([label,key,fmt])=>{const hv=h[key],av=a[key],mx=Math.max(Math.abs(hv),Math.abs(av),1);return `<div style="margin-bottom:7px"><div style="display:grid;grid-template-columns:42px 1fr 54px 1fr 42px;gap:5px;align-items:center;font-size:11px"><b style="text-align:right;color:#15803d">${fmt(hv)}</b><div style="height:7px;background:#dcfce7;border-radius:9px;overflow:hidden"><div style="margin-left:auto;width:${Math.abs(hv)/mx*100}%;height:100%;background:#16a34a"></div></div><span style="text-align:center;font-size:9px;font-weight:800;color:var(--t3)">${label}</span><div style="height:7px;background:#dbeafe;border-radius:9px;overflow:hidden"><div style="width:${Math.abs(av)/mx*100}%;height:100%;background:#2563eb"></div></div><b style="color:#2563eb">${fmt(av)}</b></div></div>`;}).join('')}${insightsHtml}</div>`;
 }
 
 function _v4AnalyzeTeamSplits(matches, team) {
@@ -10149,7 +10201,7 @@ function _fcbqTimeoutsV2(moves, stats) {
 
 function _analyzePossessionClocks(matches, rivalTeam) {
   const statsByZone = { '24-14': { att: 0, made: 0 }, '14-5':  { att: 0, made: 0 }, '5-0':   { att: 0, made: 0 } };
-  const histogram = Array(25).fill(0); // 24 barras exactas
+  const histogram = Array(25).fill(0); 
 
   try {
     matches.forEach(m => {
@@ -10167,64 +10219,70 @@ function _analyzePossessionClocks(matches, rivalTeam) {
         elapsedSecs: ((ev.period || 1) - 1) * 600 + (600 - ((ev.min ?? 0) * 60 + (ev.sec ?? 0)))
       })).sort((a, b) => a.elapsedSecs - b.elapsedSecs);
 
-      let possessingSide = null, possessionStartSecs = null, pendingMiss = false;
+      let posStart = null;
+      let is14s = false; // Controlamos si el reloj empezó en 14 o en 24
 
       sortedMoves.forEach(mv => {
         const text = (mv.move || '').toLowerCase();
         let actionSide = null;
         if (mv.idTeam === m.localId) actionSide = 'home';
         else if (mv.idTeam === m.visitId) actionSide = 'away';
-        if (!actionSide && !text.includes('final')) return;
-        const otherSide = (actionSide === 'home') ? 'away' : 'home';
+        
+        // Final de cuarto: resetea todo
+        if (text.includes('final de')) { posStart = null; return; }
 
-        if (pendingMiss) {
-            if (!text.includes('rebot') && !text.includes('rebote')) {
-                if (actionSide !== possessingSide && actionSide) {
-                    possessingSide = actionSide; possessionStartSecs = mv.elapsedSecs;
-                } else {
-                    possessionStartSecs = Math.max(0, mv.elapsedSecs - 10); // Reset a 14s
-                }
-            }
-            pendingMiss = false;
+        // INICIO CLARO DE POSESIÓN (24s)
+        if (text.includes('salt guanyat') || text.includes('salto ganado') || 
+            text.includes('rebot defensiu') || text.includes('rebote defensivo') || 
+            text.includes('recuperació') || text.includes('robatori') || text.includes('robada')) {
+            if (actionSide === rivalSide) { posStart = mv.elapsedSecs; is14s = false; }
+            else { posStart = null; }
+        } 
+        // INICIO CLARO DE POSESIÓN (14s) - Rebote ofensivo
+        else if (text.includes('rebot ofensiu') || text.includes('rebote ofensivo')) {
+            if (actionSide === rivalSide) { posStart = mv.elapsedSecs; is14s = true; }
+            else { posStart = null; }
+        }
+        // Si el rival recibe canasta, la próxima posesión es suya (24s)
+        else if ((text.includes('cistella') || text.includes('esmaixada') || text.includes('lliure anotat')) && actionSide !== rivalSide && actionSide) {
+            posStart = mv.elapsedSecs; is14s = false;
+        }
+        // PÉRDIDAS: Se acaba la posesión
+        else if (text.includes('pèrdua') || text.includes('perdida') || text.includes('passos') || text.includes('dobles')) {
+            if (actionSide === rivalSide) { posStart = null; }
         }
 
-        if (text.includes('salt guanyat') || text.includes('salto ganado') || text.includes('recuperació') || text.includes('rebot defensiu')) {
-          possessingSide = actionSide; possessionStartSecs = mv.elapsedSecs;
-        } else if (text.includes('rebot ofensiu') || text.includes('rebote ofensivo')) {
-          possessingSide = actionSide; possessionStartSecs = Math.max(0, mv.elapsedSecs - 10);
-        } else if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('surt del camp') || text.includes('passos') || text.includes('dobles')) {
-          possessingSide = otherSide; possessionStartSecs = mv.elapsedSecs;
-        } else if (text.includes('cistella') || text.includes('esmaixada') || text.includes('intent fallat')) {
-          if ((text.includes('de 2') || text.includes('de 3') || text.includes('esmaixada')) && actionSide === rivalSide && possessionStartSecs !== null) {
-              
-              let elapsed = mv.elapsedSecs - possessionStartSecs;
-              
-              // SUAVIZADO: Corrección de imprecisiones del cronometrador de la FCBQ
-              if (elapsed === 0) elapsed = Math.floor(Math.random() * 3) + 1; // 1 a 3s (Tiros en transición muy rápidos)
-              if (elapsed === 10) elapsed = 10 + Math.floor(Math.random() * 3); // 10 a 12s (Tiros tras rebote ofensivo)
-              
-              // Filtramos errores de registro (>25s) para no distorsionar el gráfico
-              if (elapsed >= 0 && elapsed <= 25) {
-                  const elapsedIntoPos = Math.round(Math.max(0, Math.min(24, elapsed)));
-                  const shotClock = 24 - elapsedIntoPos;
-                  
-                  if (elapsedIntoPos < 24) histogram[elapsedIntoPos]++;
-                  
-                  let zone = '5-0';
-                  if (shotClock >= 14) zone = '24-14'; else if (shotClock >= 5) zone = '14-5';
-                  
-                  statsByZone[zone].att++;
-                  if (text.includes('cistella') || text.includes('esmaixada')) statsByZone[zone].made++;
-              }
-          }
-          if (text.includes('intent fallat')) pendingMiss = true;
-          else { possessingSide = otherSide; possessionStartSecs = mv.elapsedSecs; }
-        } else if (text.includes('falta rebuda') || text.includes('falta recibida')) {
-            if (actionSide === possessingSide && possessionStartSecs !== null && (mv.elapsedSecs - possessionStartSecs > 10)) {
-                possessionStartSecs = mv.elapsedSecs - 10;
+        // TIRO DE CAMPO DEL RIVAL
+        if ((text.includes('de 2') || text.includes('de 3') || text.includes('esmaixada')) && !text.includes('lliure') && actionSide === rivalSide) {
+            
+            // SOLO si tenemos un inicio de posesión claro y lógico, procesamos el tiro
+            if (posStart !== null) {
+                const elapsed = mv.elapsedSecs - posStart;
+                const maxClock = is14s ? 14 : 24;
+                
+                // Excluimos tiros que tarden 0s o más del tiempo permitido por el reloj
+                if (elapsed >= 1 && elapsed <= maxClock) {
+                    
+                    // Si era de 14s, le sumamos 10 para mapearlo a la gráfica de 24s 
+                    // Ej: si tiran en 4s (quedando 10s), en la gráfica cae en el segundo 14.
+                    const mappedElapsed = is14s ? elapsed + 10 : elapsed;
+                    
+                    if (mappedElapsed >= 1 && mappedElapsed <= 24) {
+                        histogram[mappedElapsed]++;
+                        
+                        const shotClock = 24 - mappedElapsed;
+                        let zone = '5-0';
+                        if (shotClock >= 14) zone = '24-14'; else if (shotClock >= 5) zone = '14-5';
+                        
+                        statsByZone[zone].att++;
+                        if (text.includes('cistella') || text.includes('esmaixada')) {
+                            statsByZone[zone].made++;
+                        }
+                    }
+                }
             }
-        } else if (text.includes('final de')) {
-            possessingSide = null; possessionStartSecs = null; pendingMiss = false;
+            // Tras tirar, la posesión se queda en el aire hasta ver quién coge el rebote
+            posStart = null;
         }
       });
     });
@@ -10337,15 +10395,21 @@ function renderScoutTurnovers(matches, rivalTeam) {
       else return;
   }
   
-  // Categorías ampliadas al máximo detalle
+  // ── DESGLOSE TOTALMENTE GRANULAR ──
   const types = { 
-      'Pasos / Dobles': 0, 
+      'Pasos': 0, 
+      'Dobles': 0,
       'Falta en Ataque': 0, 
-      'Mal Pase / Robo': 0, 
-      'Violación de Tiempo (3/5/8/24s)': 0,
-      'Fuera / Pisa Línea': 0,
+      'Mal Pase': 0, 
+      'Robo del Rival': 0,
+      '3 Segundos': 0,
+      '5 Segundos': 0,
+      '8 Segundos': 0,
+      '24 Segundos': 0,
+      'Sale del campo': 0,
+      'Pisa la línea': 0,
       'Campo Atrás': 0,
-      'Genérica (No especificada)': 0 
+      'Genérica (Acta)': 0 
   };
   let totalTO = 0;
 
@@ -10355,26 +10419,22 @@ function renderScoutTurnovers(matches, rivalTeam) {
       (m.fcbqMoves || []).filter(mv => mv.idTeam === rId).forEach(mv => {
           const text = (mv.move || '').toLowerCase();
           
-          // Detectamos si es una acción que resulta en pérdida o falta en ataque
-          if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('passos') || text.includes('dobles') || text.includes('segons') || text.includes('possessió') || text.includes('surt del camp') || text.includes('fora')) {
+          if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('passos') || text.includes('dobles') || text.includes('segons') || text.includes('possessió') || text.includes('fora') || text.includes('surt del camp') || text.includes('trepitja')) {
               totalTO++;
               
-              if (text.includes('passos') || text.includes('pasos') || text.includes('dobles')) {
-                  types['Pasos / Dobles']++;
-              } else if (text.includes('falta en atac') || text.includes('falta en ataque') || text.includes('ofensiva') || text.includes('bloqueig il')) {
-                  types['Falta en Ataque']++;
-              } else if (text.includes('passada') || text.includes('pase') || text.includes('recuperació') || text.includes('robatori') || text.includes('robada')) {
-                  types['Mal Pase / Robo']++;
-              } else if (text.includes('segons') || text.includes('segundos') || text.includes('possessió') || text.includes('posesión')) {
-                  types['Violación de Tiempo (3/5/8/24s)']++;
-              } else if (text.includes('fora') || text.includes('fuera') || text.includes('surt del camp') || text.includes('sale') || text.includes('trepitja') || text.includes('pisa') || text.includes('línea') || text.includes('linea')) {
-                  types['Fuera / Pisa Línea']++;
-              } else if (text.includes('camp enrere') || text.includes('campo atrás')) {
-                  types['Campo Atrás']++;
-              } else {
-                  // Si en el acta literalmente solo pone "Pèrdua de pilota" sin más contexto
-                  types['Genérica (No especificada)']++;
-              }
+              if (text.includes('passos') || text.includes('pasos')) types['Pasos']++;
+              else if (text.includes('dobles')) types['Dobles']++;
+              else if (text.includes('falta en atac') || text.includes('falta en ataque') || text.includes('ofensiva') || text.includes('bloqueig il')) types['Falta en Ataque']++;
+              else if (text.includes('3 segons') || text.includes('3 segundos')) types['3 Segundos']++;
+              else if (text.includes('5 segons') || text.includes('5 segundos')) types['5 Segundos']++;
+              else if (text.includes('8 segons') || text.includes('8 segundos')) types['8 Segundos']++;
+              else if (text.includes('24 segons') || text.includes('24 segundos') || text.includes('possessió') || text.includes('posesión')) types['24 Segundos']++;
+              else if (text.includes('trepitja') || text.includes('pisa') || text.includes('línea') || text.includes('linea')) types['Pisa la línea']++;
+              else if (text.includes('fora') || text.includes('fuera') || text.includes('surt del camp') || text.includes('sale del campo')) types['Sale del campo']++;
+              else if (text.includes('camp enrere') || text.includes('campo atrás')) types['Campo Atrás']++;
+              else if (text.includes('passada') || text.includes('pase')) types['Mal Pase']++;
+              else if (text.includes('recuperació') || text.includes('robatori') || text.includes('robada') || text.includes('robo')) types['Robo del Rival']++;
+              else types['Genérica (Acta)']++;
           }
       });
   });
@@ -10383,7 +10443,6 @@ function renderScoutTurnovers(matches, rivalTeam) {
       document.getElementById('sc-turnovers').innerHTML = ''; return;
   }
 
-  // Muestra el nombre, el % y, en pequeñito, la cantidad exacta de pérdidas
   const badges = Object.entries(types).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1])
       .map(([k, v]) => `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:10px; color:var(--t2); font-weight:600;">${k} <b style="color:var(--nv)">${Math.round((v/totalTO)*100)}%</b> <span style="color:var(--t3);font-size:9px">(${v})</span></span>`)
       .join(' ');

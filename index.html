@@ -10332,30 +10332,49 @@ function _renderScoutPossessionClocksSeguro() {
 function renderScoutTurnovers(matches, rivalTeam) {
   const el = document.getElementById('sc-turnovers');
   if (!el) {
-      // Si no existe el contenedor, lo inyectamos debajo de las tendencias
       const container = document.getElementById('sc-tendencies')?.parentElement;
       if (container) container.insertAdjacentHTML('beforeend', '<div id="sc-turnovers" style="margin-top:15px"></div>');
       else return;
   }
   
-  const types = { 'Pasos': 0, 'Campo Atrás': 0, 'Falta en Ataque': 0, 'Mal Pase/Robo': 0, 'Otras': 0 };
+  // Categorías ampliadas al máximo detalle
+  const types = { 
+      'Pasos / Dobles': 0, 
+      'Falta en Ataque': 0, 
+      'Mal Pase / Robo': 0, 
+      'Violación de Tiempo (3/5/8/24s)': 0,
+      'Fuera / Pisa Línea': 0,
+      'Campo Atrás': 0,
+      'Genérica (No especificada)': 0 
+  };
   let totalTO = 0;
 
   matches.forEach(m => {
-      // Identificamos el ID oficial del equipo rival en este partido
       const rId = m.homeTeam.toLowerCase() === rivalTeam.toLowerCase() ? m.localId : m.visitId;
       
-      // Filtramos solo las jugadas del rival
       (m.fcbqMoves || []).filter(mv => mv.idTeam === rId).forEach(mv => {
           const text = (mv.move || '').toLowerCase();
           
-          if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('passos') || text.includes('dobles')) {
+          // Detectamos si es una acción que resulta en pérdida o falta en ataque
+          if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('passos') || text.includes('dobles') || text.includes('segons') || text.includes('possessió') || text.includes('surt del camp') || text.includes('fora')) {
               totalTO++;
-              if (text.includes('passos') || text.includes('pasos') || text.includes('dobles')) types['Pasos']++;
-              else if (text.includes('camp enrere') || text.includes('campo atrás')) types['Campo Atrás']++;
-              else if (text.includes('falta en atac') || text.includes('falta en ataque') || text.includes('ofensiva')) types['Falta en Ataque']++;
-              else if (text.includes('passada') || text.includes('pase') || text.includes('recuperació') || text.includes('robatori')) types['Mal Pase/Robo']++;
-              else types['Otras']++;
+              
+              if (text.includes('passos') || text.includes('pasos') || text.includes('dobles')) {
+                  types['Pasos / Dobles']++;
+              } else if (text.includes('falta en atac') || text.includes('falta en ataque') || text.includes('ofensiva') || text.includes('bloqueig il')) {
+                  types['Falta en Ataque']++;
+              } else if (text.includes('passada') || text.includes('pase') || text.includes('recuperació') || text.includes('robatori') || text.includes('robada')) {
+                  types['Mal Pase / Robo']++;
+              } else if (text.includes('segons') || text.includes('segundos') || text.includes('possessió') || text.includes('posesión')) {
+                  types['Violación de Tiempo (3/5/8/24s)']++;
+              } else if (text.includes('fora') || text.includes('fuera') || text.includes('surt del camp') || text.includes('sale') || text.includes('trepitja') || text.includes('pisa') || text.includes('línea') || text.includes('linea')) {
+                  types['Fuera / Pisa Línea']++;
+              } else if (text.includes('camp enrere') || text.includes('campo atrás')) {
+                  types['Campo Atrás']++;
+              } else {
+                  // Si en el acta literalmente solo pone "Pèrdua de pilota" sin más contexto
+                  types['Genérica (No especificada)']++;
+              }
           }
       });
   });
@@ -10364,9 +10383,9 @@ function renderScoutTurnovers(matches, rivalTeam) {
       document.getElementById('sc-turnovers').innerHTML = ''; return;
   }
 
-  // Creamos las "etiquetas" (badges) visuales ordenadas de mayor a menor
+  // Muestra el nombre, el % y, en pequeñito, la cantidad exacta de pérdidas
   const badges = Object.entries(types).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1])
-      .map(([k, v]) => `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:10px; color:var(--t2); font-weight:600;">${k} <b style="color:var(--nv)">${Math.round((v/totalTO)*100)}%</b></span>`)
+      .map(([k, v]) => `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:10px; color:var(--t2); font-weight:600;">${k} <b style="color:var(--nv)">${Math.round((v/totalTO)*100)}%</b> <span style="color:var(--t3);font-size:9px">(${v})</span></span>`)
       .join(' ');
 
   document.getElementById('sc-turnovers').innerHTML = `

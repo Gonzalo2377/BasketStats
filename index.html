@@ -911,7 +911,7 @@ select {
   <button class="nb" onclick="ST('t-live')">⚡ Directo</button>
   <button class="nb" onclick="ST('t-shots')">🎯 Tiros</button>
   <button class="nb" onclick="ST('t-standings')">🏆 Clasificación</button>
-  <button class="nb nb-stats" onclick="ST('t-stats')">📊 Stats</button>
+  <button class="nb nb-stats" onclick="ST('t-stats')">📊 Histórico</button>
   <button class="nb" onclick="ST('t-dash')">🔥 Dashboard</button>
   <button class="nb" onclick="ST('t-club')">🟡 Claret</button>
   <button class="nb" onclick="ST('t-scout')">🔍 Scouting</button>
@@ -1199,6 +1199,7 @@ select {
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
     <div>
+      <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
       <div class="card" style="padding:7px 10px;margin-bottom:8px;background:linear-gradient(135deg,#fff,#fff8f6)"> 
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px" id="lv-sel-dorsal">—</div>
@@ -1246,8 +1247,8 @@ select {
           <button class="ab ao" onclick="lvAct('rd')" style="padding:8px 2px;font-size:10px">🛡️ Reb.Def<br><span style="font-size:8px;opacity:.65">manual</span></button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('tech')" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:13px 2px;font-size:12px">🟡 Técnica</button>
-          <button class="ab ao" onclick="lvAct('anti')" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:13px 2px;font-size:12px">🔴 Antidep.</button>
+          <button class="ab ao" onclick="window.lvActTechInteligente()" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:13px 2px;font-size:12px">🟡 Técnica</button>
+          <button class="ab ao" onclick="window.lvActAntiInteligente()" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:13px 2px;font-size:12px">🔴 Antidep.</button>
         </div>
         <button class="btn bo" onclick="openSubModal()" style="width:100%;font-size:17px;font-weight:800;padding:22px 8px;margin-bottom:6px;background:#f0fdf4;border:2.5px solid #16a34a;color:#15803d;border-radius:12px">🔄 CAMBIOS</button>
         <button class="btn bo" onclick="openLvEdit()" style="width:100%;font-size:11.5px;font-weight:700;margin-bottom:6px;background:#eff6ff;border:1.5px solid #3b82f6;color:#1e40af">✏️ Editar equipos / dorsales</button>
@@ -1481,6 +1482,7 @@ select {
     <div class="fc" style="flex:0;min-width:100px"><label>Grupo liga</label><select id="st-grf" onchange="renderStats()" style="width:100%"><option value="">Todos</option></select></div>
     <div class="fc" style="flex:0;min-width:140px"><label>👁 Seguimiento</label><select id="st-gf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
     <div class="fc"><label>Equipo</label><select id="st-tf" onchange="renderStats()" style="width:100%"><option value="">Todos los equipos</option></select></div>
+    <div class="fc"><label>Jugador</label><select id="st-pf" onchange="renderStats()" style="width:100%"><option value="">Todos los jugadores</option></select></div>
     <div class="fc"><label>Partido</label><select id="st-mf" onchange="renderStats()" style="width:100%"><option value="">Todos (acumulado)</option></select></div>
 
   </div>
@@ -1496,13 +1498,14 @@ select {
   <button class="stsb"        id="stsb-team" onclick="setStSub('team')">📊 Estadísticas</button>
   <button class="stsb"        id="stsb-pm"   onclick="setStSub('pm')">📈 +/-</button>
   <button class="stsb"        id="stsb-map"  onclick="setStSub('map')">🗺 Mapas de calor</button>
+  <button class="stsb"        id="stsb-leaders" onclick="setStSub('leaders')">🏅 Líderes</button>
 </div>
 
 <!-- ── 1. DETALLES ── -->
 <div id="stv-det" class="stv">
   <div id="st-det-body"></div>
   <div class="card" id="st-hist-card" style="margin-top:10px">
-    <div class="ct">📜 Historial de partidos <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
+    <div class="ct">📜 HISTORICO <span id="st-match-count" style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none"></span></div>
     <div style="font-size:10.5px;color:var(--t3);margin-bottom:7px">Con ✏️ editas las estadísticas del partido (rebotes, asistencias…) y con 🗑️ lo borras.</div>
     <div id="st-match-history"><div class="empty">Sin partidos todavía</div></div>
   </div>
@@ -1572,6 +1575,21 @@ select {
   <div id="st-map-body"></div>
 </div>
 
+<!-- ── 6. LÍDERES ── -->
+<div id="stv-leaders" class="stv" style="display:none">
+  <div class="card">
+    <div class="ct">🏅 Líderes por categoría</div>
+    <div class="fr" style="margin-bottom:10px">
+      <div class="fc"><label>Temporada</label><select id="st-leader-season" onchange="renderLeaders()"><option value="">Todas</option></select></div>
+      <div class="fc"><label>CATEGORÍA (LIGA)</label><select id="st-leader-league" onchange="renderLeaders()"><option value="">Todas</option></select></div>
+      <div class="fc"><label>ESTADÍSTICA</label><select id="st-leader-category" onchange="renderLeaders()"></select></div>
+      <div class="fc"><label>Grupo</label><select id="st-leader-group" onchange="renderLeaders()"><option value="">Todos</option></select></div>
+      <div class="fc"><label>Mínimo de tiros</label><select id="st-leader-minshots" onchange="renderLeaders()"><option value="0">Sin mínimo</option><option value="5">5 intentos</option><option value="10" selected>10 intentos</option><option value="20">20 intentos</option></select></div>
+    </div>
+    <div id="st-leaders-body"></div>
+  </div>
+</div>
+
 </div></div>
 
 <!-- ═══ TAB: DASHBOARD ═══ -->
@@ -1611,18 +1629,21 @@ select {
   <div class="card" style="margin-bottom:10px">
     <div class="ct">👥 Jugadores (acumulado) <span style="font-size:10px;color:var(--t3);font-weight:400">— clic para el perfil</span></div>
     <div class="tw tsk"><table><thead><tr>
-      <th>#</th><th>Jugador</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">P ⇅</th>
+      <th>#</th><th>JUGADOR</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">PJ ⇅</th>
       <th onclick="clSort('min')" style="cursor:pointer">MIN ⇅</th>
-      <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th><th onclick="clSort('ppg')" style="cursor:pointer">PTS/P ⇅</th>
+      <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th>
       <th onclick="clSort('t2p')" style="cursor:pointer">T2% ⇅</th>
       <th onclick="clSort('t3p')" style="cursor:pointer">T3% ⇅</th>
       <th onclick="clSort('tlp')" style="cursor:pointer">TL% ⇅</th>
-      <th onclick="clSort('reb')" style="cursor:pointer">REB ⇅</th>
-      <th onclick="clSort('ast')" style="cursor:pointer">AST ⇅</th><th onclick="clSort('stl')" style="cursor:pointer">STL ⇅</th><th onclick="clSort('blk')" style="cursor:pointer">BLK ⇅</th><th onclick="clSort('to')" style="cursor:pointer">TO ⇅</th>
-      <th onclick="clSort('fc')" style="cursor:pointer">FC ⇅</th>
+      <th onclick="clSort('ro')" style="cursor:pointer">RO ⇅</th><th onclick="clSort('rd')" style="cursor:pointer">RD ⇅</th><th onclick="clSort('reb')" style="cursor:pointer">RT ⇅</th>
+      <th onclick="clSort('ast')" style="cursor:pointer">AST ⇅</th><th onclick="clSort('stl')" style="cursor:pointer">STL ⇅</th><th onclick="clSort('blk')" style="cursor:pointer">BLK ⇅</th><th onclick="clSort('to')" style="cursor:pointer">PER ⇅</th>
+      <th onclick="clSort('fc')" style="cursor:pointer">FC ⇅</th><th onclick="clSort('fr')" style="cursor:pointer">FR ⇅</th>
       <th onclick="clSort('pm')" style="cursor:pointer">+/- ⇅</th>
-      <th onclick="clSort('per10')" style="cursor:pointer">+/-/10min ⇅</th>
+      <th onclick="clSort('per10')" style="cursor:pointer">+/-/MIN ⇅</th>
     </tr></thead><tbody id="cl-players"></tbody></table></div>
+    <div id="cl-classic-legend" style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.5">
+      <b style="color:var(--nv)">LEYENDA CLÁSICA:</b> PJ partidos · MIN minutos · PTS puntos · T2/T3/TL aciertos de 2, triples y libres · RO/RD/RT rebotes ofensivos, defensivos y totales · AST asistencias · STL robos · BLK tapones · PER pérdidas · FC/FR faltas cometidas/recibidas · +/- diferencia con el jugador en pista · +/-/MIN diferencia por minuto x 10.
+    </div>
   </div>
   <div class="g2" style="gap:10px;margin-bottom:10px">
     <div class="card"><div class="ct">🖐 Mejores quintetos (+/-)</div><div id="cl-lineups"></div></div>
@@ -1640,8 +1661,6 @@ select {
 
 <!-- ═══ TAB: SCOUTING ═══ -->
 <div id="t-scout" class="tab"><div class="main">
-
-  <!-- Rival selector -->
   <div class="card" style="margin-bottom:10px">
     <div class="ct">🔍 Informe de Scouting de Rival</div>
     <div class="fr" style="align-items:flex-end">
@@ -1653,8 +1672,8 @@ select {
         </select>
       </div>
       <div class="fc" style="flex:1">
-        <label>Partidos analizados</label>
-        <div id="sc-match-count" style="padding:7px 9px;font-size:12px;font-weight:700;color:var(--nv);background:var(--bg);border-radius:6px;border:1.5px solid var(--b2)">—</div>
+        <label>Temporada</label>
+        <select id="sc-sf" onchange="renderScouting()" style="width:100%;font-size:13px;padding:7px;border-radius:8px;border:1.5px solid var(--bd)"></select>
       </div>
       <div>
         <button onclick="exportScoutPDF()" class="btn bn" style="font-size:12px">📄 Exportar informe</button>
@@ -1663,114 +1682,65 @@ select {
   </div>
 
   <div id="sc-content" style="display:none">
+    
+    <!-- 1. Stats Básicas de Equipo (2x3) -->
+    <div id="sc-block-1" class="g3" style="gap:10px;margin-bottom:12px"></div>
 
-    <!-- KPIs del rival -->
-    <div class="card" style="margin-bottom:10px">
-      <div class="ct">📊 Estadísticas globales del rival</div>
-      <div id="sc-kpis" class="g4" style="gap:7px"></div>
-      <div id="sc-ha-card" style="margin-top:10px"></div>
+    <!-- 2. Conclusiones e Insights -->
+    <div class="card" id="sc-block-2" style="margin-bottom:12px"></div>
+
+    <!-- 3. Comparación Splits (Casa/Fuera - V/D) -->
+    <div class="card" id="sc-block-3" style="margin-bottom:12px">
+       <div class="ct">⚖️ Comparativa de Rendimiento</div>
+       <div class="stsub" style="margin-bottom:10px">
+          <button class="stsb active" id="sc-split-btn-ha" onclick="window.setScoutSplit('ha')">🏠 Local vs ✈️ Visitante</button>
+          <button class="stsb" id="sc-split-btn-wl" onclick="window.setScoutSplit('wl')">🏆 Victorias vs ❌ Derrotas</button>
+       </div>
+       <div id="sc-split-content"></div>
     </div>
 
-    <!-- Dos columnas principales -->
-    <div class="g2" style="gap:10px;margin-bottom:10px">
-
-      <!-- Zonas de tiro -->
-      <div class="card">
-        <div class="ct">🎯 Mapa de tiro del rival
-          <div style="display:flex;gap:5px">
-            <select id="sc-shot-player" onchange="renderScoutShots()" style="font-size:10px;height:24px;border:1px solid var(--b2);border-radius:4px">
-              <option value="">Todo el equipo</option>
-            </select>
-          </div>
-        </div>
-        <div class="cw"><canvas id="sc-cv"></canvas></div>
-        <div style="display:flex;gap:10px;margin-top:5px;font-size:10px;color:var(--t3)">
-          <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
-          <span id="sc-shot-pct" style="margin-left:auto;font-weight:600"></span>
-        </div>
-        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-top:10px;margin-bottom:4px">Mapa por zonas (%)</div>
-        <div class="cw"><canvas id="sc-cv2"></canvas></div>
-        <!-- Zone breakdown table -->
-        <div id="sc-zones" style="margin-top:8px"></div>
-      </div>
-
-      <!-- Jugadores amenaza -->
-      <div class="card">
-        <div class="ct">⚠️ Jugadores a vigilar</div>
-        <div id="sc-players"></div>
-      </div>
-    </div>
-
-    <!-- Situaciones especiales -->
-    <div class="g2" style="gap:10px;margin-bottom:10px">
-
-      <!-- Últimos 2 minutos -->
-      <div class="card">
-        <div class="ct">⏰ Ejecutores en clutch (últ. 3min + prórrogas)</div>
-        <div id="sc-clutch"></div>
-      </div>
-
-      <!-- Post-timeout -->
-      <div class="card">
-        <div class="ct">🛑 Después de tiempo muerto</div>
-        <div id="sc-timeout"></div>
-      </div>
-
-    </div>
-
+    <!-- 4. Posesión (Reloj de tiro) -->
     <div id="sc-possession-clock"></div>
 
-    <!-- Tendencias ofensivas -->
-    <div class="g2" style="gap:10px;margin-bottom:10px">
-      <div class="card">
-        <div class="ct">📈 Tendencias ofensivas</div>
-        <div id="sc-tendencies" style="font-size:12px;line-height:1.8"></div>
-      </div>
-      <div class="card">
-        <div class="ct">📋 Conclusiones y alertas</div>
-        <div id="sc-alerts" style="font-size:12px;line-height:1.8"></div>
-      </div>
+    <!-- 5. Mapas de Calor y Zonas del Equipo -->
+    <div class="card" id="sc-block-5" style="margin-bottom:12px">
+       <div class="ct">🎯 Mapas de tiro del equipo</div>
+       <div class="g2">
+          <div><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:5px;text-align:center">Mapa de calor</div>
+             <div class="cw"><canvas id="sc-cv-heat"></canvas></div></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:5px;text-align:center">Por zonas (%)</div>
+             <div class="cw"><canvas id="sc-cv-zone"></canvas></div></div>
+       </div>
+       <div id="sc-zones" style="margin-top:8px"></div>
     </div>
 
-    <!-- Notas manuales del staff -->
-     <div class="card">
-      <div class="ct">📝 Notas del staff
-        <button onclick="saveScoutNotes()" class="btn bg bxs">💾 Guardar</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div>
-          <label>Bloqueos directos (P&R)</label>
-          <textarea id="sc-note-pr" rows="3" placeholder="Cómo usan el pick & roll, quién recibe, tendencia a tirar/penetrar..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
-        </div>
-        <div>
-          <label>Jugadas de banda</label>
-          <textarea id="sc-note-side" rows="3" placeholder="Jugadas de saque de banda ofensivas, bloqueos, cortes..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
-        </div>
-        <div>
-          <label>Defensa rival</label>
-          <textarea id="sc-note-def" rows="3" placeholder="Sistema defensivo, zonas, hombre a hombre, trampas..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
-        </div>
-        <div>
-          <label>Otras observaciones</label>
-          <textarea id="sc-note-other" rows="3" placeholder="Rotaciones, liderazgo, patrones especiales..." style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea>
-        </div>
+    <!-- 6. Jugadores (Con Acordeón de Mapas) -->
+    <div class="card" id="sc-block-6" style="margin-bottom:12px"></div>
+
+    <!-- 7. Situaciones Especiales -->
+    <div class="g2" id="sc-block-7" style="margin-bottom:12px; align-items:stretch">
+        <div class="card" id="sc-sit-clutch" style="margin:0"></div>
+        <div class="card" id="sc-sit-timeout" style="margin:0"></div>
+    </div>
+
+    <!-- 8. Momentum -->
+    <div class="card" id="sc-block-8" style="margin-bottom:12px"></div>
+
+    <!-- 9. Notas del Staff -->
+    <div class="card" id="sc-block-9">
+      <div class="ct">📝 Notas del staff <button onclick="saveScoutNotes()" class="btn bg bxs">💾 Guardar</button></div>
+      <div class="g2">
+        <div><label>Bloqueos directos (P&R)</label><textarea id="sc-note-pr" rows="3" style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea></div>
+        <div><label>Jugadas de banda</label><textarea id="sc-note-side" rows="3" style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea></div>
+        <div><label>Defensa rival</label><textarea id="sc-note-def" rows="3" style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea></div>
+        <div><label>Otras observaciones</label><textarea id="sc-note-other" rows="3" style="width:100%;padding:7px;border:1.5px solid var(--b2);border-radius:6px;font-size:12px;resize:vertical"></textarea></div>
       </div>
       <div id="sc-note-st" class="st-msg" style="margin-top:6px"></div>
     </div>
 
   </div>
 
-  </div>  <!-- /sc-content -->
-
-  <!-- Empty state -->
-  <div id="sc-empty" class="card">
-    <div class="empty" style="padding:30px">
-      <div style="font-size:32px;margin-bottom:10px">🔍</div>
-      <div style="font-weight:700;margin-bottom:5px">Selecciona un equipo rival arriba</div>
-      <div style="font-size:12px;color:var(--t3)">Se generará automáticamente el informe de scouting a partir de los partidos importados</div>
-    </div>
-  </div>
-
+  <div id="sc-empty" class="card"></div>
 </div></div>
 
 
@@ -1824,29 +1794,34 @@ select {
     </div>
 
     <div id="v-wrap" style="display:none">
+      <!-- Pantalla del vídeo con Zoom -->
       <div id="v-container" style="position:relative;background:#000;border-radius:10px;overflow:hidden;margin-bottom:8px">
-        <video id="v-video" style="width:100%;max-height:440px;display:block" preload="metadata"></video>
+        <video id="v-video" style="width:100%;height:100%;max-height:440px;display:block;object-fit:contain" preload="metadata"></video>
         <div id="v-rec-badge" style="display:none;position:absolute;top:10px;left:10px;background:rgba(220,38,38,.92);color:#fff;font-weight:800;font-size:12px;padding:5px 12px;border-radius:20px;font-family:monospace;animation:pulse 1s infinite">⏺ REC</div>
         <div id="v-speed-badge" style="display:none;position:absolute;top:10px;right:10px;background:rgba(15,23,42,.85);color:#fff;font-weight:800;font-size:12px;padding:5px 10px;border-radius:8px;font-family:monospace"></div>
+        <button onclick="vToggleZoom()" title="Ajustar pantalla" style="position:absolute;bottom:10px;right:55px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer;font-weight:900">🔍</button>
         <button onclick="vFullscreen()" title="Pantalla completa" style="position:absolute;bottom:10px;right:10px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer">⛶</button>
       </div>
-      <div class="v-touch" style="display:none;gap:6px;margin-bottom:8px">
+      
+      <!-- Controles Táctiles -->
+      <div class="v-touch" style="display:flex;gap:6px;margin-bottom:8px">
         <button onclick="vSeekBy(-5)" class="vtb">−5s</button>
-        <button onclick="vRewindTap()" class="vtb">⏪</button>
+        <button onclick="vSpeedBackward()" class="vtb">⏪</button>
         <button onclick="vTogglePlay()" class="vtb vtb-main">⏯</button>
-        <button onclick="vSpeedCycle()" class="vtb">⏩</button>
+        <button onclick="vSpeedForward()" class="vtb">⏩</button>
         <button onclick="vSeekBy(5)" class="vtb">+5s</button>
         <button id="v-btn-clip" onclick="vClipMark()" class="vtb vtb-clip">⏺ Clip</button>
       </div>
+      
       <input type="range" id="v-scrub" min="0" max="1000" value="0" style="width:100%;margin-bottom:6px;accent-color:var(--ac)" oninput="vScrub(this.value)">
       <div id="v-uploads" style="margin-bottom:6px"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <span id="v-time" style="font-size:14px;font-weight:900;font-family:monospace;background:var(--nv);color:#fff;border-radius:6px;padding:4px 10px">0:00</span>
         <span id="v-match-label" style="font-size:11px;font-weight:700;color:var(--t2)"></span>
-        <span class="kb-hint" style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> play/pausa · <b>B</b> inicio/fin clip · <b>J</b> ⏪ · <b>K</b> pausa · <b>L</b> ⏩ x1-x4 · <b>←→</b> ±5s</span>
+        <span class="kb-hint" style="margin-left:auto;font-size:10px;color:var(--t3)">⌨ <b>ESPACIO</b> play/pausa · <b>B</b> inicio/fin clip · <b>J</b>/<b>L</b> vel. · <b>←→</b> ±5s</span>
       </div>
 
-      <!-- Clip form (appears after 2nd space) -->
+      <!-- Clip form -->
       <div id="v-clip-form" style="display:none;background:#0f172a;border-radius:12px;padding:14px;margin-bottom:10px">
         <div style="color:#fff;font-weight:800;font-size:12px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">✂️ Nuevo clip <span id="v-clip-range" style="color:#22c55e;font-family:monospace"></span></div>
         <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:5px;text-transform:uppercase">¿De quién es el clip?</div>
@@ -3488,35 +3463,49 @@ function setLvTeam(t){lv.actTeam=t;renderLvStrips();if(lv.courtView==='heatt')re
 
 let _lpTimer=null,_lpFired=false;
 function renderLvStrips(){['home','away'].forEach(t=>renderLvTeamStrip(t));updateSelBanner();}
+
 function renderLvTeamStrip(team){
   const oc=lv.onCourt[team],st=lv.st[team]||{};
   const court=lv.pl[team].filter(p=>oc.has(p.name));
   const bench=lv.pl[team].filter(p=>!oc.has(p.name));
   const accent=team==='home'?'var(--ac)':'#3b82f6';
-  const cCard=(p)=>{const s=st[p.name]||{},pm=s.pm||0,pts=s.pts||0,fc=s.fc||0,sel=(lv.selPl===p.name&&lv.actTeam===team);
+  
+  const cCard=(p)=>{
+    const s=st[p.name]||{},pm=s.pm||0,pts=s.pts||0,fc=s.fc||0,sel=(lv.selPl===p.name&&lv.actTeam===team);
+    
+    // Si la alerta determinó que está expulsado, forzamos los colores
+    const isExp = p.expulsado; 
+    const bdColor = isExp ? '#991b1b' : (sel ? accent : (fc>=4 ? '#dc2626' : '#16a34a'));
+    const bgColor = isExp ? '#ef4444' : (sel ? '#fff' : 'rgba(255,255,255,.6)');
+    const tColor  = isExp ? '#fff' : (sel ? accent : 'var(--nv)');
+    const badge   = isExp ? '🛑' : (fc>=4 ? '⚠️' : '');
+
     return `<button onpointerdown="_lvCourtDown('${p.name.replace(/'/g,"\\'")}','${team}')" onpointerup="_lvCourtUp()" onclick="_lvCourtClick('${p.name.replace(/'/g,"\\'")}','${team}')"
-      style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:4px 5px;border-radius:8px;cursor:pointer;border:2.5px solid ${sel?accent:fc>=4?'#dc2626':'#16a34a'};background:${sel?'#fff':'rgba(255,255,255,.6)'};transition:all .12s;position:relative">
-      ${fc>=4?'<span style="position:absolute;top:-5px;right:-3px;font-size:9px">⚠️</span>':''}
-      <span style="font-size:8px;font-weight:800;color:${sel?accent:'var(--nv)'}">#${p.dorsal}</span>
+      style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:4px 5px;border-radius:8px;cursor:pointer;border:2.5px solid ${bdColor};background:${bgColor};color:${isExp?'#fff':'inherit'};transition:all .12s;position:relative">
+      ${badge ? `<span style="position:absolute;top:-5px;right:-3px;font-size:9px">${badge}</span>` : ''}
+      <span style="font-size:8px;font-weight:800;color:${tColor}">#${p.dorsal}</span>
       <span style="font-size:8px;font-weight:700;white-space:nowrap">${p.name.split(' ')[0]}</span>
-      <span style="font-size:8px;color:var(--t2)">${pts}p <span style="color:${pm>0?'var(--gn)':pm<0?'#dc2626':'var(--t3)'}">${pm>0?'+':''}${pm}</span></span>
-    </button>`;};
+      <span style="font-size:8px;color:${isExp?'#fca5a5':'var(--t2)'}">${pts}p <span style="color:${isExp?'#fff':(pm>0?'var(--gn)':pm<0?'#dc2626':'var(--t3)')};font-weight:${isExp?'800':'normal'}">${pm>0?'+':''}${pm}</span></span>
+    </button>`;
+  };
+  
   const bCard=(p)=>{const s=st[p.name]||{};
     return `<button onclick="_lvBenchClick('${p.name.replace(/'/g,"\\'")}','${team}')"
       style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:46px;padding:4px 5px;border-radius:8px;cursor:pointer;border:2px solid var(--b2);background:#fff;opacity:.7;transition:all .12s">
       <span style="font-size:8px;font-weight:800;color:var(--t2)">#${p.dorsal}</span>
       <span style="font-size:8px;font-weight:600;white-space:nowrap;color:var(--t2)">${p.name.split(' ')[0]}</span>
       <span style="font-size:7px;color:var(--t3)">${s.pts||0}p</span>
-    </button>`;};
+    </button>`;
+  };
+  
   const cs=document.getElementById(`lv-court-strip-${team}`);
   const bs=document.getElementById(`lv-bench-strip-${team}`);
   if(cs)cs.innerHTML=court.map(cCard).join('')||'<span style="font-size:9px;color:var(--t3);align-self:center">Ningún jugador en pista</span>';
-  // El banquillo ya no se muestra: los cambios se hacen con el botón CAMBIOS,
-  // así que en pantalla solo aparecen los 5 de cada equipo que están en pista.
   if(bs){bs.innerHTML='';bs.style.display='none';}
   const lbl=document.getElementById(team==='home'?'lv-home-label-strip':'lv-away-label-strip');
   if(lbl)lbl.textContent=(team==='home'?lv.hn:lv.an)||(team==='home'?'LOCAL':'RIVAL');
 }
+
 function _lvCourtDown(name,team){_lpFired=false;_lpTimer=setTimeout(()=>{_lpFired=true;lv.onCourt[team].delete(name);if(lv.selPl===name)lv.selPl=null;lv.log.unshift({team,msg:`⬇ ${name.split(' ')[0]} surt`,period:lv.period});renderLvStrips();rLvLog();svL();toast(`⬇ ${name.split(' ')[0]} a la banqueta`);if(navigator.vibrate)navigator.vibrate(40);},550);}
 function _lvCourtUp(){clearTimeout(_lpTimer);}
 function _lvCourtClick(name,team){if(_lpFired){_lpFired=false;return;}lv.selPl=name;lv.actTeam=team;renderLvStrips();if(lv.courtView==='heatp'||lv.courtView==='heatt')redrawLvCourt();}
@@ -3532,6 +3521,7 @@ function updateSelBanner(){
 function openLiveStatsModal(){document.getElementById('live-stats-modal').style.display='flex';renderLiveStatsModal();}
 function closeLiveStatsModal(){document.getElementById('live-stats-modal').style.display='none';}
 // ── Tarjeta Doble: Origen de los Puntos ──
+
 
 
 function teamBonus(shooterTeam){const ft=lv.actTeam==='home'?'away':'home';return lv.events.filter(e=>e.team===ft&&e.period===lv.period&&e.type==='foul').length>=5;}
@@ -3556,7 +3546,7 @@ function lvAct(type){
     case 'to':s.to=(s.to||0)+1;msg=`💨 Pérdida — ${p.split(' ')[0]}`;break;
   }
   if(msg){lv.log.unshift({team,msg,period:lv.period,min});lv.events.push({type,player:p,team,period:lv.period,min,score:{...lv.score},oc:_lvOC()});}
-  rLvAll();svL();
+  rLvAll();svL();lvCheckAlerts();window.lvCheckAlerts();
 }
 // Snapshot del quinteto en pista: se guarda en cada evento que puntúa para poder
 // recalcular el +/- con exactitud al deshacer o borrar acciones sueltas.
@@ -3660,6 +3650,8 @@ function setPer(n) {
   rLvAll();
   if (typeof svL === 'function') svL();
   if (typeof toast === 'function') toast(`⏳ Periodo cambiado a ${qName}`);
+
+  lvCheckAlerts();
 }
 function adjustTimer(secs){ // 🔥 Ajuste rápido de la mesa
   lv.timer.seconds=Math.max(0,lv.timer.seconds+secs);
@@ -3757,14 +3749,7 @@ const KB={'r':'ro','d':'rd','a':'ast','f':'foul','t':'tech','y':'anti','s':'stl'
 const KB_L={'r':'Reb.Of.','d':'Reb.Def.','a':'Asist.','f':'Falta','t':'Técnica','y':'Anti.','s':'Robo','b':'Tapón','p':'Pérdida','z':'Desfer'};
 let _kbOn=false;
 function toggleKb(){_kbOn=!_kbOn;const btn=document.getElementById('kb-toggle');if(btn){btn.textContent=_kbOn?'⌨️ ON':'⌨️ OFF';btn.style.background=_kbOn?'rgba(22,163,74,.6)':'rgba(255,255,255,.15)';}const hints=document.getElementById('kb-hints');if(hints)hints.style.display=_kbOn?'block':'none';if(_kbOn&&hints)hints.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px">'+Object.entries(KB_L).map(([k,v])=>`<span style="font-size:9px"><kbd style="background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px">${k.toUpperCase()}</kbd> ${v}</span>`).join('')+'</div>';}
-document.addEventListener('keydown',e=>{
-  if(!_kbOn)return;if(document.getElementById('lv-panel')?.style.display==='none')return;
-  if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
-  const k=e.key.toLowerCase();
-  if(k in KB){e.preventDefault();const act=KB[k];if(act==='_undo')lvUndo();else lvAct(act);const fb=document.getElementById('kb-feedback');if(fb){fb.textContent=KB_L[k];fb.style.opacity='1';setTimeout(()=>fb.style.opacity='0',600);}}
-  if(k==='arrowup'||k==='arrowdown'){e.preventDefault();const pl=lv.pl[lv.actTeam];const idx=pl.findIndex(p=>p.name===lv.selPl);const next=k==='arrowdown'?Math.min(idx+1,pl.length-1):Math.max(idx-1,0);if(pl[next]){lv.selPl=pl[next].name;renderLvStrips();}}
-  if(k==='arrowleft')setLvTeam('home');if(k==='arrowright')setLvTeam('away');
-});
+
 // ═══════════════════════════════════════════
 // SHOT MAP MANUAL
 // ═══════════════════════════════════════════
@@ -4668,8 +4653,8 @@ function renderStats(){
   //    dos sentidos: si eliges equipo, solo salen sus partidos; y si eliges
   //    partido, solo salen sus equipos.
   const val=id=>document.getElementById(id)?.value||'';
-  let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
-      gf=val('st-gf'), tf=val('st-tf'), mf=val('st-mf');
+    let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
+      gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
   // Predicados individuales de cada filtro sobre un partido
   const okL =m=>!lf ||m.competition===lf;
@@ -4713,6 +4698,23 @@ function renderStats(){
     if(!ok){tsel.value='';tf='';}
   }
 
+  // Jugadores disponibles con todos los filtros salvo el propio.
+  const playerLabels=new Map();
+  pool('P').forEach(m=>{
+    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
+      if(!_inGroup(p.team,gf)||(tf&&p.team!==tf))return;
+      const key=String(p.name||'').trim();
+      if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
+    });
+  });
+  const psel=document.getElementById('st-pf');
+  if(psel){
+    const available=[...playerLabels.keys()].sort((a,b)=>a.localeCompare(b,'es'));
+    const ok=!pf||available.includes(pf);
+    psel.innerHTML='<option value="">Todos los jugadores</option>'+available.map(name=>`<option value="${_esc(name)}"${name===pf&&ok?' selected':''}>${_esc(playerLabels.get(name))}</option>`).join('');
+    if(!ok){psel.value='';pf='';}
+  }
+
   // Partidos disponibles: los que pasan todo menos el filtro de partido
   const msel=document.getElementById('st-mf');
   let mfEff=mf;
@@ -4737,12 +4739,13 @@ function renderStats(){
       if(!_inGroup(p.team,gf))return;   // fuera del grupo de seguimiento → no se muestra
       teams.add(p.team);
       if(tf&&p.team!==tf)return;
+      if(pf&&p.name!==pf)return;
       if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
       all.push(p);});
   });
   // Datos que usan las mini-pestañas
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
-  window._stCtx={scoped,selMatch,tf,gf};
+  window._stCtx={scoped,selMatch,tf,gf,pf};
   const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
   const kpi=document.getElementById('st-kpis');
   if(kpi)kpi.innerHTML=`
@@ -4778,31 +4781,17 @@ function renderStats(){
     return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
   }).join(''):`<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
 
-  renderStatsAggregated();
+  if(_stSub==='box')renderStatsAggregated();
   // Cabecera del partido + las tres vistas nuevas
   _renderStMatchHead(selMatch);
   _renderStDetalles(scoped,selMatch);
-  _renderStBox(selMatch);
-  _renderStTeamStats(scoped,selMatch,tf);
-  _renderStPlusMinus(scoped,selMatch);
-  _renderStMaps(scoped,selMatch,tf,gf);
+  if(_stSub==='box')_renderStBox(selMatch);
+  if(_stSub==='team')_renderStTeamStats(scoped,selMatch,tf);
+  if(_stSub==='pm')_renderStPlusMinus(scoped,selMatch);
+  if(_stSub==='map')_renderStMaps(scoped,selMatch,tf,gf);
 
   // 1️⃣ Forzamos el recalculo interno de los datos avanzados con el equipo seleccionado
-  const advCont = document.getElementById('stv-adv');
-  if(advCont && typeof renderAdvancedStats === 'function') {
-      renderAdvancedStats(tf);
-  }
-
-  // 2️⃣ Forzamos el repintado visual haciendo "clic" en la pestaña activa
-  setTimeout(() => {
-    const activeTab = document.querySelector('.st-tabs .active, .adv-tabs .active, button.active');
-    if (activeTab) {
-      activeTab.click(); 
-    } else {
-      const firstTab = document.querySelector('.st-tabs button, .adv-tabs button');
-      if (firstTab) firstTab.click();
-    }
-  }, 50);
+  if(_stSub==='adv')_renderAdvancedStats();
 }
 
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
@@ -5238,7 +5227,7 @@ function closeSubModal(){
   lv.curMin=(lv.period-1)*10+(perDurSecs-remaining)/60;
   renderTimer();
   document.getElementById('sub-modal').style.display='none';
-  rLvAll();svL();
+  rLvAll();svL();lvCheckAlerts();
 }
 function renderSubModal(){
   const hl=document.getElementById('sub-home-label'),al=document.getElementById('sub-away-label');
@@ -5307,6 +5296,7 @@ function renderMatchHistory(){
       ${_playerMode?'':`
       <button onclick="linkFCBQ(${m.id})" title="Vincular acta FCBQ" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">🔗 FCBQ</button>
       <button onclick="openMatchEdit(${m.id})" title="Editar estadísticas del partido" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">✏️</button>
+      <button onclick="exportMatchPDF(${m.id})" title="Descargar estadísticas del partido en PDF" style="background:#fefce8;border:1px solid #fde68a;color:#92400e;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">📄 PDF</button>
       <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>
       `}
     </div>`;
@@ -5454,7 +5444,7 @@ function stAggSort(field){
 // ── Stats Agregadas: Une al jugador si cambia de equipo o año ──
 function renderStatsAggregated(){
   const ctx = window._stCtx || {};
-  const tf = ctx.tf || '', gf = ctx.gf || '';
+  const tf = ctx.tf || '', gf = ctx.gf || '', pf = ctx.pf || '';
   const fuente = ctx.scoped || S.matches;
   const norm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const q = ''; // Manejado por sbFilter
@@ -5467,6 +5457,7 @@ function renderStatsAggregated(){
     .forEach(p => {
       if(tf && p.team !== tf) return;
       if(gf && !_inGroup(p.team, gf)) return;
+      if(pf && p.name !== pf) return;
       if(q && !(norm(p.name).includes(q) || String(p.dorsal||'').includes(q))) return;
       
       // LA CLAVE AHORA ES SOLO EL NOMBRE
@@ -5581,48 +5572,44 @@ function setStatsView(v){
 
 
 // ═══════════════════════════════════════════
-// SCOUTING MODULE
+// SCOUTING MODULE (Nuevo Flujo Secuencial 1-9)
 // ═══════════════════════════════════════════
 let _scoutRival = '';
 let _scoutNotes = {};
+window._scoutSplitMode = 'ha'; // Empieza en Home/Away
 
 function populateRivalSelect() {
   const sel = document.getElementById('sc-rival');
   if (!sel) return;
   const v = sel.value;
-  // Filtro por grupo de seguimiento (👁)
   const gsel=document.getElementById('sc-gf');
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
-  // Cualquier equipo que aparezca en algún partido (incluido el Claret, para poder
-  // hacer scouting de nosotros mismos), agrupado por grupo de seguimiento.
+  
   const rivals = new Set();
   S.matches.forEach(m => {
     [m.homeTeam, m.awayTeam].forEach(tn => { if (tn && _inGroup(tn,gf)) rivals.add(tn); });
   });
   const keep=!v||rivals.has(v);
-  sel.innerHTML=_teamSelectOptions(keep?v:'',{placeholder:'— Selecciona un equipo —',filterGroupId:gf,names:[...rivals].sort()});
+  sel.innerHTML=_teamSelectOptions(keep?v:'',{placeholder:'— Selecciona un rival —',filterGroupId:gf,names:[...rivals].sort()});
   if(!keep)sel.value='';
+}
+
+// Generador de anillos específicos para el Scouting
+function _scoutRingSvg(pct, colorMade, colorMiss) {
+    const R = 20, C = 2 * Math.PI * R, off = C * (1 - Math.min(100, Math.max(0, pct)) / 100);
+    return `<svg viewBox="0 0 50 50" style="width:40px; height:40px; display:block;">
+        <circle cx="25" cy="25" r="${R}" stroke="${colorMiss}" stroke-width="6" fill="transparent"></circle>
+        <circle cx="25" cy="25" r="${R}" stroke="${colorMade}" stroke-width="6" stroke-linecap="round" fill="transparent" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 25 25)"></circle>
+    </svg>`;
 }
 
 function renderScouting() {
   const sel = document.getElementById('sc-rival');
   _scoutRival = sel?.value || '';
 
-  // ── INYECCIÓN DINÁMICA DEL DESPLEGABLE DE TEMPORADA ──
-  let sfSelect = document.getElementById('sc-sf');
-  if(!sfSelect && sel){
-      const rivalWrap = sel.parentElement;
-      if(rivalWrap) {
-          const sfWrap = document.createElement('div');
-          sfWrap.style.cssText = 'display:inline-flex; flex-direction:column; margin-right:12px; margin-bottom:10px; vertical-align:top;';
-          sfWrap.innerHTML = `<label style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:4px;letter-spacing:0.05em">Temporada</label>
-                              <select id="sc-sf" onchange="renderScouting()" style="padding:9px 12px;border-radius:8px;border:1.5px solid var(--bd);background:#fff;font-size:13px;font-weight:700;color:var(--tx);outline:none;min-width:160px; cursor:pointer;"></select>`;
-          rivalWrap.parentElement.insertBefore(sfWrap, rivalWrap);
-          sfSelect = document.getElementById('sc-sf');
-      }
-  }
-
+  // Selector Temporada
+  const sfSelect = document.getElementById('sc-sf');
   let sfEff = '';
   if(sfSelect){
       const cur = sfSelect.value;
@@ -5634,7 +5621,6 @@ function renderScouting() {
       sfEff = sfSelect.value;
   }
   
-  // 1. Radar de Mercado si no hay equipo seleccionado
   if (!_scoutRival) {
     document.getElementById('sc-content').style.display = 'none';
     const emptyState = document.getElementById('sc-empty');
@@ -5649,280 +5635,312 @@ function renderScouting() {
   const emptySt = document.getElementById('sc-empty');
   if(emptySt) emptySt.style.display = 'none';
 
-  // 2. Filtramos por Rival Y por Temporada
-  // 2. Filtramos por Rival Y por Temporada
   const matches = S.matches.filter(m => 
       (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && 
       (!sfEff || m.season === sfEff)
   );
 
-  // 👇 AÑADE ESTAS 3 LÍNEAS AQUÍ 👇
-  if (matches.length > 0 && matches[0].fcbqMoves) {
-      console.log("🏀 DATOS FCBQ LISTOS PARA COPIAR:");
-      console.log(JSON.stringify(matches[0].fcbqMoves));
+  if (!matches.length) {
+      document.getElementById('sc-content').innerHTML = '<div class="empty">Sin datos para esta temporada.</div>';
+      return;
   }
-  
-  const matchCnt = document.getElementById('sc-match-count');
-  if(matchCnt) matchCnt.textContent = `${matches.length} partido${matches.length !== 1 ? 's' : ''}`;
 
+  // Preparación de Jugadores y Avanzadas
+  const advData = _advancedTeam(matches, _scoutRival);
   const rivalPlayers = {};
   matches.forEach(m => {
     const isHome = m.homeTeam === _scoutRival;
-    const players = isHome ? m.homePlayers : m.awayPlayers;
-    (players || []).forEach(p => {
-      if (!rivalPlayers[p.name]) rivalPlayers[p.name] = {
-        name: p.name, dorsal: p.dorsal,
-        pts: 0, t2Made: 0, t2Att: 0, t3Made: 0, t3Att: 0,
-        tlMade: 0, tlAtt: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, starts: 0, min: 0
-      };
+    (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
+      if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, starts: 0, min: 0 };
       const rp = rivalPlayers[p.name];
-      rp.pts += p.pts || 0; rp.t2Made += p.t2Made || 0; rp.t2Att += p.t2Att || 0;
-      rp.t3Made += p.t3Made || 0; rp.t3Att += p.t3Att || 0;
-      rp.tlMade += p.tlMade || 0; rp.tlAtt += p.tlAtt || 0;
-      rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
-      rp.pm += p.pm || 0; rp.games++;
+      rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
+      rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
+      rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
       if (p.starter) rp.starts++;
-      rp.min += p.min || 0;
     });
   });
-  const rpList = Object.values(rivalPlayers);
+  const rpList = Object.values(rivalPlayers).sort((a, b) => b.pts - a.pts);
 
-  const totPts = rpList.reduce((s,p) => s + p.pts, 0);
-  const t2M = rpList.reduce((s,p) => s + p.t2Made, 0);
-  const t2A = rpList.reduce((s,p) => s + p.t2Att, 0);
-  const t3M = rpList.reduce((s,p) => s + p.t3Made, 0);
-  const t3A = rpList.reduce((s,p) => s + p.t3Att, 0);
-  const tlM = rpList.reduce((s,p) => s + p.tlMade, 0);
-  const tlA = rpList.reduce((s,p) => s + p.tlAtt, 0);
-  const n = matches.length || 1;
-  const kpis = document.getElementById('sc-kpis');
-  if(kpis) kpis.innerHTML = `
-    <div class="kpi"><div class="kv">${Math.round(totPts/n)}</div><div class="kl">Pts/partido</div><div class="ks">${totPts} total</div></div>
-    <div class="kpi"><div class="kv">${t2A ? Math.round(t2M/t2A*100)+'%' : '—'}</div><div class="kl">T2%</div><div class="ks">${t2M}/${t2A}</div></div>
-    <div class="kpi"><div class="kv">${t3A ? Math.round(t3M/t3A*100)+'%' : '—'}</div><div class="kl">T3%</div><div class="ks">${t3M}/${t3A}</div></div>
-    <div class="kpi"><div class="kv">${tlA ? Math.round(tlM/tlA*100)+'%' : '—'}</div><div class="kl">TL%</div><div class="ks">${tlM}/${tlA}</div></div>
-    <div class="kpi"><div class="kv">${t3A ? Math.round(t3A/(t2A+t3A)*100)+'%' : '—'}</div><div class="kl">% tiros de 3</div><div class="ks">de ${t2A+t3A} FGA</div></div>
-    <div class="kpi"><div class="kv">${matches.length}</div><div class="kl">Partidos</div></div>`;
-
-  rpList.sort((a, b) => b.pts - a.pts);
-  const startersRank = rpList.filter(p => p.starts > 0).sort((a,b) => b.starts - a.starts || b.min - a.min).slice(0, 5);
-  const top5Starters = new Set(startersRank.map(p => p.name)); 
-  const startersHtml = startersRank.length ? `
-    <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;padding:8px 10px;margin-bottom:10px">
-      <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">⭐ Quinteto inicial habitual</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${startersRank.map(p => `<span style="background:#fff;border:1.5px solid #f59e0b;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]} <span style="color:#92400e;font-size:9px">(${p.starts}/${p.games})</span></span>`).join('')}
-      </div>
-    </div>` : '';
-  const scPlayers = document.getElementById('sc-players');
-  if (scPlayers) scPlayers.innerHTML = startersHtml + rpList.slice(0, 10).map(p => {
-    const t2p = p.t2Att ? Math.round(p.t2Made/p.t2Att*100) : 0;
-    const t3p = p.t3Att ? Math.round(p.t3Made/p.t3Att*100) : 0;
-    const ptsPerGame = Math.round(p.pts / p.games * 10) / 10;
-    const isThreat = ptsPerGame >= 10 || (p.t3Att >= 5 && t3p >= 38);
-    // IMPORTANTE: Pasamos sfEff para que la ficha se abra en esa temporada específica
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n, _scoutRival, '${sfEff}')" title="Ver perfil">
-      <div style="width:30px;height:30px;border-radius:50%;background:${isThreat?'#dc2626':'var(--nv)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">#${p.dorsal}</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:12px">${p.name}${top5Starters.has(p.name) ? ' <span title="Quinteto habitual" style="color:#f59e0b;font-size:10px">★</span>' : ''}${isThreat ? ' <span style="color:#dc2626;font-size:10px">⚠️</span>' : ''}</div>
-        <div style="font-size:10px;color:var(--t3)">${ptsPerGame}pts/p${p.min?` · ${Math.round(p.min/p.games)}min/p`:''} · T2:${t2p}% (${p.t2Made}/${p.t2Att}) · T3:${t3p}% (${p.t3Made}/${p.t3Att})</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-weight:800;color:var(--nv);font-size:14px">${p.pts}</div>
-        <div style="font-size:9px;color:var(--t3)">${p.games}P</div>
-      </div>
-    </div>`;
-  }).join('') || '<div class="empty">Sin datos</div>';
-
-  const scShotPl = document.getElementById('sc-shot-player');
-  if (scShotPl) {
-    scShotPl.innerHTML = '<option value="">Todo el equipo</option>' +
-      rpList.map(p => `<option value="${p.name}">${p.name.split(' ')[0]} (#${p.dorsal})</option>`).join('');
-  }
-
-  renderScoutShots();
-  renderScoutClutch(matches);
-  renderScoutTimeout(matches);
-  renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A);
-  renderScoutTurnovers(matches, _scoutRival);
-
-  // ── INYECCIÓN: ANALÍTICA AVANZADA FCBQ (COMPACTA + MEDIAS POR PARTIDO) ──
-  const advData = _analyzeAdvancedFCBQ(matches, _scoutRival);
-  let advHtml = '';
-  
-  if (advData) {
-      const scPctT3 = advData.scPts > 0 ? Math.round((advData.scT3 / advData.scPts) * 100) : 0;
-      const scTendency = advData.scPts === 0 ? '<span style="color:var(--t3)">Faltan datos</span>' : (scPctT3 >= 35 ? '🎯 Buscan el Triple (T3)' : '🏀 Finalizan cerca del aro (T2)');
-
-      const teamGames = matches.length || 1;
-
-      // Top 5 Faltas Recibidas (Con medias individuales)
-      const topFD = Object.entries(advData.fdPlayers).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      const maxFD = topFD.length ? Math.max(topFD[0][1], 1) : 1;
-      const htmlFD = topFD.length ? topFD.map((p,i) => {
-          // Buscamos cuántos partidos ha jugado este jugador en concreto
-          const plyr = rpList.find(r => r.name === p[0]);
-          const pGames = plyr && plyr.games ? plyr.games : teamGames;
-          const avg = (p[1] / pGames).toFixed(1);
-          
-          return `
-          <div style="margin-bottom:8px">
-              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px">
-                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%"><span style="color:var(--t3);font-size:9px">${i+1}.</span> ${p[0]}</span>
-                  <span style="color:var(--nv)">${p[1]} <span style="font-size:8px;color:var(--t3);font-weight:600">faltas</span> <span style="font-size:9px;color:var(--t2)">(${avg}/p)</span></span>
-              </div>
-              <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden"><div style="width:${(p[1]/maxFD)*100}%;height:100%;background:#3b82f6;border-radius:3px"></div></div>
-          </div>`;
-      }).join('') : '<div style="font-size:11px;color:var(--t3);padding:10px 0">Sin datos suficientes.</div>';
-
-      // Gráfico de Momentum COMPACTO
-      const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
-      const runAvgs = [1,2,3,4].map(q => {
-          let net = getAvg(advData.runsForQ[q]) - getAvg(advData.runsAgainstQ[q]);
-          return { q, net };
-      });
-      const maxNet = Math.max(...runAvgs.map(d => Math.abs(d.net)), 1);
+  // ── 1. STATS BÁSICAS (2x3) ──
+  const b1 = document.getElementById('sc-block-1');
+  if (b1) {
+      // Form: W L W
+      const form = matches.slice(-5).map(m => {
+          const isWin = m.homeTeam === _scoutRival ? m.scoreHome > m.scoreAway : m.scoreAway > m.scoreHome;
+          return `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${isWin?'#15803d':'#dc2626'};margin-right:3px;" title="${isWin?'V':'D'}"></span>`;
+      }).join('');
+      const W = matches.filter(m => m.homeTeam === _scoutRival ? m.scoreHome > m.scoreAway : m.scoreAway > m.scoreHome).length;
       
-      const svgW = 340, svgH = 90, midY = svgH / 2, barW = 28, gap = svgW / 5; // Altura a 90px
-      
-      let runSvg = `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%; height:auto; display:block; font-family:inherit">
-          <text x="10" y="12" font-size="9" fill="#166534" font-weight="900">TENDENCIA POSITIVA</text>
-          <text x="10" y="${svgH - 4}" font-size="9" fill="#991b1b" font-weight="900">TENDENCIA NEGATIVA</text>
-          <line x1="15" y1="${midY}" x2="${svgW-15}" y2="${midY}" stroke="var(--bd)" stroke-width="1.5" stroke-dasharray="3 3" />`;
-      
-      let bars = '';
-      runAvgs.forEach((d, i) => {
-          const x = gap * (i + 1); 
-          if (d.net > 0) {
-              const h = (d.net / maxNet) * (midY - 18);
-              bars += `<rect x="${x - barW/2}" y="${midY - h}" width="${barW}" height="${h}" rx="3" fill="#22c55e" opacity="0.95" />
-                       <rect x="${x - barW/2}" y="${midY - 3}" width="${barW}" height="3" fill="#22c55e" />
-                       <text x="${x}" y="${midY - h - 4}" font-size="11" font-weight="900" fill="#166534" text-anchor="middle">+${d.net.toFixed(1)}</text>`;
-          } else if (d.net < 0) {
-              const h = (Math.abs(d.net) / maxNet) * (midY - 18);
-              bars += `<rect x="${x - barW/2}" y="${midY}" width="${barW}" height="${h}" rx="3" fill="#ef4444" opacity="0.95" />
-                       <rect x="${x - barW/2}" y="${midY}" width="${barW}" height="3" fill="#ef4444" />
-                       <text x="${x}" y="${midY + h + 11}" font-size="11" font-weight="900" fill="#991b1b" text-anchor="middle">${d.net.toFixed(1)}</text>`;
-          } else {
-              bars += `<text x="${x}" y="${midY - 4}" font-size="10" font-weight="700" fill="var(--t3)" text-anchor="middle">0.0</text>`;
-          }
-          bars += `<rect x="${x-12}" y="${midY-7}" width="24" height="14" rx="7" fill="#fff" stroke="var(--bd)" stroke-width="1.5"/>
-                   <text x="${x}" y="${midY+3}" font-size="9" font-weight="900" fill="var(--nv)" text-anchor="middle">Q${d.q}</text>`;
-      });
-      runSvg += bars + `</svg>`;
+      const ptA=advData.pts/advData.n, ptC=advData.opp/advData.n;
+      const t2p=advData.t2a?advData.t2m/advData.t2a*100:0, t3p=advData.t3a?advData.t3m/advData.t3a*100:0, tlp=advData.fta?advData.ftm/advData.fta*100:0;
 
-      // Medias Globales (POT y Segundas Oportunidades)
-      const avgPotScored = (advData.potScored / teamGames).toFixed(1);
-      const avgPotConceded = (advData.potConceded / teamGames).toFixed(1);
-      const avgScPts = (advData.scPts / teamGames).toFixed(1);
+      // Ranking simplificado (Color de la caja)
+      const t2Color = t2p >= 52 ? '#f0fdf4' : (t2p <= 44 ? '#fef2f2' : '#fff');
+      const t3Color = t3p >= 34 ? '#f0fdf4' : (t3p <= 26 ? '#fef2f2' : '#fff');
+      const t2Border = t2p >= 52 ? '#16a34a' : (t2p <= 44 ? '#dc2626' : 'var(--bd)');
+      const t3Border = t3p >= 34 ? '#16a34a' : (t3p <= 26 ? '#dc2626' : 'var(--bd)');
 
-      advHtml = `
-      <div style="margin-top:15px; background:#fff; border:1px solid var(--bd); border-radius:10px; padding:12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-          <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:900; color:var(--nv); text-transform:uppercase; margin-bottom:12px; padding-bottom:8px; border-bottom:1.5px solid #f1f5f9">
-              <span style="font-size:14px">🎯</span> Analítica Avanzada (Play-by-Play)
+      const bx = (title, big, sub, color, border, extra) => `<div style="background:${color};border:1.5px solid ${border};border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+          <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">${title}</div>
+          <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:28px;font-weight:900;color:var(--nv);line-height:1">${big}</div>
+              ${extra||''}
           </div>
-          
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-bottom:12px">
-              
-              <!-- Gráfico de Momentum COMPACTO -->
-              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px">
-                  <div style="display:flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:var(--nv); margin-bottom:2px; text-transform:uppercase">
-                      📊 Momentum (Tendencia Neta)
-                  </div>
-                  <div style="font-size:9px; color:var(--t3); margin-bottom:10px; line-height:1.2">
-                      Diferencia media entre rachas a favor y en contra.
-                  </div>
-                  <div style="padding:0">
-                      ${runSvg}
-                  </div>
-              </div>
+          <div style="font-size:10px;color:var(--t3);margin-top:6px;font-weight:600">${sub}</div>
+      </div>`;
 
-              <!-- Segundas Oportunidades COMPACTO -->
-              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; display:flex; flex-direction:column">
-                  <div style="display:flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:var(--nv); margin-bottom:2px; text-transform:uppercase">
-                      🔄 Segundas Oportunidades
-                  </div>
-                  <div style="font-size:9px; color:var(--t3); margin-bottom:10px; line-height:1.2">
-                      Puntos en los 14s posteriores a un rebote ofensivo.
-                  </div>
-                  
-                  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:10px">
-                      <div style="display:flex; align-items:baseline; gap:4px">
-                          <span style="font-size:26px; font-weight:900; color:var(--nv); line-height:1">${advData.scPts}</span>
-                          <span style="font-size:10px; font-weight:700; color:var(--t3)">(${avgScPts}/p)</span>
-                      </div>
-                      <div style="font-size:9px; font-weight:700; color:var(--t3); text-transform:uppercase; margin-bottom:8px">Pts Totales</div>
-                      
-                      <div style="width:100%; text-align:center; padding-top:8px; border-top:1px solid #f1f5f9">
-                          <b style="color:var(--nv); font-size:11px">${scTendency}</b> <br>
-                          <span style="font-size:9px; color:var(--t3); font-weight:700">(${scPctT3}% Pts en T3)</span>
-                      </div>
-                  </div>
-              </div>
-          </div>
-
-          <!-- Tablas Inferiores COMPACTAS -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; padding-top:8px; border-top:1px solid #f1f5f9">
-              <div>
-                  <div style="font-size:10px; font-weight:800; color:var(--nv); margin-bottom:8px; text-transform:uppercase; display:flex; align-items:center; gap:4px">
-                      🛡️ Faltas Recibidas (Top 5)
-                  </div>
-                  ${htmlFD}
-              </div>
-              
-              <!-- Puntos tras pérdida GLOBAL COMPACTO -->
-              <div>
-                  <div style="font-size:10px; font-weight:800; color:var(--nv); margin-bottom:8px; text-transform:uppercase; display:flex; align-items:center; gap:4px">
-                      ⚡ Impacto de las Pérdidas
-                  </div>
-                  
-                  <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px; margin-bottom:8px">
-                      <div style="font-size:9px; font-weight:700; color:#166534; text-transform:uppercase; margin-bottom:2px">Anotan tras robo:</div>
-                      <div style="display:flex; align-items:baseline; gap:4px">
-                          <span style="font-size:18px; font-weight:900; color:#15803d">${advData.potScored}</span>
-                          <span style="font-size:9px; color:#166534">Puntos</span>
-                          <span style="font-size:10px; font-weight:700; color:#15803d; margin-left:4px">(${avgPotScored}/p)</span>
-                      </div>
-                  </div>
-
-                  <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:8px">
-                      <div style="font-size:9px; font-weight:700; color:#991b1b; text-transform:uppercase; margin-bottom:2px">Encajan tras pérdida propia:</div>
-                      <div style="display:flex; align-items:baseline; gap:4px">
-                          <span style="font-size:18px; font-weight:900; color:#dc2626">${advData.potConceded}</span>
-                          <span style="font-size:9px; color:#991b1b">Puntos</span>
-                          <span style="font-size:10px; font-weight:700; color:#dc2626; margin-left:4px">(${avgPotConceded}/p)</span>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
+      b1.innerHTML = `
+          ${bx('Balance', `${W}-${matches.length-W}`, form, '#fff', 'var(--bd)', '')}
+          ${bx('Pts a Favor', ptA.toFixed(1), 'por partido', '#fff', 'var(--bd)', '')}
+          ${bx('Pts en Contra', ptC.toFixed(1), 'por partido', '#fff', 'var(--bd)', '')}
+          ${bx('T2%', Math.round(t2p)+'%', `${advData.t2m}/${advData.t2a} anotados`, t2Color, t2Border, _scoutRingSvg(t2p, '#16a34a', 'rgba(0,0,0,0.1)'))}
+          ${bx('T3%', Math.round(t3p)+'%', `${advData.t3m}/${advData.t3a} anotados`, t3Color, t3Border, _scoutRingSvg(t3p, '#3b82f6', 'rgba(0,0,0,0.1)'))}
+          ${bx('TL%', Math.round(tlp)+'%', `${advData.ftm}/${advData.fta} anotados`, '#fff', 'var(--bd)', _scoutRingSvg(tlp, '#f59e0b', 'rgba(0,0,0,0.1)'))}
       `;
   }
 
-  const scContent = document.getElementById('sc-content');
-  if (scContent && advHtml) {
-      const oldAdv = document.getElementById('sc-adv-box');
-      if (oldAdv) oldAdv.remove();
+  // ── 2. CONCLUSIONES ──
+  const b2 = document.getElementById('sc-block-2');
+  if (b2) {
+      let ins = [];
+      const t3Rate = advData.fga ? (advData.t3a/advData.fga)*100 : 0;
+      if (t3Rate >= 40) ins.push(`🎯 <b>Equipo Perimetral:</b> El ${Math.round(t3Rate)}% de sus tiros son triples.`);
+      else if (t3Rate <= 25) ins.push(`🏀 <b>Equipo Interior:</b> Buscan la pintura, solo el ${Math.round(t3Rate)}% son triples.`);
+      if (advData.pace > 0) ins.push(`⚡ <b>Ritmo de juego:</b> Juegan a ${advData.pace.toFixed(1)} posesiones por partido.`);
+      if (advData.astTo > 0) ins.push(`🤝 <b>Ratio AST/PER:</b> Reparten ${advData.astTo.toFixed(1)} asistencias por cada balón perdido.`);
+      if (advData.orbPct > 0) ins.push(`📌 <b>Rebote Ofensivo:</b> Capturan el ${Math.round(advData.orbPct*100)}% de los rebotes en su propio aro.`);
       
-      const wrapper = document.createElement('div');
-      wrapper.id = 'sc-adv-box';
-      wrapper.innerHTML = advHtml;
-      scContent.appendChild(wrapper);
+      const topScorer = rpList[0];
+      if (topScorer) ins.push(`🔥 <b>Máxima Amenaza:</b> ${topScorer.name} promedia ${(topScorer.pts/topScorer.games).toFixed(1)} pts/p.`);
+
+      b2.innerHTML = `<div class="ct">💡 Conclusiones Automáticas</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+             ${ins.map(i => `<div style="padding:7px 10px;background:#f8fafc;border-left:3px solid var(--ac);border-radius:0 7px 7px 0;font-size:12px">• ${i}</div>`).join('')}
+          </div>`;
   }
 
+  // ── 3. COMPARATIVA SPLITS ──
+  // (Inyectamos el contenido inicial basado en la pestaña activa)
+  window.setScoutSplit(window._scoutSplitMode);
+
+  // ── 4. RELOJ DE POSESIÓN ──
+  if (typeof _renderScoutPossessionClocksSeguro === 'function') {
+      setTimeout(_renderScoutPossessionClocksSeguro, 50);
+  }
+
+  // ── 5. MAPAS EQUIPO ──
+  let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+  shots = shots.filter(s => {
+    const m = S.matches.find(m => m.id === (s.mId || s.matchId));
+    if (!m || (sfEff && m.season !== sfEff)) return false;
+    const rivalSide = m.homeTeam === _scoutRival ? 'home' : m.awayTeam === _scoutRival ? 'away' : null;
+    return rivalSide && s.team === rivalSide;
+  });
+  
+  if (shots.length >= 3) drawHeatmap('sc-cv-heat', shots);
+  else {
+      const cv = document.getElementById('sc-cv-heat');
+      if (cv) { cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots); }
+  }
+  drawZoneMap('sc-cv-zone', shots);
+  
+  const zDiv = document.getElementById('sc-zones');
+  if (zDiv) {
+      const ZONES=['Zona rest.','Zona baixa','Mig rang E.','Mig rang D.','Mig rang C.','Cantonada E.','Cantonada D.','T3 Lateral E.','T3 Lateral D.','T3 Centre'];
+      const zs = {}; ZONES.forEach(z => zs[z] = {m: 0, a: 0});
+      shots.forEach(s => { const z = shotZone(s); if (zs[z]) { zs[z].a++; if (s.made) zs[z].m++; } });
+      const active = ZONES.filter(z => zs[z].a > 0).sort((a,b) => zs[b].a - zs[a].a);
+      
+      zDiv.innerHTML = active.length ? `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px">
+         ${active.map(z => {
+            const pct = Math.round(zs[z].m/zs[z].a*100);
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:11px">
+               <b>${z}</b> <span><span style="color:var(--t3)">${zs[z].m}/${zs[z].a}</span> <b style="color:var(--nv);margin-left:6px">${pct}%</b></span>
+            </div>`;
+         }).join('')}
+      </div>` : '<div class="empty">Sin tiros ubicados</div>';
+  }
+
+  // ── 6. JUGADORES Y MAPAS INDIVIDUALES ──
+  const b6 = document.getElementById('sc-block-6');
+  if (b6) {
+      let html = `<div class="ct">👥 Plantilla y Mapas de Tiro Individuales</div>
+      <div class="tw"><table><thead><tr><th style="text-align:left">Jugador</th><th>PJ</th><th>MIN</th><th>PTS</th><th>T2%</th><th>T3%</th><th>TL%</th><th>REB</th><th>AST</th></tr></thead><tbody>`;
+      
+      rpList.forEach((p, idx) => {
+          const t2p = p.t2a ? Math.round(p.t2m/p.t2a*100) : 0;
+          const t3p = p.t3a ? Math.round(p.t3m/p.t3a*100) : 0;
+          const tlp = p.tla ? Math.round(p.tlm/p.tla*100) : 0;
+          html += `<tr style="cursor:pointer;border-bottom:1px solid var(--bd)" onclick="window.toggleScoutPl(${idx}, '${_esc(p.name)}')">
+              <td style="font-weight:700;text-align:left;color:var(--ac)">#${p.dorsal} ${_esc(p.name)} ▾</td>
+              <td>${p.games}</td><td>${Math.round(p.min/p.games)||0}</td><td><b style="color:var(--nv)">${(p.pts/p.games).toFixed(1)}</b></td>
+              <td>${t2p}%</td><td>${t3p}%</td><td>${tlp}%</td><td>${(p.reb/p.games).toFixed(1)}</td><td>${(p.ast/p.games).toFixed(1)}</td>
+          </tr>
+          <tr id="sc-pl-row-${idx}" style="display:none;background:#f8fafc"><td colspan="9" style="padding:15px">
+              <div class="g2">
+                  <div><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">MAPA DE CALOR</div><div class="cw"><canvas id="sc-cv-heat-${idx}"></canvas></div></div>
+                  <div><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">POR ZONAS</div><div class="cw"><canvas id="sc-cv-zone-${idx}"></canvas></div></div>
+              </div>
+          </td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+      b6.innerHTML = html;
+  }
+
+  // ── 7. SITUACIONES ESPECIALES ──
+  renderScoutClutch(matches);
+  renderScoutTimeout(matches);
+
+  // ── 8. MOMENTUM (Extraído del FCBQ Avanzado) ──
+  const b8 = document.getElementById('sc-block-8');
+  if (b8) {
+      const advFCBQ = _analyzeAdvancedFCBQ(matches, _scoutRival);
+      if (advFCBQ) {
+          const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+          const runAvgs = [1,2,3,4].map(q => ({ q, net: getAvg(advFCBQ.runsForQ[q]) - getAvg(advFCBQ.runsAgainstQ[q]) }));
+          const maxNet = Math.max(...runAvgs.map(d => Math.abs(d.net)), 1);
+          
+          const svgW = 400, svgH = 120, midY = svgH / 2, barW = 34, gap = svgW / 5;
+          let bars = '';
+          runAvgs.forEach((d, i) => {
+              const x = gap * (i + 1); 
+              if (d.net > 0) {
+                  const h = (d.net / maxNet) * (midY - 20);
+                  bars += `<rect x="${x - barW/2}" y="${midY - h}" width="${barW}" height="${h}" rx="3" fill="#22c55e" opacity="0.95" /><text x="${x}" y="${midY - h - 6}" font-size="12" font-weight="900" fill="#166534" text-anchor="middle">+${d.net.toFixed(1)}</text>`;
+              } else if (d.net < 0) {
+                  const h = (Math.abs(d.net) / maxNet) * (midY - 20);
+                  bars += `<rect x="${x - barW/2}" y="${midY}" width="${barW}" height="${h}" rx="3" fill="#ef4444" opacity="0.95" /><text x="${x}" y="${midY + h + 14}" font-size="12" font-weight="900" fill="#991b1b" text-anchor="middle">${d.net.toFixed(1)}</text>`;
+              }
+              bars += `<rect x="${x-15}" y="${midY-9}" width="30" height="18" rx="9" fill="#fff" stroke="var(--bd)" stroke-width="2"/><text x="${x}" y="${midY+4}" font-size="11" font-weight="900" fill="var(--nv)" text-anchor="middle">Q${d.q}</text>`;
+          });
+
+          b8.innerHTML = `<div class="ct">📊 Momentum (Tendencia Neta de Rachas por Cuarto)</div>
+              <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:500px;margin:0 auto;display:block">
+                  <line x1="20" y1="${midY}" x2="${svgW-20}" y2="${midY}" stroke="var(--bd)" stroke-width="2" stroke-dasharray="4 4" />
+                  ${bars}
+              </svg>`;
+      } else {
+          b8.innerHTML = `<div class="ct">📊 Momentum</div><div class="empty">Necesita importación de cronología oficial.</div>`;
+      }
+  }
+
+  // Notas
   const notes = _scoutNotes[_scoutRival] || {};
   ['pr','side','def','other'].forEach(k => {
     const el = document.getElementById('sc-note-' + k);
     if (el) el.value = notes[k] || '';
   });
-
-  const scHa = document.getElementById('sc-ha-card');
-  if (scHa) scHa.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
-
-  if (typeof _renderScoutPossessionClocksSeguro === 'function') {
-      setTimeout(_renderScoutPossessionClocksSeguro, 50);
-  }
 }
+
+// Interacción de los Splits (Bloque 3)
+window.setScoutSplit = function(mode) {
+    window._scoutSplitMode = mode;
+    const btnHA = document.getElementById('sc-split-btn-ha');
+    const btnWL = document.getElementById('sc-split-btn-wl');
+    if(btnHA) btnHA.classList.toggle('active', mode === 'ha');
+    if(btnWL) btnWL.classList.toggle('active', mode === 'wl');
+    
+    const cont = document.getElementById('sc-split-content');
+    if(!cont) return;
+
+    const sfEff = document.getElementById('sc-sf')?.value || '';
+    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff));
+    
+    if (mode === 'ha') {
+        cont.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
+    } else {
+        cont.innerHTML = _v4AnalyzeTeamSplits(matches, _scoutRival).htmlSplit;
+    }
+};
+
+// Toggle del mapa de jugador (Bloque 6)
+window.toggleScoutPl = function(idx, name) {
+    const r = document.getElementById(`sc-pl-row-${idx}`);
+    if(!r) return;
+    if(r.style.display === 'none') {
+        r.style.display = 'table-row';
+        const sfEff = document.getElementById('sc-sf')?.value || '';
+        let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+        shots = shots.filter(s => {
+            const m = S.matches.find(m => m.id === (s.mId || s.matchId));
+            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff);
+        });
+        if(shots.length >= 3) {
+            drawHeatmap(`sc-cv-heat-${idx}`, shots);
+        } else {
+            const cv = document.getElementById(`sc-cv-heat-${idx}`);
+            cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots);
+        }
+        drawZoneMap(`sc-cv-zone-${idx}`, shots);
+    } else {
+        r.style.display = 'none';
+    }
+};
+
+// ── Modificar funciones auxiliares obsoletas para evitar errores ──
+// Sobrescribimos renderScoutClutch y Timeout para que inyecten en el nuevo HTML
+function renderScoutClutch(matches) {
+  const el = document.getElementById('sc-sit-clutch'); if (!el) return;
+  const clutchEvents = [];
+  matches.forEach(m => {
+    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
+    (m.events || []).filter(e => e.team === rivalSide && isClutch(e)).forEach(e => clutchEvents.push(e));
+  });
+
+  if (!clutchEvents.length) {
+    el.innerHTML = '<div class="ct">⏰ Clutch</div><div class="empty">Sin datos de eventos.</div>'; return;
+  }
+  const cScorers={};
+  clutchEvents.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).forEach(e=>{
+    cScorers[e.player]=(cScorers[e.player]||0)+(e.type==='pts3'?3:e.type==='pts2'?2:1);
+  });
+  const topScorers=Object.entries(cScorers).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  el.innerHTML = `<div class="ct">⏰ Ejecutores en Clutch (Últ. 3min + PR)</div>
+    ${topScorers.map((s,i) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px"><span><b style="color:var(--t3);margin-right:6px">${i+1}</b> ${s[0]}</span> <b style="color:var(--nv)">${s[1]} pts</b></div>`).join('')}`;
+}
+
+function renderScoutTimeout(matches) {
+  const el = document.getElementById('sc-sit-timeout'); if (!el) return;
+  const startEvents = [], afterTO = [];
+  // ... Misma lógica de detección que ya tienes ...
+  matches.forEach(m => {
+    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
+    if (m.fcbqMoves && m.fcbqMoves.length > 0) {
+        const rId = rivalSide === 'home' ? m.localId : m.visitId;
+        let activeTO = false, activeQuarterStart = true, currentPeriod = 1;
+        const sortedMoves = [...m.fcbqMoves].sort((a,b) => (((a.period||1)-1)*600+(600-((a.min??0)*60+(a.sec??0)))) - (((b.period||1)-1)*600+(600-((b.min??0)*60+(b.sec??0)))));
+        sortedMoves.forEach(mv => {
+            if (mv.period && mv.period !== currentPeriod) { currentPeriod = mv.period; activeQuarterStart = true; activeTO = false; }
+            const text = (mv.move || '').toLowerCase();
+            const isRival = mv.idTeam === rId;
+            const isShot = (text.includes('cistella') || text.includes('esmaixada') || text.includes('intent fallat')) && !text.includes('lliure');
+            if (mv.idMove === 113 || /temps?\s*mort|tiempo\s*muerto/i.test(text)) { if (isRival) { activeTO = true; activeQuarterStart = false; } }
+            if (isShot) {
+                if (isRival) {
+                    let type = text.includes('de 3') ? (text.includes('fallat')?'miss3':'pts3') : (text.includes('fallat')?'miss2':'pts2');
+                    if (activeQuarterStart) { startEvents.push({ type }); activeQuarterStart = false; }
+                    if (activeTO) { afterTO.push({ type }); activeTO = false; }
+                } else { activeTO = false; activeQuarterStart = false; }
+            }
+        });
+    }
+  });
+
+  const box = (title, arr) => {
+    if (!arr.length) return `<div style="font-size:11px;color:var(--t3);padding:4px 0">${title}: sin datos</div>`;
+    const pts = arr.filter(e => ['pts2','pts3'].includes(e.type));
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-size:12px"><span>${title}</span> <b style="color:var(--nv)">${Math.round(pts.length/arr.length*100)}% PPP</b></div>`;
+  };
+
+  el.innerHTML = `<div class="ct">🛑 Jugadas de Pizarra (ATO)</div>
+    <div style="font-size:10px;color:var(--t3);margin-bottom:8px">Eficiencia en la 1ª posesión:</div>
+    ${box('🕐 Inicio de Cuarto', startEvents)}
+    ${box('⏸️ Tras Tiempo Muerto', afterTO)}`;
+}
+
+// ── ELIMINAR CUALQUIER RASTRO RESTANTE DE DASHBOARD EN EL INIT ──
+// Vamos a asegurarnos de que la vieja función no rompa nada.
+window.renderDash = function() { console.log("Dashboard removed."); };
 
 async function linkFCBQ(matchId) {
     const url = prompt('🔗 Pega el enlace de estadísticas de la FCBQ para este partido:\n(Añadirá la cronología oficial para analizar posesiones y tipos de pérdidas. TUS TIROS se mantendrán intactos)');
@@ -6227,203 +6245,7 @@ function renderScoutShots() {
   }
 }
 
-function renderScoutClutch(matches) {
-  const el = document.getElementById('sc-clutch'); if (!el) return;
-  // Clutch = últimos 3 min del 4º cuarto + prórrogas completas
-  const clutchEvents = [];
-  matches.forEach(m => {
-    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-    (m.events || []).filter(e => e.team === rivalSide && isClutch(e)).forEach(e => clutchEvents.push(e));
-  });
-
-  if (!clutchEvents.length) {
-    el.innerHTML = '<div class="empty">Sin datos de eventos (necesita cronología)</div>';
-    return;
-  }
-
-  const pts2 = clutchEvents.filter(e => e.type === 'pts2').length;
-  const pts3 = clutchEvents.filter(e => e.type === 'pts3').length;
-  const miss2 = clutchEvents.filter(e => e.type === 'miss2').length;
-  const miss3 = clutchEvents.filter(e => e.type === 'miss3').length;
-  const tl_in = clutchEvents.filter(e => e.type === 'tl_in').length;
-  const tl_out = clutchEvents.filter(e => e.type === 'tl_out').length;
-  const totalPts = pts2*2 + pts3*3 + tl_in;
-
-  // Top clutch scorers
-  const clutchScorers = {};
-  clutchEvents.filter(e => ['pts2','pts3','tl_in'].includes(e.type)).forEach(e => {
-    if (!clutchScorers[e.player]) clutchScorers[e.player] = 0;
-    clutchScorers[e.player] += e.type === 'pts3' ? 3 : e.type === 'pts2' ? 2 : 1;
-  });
-  const topScorers = Object.entries(clutchScorers).sort((a,b) => b[1]-a[1]).slice(0,5);
-
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${totalPts}</div><div class="kl">Pts clutch</div></div>
-      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${pts3+miss3 ? Math.round(pts3/(pts3+miss3)*100)+'%' : '—'}</div><div class="kl">T3% clutch</div></div>
-      <div class="kpi" style="padding:8px"><div class="kv" style="font-size:18px">${pts2+miss2 ? Math.round(pts2/(pts2+miss2)*100)+'%' : '—'}</div><div class="kl">T2% clutch</div></div>
-    </div>
-    ${topScorers.length ? `
-    <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:5px;text-transform:uppercase">Ejecutores en clutch (últ. 3min + prórrogas)</div>
-    ${topScorers.map((s, i) => `
-      <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd)">
-        <span style="width:18px;height:18px;border-radius:50%;background:${i===0?'#dc2626':'var(--nv)'};color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
-        <span style="flex:1;font-size:12px;font-weight:600">${s[0]}</span>
-        <b style="color:var(--nv)">${s[1]}pts</b>
-      </div>`).join('')}
-    ` : ''}`;
-}
-
-function renderScoutTimeout(matches) {
-  const el = document.getElementById('sc-timeout'); if (!el) return;
-
-  const startEvents = [];
-  const afterTO = [];
-
-  matches.forEach(m => {
-    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-
-    if (m.fcbqMoves && m.fcbqMoves.length > 0) {
-        // 1. LÓGICA PARA PARTIDOS CON ACTA FCBQ (Importados o Vinculados)
-        const rId = rivalSide === 'home' ? m.localId : m.visitId;
-        let activeTO = false;
-        let activeQuarterStart = true;
-        let currentPeriod = 1;
-
-        // Ordenamos cronológicamente para no fallar
-        const sortedMoves = [...m.fcbqMoves].sort((a,b) => {
-            const elA = ((a.period || 1) - 1) * 600 + (600 - ((a.min ?? 0) * 60 + (a.sec ?? 0)));
-            const elB = ((b.period || 1) - 1) * 600 + (600 - ((b.min ?? 0) * 60 + (b.sec ?? 0)));
-            return elA - elB;
-        });
-
-        sortedMoves.forEach(mv => {
-            if (mv.period && mv.period !== currentPeriod) {
-                currentPeriod = mv.period;
-                activeQuarterStart = true;
-                activeTO = false;
-            }
-            
-            const text = (mv.move || '').toLowerCase();
-            const isRival = mv.idTeam === rId;
-            const isShot = (text.includes('cistella') || text.includes('esmaixada') || text.includes('intent fallat')) && !text.includes('lliure') && !text.includes('libre');
-
-            // 1. Detectar Tiempo Muerto del rival
-            if (mv.idMove === 113 || /temps?\s*mort|tiempo\s*muerto/i.test(text)) {
-                if (isRival) { activeTO = true; activeQuarterStart = false; }
-            }
-
-            // 2. Detectar Tiro de campo (Ignoramos tiros libres para ver la jugada de pizarra)
-            if (isShot) {
-                if (isRival) {
-                    let type = 'pts2';
-                    if (text.includes('de 3')) type = text.includes('fallat') ? 'miss3' : 'pts3';
-                    else type = text.includes('fallat') ? 'miss2' : 'pts2';
-
-                    if (activeQuarterStart) { startEvents.push({ type }); activeQuarterStart = false; }
-                    if (activeTO) { afterTO.push({ type }); activeTO = false; }
-                } else {
-                    // Si tira el otro equipo primero, la "jugada de pizarra" se rompe
-                    activeTO = false;
-                    activeQuarterStart = false;
-                }
-            }
-        });
-
-    } else if (m.events && m.events.length > 0) {
-        // 2. LÓGICA PARA PARTIDOS 100% DIRECTO (Sin FCBQ vinculada)
-        const scoring = ['pts2','pts3','miss2','miss3']; // Excluimos libres
-        const evs = m.events.filter(e => e.team === rivalSide && scoring.includes(e.type));
-
-        for (let per = 1; per <= 6; per++) {
-          const inPer = evs.filter(e => e.period === per);
-          if (inPer.length) {
-            const first = inPer.reduce((a,b) => (a.min < b.min ? a : b));
-            startEvents.push(first);
-          }
-        }
-
-        const tos = (m.timeouts || []).filter(t => t.team === rivalSide);
-        tos.forEach(to => {
-          // En modo Directo, 'min' son los minutos globales transcurridos
-          const cand = evs
-            .filter(e => e.period === to.period && e.min >= to.min)
-            .sort((a,b) => a.min - b.min);
-          if (cand.length) afterTO.push(cand[0]);
-        });
-    }
-  });
-
-  const hasTO = afterTO.length > 0;
-  const box = (title, arr, note) => {
-    if (!arr.length) return `<div style="font-size:11px;color:var(--t3);padding:6px 0">${title}: sin datos suficientes</div>`;
-    const pts = arr.filter(e => ['pts2','pts3'].includes(e.type));
-    const t3 = arr.filter(e => e.type === 'pts3' || e.type === 'miss3');
-    const t2 = arr.filter(e => e.type === 'pts2' || e.type === 'miss2');
-    const eff = Math.round(pts.length / arr.length * 100);
-    
-    return `
-      <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--nv);margin-bottom:5px;text-transform:uppercase">${title} <span style="color:var(--t3);font-weight:400">· ${arr.length} posesiones</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:17px">${eff}%</div><div class="kl">Eficiencia (PPP)</div></div>
-          <div class="kpi" style="padding:8px"><div class="kv" style="font-size:17px">${Math.round(t3.length/arr.length*100)}%</div><div class="kl">Inician con T3</div></div>
-        </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:4px">Tendencia: <b style="color:var(--tx)">${t3.length >= t2.length ? 'Tiro exterior (T3)' : 'Penetración / Interior (T2)'}</b>${note?' · '+note:''}</div>
-      </div>`;
-  };
-
-  el.innerHTML = `
-    <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Analiza la eficacia de sus jugadas de pizarra (ATO). Excluye tiros libres.</div>
-    ${box('🕐 En la primera posesión de cuarto', startEvents)}
-    ${hasTO ? box('⏸️ Tras pedir tiempo muerto', afterTO) : '<div style="font-size:11px;color:var(--t3);padding:6px 0;border-top:1px solid var(--bd)">⏸️ <b>Tras tiempo muerto:</b> sin datos suficientes para este equipo.</div>'}`;
-}
-
-function renderScoutTendencies(matches, rpList, t2M, t2A, t3M, t3A) {
-  const tens = [];
-  const alerts = [];
-  const n = matches.length || 1;
-
-  // Shooting tendency
-  const t3Rate = t3A ? Math.round(t3A/(t2A+t3A)*100) : 0;
-  if (t3Rate >= 40) tens.push(`🎯 Equipo <b>perimetral</b>: ${t3Rate}% de los tiros son de 3. Presionar en el arco.`);
-  else if (t3Rate <= 25) tens.push(`🏀 Equipo <b>interior</b>: solo ${t3Rate}% T3. Priorizar defensa del bloqueo directo.`);
-  else tens.push(`⚖️ Equipo <b>equilibrado</b>: ${t3Rate}% T3 / ${100-t3Rate}% T2.`);
-
-  // T3 efficiency
-  const t3Pct = t3A ? Math.round(t3M/t3A*100) : 0;
-  if (t3Pct >= 37) alerts.push(`🚨 <b>Peligrosos desde 3</b>: ${t3Pct}% de acierto. No dejar espacios al arco.`);
-  else if (t3Pct <= 28 && t3A >= 10) tens.push(`✅ Punto débil: T3 al ${t3Pct}%. Pueden permitirse dejar el arco.`);
-
-  // T2 efficiency
-  const t2Pct = t2A ? Math.round(t2M/t2A*100) : 0;
-  if (t2Pct >= 52) alerts.push(`🚨 <b>Muy eficientes en T2</b>: ${t2Pct}%. Defender bien la pintura.`);
-
-  // Key players
-  const topScorer = rpList[0];
-  if (topScorer) {
-    const ptsPerGame = Math.round(topScorer.pts / topScorer.games * 10) / 10;
-    if (ptsPerGame >= 15) alerts.push(`🚨 <b>${topScorer.name}</b> promedia ${ptsPerGame}pts/partido. Prioridad defensiva.`);
-    else tens.push(`🏀 Máximo anotador: <b>${topScorer.name}</b> (${ptsPerGame}pts/p)`);
-  }
-
-  // High foul players
-  const foulProne = rpList.filter(p => p.fc / p.games >= 3.5 && p.games >= 2);
-  if (foulProne.length) tens.push(`⚠️ Jugadores con tendencia a faltas: <b>${foulProne.map(p => p.name.split(' ')[0]).join(', ')}</b>. Atacarles en bote.`);
-
-  // Assist focus
-  const topAst = [...rpList].sort((a,b) => b.ast-a.ast)[0];
-  if (topAst && topAst.ast >= 3*n) tens.push(`🤝 Pasador principal: <b>${topAst.name.split(' ')[0]}</b> (${topAst.ast} ast total).`);
-
-  const tenEl = document.getElementById('sc-tendencies');
-  if (tenEl) tenEl.innerHTML = tens.map(t => `<div style="padding:4px 0;border-bottom:1px solid var(--bd)">• ${t}</div>`).join('') || '<div class="empty">Sin datos suficientes</div>';
-
-  const altEl = document.getElementById('sc-alerts');
-  if (altEl) altEl.innerHTML = alerts.length
-    ? alerts.map(a => `<div style="padding:6px 8px;margin-bottom:5px;border-radius:6px;background:#fef2f2;border-left:3px solid #dc2626">${a}</div>`).join('')
-    : '<div style="color:var(--gn);font-size:12px">✅ Sin alertas críticas detectadas</div>';
-}
-
+  
 function saveScoutNotes() {
   if (!_scoutRival) return;
   _scoutNotes[_scoutRival] = {
@@ -7411,8 +7233,8 @@ function openPlayerProfile(name, team, targetSeason){
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
-      <div class="pp-games tw" style="max-height:340px;overflow:auto"><table style="min-width:580px;border-collapse:collapse;font-size:11px">
-        <thead><tr style="background:#0f172a;position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap">${h}</th>`).join('')}</tr></thead>
+      <div class="pp-games tw" style="max-height:340px;overflow-x:auto;overflow-y:auto"><table style="min-width:760px;border-collapse:collapse;font-size:11px;table-layout:auto">
+        <thead><tr style="background:#0f172a;position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap;min-width:48px">${h}</th>`).join('')}</tr></thead>
         
         <!-- Tabla cronológica (le hemos quitado el .reverse() para que coincida con los gráficos) -->
         <tbody>${games.map(g=>`<tr style="border-top:1px solid #eef2f7">
@@ -7427,6 +7249,8 @@ function openPlayerProfile(name, team, targetSeason){
           <td style="padding:7px 9px;white-space:nowrap">${(g.tlMade||0)}/${(g.tlAtt||0)}</td>
           <td style="padding:7px 9px;white-space:nowrap">${(g.t2Made||0)}/${(g.t2Att||0)}</td>
           <td style="padding:7px 9px;white-space:nowrap">${(g.t3Made||0)}/${(g.t3Att||0)}</td>
+          <td style="padding:7px 9px">${g.reb||0}</td>
+          <td style="padding:7px 9px">${g.ast||0}</td>
           <td style="padding:7px 9px">${g.fc||0}</td>
           <td style="padding:7px 9px;font-weight:800;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
         </tr>`).join('')}</tbody>
@@ -8149,6 +7973,19 @@ function vLoadVideo(evt){
   });
   v.addEventListener('dblclick',vFullscreen);
   v.addEventListener('click',()=>{if(v.paused)v.play();else v.pause();});
+  // Algunos navegadores pausan el elemento al subir a x8/x16 aunque el
+  // vídeo siga teniendo datos. Reintentamos solo durante reproducción rápida;
+  // con _vSpeed=0 una pausa manual sigue siendo una pausa manual.
+  const resumeHighSpeed = () => {
+    if (window._vSpeed >= 8 && v.paused && v.currentTime < v.duration - 0.05) {
+      v.play().catch(()=>{});
+    }
+  };
+  v.addEventListener('waiting', resumeHighSpeed);
+  v.addEventListener('stalled', resumeHighSpeed);
+  v.addEventListener('pause', () => {
+    if (window._vSpeed >= 8) requestAnimationFrame(resumeHighSpeed);
+  });
   v.addEventListener('timeupdate',()=>{
     const sc=document.getElementById('v-scrub');
     if(sc&&v.duration)sc.value=Math.round(v.currentTime/v.duration*1000);
@@ -8183,197 +8020,12 @@ function vFullscreen(){
   else cont?.requestFullscreen?.();
 }
 
-// ── Rewind engine (browsers don't support negative playbackRate) ─────────────
-function _vStopRewind(){
-  if(_vRewind){clearInterval(_vRewind);_vRewind=null;_vRewindRate=0;_vUpdateSpeedBadge();}
-}
-function _vStartRewind(){
-  const v=vEl();if(!v)return;
-  v.pause();
-  _vRewindRate=_vRewindRate?Math.min(4,_vRewindRate+1):1;
-  if(!_vRewind)_vRewind=setInterval(()=>{
-    const vv=vEl();if(!vv)return;
-    vv.currentTime=Math.max(0,vv.currentTime-0.12*_vRewindRate);
-    if(vv.currentTime<=0)_vStopRewind();
-  },100);
-  _vUpdateSpeedBadge();
-}
-function _vUpdateSpeedBadge(){
-  const b=document.getElementById('v-speed-badge');if(!b)return;
-  if(_vRewindRate){b.style.display='block';b.textContent=`◀◀ x${_vRewindRate}`;}
-  else if(_vSpeed!==1){b.style.display='block';b.textContent=`▶▶ x${_vSpeed}`;}
-  else b.style.display='none';
-}
-
-// ── Keyboard ──────────────────────────────────────────────────────────────
-// Acciones reutilizables: las usan el teclado (PC) y los botones táctiles (móvil)
-function vTogglePlay(){const v=vEl();if(!v||!v.src)return;_vStopRewind();if(v.paused)v.play();else v.pause();}
-function vSeekBy(n){const v=vEl();if(!v||!v.src)return;v.currentTime=Math.max(0,Math.min(v.duration||1e9,v.currentTime+n));}
-const _V_SPEEDS=[1,2,4,8,16];
-function vSpeedCycle(){const v=vEl();if(!v||!v.src)return;_vStopRewind();
-  const i=_V_SPEEDS.indexOf(_vSpeed);_vSpeed=_V_SPEEDS[(i+1)%_V_SPEEDS.length];
-  v.playbackRate=_vSpeed;if(v.paused)v.play();_vUpdateSpeedBadge();}
-// K = volver a velocidad NORMAL (x1) manteniendo el estado (si estaba en marcha
-// sigue en marcha, si estaba parado sigue parado). No pausa.
-function vNormalSpeed(){const v=vEl();if(!v||!v.src)return;_vStopRewind();_vSpeed=1;v.playbackRate=1;_vUpdateSpeedBadge();}
-function vPauseNormal(){const v=vEl();if(!v||!v.src)return;_vStopRewind();v.pause();_vSpeed=1;v.playbackRate=1;_vUpdateSpeedBadge();}
-function vRewindTap(){const v=vEl();if(!v||!v.src)return;_vSpeed=1;v.playbackRate=1;_vStartRewind();}
-function vClipMark(){
-  const v=vEl();if(!v||!v.src)return;
-  if(document.getElementById('v-clip-form')?.style.display==='block')return;
-  if(_vIn===null){
-    _vIn=v.currentTime;_vOut=null;
-    const b=document.getElementById('v-rec-badge');
-    if(b){b.style.display='block';b.textContent=`⏺ CLIP ${_fmtT(_vIn)}`;}
-    if(v.paused)v.play();
-    toast(`⏺ Inicio de clip en ${_fmtT(_vIn)} — sigue viendo, se graba en 2º plano`);
-  }else{
-    if(v.currentTime<=_vIn){toast('El final debe ir después del inicio','err');return;}
-    _vOut=v.currentTime;
-    v.pause();
-    document.getElementById('v-rec-badge').style.display='none';
-    document.getElementById('v-clip-range').textContent=`${_fmtT(_vIn)} → ${_fmtT(_vOut)} (${(_vOut-_vIn).toFixed(1)}s)`;
-    vShowClipForm();
-    vPopulateFolders();
-  }
-  const mb=document.getElementById('v-btn-clip');
-  if(mb)mb.textContent=_vIn===null?'⏺ Clip':'⏹ Fin clip';
-}
-
-document.addEventListener('keydown',e=>{
-  const tab=document.getElementById('t-video');
-  if(!tab||!tab.classList.contains('active'))return;
-  const v=vEl();if(!v||!v.src)return;
-  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
-  switch(e.key){
-    case ' ':e.preventDefault();vTogglePlay();break;
-    case 'b':case 'B':vClipMark();break;
-    case 'l':case 'L':vSpeedCycle();break;
-    case 'k':case 'K':vNormalSpeed();break;
-    case 'j':case 'J':vRewindTap();break;
-    case 'ArrowRight':e.preventDefault();vSeekBy(5);break;
-    case 'ArrowLeft':e.preventDefault();vSeekBy(-5);break;
-  }
-});
 
 function vScrub(val){
   const v=vEl();if(!v||!v.duration)return;
   v.currentTime=val/1000*v.duration;
 }
 
-// ── Clip form ──────────────────────────────────────────────────────────────
-function vSetTeamSide(side){
-  _vSide=side;
-  const mk=S.clips2?.[_vMatchKey];if(!mk)return;
-  const lb=document.getElementById('v-side-local'),ab=document.getElementById('v-side-away');
-  const on=(b,is)=>{if(!b)return;b.style.background=is?'var(--ac)':'transparent';b.style.borderColor=is?'var(--ac)':'#475569';b.style.color=is?'#fff':'#cbd5e1';};
-  on(lb,side==='local');on(ab,side==='away');
-  if(lb)lb.textContent=mk.local.toUpperCase();
-  if(ab)ab.textContent=mk.away.toUpperCase();
-  vPopulateFolders();
-}
-function vSetCat(cat){
-  _vCat=cat;
-  const a=document.getElementById('v-cat-atk'),d=document.getElementById('v-cat-def');
-  const on=(b,is)=>{if(!b)return;b.style.background=is?'var(--ac)':'transparent';b.style.borderColor=is?'var(--ac)':'#475569';b.style.color=is?'#fff':'#cbd5e1';};
-  on(a,cat==='ataque');on(d,cat==='defensa');
-  document.getElementById('v-folder-wrap').style.display=(_vSide&&_vCat)?'block':'none';
-  vPopulateFolders();
-}
-function vPopulateFolders(){
-  if(!_vSide||!_vCat)return;
-  const mk=S.clips2?.[_vMatchKey];if(!mk)return;
-  const tName=_vSide==='local'?mk.local:mk.away;
-  const existing=Object.keys(mk.teams?.[tName]?.[_vCat]||{}).sort();
-  const sel=document.getElementById('v-folder-sel');if(!sel)return;
-  sel.innerHTML='<option value="">— Carpeta existente —</option>'+
-    existing.map(f=>`<option value="${f}">${f}</option>`).join('')+
-    '<option value="__new__">+ Crear carpeta nueva…</option>';
-  sel.onchange=()=>{
-    const nf=document.getElementById('v-new-folder');
-    if(sel.value==='__new__'){nf.style.display='block';nf.focus();}
-    else nf.style.display='none';
-  };
-  document.getElementById('v-folder-wrap').style.display='block';
-}
-function vToggleNewFolder(){
-  const nf=document.getElementById('v-new-folder');
-  const sel=document.getElementById('v-folder-sel');
-  nf.style.display=nf.style.display==='none'?'block':'none';
-  if(nf.style.display==='block'){if(sel)sel.value='';nf.focus();}
-}
-function vCancelClip(){
-  _vIn=null;_vOut=null;_vSide='';_vCat='';
-  // reset ALL selections so nothing stays pre-selected for the next clip
-  const off=b=>{if(!b)return;b.style.background='transparent';b.style.borderColor='#475569';b.style.color='#cbd5e1';};
-  off(document.getElementById('v-side-local'));off(document.getElementById('v-side-away'));
-  off(document.getElementById('v-cat-atk'));off(document.getElementById('v-cat-def'));
-  const sel=document.getElementById('v-folder-sel');if(sel)sel.value='';
-  const nf=document.getElementById('v-new-folder');if(nf){nf.value='';nf.style.display='none';}
-  const fw=document.getElementById('v-folder-wrap');if(fw)fw.style.display='none';
-  vHideClipForm();
-  document.getElementById('v-rec-badge').style.display='none';
-}
-
-// ── Form as overlay flyer when in fullscreen ────────────────────────────────
-let _vFormHome=null;
-function vShowClipForm(){
-  const form=document.getElementById('v-clip-form');
-  const cont=document.getElementById('v-container');
-  if(!_vFormHome)_vFormHome=form.parentNode;
-  if(document.fullscreenElement===cont){
-    cont.appendChild(form);
-    form.style.position='absolute';form.style.bottom='18px';form.style.left='50%';
-    form.style.transform='translateX(-50%)';form.style.width='min(560px,92%)';
-    form.style.maxHeight='75vh';form.style.overflowY='auto';form.style.zIndex='6';
-    form.style.boxShadow='0 10px 50px rgba(0,0,0,.6)';
-  }
-  form.style.display='block';
-  document.getElementById('v-clip-label')?.blur();
-}
-function vHideClipForm(){
-  const form=document.getElementById('v-clip-form');
-  if(!form)return;
-  form.style.display='none';
-  if(_vFormHome&&form.parentNode!==_vFormHome){
-    _vFormHome.insertBefore(form,_vFormHome.querySelector('#v-empty'));
-    form.style.position='';form.style.bottom='';form.style.left='';form.style.transform='';
-    form.style.width='';form.style.maxHeight='';form.style.overflowY='';form.style.zIndex='';form.style.boxShadow='';
-  }
-}
-
-async function vSaveClip(){
-  const mk=S.clips2?.[_vMatchKey];
-  if(!mk){toast('Confirma los equipos primero','err');return;}
-  if(_vIn===null||_vOut===null){toast('Marca inicio y fin con B','err');return;}
-  if(!_vSide){toast('¿Local o visitante?','err');return;}
-  if(!_vCat){toast('¿Ataque o defensa?','err');return;}
-  const selF=document.getElementById('v-folder-sel')?.value;
-  const newF=document.getElementById('v-new-folder')?.value.trim();
-  let folder=(selF==='__new__'||!selF)?newF:selF;
-  if(!folder){toast('Elige o crea una carpeta','err');return;}
-  const label=document.getElementById('v-clip-label')?.value.trim()||'';
-  const tName=_vSide==='local'?mk.local:mk.away;
-  const inT=_vIn,outT=_vOut,dur=+(outT-inT).toFixed(1);
-
-  const clip={id:Date.now(),timeSecs:inT,timeEnd:outT,dur,time:_fmtT(inT),timeEndFmt:_fmtT(outT),
-    label,videoUrl:null,publicId:null,created:new Date().toLocaleDateString('es-ES')};
-  if(!mk.teams)mk.teams={};
-  if(!mk.teams[tName])mk.teams[tName]={};
-  if(!mk.teams[tName][_vCat])mk.teams[tName][_vCat]={};
-  if(!mk.teams[tName][_vCat][folder])mk.teams[tName][_vCat][folder]=[];
-  mk.teams[tName][_vCat][folder].push(clip);
-  svL();
-
-  const mkKey=_vMatchKey,cat=_vCat;
-  document.getElementById('v-clip-label').value='';
-  vCancelClip();
-  renderVideoLib();
-  toast(`✂️ Clip de ${dur}s en cola — sigue clipeando (B)`);
-
-  // Background: record segment at x1 on a hidden player, then upload
-  if(CLOUD_OK())_vEnqueue({mkKey,tName,cat,folder,clipId:clip.id,name:label||folder,inT,outT});
-}
 
 // ── Background job queue: hidden-player x1 recording → upload ───────────────
 const _vJobs=[];let _vBusy=false;
@@ -8727,12 +8379,12 @@ function renderClub(){
 
   const pm={};
   ours.forEach(o=>o.players.forEach(p=>{
-    if(!pm[p.name])pm[p.name]={name:p.name,dorsal:p.dorsal,g:0,min:0,pts:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,reb:0,ast:0,fc:0,pm:0,starts:0,tName:o.tName};
+    if(!pm[p.name])pm[p.name]={name:p.name,dorsal:p.dorsal,g:0,min:0,pts:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,ro:0,rd:0,reb:0,ast:0,stl:0,blk:0,to:0,fc:0,fr:0,pm:0,starts:0,tName:o.tName};
     const a=pm[p.name];
     a.g++;a.min+=p.min||0;a.pts+=p.pts||0;
     a.t2m+=p.t2Made||0;a.t2a+=p.t2Att||0;a.t3m+=p.t3Made||0;a.t3a+=p.t3Att||0;
     a.tlm+=p.tlMade||0;a.tla+=p.tlAtt||0;
-    a.reb+=p.reb||0;a.ast+=p.ast||0;a.fc+=p.fc||0;a.pm+=p.pm||0;
+    a.ro+=p.ro||0;a.rd+=p.rd||0;a.reb+=p.reb||0;a.ast+=p.ast||0;a.stl+=p.stl||0;a.blk+=p.blk||0;a.to+=p.to||0;a.fc+=p.fc||0;a.fr+=p.fr||0;a.pm+=p.pm||0;
     if(p.starter)a.starts++;
   }));
   const players=Object.values(pm).sort((a,b)=>b.pts-a.pts);
@@ -8801,12 +8453,15 @@ function _clRenderRows(){
       case 't2m': return p.t2a ? p.t2m / p.t2a : -1;
       case 't3m': return p.t3a ? p.t3m / p.t3a : -1;
       case 'tlm': return p.tla ? p.tlm / p.tla : -1;
+      case 'ro': return p.ro || 0;
+      case 'rd': return p.rd || 0;
       case 'reb': return p.reb || 0;
       case 'ast': return p.ast || 0;
       case 'stl': return p.stl || 0;
       case 'blk': return p.blk || 0;
       case 'to': return p.to || 0;
       case 'fc': return p.fc || 0;
+      case 'fr': return p.fr || 0;
       case 'pm': return p.pm || 0;
       case 'per10': return p.per10 || 0;
       default: return p[_clSortF] ?? 0;
@@ -8824,21 +8479,23 @@ function _clRenderRows(){
     thead.innerHTML = `
       <th onclick="clSort('dorsal')" style="cursor:pointer">#${_clSortF==='dorsal'?(_clSortDir>0?' ▲':' ▼'):''}</th>
       <th onclick="clSort('name')" style="cursor:pointer">Jugador${_clSortF==='name'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('g')" style="cursor:pointer">PJ${_clSortF==='g'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('min')" style="cursor:pointer">MIN${_clSortF==='min'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('pts')" style="cursor:pointer">PTS${_clSortF==='pts'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('ppg')" style="cursor:pointer">PTS/P${_clSortF==='ppg'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('g')" style="cursor:pointer">Pj${_clSortF==='g'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('min')" style="cursor:pointer">Min${_clSortF==='min'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('pts')" style="cursor:pointer">Pts${_clSortF==='pts'?(_clSortDir>0?' ▲':' ▼'):''}</th>
       <th onclick="clSort('t2m')" style="cursor:pointer">T2%${_clSortF==='t2m'?(_clSortDir>0?' ▲':' ▼'):''}</th>
       <th onclick="clSort('t3m')" style="cursor:pointer">T3%${_clSortF==='t3m'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('tlm')" style="cursor:pointer">TL%${_clSortF==='tlm'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('reb')" style="cursor:pointer">REB${_clSortF==='reb'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('ast')" style="cursor:pointer">AST${_clSortF==='ast'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('stl')" style="cursor:pointer">STL${_clSortF==='stl'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('blk')" style="cursor:pointer">BLK${_clSortF==='blk'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('to')" style="cursor:pointer">PER${_clSortF==='to'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('fc')" style="cursor:pointer">FC${_clSortF==='fc'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('tlm')" style="cursor:pointer">Tl%${_clSortF==='tlm'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('ro')" style="cursor:pointer">Ro${_clSortF==='ro'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('rd')" style="cursor:pointer">Rd${_clSortF==='rd'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('reb')" style="cursor:pointer">Rt${_clSortF==='reb'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('ast')" style="cursor:pointer">Ast${_clSortF==='ast'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('stl')" style="cursor:pointer">Stl${_clSortF==='stl'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('blk')" style="cursor:pointer">Blk${_clSortF==='blk'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('to')" style="cursor:pointer">Per${_clSortF==='to'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('fc')" style="cursor:pointer">Fc${_clSortF==='fc'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('fr')" style="cursor:pointer">Fr${_clSortF==='fr'?(_clSortDir>0?' ▲':' ▼'):''}</th>
       <th onclick="clSort('pm')" style="cursor:pointer">+/-${_clSortF==='pm'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('per10')" style="cursor:pointer">+/-/10m${_clSortF==='per10'?(_clSortDir>0?' ▲':' ▼'):''}</th>
+      <th onclick="clSort('per10')" style="cursor:pointer">+/-/Min${_clSortF==='per10'?(_clSortDir>0?' ▲':' ▼'):''}</th>
     `;
   }
 
@@ -8848,12 +8505,11 @@ function _clRenderRows(){
       <td>${p.g}</td>
       <td>${Math.round(p.min) || '—'}</td>
       <td><b>${p.pts}</b></td>
-      <td style="font-weight:700;color:var(--ac)">${p.g ? (p.pts / p.g).toFixed(1) : '—'}</td>
       <td style="white-space:nowrap">${pctMA(p.t2m, p.t2a)}</td>
       <td style="white-space:nowrap">${pctMA(p.t3m, p.t3a)}</td>
       <td style="white-space:nowrap">${pctMA(p.tlm, p.tla)}</td>
-      <td>${p.reb || 0}</td><td>${p.ast || 0}</td><td>${p.stl || 0}</td><td>${p.blk || 0}</td><td>${p.to || 0}</td>
-      <td>${p.fc}</td>
+      <td>${p.ro || 0}</td><td>${p.rd || 0}</td><td>${p.reb || 0}</td><td>${p.ast || 0}</td><td>${p.stl || 0}</td><td>${p.blk || 0}</td><td>${p.to || 0}</td>
+      <td>${p.fc}</td><td>${p.fr || 0}</td>
       <td style="font-weight:700;color:${p.pm > 0 ? 'var(--gn)' : p.pm < 0 ? '#dc2626' : 'inherit'}">${p.pm > 0 ? '+' : ''}${p.pm}</td>
       <td style="font-weight:700;color:${p.per10 > 0 ? 'var(--gn)' : p.per10 < 0 ? '#dc2626' : 'inherit'}">${p.per10 > 0 ? '+' : ''}${p.per10}</td>
     </tr>`).join('');
@@ -9192,12 +8848,12 @@ function _mapsToImages(shots){
           zones:mk('_tmp_zone_'+Date.now(),drawZoneMap)};
 }
 
-function exportMatchPDF(){
-  const mf=document.getElementById('st-mf')?.value||'';
+function exportMatchPDF(matchId){
+  const mf=matchId ?? (document.getElementById('st-mf')?.value || '');
   const m=S.matches.find(x=>x.id==mf);
   if(!m){toast('Selecciona un partido primero','err');return;}
   // Si además hay un equipo seleccionado, el PDF sale SOLO de ese equipo.
-  const tf=(document.getElementById('st-tf')?.value||'').trim();
+  const tf=matchId==null?(document.getElementById('st-tf')?.value||'').trim():'';
   let onlySide=null;
   if(tf){
     if(m.homeTeam===tf)onlySide='home';
@@ -9208,17 +8864,12 @@ function exportMatchPDF(){
   const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
   const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
 
-  // Parciales por cuarto
-  const perQ={home:[0,0,0,0,0],away:[0,0,0,0,0]};
-  let maxQ=4;
-  (m.events||[]).forEach(e=>{
-    const p=e.type==='pts3'?3:e.type==='pts2'?2:e.type==='tl_in'?1:0;
-    if(!p)return;
-    const q=Math.min(5,Math.max(1,e.period||1));
-    if(q>maxQ)maxQ=q;
-    if(perQ[e.team])perQ[e.team][q-1]+=p;
-  });
-  const hasQ=perQ.home.some(v=>v)||perQ.away.some(v=>v);
+  // Parciales derivados de los marcadores acumulados por período.
+  const quarterRows=_matchQuarters(m)||[];
+  const maxQ=Math.max(4,quarterRows.reduce((max,q)=>Math.max(max,q.p||0),0));
+  const perQ={home:Array(maxQ).fill(0),away:Array(maxQ).fill(0)};
+  quarterRows.forEach(q=>{const index=Math.max(0,(q.p||1)-1);perQ.home[index]=q.h;perQ.away[index]=q.a;});
+  const hasQ=quarterRows.length>0;
 
   const everyone=[...(m.homePlayers||[]),...(m.awayPlayers||[])];
   const anyMin=everyone.some(p=>p.min),anyReb=everyone.some(p=>p.reb),anyAst=everyone.some(p=>p.ast);
@@ -9231,22 +8882,22 @@ function exportMatchPDF(){
   const shotsOf=sd=>matchShots.filter(s=>s.team===sd);
   const maps={home:_mapsToImages(shotsOf('home')),away:_mapsToImages(shotsOf('away'))};
 
-  const qTable=()=>hasQ?`<table class="qt">
-      <thead><tr><th style="text-align:left">Parcials</th>
-        ${Array.from({length:maxQ},(_,i)=>`<th>${i<4?'Q'+(i+1):'PR'}</th>`).join('')}
-        <th>TOT</th></tr></thead>
-      <tbody>${['home','away'].map(sd=>`<tr>
-        <td class="tm">${sd==='home'?m.homeTeam:m.awayTeam}</td>
-        ${Array.from({length:maxQ},(_,i)=>{
-          const mine=perQ[sd][i],other=perQ[sd==='home'?'away':'home'][i];
-          return `<td${mine>other?' class="w"':''}>${mine}</td>`;}).join('')}
-        <td style="font-weight:900">${sd==='home'?m.scoreHome:m.scoreAway}</td>
-      </tr>`).join('')}</tbody></table>`:'';
+    const qTable=()=>hasQ?`<div class="qt">
+        <div class="qt-row qt-head"><div class="qt-team">PARCIALES</div>
+          ${Array.from({length:maxQ},(_,i)=>`<div>${i<4?'Q'+(i+1):'PR'}</div>`).join('')}
+          <div>TOTAL</div></div>
+        ${['home','away'].map(sd=>`<div class="qt-row">
+          <div class="qt-team">${sd==='home'?m.homeTeam:m.awayTeam}</div>
+          ${Array.from({length:maxQ},(_,i)=>{
+            const mine=perQ[sd][i],other=perQ[sd==='home'?'away':'home'][i];
+            return `<div${mine>other?' class="w"':''}>${mine}</div>`;}).join('')}
+          <div class="qt-total">${sd==='home'?m.scoreHome:m.scoreAway}</div>
+        </div>`).join('')}</div>`:'';
 
   const header=(withQ)=>`<div class="head">
     <div>
-      <div class="brand">BASCATAPP · ACTA DEL PARTIT</div>
-      <div class="sc">${m.homeTeam} <span>${m.scoreHome}</span> — <span>${m.scoreAway}</span> ${m.awayTeam}</div>
+      <div class="brand">BasketApp · INFORME DEL PARTIDO</div>
+      <div class="sc"><span class="team-name">${m.homeTeam}</span><strong>${m.scoreHome}</strong><i>—</i><strong>${m.scoreAway}</strong><span class="team-name">${m.awayTeam}</span></div>
       <div class="dt">${m.date||''}</div>
     </div>
     ${withQ?qTable():''}
@@ -9258,31 +8909,17 @@ function exportMatchPDF(){
     const opp=side==='home'?m.scoreAway:m.scoreHome;
     const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(b.pts||0)-(a.pts||0));
     const T=pls.reduce((t,p)=>{
-      ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','reb','ast','fc','min'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
+      ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','ro','rd','reb','ast','to','blk','stl','fc','fr','min','pm'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
       return t;},{});
-    // destacados del equipo
-    const top=[...pls].sort((a,b)=>(b.pts||0)-(a.pts||0))[0];
-    const topPM=[...pls].sort((a,b)=>(b.pm||0)-(a.pm||0))[0];
-    const top3=[...pls].filter(p=>(p.t3Made||0)>0).sort((a,b)=>(b.t3Made||0)-(a.t3Made||0))[0];
-    const card=(lbl,nm,sub)=>`<div class="card"><div class="cl">${lbl}</div><div class="cn">${nm}</div><div class="cs">${sub}</div></div>`;
-
     return `<div class="page">
-      ${header(side==='home')}
       <div class="tname">${name} <b>${score}</b>–${opp}
         ${won===side?'<span class="win">GUANYADOR</span>':won?'<span class="lose">DERROTA</span>':''}</div>
-      ${top&&top.pts?`<div class="cards">
-        ${card('Màxim anotador',top.name,top.pts+' punts')}
-        ${topPM&&topPM.pm?card('Millor +/-',topPM.name,(topPM.pm>0?'+':'')+topPM.pm):''}
-        ${top3?card('Més triples',top3.name,top3.t3Made+'/'+top3.t3Att+' de 3'):''}
-        ${card('Equip',pc(T.t2Made,T.t2Att)+' T2 · '+pc(T.t3Made,T.t3Att)+' T3',pc(T.tlMade,T.tlAtt)+' de tirs lliures')}
-      </div>`:''}
-      <table>
+      <table class="stats-table">
         <thead><tr>
           <th class="l">#</th><th class="l">Jugador</th>
           ${anyMin?'<th>MIN</th>':''}<th>PTS</th>
-          <th>TL</th><th>T2</th><th>T3</th>
-          ${anyReb?'<th>REB</th>':''}${anyAst?'<th>AST</th>':''}
-          <th>FC</th><th>+/-</th>
+          <th>T2</th><th>T2%</th><th>T3</th><th>T3%</th><th>TL</th><th>TL%</th>
+          <th>RO</th><th>RD</th><th>RT</th><th>AST</th><th>PER</th><th>BLK</th><th>STL</th><th>FC</th><th>FR</th><th>+/-</th>
         </tr></thead>
         <tbody>
         ${pls.map((p,i)=>`<tr${i%2?' class="alt"':''}>
@@ -9290,11 +8927,10 @@ function exportMatchPDF(){
           <td class="l nm">${p.name}${p.starter?'<span class="st">★</span>':''}</td>
           ${anyMin?`<td>${Math.round(p.min||0)||'—'}</td>`:''}
           <td class="b big">${p.pts||0}</td>
-          <td>${p.tlMade||0}/${p.tlAtt||0}</td>
-          <td>${p.t2Made||0}/${p.t2Att||0}</td>
-          <td>${p.t3Made||0}/${p.t3Att||0}</td>
-          ${anyReb?`<td>${p.reb||0}</td>`:''}${anyAst?`<td>${p.ast||0}</td>`:''}
-          <td>${p.fc||0}</td>
+          <td>${p.t2Made||0}/${p.t2Att||0}</td><td>${pc(p.t2Made,p.t2Att)}</td>
+          <td>${p.t3Made||0}/${p.t3Att||0}</td><td>${pc(p.t3Made,p.t3Att)}</td>
+          <td>${p.tlMade||0}/${p.tlAtt||0}</td><td>${pc(p.tlMade,p.tlAtt)}</td>
+          <td>${p.ro||0}</td><td>${p.rd||0}</td><td>${p.reb||0}</td><td>${p.ast||0}</td><td>${p.to||0}</td><td>${p.blk||0}</td><td>${p.stl||0}</td><td>${p.fc||0}</td><td>${p.fr||0}</td>
           <td class="b ${(p.pm||0)>0?'pos':(p.pm||0)<0?'neg':''}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
         </tr>`).join('')}
         </tbody>
@@ -9303,15 +8939,15 @@ function exportMatchPDF(){
             <td colspan="2" class="l">TOTAL</td>
             ${anyMin?`<td>${Math.round(T.min)}</td>`:''}
             <td class="big">${T.pts}</td>
-            <td>${T.tlMade}/${T.tlAtt}</td><td>${T.t2Made}/${T.t2Att}</td><td>${T.t3Made}/${T.t3Att}</td>
-            ${anyReb?`<td>${T.reb}</td>`:''}${anyAst?`<td>${T.ast}</td>`:''}
-            <td>${T.fc}</td><td></td>
+            <td>${T.t2Made}/${T.t2Att}</td><td>${pc(T.t2Made,T.t2Att)}</td><td>${T.t3Made}/${T.t3Att}</td><td>${pc(T.t3Made,T.t3Att)}</td>
+            <td>${T.tlMade}/${T.tlAtt}</td><td>${pc(T.tlMade,T.tlAtt)}</td>
+            <td>${T.ro}</td><td>${T.rd}</td><td>${T.reb}</td><td>${T.ast}</td><td>${T.to}</td><td>${T.blk}</td><td>${T.stl}</td><td>${T.fc}</td><td>${T.fr}</td><td></td>
           </tr>
           <tr class="pct">
             <td colspan="2" class="l">Percentatges</td>
-            ${anyMin?'<td></td>':''}<td></td>
-            <td>${pc(T.tlMade,T.tlAtt)}</td><td>${pc(T.t2Made,T.t2Att)}</td><td>${pc(T.t3Made,T.t3Att)}</td>
-            ${anyReb?'<td></td>':''}${anyAst?'<td></td>':''}<td></td><td></td>
+            ${anyMin?'<td></td>':''}<td></td><td></td>
+            <td></td><td></td><td></td><td></td><td></td><td></td>
+            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
           </tr>
         </tfoot>
       </table>
@@ -9341,18 +8977,23 @@ function exportMatchPDF(){
     @page{size:A4 landscape;margin:7mm}
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:0}
-    .page{padding:9px 14px;page-break-after:always;page-break-inside:avoid;break-inside:avoid}
-    .page:last-of-type{page-break-after:auto}
-    .head{display:flex;align-items:flex-end;gap:18px;border-bottom:2.5px solid #0f1f3d;padding-bottom:6px;margin-bottom:7px}
+    .page{padding:7px 12px;page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page}
+    .page:last-of-type{page-break-after:auto;break-after:auto}
+    .head{display:grid;grid-template-columns:minmax(360px,34%) minmax(0,66%);align-items:center;gap:16px;border-bottom:2.5px solid #0f1f3d;padding-bottom:7px;margin-bottom:8px}
     .brand{font-size:9px;color:#64748b;font-weight:700;letter-spacing:.09em}
-    .sc{font-size:21px;font-weight:900;line-height:1.1;margin-top:1px}
-    .sc span{color:#e8402a}
+    .sc{display:flex;align-items:center;gap:7px;font-size:19px;font-weight:900;line-height:1.05;margin-top:2px;white-space:nowrap;min-width:0}
+    .sc .team-name{color:#0f172a;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis}
+    .sc strong{color:#e8402a;flex:none}
+    .sc i{font-style:normal;color:#64748b;flex:none}
     .dt{font-size:10px;color:#64748b}
-    .qt{border-collapse:collapse;font-size:11px;margin-left:auto}
-    .qt th{background:#0f1f3d;color:#fff;padding:3px 10px;font-weight:700}
-    .qt td{padding:3px 10px;text-align:center;border-bottom:1px solid #eef2f7}
-    .qt td.tm{text-align:left;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .qt td.w{font-weight:800;color:#15803d}
+    .qt{width:100%;max-width:720px;justify-self:end;font-size:11px;margin:0}
+    .qt-row{display:grid;grid-template-columns:minmax(220px,2fr) repeat(5,minmax(52px,1fr));align-items:center}
+    .qt-row>div{padding:4px 7px;text-align:center;border-bottom:1px solid #eef2f7;min-width:0}
+    .qt-row>.qt-team{text-align:left;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .qt-head{background:#0f1f3d;color:#fff;font-weight:700}
+    .qt-head>div{border-bottom:0}
+    .qt-row>div.w{font-weight:800;color:#15803d}
+    .qt-row>.qt-total{font-weight:900}
     .tname{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
     .tname b{color:#e8402a;font-size:18px}
     .win{color:#15803d;font-size:11px;margin-left:8px;border:1.5px solid #15803d;border-radius:10px;padding:1px 9px}
@@ -9362,24 +9003,24 @@ function exportMatchPDF(){
     .cl{font-size:8.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
     .cn{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cs{font-size:9.5px;color:#64748b}
-    table{width:100%;border-collapse:collapse;font-size:12px;page-break-inside:avoid;break-inside:avoid}
-    th{background:#0f1f3d;color:#fff;padding:5px 5px;text-align:center;font-weight:700;font-size:10.5px;
+    table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;page-break-inside:avoid;break-inside:avoid}
+    th{background:#0f1f3d;color:#fff;padding:3px 3px;text-align:center;font-weight:700;font-size:8.5px;
       text-transform:uppercase;letter-spacing:.03em}
     th.l{text-align:left;padding-left:10px}
-    td{padding:4px 5px;text-align:center;border-bottom:1px solid #eef2f7}
+    td{padding:2.5px 3px;text-align:center;border-bottom:1px solid #eef2f7}
     td.l{text-align:left;padding-left:10px}
     td.b{font-weight:800}
-    td.big{font-size:13.5px}
+    td.big{font-size:12px}
     td.dim{color:#94a3b8;font-weight:700}
-    td.nm{font-weight:600}
+    td.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .st{color:#f59e0b;margin-left:4px}
     tr.alt td{background:#f8fafc}
     .pos{color:#15803d}.neg{color:#dc2626}
-    tfoot .tot td{background:#e8eef6;font-weight:800;border-top:2px solid #0f1f3d;padding:5px}
-    tfoot .pct td{background:#f1f5f9;font-size:11px;color:#334155;font-weight:700}
-    th:first-child,td:first-child{width:42px}
-    th:nth-child(2),td:nth-child(2){width:auto}
-    th:not(:first-child):not(:nth-child(2)),td:not(:first-child):not(:nth-child(2)){width:64px}
+    tfoot .tot td{background:#e8eef6;font-weight:800;border-top:2px solid #0f1f3d;padding:3px}
+    tfoot .pct td{background:#f1f5f9;font-size:9px;color:#334155;font-weight:700}
+    th:first-child,td:first-child{width:3.5%}
+    th:nth-child(2),td:nth-child(2){width:23%}
+    th:not(:first-child):not(:nth-child(2)),td:not(:first-child):not(:nth-child(2)){width:4.08%}
     .foot{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:4px;font-size:8.5px;color:#94a3b8;
       display:flex;justify-content:space-between}
     .maps{display:flex;gap:16px;align-items:flex-start;justify-content:center}
@@ -9388,7 +9029,7 @@ function exportMatchPDF(){
     .ml span{font-weight:500;text-transform:none;letter-spacing:0;color:#64748b;font-size:10px;margin-left:5px}
     .mapbox img{width:100%;height:auto;max-height:132mm;object-fit:contain;border:1.5px solid #e2e8f0;border-radius:8px;display:block}
   </style></head><body>
-  ${onlySide?teamPage(onlySide):teamPage('home')+teamPage('away')}
+  ${header(true)}${onlySide?teamPage(onlySide):teamPage('home')+teamPage('away')}
   <script>window.onload=function(){var i=document.images,n=0;if(!i.length){setTimeout(function(){window.print()},200);return;}for(var k=0;k<i.length;k++){if(i[k].complete){if(++n===i.length)setTimeout(function(){window.print()},250);}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250);};}}};<\/script>
   </body></html>`);
   w.document.close();
@@ -9716,9 +9357,316 @@ async function importFromFCBQ(){
     btn.textContent = '⬇ Cargar del link'; 
   }
 }
+/* =========================================================
+   🎬 MOTOR DE VÍDEO COMPLETO (NATIVO, SIN LAG, FORMULARIO ARREGLADO)
+   ========================================================= */
 
-// Expose all functions used by inline onclick= to window (required for ES modules)
-// Expose all functions used by inline onclick= to window (required for ES modules)
+window._vState = { start: null, end: null, side: null, cat: null, zoom: false };
+window._vSpeed = 1;
+window._vEngine = null;
+
+window._vFolders = {
+    'ataque': ['CAA', 'BD', 'BI', 'Fons', 'Banda', 'Roff'],
+    'defensa': ['BD', 'BI', 'Zones', 'Press', 'Balanç']
+};
+
+// ── 1. REC BADGE ACTUALIZADO (Funciona siempre) ──
+setInterval(() => {
+    const v = document.getElementById('v-video');
+    const badge = document.getElementById('v-rec-badge');
+    if (!v || !badge) return;
+    
+    if (window._vState.start !== null && window._vState.end === null) {
+        badge.style.display = 'block';
+        const formatTime = (sec) => { const m=Math.floor(sec/60), s=Math.floor(sec%60); return `${m}:${s<10?'0':''}${s}`; };
+        badge.innerText = `⏺ REC ${formatTime(window._vState.start)} → ${formatTime(v.currentTime)}`;
+    } else {
+        badge.style.display = 'none';
+    }
+}, 300);
+
+// ── 2. ARREGLO DEL ZOOM Y PANTALLA COMPLETA ──
+document.addEventListener('fullscreenchange', () => {
+    const v = document.getElementById('v-video');
+    if(!v) return;
+    if (document.fullscreenElement) v.style.maxHeight = 'none';
+    else v.style.maxHeight = window._vState.zoom ? 'none' : '440px';
+});
+
+window.vToggleZoom = function() {
+    const v = document.getElementById('v-video');
+    if (!v) return;
+    window._vState.zoom = !window._vState.zoom;
+    v.style.objectFit = window._vState.zoom ? 'cover' : 'contain';
+    v.style.maxHeight = (window._vState.zoom || document.fullscreenElement) ? 'none' : '440px';
+};
+
+// 3. ATAJOS DE TECLADO
+window.addEventListener('keydown', function(e) {
+    const tabVideo = document.getElementById('t-video');
+    if (!tabVideo || !tabVideo.classList.contains('active')) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+    if (e.code === 'Space') { e.preventDefault(); window.vTogglePlay(); }
+    else if (e.code === 'KeyB') { e.preventDefault(); window.vClipMark(); }
+    else if (e.code === 'KeyJ') { e.preventDefault(); window.vSpeedBackward(); } // ⏪ J = Reversa x1, x2, x4, x8
+    else if (e.code === 'KeyL') { e.preventDefault(); window.vSpeedForward(); }  // ⏩ L = Avance x1, x2, x4, x8
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); window.vSeekBy(-5); } // ← = Salto -5s
+    else if (e.code === 'ArrowRight') { e.preventDefault(); window.vSeekBy(5); } // → = Salto +5s
+});
+
+// 3. MOTOR DE VELOCIDAD (Sin límites artificiales)
+window.applyCustomSpeed = function(s) {
+    const v = document.getElementById('v-video');
+    const badge = document.getElementById('v-speed-badge');
+    if (!v) return;
+    
+    // Apagamos cualquier motor que estuviera rodando en reversa
+    if (window._vEngine) {
+      cancelAnimationFrame(window._vEngine);
+        window._vEngine = null; 
+    }
+    
+    window._vSpeed = s;
+    v.preservesPitch = false; 
+    if(v.webkitPreservesPitch !== undefined) v.webkitPreservesPitch = false;
+
+    // El mezclador de audio de Chromium suele detenerse a velocidades altas.
+    // Para analizar jugadas no necesitamos audio acelerado: lo silenciamos y
+    // recuperamos el estado original al volver a una velocidad normal.
+    if (s >= 8) {
+      if (v.dataset.speedMuted === undefined) v.dataset.speedMuted = v.muted ? '1' : '0';
+      v.muted = true;
+    } else if (v.dataset.speedMuted !== undefined) {
+      v.muted = v.dataset.speedMuted === '1';
+      delete v.dataset.speedMuted;
+    }
+
+    if (s === 1) {
+        v.playbackRate = 1; v.play();
+        if(badge) badge.style.display = 'none';
+    } else if (s === 0) {
+        v.pause();
+        if(badge) badge.style.display = 'none';
+    } else if (s > 0) {
+        // HACIA ADELANTE: Todo por motor nativo. Sin capas. Si peta, peta.
+        v.playbackRate = s; 
+        v.play();
+        if(badge) { badge.style.display = 'block'; badge.innerText = '⏩ x' + s; }
+    } else {
+        // HTML5 no admite playbackRate negativo. Avanzamos un frame por pintura y
+        // no lanzamos otra búsqueda hasta que termina la anterior.
+        v.pause(); 
+        if(badge) { 
+            badge.style.display = 'block'; 
+            badge.innerText = '⏪ x' + Math.abs(s); 
+        }
+        
+        const frameDuration = 1 / 30;
+        const startedAt = performance.now();
+        const startTime = v.currentTime;
+        let waitingForSeek = false;
+
+        const reverseFrame = () => {
+          if (window._vSpeed !== s || v.ended || !v.duration) return;
+
+          // El reloj real mantiene x1/x2/x4 aunque una búsqueda tarde más que
+          // un frame. Si el vídeo no da abasto, se omiten frames, no búsquedas.
+          const elapsed = (performance.now() - startedAt) / 1000;
+          const targetTime = startTime - elapsed * Math.abs(s);
+          const nextTime = Math.max(0, Math.min(v.currentTime - frameDuration, targetTime));
+
+          // Seeking faster than the decoder can answer only queues work and
+          // makes the displayed video jump. Keep one exact seek in flight.
+          if (waitingForSeek) return;
+          waitingForSeek = true;
+          const onSeeked = () => {
+            waitingForSeek = false;
+            if (window._vSpeed === s) window._vEngine = requestAnimationFrame(reverseFrame);
+          };
+          v.addEventListener('seeked', onSeeked, { once: true });
+          v.currentTime = nextTime;
+
+          if (nextTime <= 0) {
+            window._vEngine = null;
+            window._vSpeed = 0;
+            if(badge) badge.style.display = 'none';
+            return;
+          }
+        };
+
+        window._vEngine = requestAnimationFrame(reverseFrame);
+    }
+};
+window.vTogglePlay = function() {
+    const v = document.getElementById('v-video');
+    if (!v) return;
+    if (window._vSpeed !== 1 || v.paused) window.applyCustomSpeed(1); else window.applyCustomSpeed(0);
+};
+
+window.vSpeedForward = function() {
+    let s = window._vSpeed;
+  if (s < 1) s = 1; else if (s === 1) s = 2; else if (s === 2) s = 4; else if (s === 4) s = 8; else s = 1;
+    window.applyCustomSpeed(s);
+};
+
+window.vSpeedBackward = function() {
+    let s = window._vSpeed;
+  if (s > -1 && s !== 0) s = -1; else if (s === -1 || s === 0) s = -2; else if (s === -2) s = -4; else if (s === -4) s = -8; else s = 1;
+    window.applyCustomSpeed(s);
+};
+
+window.vSeekBy = function(seconds) {
+    const v = document.getElementById('v-video');
+    if (v) v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + seconds));
+};
+
+// ── 5. FORMULARIO FLOTANTE (SE VE EN PANTALLA COMPLETA) ──
+window.vClipMark = function() {
+    const v = document.getElementById('v-video');
+    if (!v || !v.duration) return;
+    
+    const btn = document.getElementById('v-btn-clip');
+    
+    if (window._vState.start === null) {
+        window._vState.start = v.currentTime;
+        if(btn) { btn.innerText = "⏹ Fin Clip"; btn.style.background = "#dc2626"; btn.style.color = "#fff"; }
+    } else {
+        const end = v.currentTime;
+        if (end - window._vState.start < 0.5) { alert("⚠️ Clip muy corto"); return; }
+        window._vState.end = end;
+        
+        if(btn) { btn.innerText = "⏺ Clip"; btn.style.background = ""; btn.style.color = ""; }
+        
+        const form = document.getElementById('v-clip-form');
+        const range = document.getElementById('v-clip-range');
+        const formatTime = (sec) => { const m = Math.floor(sec/60), s = Math.floor(sec%60); return m + ":" + (s<10?"0":"") + s; };
+
+        if (range) range.innerText = `[${formatTime(window._vState.start)} - ${formatTime(window._vState.end)}]`;
+        
+        if (form) {
+            const cont = document.getElementById('v-container');
+            if (document.fullscreenElement) {
+                // Si está en pantalla completa, inyectamos el formulario DENTRO del vídeo
+                cont.appendChild(form);
+                form.style.position = 'absolute'; form.style.bottom = '50px'; form.style.left = '50%';
+                form.style.transform = 'translateX(-50%)'; form.style.width = '90%'; form.style.maxWidth = '500px';
+                form.style.zIndex = '999999'; form.style.boxShadow = '0 10px 50px rgba(0,0,0,.9)';
+            } else {
+                // Modo normal
+                document.getElementById('v-wrap').appendChild(form);
+                form.style.position = ''; form.style.bottom = ''; form.style.left = '';
+                form.style.transform = ''; form.style.width = ''; form.style.maxWidth = ''; form.style.zIndex = ''; form.style.boxShadow = '';
+            }
+            form.style.display = 'block'; 
+            form.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+        window.applyCustomSpeed(0); // Pausamos el vídeo
+    }
+};
+
+window.vSetTeamSide = function(side) {
+    window._vState.side = side;
+    const bl = document.getElementById('v-side-local'), ba = document.getElementById('v-side-away');
+    if(bl) { bl.style.background = side==='local' ? '#3b82f6' : 'transparent'; bl.style.color = side==='local' ? '#fff' : '#cbd5e1'; }
+    if(ba) { ba.style.background = side==='away' ? '#f59e0b' : 'transparent'; ba.style.color = side==='away' ? '#fff' : '#cbd5e1'; }
+};
+
+window.vSetCat = function(cat) {
+    window._vState.cat = cat;
+    const bAtk = document.getElementById('v-cat-atk'), bDef = document.getElementById('v-cat-def');
+    if(bAtk) { bAtk.style.background = cat==='ataque' ? '#22c55e' : 'transparent'; bAtk.style.color = cat==='ataque' ? '#fff' : '#cbd5e1'; }
+    if(bDef) { bDef.style.background = cat==='defensa' ? '#ef4444' : 'transparent'; bDef.style.color = cat==='defensa' ? '#fff' : '#cbd5e1'; }
+    
+    const sel = document.getElementById('v-folder-sel');
+    if (sel) {
+        sel.innerHTML = '<option value="">— Selecciona Carpeta —</option>';
+        (window._vFolders[cat] || []).forEach(f => { sel.innerHTML += `<option value="${f}">${f}</option>`; });
+        
+        if (window.S && window.S.clips2 && window.S.clips2[_vMatchKey]) {
+            const tName = window._vState.side === 'local' ? window.S.clips2[_vMatchKey].local : window.S.clips2[_vMatchKey].away;
+            const existing = window.S.clips2[_vMatchKey].teams?.[tName]?.[cat] || {};
+            const custom = Object.keys(existing).filter(f => !(window._vFolders[cat]||[]).includes(f));
+            if (custom.length) {
+                sel.innerHTML += '<optgroup label="Tus carpetas creadas">';
+                custom.forEach(f => { sel.innerHTML += `<option value="${f}">${f}</option>`; });
+                sel.innerHTML += '</optgroup>';
+            }
+        }
+    }
+    document.getElementById('v-folder-wrap').style.display = 'block';
+    document.getElementById('v-new-folder').style.display = 'none';
+    document.getElementById('v-folder-sel').style.display = 'block';
+};
+
+window.vToggleNewFolder = function() {
+    const inp = document.getElementById('v-new-folder'), sel = document.getElementById('v-folder-sel');
+    if (!inp || !sel) return;
+    if (inp.style.display === 'none' || !inp.style.display) {
+        inp.style.display = 'block'; sel.style.display = 'none'; inp.focus();
+    } else {
+        inp.style.display = 'none'; sel.style.display = 'block';
+    }
+};
+
+window.vSaveClip = function() {
+    if (!window._vState.side) { alert("⚠️ Selecciona LOCAL o VISITANTE"); return; }
+    if (!window._vState.cat) { alert("⚠️ Selecciona ATAQUE o DEFENSA"); return; }
+    
+    const isNew = document.getElementById('v-new-folder').style.display === 'block';
+    const folder = isNew ? document.getElementById('v-new-folder').value.trim() : document.getElementById('v-folder-sel').value;
+    if (!folder) { alert("⚠️ Selecciona o escribe el nombre de la carpeta"); return; }
+    
+    const label = document.getElementById('v-clip-label').value.trim();
+    
+    const tName = window._vState.side === 'local' ? S.clips2[_vMatchKey].local : S.clips2[_vMatchKey].away;
+    const cat = window._vState.cat;
+    
+    if (!S.clips2[_vMatchKey].teams) S.clips2[_vMatchKey].teams = {};
+    if (!S.clips2[_vMatchKey].teams[tName]) S.clips2[_vMatchKey].teams[tName] = {};
+    if (!S.clips2[_vMatchKey].teams[tName][cat]) S.clips2[_vMatchKey].teams[tName][cat] = {};
+    if (!S.clips2[_vMatchKey].teams[tName][cat][folder]) S.clips2[_vMatchKey].teams[tName][cat][folder] = [];
+
+    const _fmtTLocal = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
+    const id = Date.now().toString();
+
+    S.clips2[_vMatchKey].teams[tName][cat][folder].push({
+        id: id, time: _fmtTLocal(window._vState.start), timeSecs: window._vState.start,
+        timeEnd: window._vState.end, timeEndFmt: _fmtTLocal(window._vState.end), label: label, note: ''
+    });
+    
+    if(typeof _vEnqueue === 'function') {
+        _vEnqueue({
+            mkKey: _vMatchKey, tName, cat, folder, clipId: id,
+            name: label || `${folder} min ${_fmtTLocal(window._vState.start)}`,
+            inT: window._vState.start, outT: window._vState.end
+        });
+    }
+
+    svL();
+    if (typeof renderVideoLib === 'function') renderVideoLib(); 
+    window.vCancelClip();
+    if (typeof toast === 'function') toast("✅ Clip guardado", 'ok');
+};
+
+window.vCancelClip = function() {
+    const form = document.getElementById('v-clip-form');
+    if (form) {
+        form.style.display = 'none';
+        document.getElementById('v-wrap').appendChild(form); // Lo sacamos del modo pantalla completa
+        form.style.position = ''; form.style.bottom = ''; form.style.left = '';
+        form.style.transform = ''; form.style.width = ''; form.style.maxWidth = ''; form.style.zIndex = ''; form.style.boxShadow = '';
+    }
+    window._vState.start = null; window._vState.end = null; window._vState.side = null; window._vState.cat = null;
+    document.getElementById('v-new-folder').value = '';
+    document.getElementById('v-clip-label').value = '';
+    document.getElementById('v-folder-wrap').style.display = 'none';
+    ['v-side-local','v-side-away','v-cat-atk','v-cat-def'].forEach(id => {
+        const b = document.getElementById(id);
+        if(b){ b.style.background = 'transparent'; b.style.color = '#cbd5e1'; }
+    });
+};
+
 Object.assign(window,{
   searchSelect,sbToggle,sbFilter,sbPick,stPmPick,
   ST,toast,
@@ -9741,15 +9689,12 @@ Object.assign(window,{
   // Stats & Sorting
   renderStats,exportMatchPDF,ssort,boxSort,stAggSort,clSort,advSort,
   renderMatchHistory,setStSub,setStBoxSide,toggleStQ,toggleHistory,deleteMatch,linkFCBQ, renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,savePlayerNote,exportPlayerPDF,
-  // Dashboard
-  renderDash,
   // Scouting
-  renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,
-  jumpToClip,closeClipModal,
-  importFromFCBQ, openRadarProfile,
+  renderScouting,renderScoutShots,saveScoutNotes,exportScoutPDF,populateRivalSelect,setScoutSplit,toggleScoutPl,
+  jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   // Vídeo tab
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
-  vTogglePlay,vSeekBy,vSpeedCycle,vPauseNormal,vNormalSpeed,vRewindTap,vClipMark,
+  vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   // Club tab
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,onCmpChange,exportComparePDF,renderClubAstPairs, toggleAdvancedColumns,
@@ -9758,9 +9703,6 @@ Object.assign(window,{
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI
 });
-
-// Y asegúrate de que _installAdvancedUI() se ejecuta una vez inicie la página
-setTimeout(_installAdvancedUI, 200);
 
 // Autenticación anónima
 (async()=>{
@@ -10059,26 +10001,38 @@ function _generateHomeAwayHTML(team, matches, playerName = '') {
   const stat=(side)=>{
     const sideMatches = (matches||[]).filter(m=>(side==='home'?m.homeTeam:m.awayTeam)===team);
     
-    // Si NO hay jugador, calculamos las avanzadas del equipo (tu código original)
+    // Si NO hay jugador, calculamos las avanzadas del equipo
     if (!playerName) {
         const a=_advancedTeam(sideMatches, team);
-        return {pj:a.n,pf:a.pts/a.n,pc:a.opp/a.n,dif:(a.pts-a.opp)/a.n,t2:a.t2a?100*a.t2m/a.t2a:0,t3:a.t3a?100*a.t3m/a.t3a:0,tl:a.fta?100*a.ftm/a.fta:0,efg:a.efg,pace:a.pace,ortg:a.ortg,drtg:a.drtg,to:a.to,orbPct:a.orbPct,n:a.n,t2a:a.t2a,t3a:a.t3a,fta:a.fta};
+        
+        // Calculamos los minutos promedios del equipo (sumando jugadores / 5)
+        let totalTeamMin = 0;
+        sideMatches.forEach(m => {
+            const pList = (side === 'home' ? m.homePlayers : m.awayPlayers) || [];
+            const matchMin = pList.reduce((sum, p) => sum + (Number(p.min) || 0), 0);
+            totalTeamMin += (matchMin > 0 ? matchMin / 5 : 40); // Si no hay datos, asume 40min
+        });
+        const avgMin = a.n ? totalTeamMin / a.n : 0;
+
+        return {pj:a.n, min:avgMin, pf:a.pts/a.n,pc:a.opp/a.n,dif:(a.pts-a.opp)/a.n,t2:a.t2a?100*a.t2m/a.t2a:0,t3:a.t3a?100*a.t3m/a.t3a:0,tl:a.fta?100*a.ftm/a.fta:0,efg:a.efg,pace:a.pace,ortg:a.ortg,drtg:a.drtg,to:a.to,orbPct:a.orbPct,n:a.n,t2a:a.t2a,t3a:a.t3a,fta:a.fta};
     } 
     // Si SÍ hay jugador, extraemos solo sus promedios
     else {
-        let n=0, pts=0, opp=0, t2m=0, t2a=0, t3m=0, t3a=0, ftm=0, fta=0, reb=0, ast=0, to=0;
+        let n=0, min=0, pts=0, opp=0, t2m=0, t2a=0, t3m=0, t3a=0, ftm=0, fta=0, reb=0, ast=0, to=0;
         sideMatches.forEach(m => {
             const isHome = m.homeTeam === team;
             const p = (isHome ? m.homePlayers : m.awayPlayers)?.find(x => x.name === playerName);
             if(p) {
-                n++; pts+=p.pts||0; t2m+=p.t2Made||0; t2a+=p.t2Att||0;
+                n++; 
+                min+=Number(p.min)||0; // Acumulamos los minutos
+                pts+=p.pts||0; t2m+=p.t2Made||0; t2a+=p.t2Att||0;
                 t3m+=p.t3Made||0; t3a+=p.t3Att||0; ftm+=p.tlMade||0; fta+=p.tlAtt||0;
                 reb+=p.reb||0; ast+=p.ast||0; to+=p.to||0;
             }
         });
         const efg = (t2a+t3a) > 0 ? (t2m + 1.5*t3m)/(t2a+t3a) : 0;
         return {
-            pj:n, pf:n?pts/n:0, pc:n?opp/n:0, dif:0, t2:t2a?100*t2m/t2a:0, t3:t3a?100*t3m/t3a:0, 
+            pj:n, min:n?min/n:0, pf:n?pts/n:0, pc:n?opp/n:0, dif:0, t2:t2a?100*t2m/t2a:0, t3:t3a?100*t3m/t3a:0, 
             tl:fta?100*ftm/fta:0, efg:efg, pace:0, ortg:0, drtg:0, to:n?to/n:0, reb:n?reb/n:0, ast:n?ast/n:0, n, t2a, t3a, fta
         };
     }
@@ -10090,11 +10044,11 @@ function _generateHomeAwayHTML(team, matches, playerName = '') {
   const insights = !playerName ? _generateSplitInsights(h, a, 'CASA', 'FUERA') : [];
   const insightsHtml = insights.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:6px">💡 Conclusiones Local vs Visitante</div>${insights.map(i => `<div style="font-size:11px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
   
-  // Adaptamos las etiquetas dependiendo de si es equipo o jugador
+  // Adaptamos las etiquetas dependiendo de si es equipo o jugador (Añadimos 'Minutos')
   const metrics = !playerName ? 
-    [['PJ','pj',x=>x],['Pts a favor','pf',x=>x.toFixed(1)],['Pts en contra','pc',x=>x.toFixed(1)],['Diferencia','dif',x=>(x>0?'+':'')+x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%'],['Pace','pace',x=>x.toFixed(1)],['ORtg','ortg',x=>x.toFixed(1)],['DRtg','drtg',x=>x.toFixed(1)]]
+    [['PJ','pj',x=>x],['Minutos','min',x=>x.toFixed(1)],['Pts a favor','pf',x=>x.toFixed(1)],['Pts en contra','pc',x=>x.toFixed(1)],['Diferencia','dif',x=>(x>0?'+':'')+x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%'],['Pace','pace',x=>x.toFixed(1)],['ORtg','ortg',x=>x.toFixed(1)],['DRtg','drtg',x=>x.toFixed(1)]]
     : 
-    [['PJ','pj',x=>x],['Puntos (Pts)','pf',x=>x.toFixed(1)],['Rebotes','reb',x=>x.toFixed(1)],['Asistencias','ast',x=>x.toFixed(1)],['Pérdidas','to',x=>x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%']];
+    [['PJ','pj',x=>x],['Minutos','min',x=>x.toFixed(1)],['Puntos (Pts)','pf',x=>x.toFixed(1)],['Rebotes','reb',x=>x.toFixed(1)],['Asistencias','ast',x=>x.toFixed(1)],['Pérdidas','to',x=>x.toFixed(1)],['T2%','t2',x=>x.toFixed(1)+'%'],['T3%','t3',x=>x.toFixed(1)+'%'],['TL%','tl',x=>x.toFixed(1)+'%'],['eFG%','efg',x=>(x*100).toFixed(1)+'%']];
 
   return `<div class="card" style="margin:10px 0"><div class="ct">🏠 Local vs ✈️ Visitante · <span style="text-transform:none;font-weight:500">${_esc(playerName || team)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:8px"><span style="color:#15803d">◀ LOCAL</span><span style="color:#2563eb">VISITANTE ▶</span></div>${metrics.map(([label,key,fmt])=>{const hv=h[key],av=a[key],mx=Math.max(Math.abs(hv),Math.abs(av),1);return `<div style="margin-bottom:7px"><div style="display:grid;grid-template-columns:42px 1fr 54px 1fr 42px;gap:5px;align-items:center;font-size:11px"><b style="text-align:right;color:#15803d">${fmt(hv)}</b><div style="height:7px;background:#dcfce7;border-radius:9px;overflow:hidden"><div style="margin-left:auto;width:${Math.abs(hv)/mx*100}%;height:100%;background:#16a34a"></div></div><span style="text-align:center;font-size:9px;font-weight:800;color:var(--t3)">${label}</span><div style="height:7px;background:#dbeafe;border-radius:9px;overflow:hidden"><div style="width:${Math.abs(av)/mx*100}%;height:100%;background:#2563eb"></div></div><b style="color:#2563eb">${fmt(av)}</b></div></div>`;}).join('')}${insightsHtml}</div>`;
 }
@@ -10154,6 +10108,64 @@ function toggleAdvancedColumns(scope){
   if(scope==='cl') renderClub();
 }
 
+const _leaderCategories={
+  min:['MIN/PARTIDO',p=>p.g?p.min/p.g:0,v=>v.toFixed(1)],
+  pts:['PTS',p=>p.pts,v=>Math.round(v)],
+  reb:['REB',p=>p.reb,v=>Math.round(v)],
+  ast:['AST',p=>p.ast,v=>Math.round(v)],
+  t2:['T2%',p=>p.t2a?p.t2m/p.t2a*100:0,v=>v.toFixed(1)+'%'],
+  t3:['T3%',p=>p.t3a?p.t3m/p.t3a*100:0,v=>v.toFixed(1)+'%'],
+  tl:['TL%',p=>p.tla?p.tlm/p.tla*100:0,v=>v.toFixed(1)+'%'],
+  pm:['+/-',p=>p.pm,v=>`${v>0?'+':''}${Math.round(v)}`],
+  blk:['BLK',p=>p.blk,v=>Math.round(v)],
+  stl:['STL',p=>p.stl,v=>Math.round(v)],
+  to:['PERDIDAS',p=>p.to,v=>Math.round(v)],
+  fc:['FC',p=>p.fc,v=>Math.round(v)],
+  fr:['FR',p=>p.fr,v=>Math.round(v)]
+};
+
+function renderLeaders(){
+  const seasonEl=document.getElementById('st-leader-season');
+  const leagueEl=document.getElementById('st-leader-league');
+  const categoryEl=document.getElementById('st-leader-category');
+  const groupEl=document.getElementById('st-leader-group');
+  const body=document.getElementById('st-leaders-body');
+  if(!seasonEl||!leagueEl||!categoryEl||!groupEl||!body)return;
+
+  const season=seasonEl.value,league=leagueEl.value,category=categoryEl.value,group=groupEl.value;
+  const minShots=Number(document.getElementById('st-leader-minshots')?.value||0);
+  const seasons=[...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+  const leagues=[...new Set(S.matches.map(m=>m.competition).filter(Boolean))].sort();
+  const groups=[...new Set(S.matches.map(m=>m.group).filter(g=>g!==undefined&&g!==null&&String(g)!==''))].map(String).sort();
+  seasonEl.innerHTML='<option value="">Todas</option>'+seasons.map(s=>`<option value="${_esc(s)}"${s===season?' selected':''}>${_esc(s)}</option>`).join('');
+  leagueEl.innerHTML='<option value="">Todas</option>'+leagues.map(l=>`<option value="${_esc(l)}"${l===league?' selected':''}>${_esc(l)}</option>`).join('');
+  groupEl.innerHTML='<option value="">Todos</option>'+groups.map(g=>`<option value="${_esc(g)}"${g===group?' selected':''}>${_esc(g)}</option>`).join('');
+  categoryEl.innerHTML=Object.entries(_leaderCategories).map(([key,[label]])=>`<option value="${key}"${key===category?' selected':''}>${label}</option>`).join('');
+  if(!categoryEl.value)categoryEl.value='pts';
+
+  const totals=new Map();
+  S.matches.filter(m=>(!season||m.season===season)&&(!league||m.competition===league)&&(!group||String(m.group)===group)).forEach(m=>{
+    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
+      const key=String(p.name||'').trim().toLowerCase();
+      if(!key)return;
+      if(!totals.has(key))totals.set(key,{name:p.name,dorsal:p.dorsal,teams:new Set(),g:0,min:0,pts:0,reb:0,ast:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,pm:0,blk:0,stl:0,to:0,fc:0,fr:0});
+      const t=totals.get(key);t.g++;t.min+=Number(p.min)||0;t.pts+=Number(p.pts)||0;t.reb+=Number(p.reb)||0;t.ast+=Number(p.ast)||0;
+      if(p.team)t.teams.add(p.team);
+      t.t2m+=Number(p.t2Made)||0;t.t2a+=Number(p.t2Att)||0;t.t3m+=Number(p.t3Made)||0;t.t3a+=Number(p.t3Att)||0;
+      t.tlm+=Number(p.tlMade)||0;t.tla+=Number(p.tlAtt)||0;t.pm+=Number(p.pm)||0;t.blk+=Number(p.blk)||0;t.stl+=Number(p.stl)||0;
+      t.to+=Number(p.to)||0;t.fc+=Number(p.fc)||0;t.fr+=Number(p.fr)||0;
+    });
+  });
+  const metric=_leaderCategories[category]||_leaderCategories.pts;
+  const perGame=new Set(['min','pts','reb','ast','pm']);
+  const valueOf=p=>perGame.has(category)?metric[1](p)/Math.max(p.g,1):metric[1](p);
+  const shotAttempts={t2:p=>p.t2a,t3:p=>p.t3a,tl:p=>p.tla};
+  const eligible=[...totals.values()].filter(p=>!shotAttempts[category]||shotAttempts[category](p)>=minShots);
+  const leaders=eligible.sort((a,b)=>valueOf(b)-valueOf(a)).slice(0,10);
+  body.innerHTML=leaders.length?`<div style="font-size:10px;color:var(--t3);margin-bottom:7px">Top 10 · ${metric[0]}${perGame.has(category)?' por partido':''}${['t2','t3','tl'].includes(category)?` · mínimo ${minShots} intentos`:''}</div><div style="display:grid;gap:5px">${leaders.map((p,i)=>{const value=valueOf(p),teamLabel=[...p.teams].join(', ')||'Equipo no indicado';return `<div onclick="openPlayerProfile(this.dataset.n,'__ALL__','')" data-n="${_esc(p.name)}" title="Ver historial del jugador" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:${i===0?'#fffbeb':'#fff'};cursor:pointer"><b style="width:18px;color:var(--t3)">${i+1}</b><span style="flex:1;min-width:0;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#${_esc(p.dorsal||'—')} ${_esc(p.name)} <span style="font-weight:500;color:var(--t3)">(${_esc(teamLabel)})</span></span><span style="font-size:10px;color:var(--t3)">${p.g} PJ</span><b style="font-size:14px;color:${category==='pm'?(value>=0?'var(--gn)':'#dc2626'):'var(--nv)'}">${metric[2](value)}</b></div>`;}).join('')}</div>`:'<div class="empty">No hay datos para estos filtros.</div>';
+}
+window.renderLeaders=renderLeaders;
+
 let _advancedMode={st:false,cl:false};
 
 function _installAdvancedUI(){
@@ -10180,7 +10192,7 @@ function setStSub(v){
       if (map) map.insertAdjacentHTML('afterend', '<div id="stv-adv" class="stv" style="display:none"></div>');
   }
   
-  ['det','box','team','pm','map','adv'].forEach(k=>{
+  ['det','box','team','pm','map','adv','leaders'].forEach(k=>{
     const btn=document.getElementById('stsb-'+k);
     const view=document.getElementById('stv-'+k);
     if(btn) btn.classList.toggle('active',k===v);
@@ -10216,7 +10228,7 @@ function renderClubOrigins(ours){
   }
 }
 
-const _baseSetStSub=setStSub;setStSub=function(v){_stSub=v;['det','box','team','pm','map','adv'].forEach(k=>{document.getElementById('stsb-'+k)?.classList.toggle('active',k===v);const e=document.getElementById('stv-'+k);if(e)e.style.display=k===v?'block':'none';});renderStats();};
+const _baseSetStSub=setStSub;setStSub=function(v){_stSub=v;['det','box','team','pm','map','adv','leaders'].forEach(k=>{document.getElementById('stsb-'+k)?.classList.toggle('active',k===v);const e=document.getElementById('stv-'+k);if(e)e.style.display=k===v?'block':'none';});renderStats();};
 
 // Variable y función para ordenar las columnas de la tabla avanzada
 let _advSort = { col: 'pts', dir: -1 };
@@ -10232,7 +10244,7 @@ function advSort(col, scope){
 }
 
 function _advancedPlayer(name, targetTeam, matches){
-  const p={pts:0,t2m:0,t2a:0,t3m:0,t3a:0,ftm:0,fta:0,to:0,ast:0,min:0,g:0};
+  const p={pts:0,t2m:0,t2a:0,t3m:0,t3a:0,ftm:0,fta:0,to:0,ast:0,min:0,g:0, ro:0, rd:0, stl:0, blk:0, fc:0, fr:0};
   let tmPoss = 0, tmMin = 0;
   
   (matches||S.matches).forEach(m=>{
@@ -10242,6 +10254,7 @@ function _advancedPlayer(name, targetTeam, matches){
         const x = (m.homePlayers||[]).find(pl=>pl.name===name);
         if(x){
             p.g++; p.pts+=x.pts||0; p.t2m+=x.t2Made||0; p.t2a+=x.t2Att||0; p.t3m+=x.t3Made||0; p.t3a+=x.t3Att||0; p.ftm+=x.tlMade||0; p.fta+=x.tlAtt||0; p.to+=x.to||0; p.ast+=x.ast||0; p.min+=x.min||0;
+            p.ro+=x.ro||0; p.rd+=x.rd||0; p.stl+=x.stl||0; p.blk+=x.blk||0; p.fc+=x.fc||0; p.fr+=x.fr||0;
             const tm = _advancedTeam([m], m.homeTeam);
             tmPoss += tm.poss; tmMin += tm.min || 200;
             played = true;
@@ -10252,6 +10265,7 @@ function _advancedPlayer(name, targetTeam, matches){
         const x = (m.awayPlayers||[]).find(pl=>pl.name===name);
         if(x){
             p.g++; p.pts+=x.pts||0; p.t2m+=x.t2Made||0; p.t2a+=x.t2Att||0; p.t3m+=x.t3Made||0; p.t3a+=x.t3Att||0; p.ftm+=x.tlMade||0; p.fta+=x.tlAtt||0; p.to+=x.to||0; p.ast+=x.ast||0; p.min+=x.min||0;
+            p.ro+=x.ro||0; p.rd+=x.rd||0; p.stl+=x.stl||0; p.blk+=x.blk||0; p.fc+=x.fc||0; p.fr+=x.fr||0;
             const tm = _advancedTeam([m], m.awayTeam);
             tmPoss += tm.poss; tmMin += tm.min || 200;
         }
@@ -10259,12 +10273,21 @@ function _advancedPlayer(name, targetTeam, matches){
   });
 
   const fga = p.t2a+p.t3a, den = fga+.44*p.fta;
-  const pppDenom = fga+0.44*p.fta+p.to;
+  const pppDenom = fga+0.44*p.fta+p.to; // Tiros + Libres + Pérdidas
+  const reb = p.ro + p.rd;
+  const miss = (fga - (p.t2m+p.t3m)) + (p.fta - p.ftm);
+  
+  // Fórmulas oficiales
+  const eff = (p.pts + reb + p.ast + p.stl + p.blk) - miss - p.to;
+  const pir = eff + p.fr - p.fc;
+
   return {
-    g:p.g, pts:p.pts, ppg:p.g?(p.pts/p.g):0, efg:fga?(p.t2m+p.t3m+.5*p.t3m)/fga:0, ts:den?p.pts/(2*den):0,
+    g:p.g, pts:p.pts, ppg:p.g?(p.pts/p.g):0, mpg:p.g?(p.min/p.g):0, ptsShot:fga?p.pts/fga:0, efg:fga?(p.t2m+p.t3m+.5*p.t3m)/fga:0, ts:den?p.pts/(2*den):0,
     t3Rate:fga?(p.t3a/fga)*100:0, astTo:p.to?p.ast/p.to:p.ast,
     usg:p.min&&tmPoss?100*(den+p.to)*(tmMin/5)/(p.min*tmPoss):0,
-    ppp:pppDenom>0?(p.pts/pppDenom):0
+    ppp:pppDenom>0?(p.pts/pppDenom):0, // Puntos por Posesión Finalizada
+    ro: p.ro, rd: p.rd, reb: reb,
+    eff: eff, pir: pir
   };
 }
 
@@ -10283,10 +10306,18 @@ function _renderAdvancedPlayerTable(scope){
   if(!_advancedMode[scope]){
     box.style.display = 'none';
     classic.style.display = 'block';
+    if(scope === 'cl'){
+      const legend = document.getElementById('cl-classic-legend');
+      if(legend) legend.style.display = 'block';
+    }
     return;
   }
   box.style.display = 'block';
   classic.style.display = 'none';
+  if(scope === 'cl'){
+    const legend = document.getElementById('cl-classic-legend');
+    if(legend) legend.style.display = 'none';
+  }
 
   let source = [];
   if(scope === 'st') {
@@ -10321,22 +10352,16 @@ function _renderAdvancedPlayerTable(scope){
 
   const pc = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
   const num = x => Number.isFinite(x) ? x.toFixed(2) : '—';
+  const num1 = x => Number.isFinite(x) ? x.toFixed(1) : '—';
+  const num0 = x => Number.isFinite(x) ? Math.round(x) : '—'; // Sin decimales para la valoración
 
   let list = [...people.values()].map(p => {
-    // Al pedir '__ALL__', _advancedPlayer suma todos los equipos por los que ha pasado
     const a = _advancedPlayer(p.name, '__ALL__', source);
     return {
-      name: p.name,
-      team: [...p.teams].join(' / '),
-      dorsal: p.dorsal || '—',
-      pts: a.pts || 0,
-      ppg: a.ppg || 0,
-      efg: a.efg || 0,
-      ts: a.ts || 0,
-      t3Rate: a.t3Rate || 0,
-      usg: a.usg || 0,
-      astTo: a.astTo || 0,
-      ppp: a.ppp || 0
+      name: p.name, team: [...p.teams].join(' / '), dorsal: p.dorsal || '—',
+      pj: a.g || 0, pts: a.pts || 0, ppg: a.ppg || 0, mpg: a.mpg || 0, ptsShot: a.ptsShot || 0, efg: a.efg || 0, ts: a.ts || 0, usg: a.usg || 0,
+      astTo: a.astTo || 0, ppp: a.ppp || 0,
+      eff: a.eff || 0, pir: a.pir || 0
     };
   });
 
@@ -10351,40 +10376,60 @@ function _renderAdvancedPlayerTable(scope){
   const arrIcon = col => sc === col ? (sdir > 0 ? ' ▲' : ' ▼') : '';
 
   const rows = list.map(p => {
-    // Abrimos el perfil pasando '__ALL__'
     return `<tr onclick="openPlayerProfile(this.dataset.n, '__ALL__', '')" data-n="${_esc(p.name)}" style="cursor:pointer">
-      <td>#${p.dorsal}</td>
-      <td><b>${_esc(p.name)}</b></td>
-      <td>${_esc(p.team)}</td>
-      <td style="font-weight:700">${p.pts}</td>
-      <td style="font-weight:700;color:var(--ac)">${p.ppg.toFixed(1)}</td>
+      <td style="color:var(--t3)">#${p.dorsal}</td>
+      <td style="white-space:nowrap"><b>${_esc(p.name)}</b></td>
+      <td style="font-weight:700;color:var(--t2)">${p.pj}</td>
+      <td style="font-weight:700;color:var(--t2)">${num1(p.mpg)}</td>
+      <td style="font-weight:700;color:var(--ac)">${num1(p.ppg)}</td>
+      <td style="font-weight:900;color:var(--ac)" title="Puntos por posesión finalizada">${num(p.ppp)}</td>
+      <td style="font-weight:900;color:var(--ac)" title="Puntos por intento de campo">${num(p.ptsShot)}</td>
       <td style="color:#15803d;font-weight:700">${pc(p.efg)}</td>
       <td>${pc(p.ts)}</td>
-      <td style="font-weight:600">${p.t3Rate.toFixed(1)}%</td>
-      <td style="font-weight:700">${num(p.usg)}</td>
-      <td>${num(p.astTo)}</td>
-      <td style="font-weight:700;color:#3b82f6">${num(p.ppp)}</td>
+      <td style="font-weight:600">${num(p.usg)}%</td>
+      <td style="font-weight:700">${num(p.astTo)}</td>
+      <td style="font-weight:900;font-size:13px;color:${p.pir>0?'var(--gn)':p.pir<0?'#dc2626':'var(--t3)'}">${num0(p.pir)}</td>
+      <td style="font-weight:900;font-size:13px;color:${p.eff>0?'var(--gn)':p.eff<0?'#dc2626':'var(--t3)'}">${num0(p.eff)}</td>
     </tr>`;
   }).join('');
 
-  box.innerHTML = `<table style="min-width:780px">
+  box.innerHTML = `<table style="min-width:900px">
     <thead>
       <tr>
         <th onclick="advSort('dorsal','${scope}')" style="cursor:pointer">#${arrIcon('dorsal')}</th>
-        <th onclick="advSort('name','${scope}')" style="cursor:pointer">Jugador${arrIcon('name')}</th>
-        <th onclick="advSort('team','${scope}')" style="cursor:pointer">Equipo${arrIcon('team')}</th>
-        <th onclick="advSort('pts','${scope}')" style="cursor:pointer">PTS${arrIcon('pts')}</th>
+        <th onclick="advSort('name','${scope}')" style="cursor:pointer">JUGADOR${arrIcon('name')}</th>
+        <th onclick="advSort('pj','${scope}')" style="cursor:pointer">PJ${arrIcon('pj')}</th>
+        <th onclick="advSort('mpg','${scope}')" style="cursor:pointer" title="Minutos por Partido">MIN/P${arrIcon('mpg')}</th>
         <th onclick="advSort('ppg','${scope}')" style="cursor:pointer">PTS/P${arrIcon('ppg')}</th>
-        <th onclick="advSort('efg','${scope}')" style="cursor:pointer">eFG%${arrIcon('efg')}</th>
-        <th onclick="advSort('ts','${scope}')" style="cursor:pointer">TS%${arrIcon('ts')}</th>
-        <th onclick="advSort('t3Rate','${scope}')" style="cursor:pointer">% T3${arrIcon('t3Rate')}</th>
-        <th onclick="advSort('usg','${scope}')" style="cursor:pointer">USG%${arrIcon('usg')}</th>
+        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer" title="Puntos por posesión finalizada">PTS/POS${arrIcon('ppp')}</th>
+        <th onclick="advSort('ptsShot','${scope}')" style="cursor:pointer" title="Puntos por intento de campo">PTS/TIRO${arrIcon('ptsShot')}</th>
+        <th onclick="advSort('efg','${scope}')" style="cursor:pointer" title="Porcentaje de tiro ajustado">EFG%${arrIcon('efg')}</th>
+        <th onclick="advSort('ts','${scope}')" style="cursor:pointer" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
+        <th onclick="advSort('usg','${scope}')" style="cursor:pointer" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
         <th onclick="advSort('astTo','${scope}')" style="cursor:pointer">AST/TO${arrIcon('astTo')}</th>
-        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer">Pts/Tiro${arrIcon('ppp')}</th>
+        <th onclick="advSort('pir','${scope}')" style="cursor:pointer" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
+        <th onclick="advSort('eff','${scope}')" style="cursor:pointer" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
       </tr>
     </thead>
-    <tbody>${rows || '<tr><td colspan="11" class="no-d">Sin datos</td></tr>'}</tbody>
-  </table>`;
+    <tbody>${rows || '<tr><td colspan="13" class="no-d">Sin datos</td></tr>'}</tbody>
+  </table>
+  <div style="margin-top:8px;padding:10px 12px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.55">
+    <div style="font-weight:800;color:var(--nv);font-size:11px;margin-bottom:6px">Leyenda de estadísticas avanzadas</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px">
+      <div><b>Pj:</b> partidos jugados.</div>
+      <div><b>Min/P:</b> minutos por partido = Min / Pj (sin límite; puede llegar a 40).</div>
+      <div><b>Pts/P:</b> puntos por partido = Pts / Pj.</div>
+      <div><b>Pts/Pos:</b> puntos por posesión finalizada = Pts / (FGA + 0.44 x FTA + Per).</div>
+      <div><b>Pts/Tiro:</b> puntos por intento de campo = Pts / FGA.</div>
+      <div><b>Efg%:</b> eficacia ajustada = (T2M + 1.5 x T3M) / FGA.</div>
+      <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
+      <div><b>Usg%:</b> uso estimado = 100 x (FGA + 0.44 x FTA + Per) x (Min equipo / 5) / (Min jugador x Posesiones equipo).</div>
+      <div><b>Ast/To:</b> asistencias por pérdida = Ast / Per; si no hay pérdidas, muestra las asistencias.</div>
+      <div><b>Pir:</b> valoración FIBA = Eff + Fr - Fc.</div>
+      <div><b>Eff:</b> eficiencia NBA = Pts + Rt + Ast + Stl + Blk - tiros fallados - TL fallados - Per.</div>
+      <div><b>FGA:</b> intentos de campo = T2A + T3A. <b>FTA:</b> tiros libres intentados.</div>
+    </div>
+  </div>`;
 }
 
 const _baseRenderDash=renderDash;
@@ -10397,8 +10442,8 @@ renderDash=function(){
 const _baseRenderStats=renderStats;
 renderStats=function(){
   _baseRenderStats();
-  _renderAdvancedStats();
-  _renderAdvancedPlayerTable('st');
+  if(_stSub==='box'&&_advancedMode.st)_renderAdvancedPlayerTable('st');
+  if(_stSub==='leaders')renderLeaders();
 };
 
 const _baseRenderScout=renderScouting;
@@ -10619,73 +10664,6 @@ function _renderScoutPossessionClocksSeguro() {
     </div>`;
 }
 
-
-function renderScoutTurnovers(matches, rivalTeam) {
-  const el = document.getElementById('sc-turnovers');
-  if (!el) {
-      const container = document.getElementById('sc-tendencies')?.parentElement;
-      if (container) container.insertAdjacentHTML('beforeend', '<div id="sc-turnovers" style="margin-top:15px"></div>');
-      else return;
-  }
-  
-  // ── DESGLOSE TOTALMENTE GRANULAR ──
-  const types = { 
-      'Pasos': 0, 
-      'Dobles': 0,
-      'Falta en Ataque': 0, 
-      'Mal Pase': 0, 
-      'Robo del Rival': 0,
-      '3 Segundos': 0,
-      '5 Segundos': 0,
-      '8 Segundos': 0,
-      '24 Segundos': 0,
-      'Sale del campo': 0,
-      'Pisa la línea': 0,
-      'Campo Atrás': 0,
-      'Genérica (Acta)': 0 
-  };
-  let totalTO = 0;
-
-  matches.forEach(m => {
-      const rId = m.homeTeam.toLowerCase() === rivalTeam.toLowerCase() ? m.localId : m.visitId;
-      
-      (m.fcbqMoves || []).filter(mv => mv.idTeam === rId).forEach(mv => {
-          const text = (mv.move || '').toLowerCase();
-          
-          if (text.includes('pèrdua') || text.includes('perdida') || text.includes('falta en atac') || text.includes('passos') || text.includes('dobles') || text.includes('segons') || text.includes('possessió') || text.includes('fora') || text.includes('surt del camp') || text.includes('trepitja')) {
-              totalTO++;
-              
-              if (text.includes('passos') || text.includes('pasos')) types['Pasos']++;
-              else if (text.includes('dobles')) types['Dobles']++;
-              else if (text.includes('falta en atac') || text.includes('falta en ataque') || text.includes('ofensiva') || text.includes('bloqueig il')) types['Falta en Ataque']++;
-              else if (text.includes('3 segons') || text.includes('3 segundos')) types['3 Segundos']++;
-              else if (text.includes('5 segons') || text.includes('5 segundos')) types['5 Segundos']++;
-              else if (text.includes('8 segons') || text.includes('8 segundos')) types['8 Segundos']++;
-              else if (text.includes('24 segons') || text.includes('24 segundos') || text.includes('possessió') || text.includes('posesión')) types['24 Segundos']++;
-              else if (text.includes('trepitja') || text.includes('pisa') || text.includes('línea') || text.includes('linea')) types['Pisa la línea']++;
-              else if (text.includes('fora') || text.includes('fuera') || text.includes('surt del camp') || text.includes('sale del campo')) types['Sale del campo']++;
-              else if (text.includes('camp enrere') || text.includes('campo atrás')) types['Campo Atrás']++;
-              else if (text.includes('passada') || text.includes('pase')) types['Mal Pase']++;
-              else if (text.includes('recuperació') || text.includes('robatori') || text.includes('robada') || text.includes('robo')) types['Robo del Rival']++;
-              else types['Genérica (Acta)']++;
-          }
-      });
-  });
-
-  if (!totalTO) {
-      document.getElementById('sc-turnovers').innerHTML = ''; return;
-  }
-
-  const badges = Object.entries(types).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1])
-      .map(([k, v]) => `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:10px; color:var(--t2); font-weight:600;">${k} <b style="color:var(--nv)">${Math.round((v/totalTO)*100)}%</b> <span style="color:var(--t3);font-size:9px">(${v})</span></span>`)
-      .join(' ');
-
-  document.getElementById('sc-turnovers').innerHTML = `
-      <div style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase; margin-bottom:6px">Desglose de Pérdidas (TO)</div>
-      <div style="display:flex; flex-wrap:wrap; gap:5px">${badges}</div>
-  `;
-}
-
 // Añadir jugada al historial del directo de forma ultra-rápida
 function appendLiveEventFast(eventHTML) {
     const list = document.getElementById('lv-events-list'); // Ajusta el ID al de tu contenedor
@@ -10843,6 +10821,171 @@ function _analyzeAdvancedFCBQ(matches, rivalTeam) {
 
     return hasData ? stats : null;
 }
+
+/* =========================================================
+   🚨 MOTOR DE ALERTAS Y FALTAS (TÉCNICAS Y ANTIDEPORTIVAS)
+   ========================================================= */
+
+// 1. Creador de Ventana Táctil (Sustituye al feo "prompt" del navegador)
+window._showLvPrompt = function(title, options, callback) {
+    const bg = document.createElement('div');
+    bg.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);";
+    
+    const box = document.createElement('div');
+    box.style.cssText = "background:#fff;border-radius:14px;width:100%;max-width:320px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.4);";
+    
+    const top = document.createElement('div');
+    top.style.cssText = "background:var(--nv);color:#fff;padding:14px 16px;font-weight:800;font-size:13px;text-align:center;text-transform:uppercase;";
+    top.innerText = title;
+    box.appendChild(top);
+    
+    const btnCont = document.createElement('div');
+    btnCont.style.cssText = "padding:16px;display:flex;flex-direction:column;gap:10px;";
+    
+    options.forEach(opt => {
+        const b = document.createElement('button');
+        b.innerHTML = opt.label;
+        b.style.cssText = `padding:14px;border-radius:10px;font-size:13px;font-weight:800;border:2px solid ${opt.color||'var(--b2)'};background:${opt.bg||'#fff'};color:${opt.textColor||'var(--tx)'};cursor:pointer;transition:all 0.1s;`;
+        b.onclick = () => { document.body.removeChild(bg); callback(opt.value); };
+        btnCont.appendChild(b);
+    });
+    
+    const cancel = document.createElement('button');
+    cancel.innerText = "✕ Cancelar";
+    cancel.style.cssText = "padding:12px;border-radius:10px;font-size:12px;font-weight:700;border:none;background:#f1f5f9;color:var(--t2);cursor:pointer;margin-top:6px;";
+    cancel.onclick = () => document.body.removeChild(bg);
+    
+    btnCont.appendChild(cancel);
+    box.appendChild(btnCont);
+    bg.appendChild(box);
+    document.body.appendChild(bg);
+};
+
+// 2. Lógica de TÉCNICAS (Ahora táctil)
+window.lvActTechInteligente = function() {
+    _showLvPrompt("🟡 ¿A quién va la TÉCNICA?", [
+        { label: "👤 Al Jugador Seleccionado", value: "1", color: "#fde047", bg: "#fefce8", textColor: "#854d0e" },
+        { label: "👔 Al Entrenador", value: "2", color: "#cbd5e1", bg: "#f8fafc", textColor: "#334155" },
+        { label: "🪑 Al Banquillo", value: "3", color: "#cbd5e1", bg: "#f8fafc", textColor: "#334155" }
+    ], (opt) => {
+        if (opt === "1") {
+            if (!lv.selPl) { alert("⚠️ Selecciona a un jugador primero."); return; }
+            if(typeof lvAct === 'function') lvAct('tech'); 
+        } else {
+            const team = lv.actTeam || 'home';
+            if (!lv.teamTechs) lv.teamTechs = { home: {coach:0, bench:0}, away: {coach:0, bench:0} };
+            
+            if (opt === "2") lv.teamTechs[team].coach++;
+            if (opt === "3") lv.teamTechs[team].bench++;
+            
+            const label = opt === "2" ? "Entrenador" : "Banquillo";
+            if(typeof lvLog === 'function') lvLog(`🟡 Técnica a ${label} (${team.toUpperCase()})`);
+        }
+        window.lvCheckAlerts();
+    });
+};
+
+// 3. Lógica de ANTIDEPORTIVAS (Ahora táctil)
+window.lvActAntiInteligente = function() {
+    if (!lv.selPl) { alert("⚠️ Selecciona a un jugador primero."); return; }
+
+    _showLvPrompt("🔴 Tipo de ANTIDEPORTIVA", [
+        { label: "⚠️ Normal", value: "1", color: "#fca5a5", bg: "#fef2f2", textColor: "#991b1b" },
+        { label: "🛑 Flagrante (Suma para expulsión)", value: "2", color: "#7f1d1d", bg: "#dc2626", textColor: "#fff" }
+    ], (opt) => {
+        if (opt === "1") {
+            if(typeof lvAct === 'function') lvAct('anti'); 
+            if (lv.selPl && lv.actTeam) {
+                const p = lv.pl[lv.actTeam].find(x => x.name === lv.selPl);
+                if (p) p.antiNormal = (p.antiNormal || 0) + 1;
+            }
+        } else if (opt === "2") {
+            if(typeof lvAct === 'function') lvAct('anti');
+            if (lv.selPl && lv.actTeam) {
+                const p = lv.pl[lv.actTeam].find(x => x.name === lv.selPl);
+                if (p) p.antiFlagrant = (p.antiFlagrant || 0) + 1;
+            }
+        }
+        window.lvCheckAlerts();
+    });
+};
+
+// 4. Motor Evaluador de Alertas (Se mantiene igual)
+window.lvCheckAlerts = function() {
+    const container = document.getElementById('lv-alerts-container');
+    if (!container) return;
+    
+    let alerts = [];
+    let currentQ = 1;
+    for (let i = 1; i <= 6; i++) {
+        let btn = document.getElementById('pb' + i);
+        if (btn && btn.classList.contains('active-per')) currentQ = i;
+    }
+
+    const checkTeam = (team) => {
+        const sideName = team === 'home' ? 'LOCAL' : 'RIVAL';
+        
+        if (lv.teamTechs && lv.teamTechs[team]) {
+            if (lv.teamTechs[team].coach >= 1 && lv.teamTechs[team].bench >= 1) {
+                alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px">
+                    <span style="font-size:16px">🚨</span> EQUIPO ${sideName}: Tienen Técnica de Entrenador Y Banquillo.
+                </div>`);
+            }
+        }
+
+        const players = lv.pl[team] || [];
+        const st = lv.st[team] || {};
+        const oc = lv.onCourt[team] || new Set();
+
+        players.forEach(p => {
+            const s = st[p.name] || {};
+            const totalFouls = (s.fc || 0) + (p.tech || 0) + (p.anti || 0);
+            const comboDesc = (p.tech || 0) + (p.antiFlagrant || 0);
+
+            p.expulsado = (totalFouls >= 5 || comboDesc >= 2);
+            const inCourt = oc.has(p.name);
+            
+            if (totalFouls >= 5) {
+                alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
+                    🛑 EXPULSADO (5 Faltas): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
+                </div>`);
+            } else if (comboDesc >= 2) {
+                alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
+                    🛑 DESCALIFICADO (Regla Téc/Flag): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
+                </div>`);
+            } else if (inCourt) {
+                if (currentQ === 1 && totalFouls === 2) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
+                        ⚠️ Q1 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 2 faltas.
+                    </div>`);
+                } else if (currentQ === 2 && totalFouls === 3) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
+                        ⚠️ Q2 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 3 faltas.
+                    </div>`);
+                } else if (currentQ === 3 && totalFouls === 4) {
+                    alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:800">
+                        🔥 Q3 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 4 faltas.
+                    </div>`);
+                } else if (currentQ === 4 && totalFouls === 4) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
+                        ⚠️ Q4 - #${p.dorsal} ${p.name.split(' ')[0]} al borde de la expulsión (4 faltas).
+                    </div>`);
+                }
+            }
+        });
+    };
+
+    checkTeam('home');
+    checkTeam('away');
+
+    container.innerHTML = alerts.join('');
+    if (typeof renderLvStrips === 'function' && !window._isRenderingStrips) {
+        window._isRenderingStrips = true;
+        renderLvStrips();
+        window._isRenderingStrips = false;
+    }
+}
+
 
 </script>
 </body>

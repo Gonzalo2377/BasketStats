@@ -6,6 +6,20 @@
 <title>BascatApp</title>
 <style>
 
+/* 🔒 BLOQUEO ABSOLUTO MODO JUGADOR */
+body.player-mode .nav,
+body.player-mode .tabs-nav,
+body.player-mode nav,
+body.player-mode .nb {
+    display: none !important;
+}
+body.player-mode .tab {
+    display: none !important;
+}
+body.player-mode #t-compare {
+    display: block !important;
+}
+
 /* 🔒 MODO JUGADOR: Bloqueo visual absoluto desde la raíz */
 body.player-mode .tabs-nav,
 body.player-mode .nav,
@@ -2045,16 +2059,10 @@ async function ldLS() {
     S.playerNotes = snap.exists() ? (snap.data().playerNotes || {}) : {};
     S.watchGroups = snap.exists() ? (snap.data().watchGroups || []) : [];
     
-    // 🏀 RECUPERAR EL PRÓXIMO RIVAL DE LA NUBE DE FORMA SEGURA
-    if (snap.exists() && snap.data().nextMatch) {
-        S.nextMatch = snap.data().nextMatch;
-    } else {
-        S.nextMatch = null;
-    }
+    // Sincronización en tiempo real del próximo rival entre dispositivos
+    S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
 
     _refreshAfterSync();
-    
-    // Si estamos en la pestaña de comparación (o en modo jugador), repintamos al instante
     if (typeof renderCompare === 'function') {
         renderCompare();
     }
@@ -2122,15 +2130,23 @@ function toast(msg,type='ok'){
 const ts=['t-eq','t-imp','t-live','t-shots','t-standings','t-stats','t-club','t-scout','t-compare','t-video'];
 
 function ST(id){
-  if(_playerMode&&id!=='t-stats')return;
+  // Si es jugador, está terminantemente atrapado en t-compare
+  if(_playerMode && id !== 't-compare') {
+      window._originalST ? window._originalST('t-compare') : null;
+      return;
+  }
   
+  // MODO STAFF: Navegación libre absoluta
   const tabEl = document.getElementById(id);
-  if(!tabEl) return; // Protección anti-crashes si una pestaña no existe
+  if(!tabEl) return;
 
-  try{const _i=ts.indexOf(id);if(_i>=0)document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}catch(e){}
+  try {
+      const _i = ts.indexOf(id);
+      if(_i >= 0) document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+  } catch(e){}
   
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
   
   tabEl.classList.add('active');
   
@@ -7586,16 +7602,28 @@ window.saveNextMatch = async function() {
         time: document.getElementById('nm-time')?.value || ''
     };
     
+    // Guardado forzoso en Firebase (META_DOC) para sincronizar móviles y PC
     try {
         await setDoc(META_DOC, { nextMatch: S.nextMatch }, { merge: true });
-        if(typeof toast === 'function') toast("✅ Próximo rival guardado y sincronizado", 'ok');
+        if(typeof toast === 'function') toast("✅ Próximo rival sincronizado en la nube", 'ok');
     } catch(e) {
         console.error("Error al sincronizar próximo rival:", e);
-        if(typeof toast === 'function') toast("⚠️ Guardado local, error al sincronizar", 'err');
+        if(typeof toast === 'function') toast("⚠️ Error al sincronizar con la nube", 'err');
     }
     
     svL();
     renderCompare();
+};
+
+// Función de seguridad para el botón de "Cambiar" rival que no funcionaba
+window.clearNextMatch = async function() {
+    S.nextMatch = null;
+    try {
+        await setDoc(META_DOC, { nextMatch: null }, { merge: true });
+    } catch(e) {}
+    svL();
+    renderCompare();
+    if(typeof toast === 'function') toast("🗑️ Partido desconfigurado", 'ok');
 };
 
 window.toggleNextRivalPl = function(idx, name) {
@@ -7623,18 +7651,20 @@ function renderCompare() {
     const tabMain = document.querySelector('#t-compare .main');
     if (!tabMain) return;
     
-    S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
+    // Asegurarnos de que existe el objeto y tiene un RIVAL válido y con texto
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
-    // 1. SI NO HAY RIVAL CONFIGURADO
+    // 1. SI NO HAY RIVAL CONFIGURADO (BLINDAJE ABSOLUTO)
     if (!hasRival) {
         if (_playerMode) {
+            // Pantalla limpia exclusiva para jugadores indicando que aún no hay partido
             tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
                 <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
                 <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
                 <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
             </div>`;
         } else {
+            // Vista de configuración para el Staff
             const rivals = new Set();
             const allSeasonsSet = new Set();
             S.matches.forEach(m => {
@@ -7684,7 +7714,7 @@ function renderCompare() {
                 </div>
             </div><div class="empty">Aún no has configurado el próximo partido.</div>`;
         }
-        return;
+        return; // <--- ESTE "return" es clave para que frene aquí y no pinte el partido vacío debajo
     }
 
     const rival = S.nextMatch.rival;
@@ -7733,7 +7763,7 @@ function renderCompare() {
 
     const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
         <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
-        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="S.nextMatch.rival='';renderCompare();" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
+        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()";" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
     </div>` : '';
 
     const headHtml = `<div class="card" style="margin-bottom:16px; padding:24px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
@@ -8608,31 +8638,59 @@ function doLogout(){
 
 function _applyRole(role){
   _playerMode = (role === 'player');
+  
+  // Limpiamos o ponemos la clase en el body según el rol
   document.body.classList.toggle('player-mode', _playerMode);
   
   if (!window._originalST) window._originalST = window.ST;
-  
-  if(_playerMode) {
+
+  if (_playerMode) {
+      // 🔒 MODO JUGADOR: Bloqueo total y secuestro de pestañas
+      try { localStorage.removeItem('bascat_tab'); } catch(e){}
+
       document.querySelectorAll('.nb').forEach(b => b.style.display = 'none');
-      const navContainer = document.querySelector('.tabs-nav') || document.querySelector('.nav') || document.querySelector('nav');
+      const navContainer = document.querySelector('.nav') || document.querySelector('.tabs-nav') || document.querySelector('nav');
       if (navContainer) navContainer.style.display = 'none';
 
-      window.ST = function(id) {
-          window._originalST('t-compare');
+      ['t-eq', 't-imp', 't-live', 't-shots', 't-standings', 't-stats', 't-club', 't-scout', 't-video'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+      });
+
+      const comp = document.getElementById('t-compare');
+      if (comp) comp.style.display = 'block';
+
+      // Los jugadores no pueden cambiar de pestaña, siempre van a t-compare
+      window.ST = function(id) { 
+          if(typeof window._originalST === 'function') window._originalST('t-compare'); 
       };
       
-      window._originalST('t-compare');
-      setTimeout(() => { renderCompare(); }, 50);
+      window.ST('t-compare');
+      setTimeout(() => { if(typeof renderCompare === 'function') renderCompare(); }, 50);
+
   } else {
-      window.ST = window._originalST;
+      // 🔓 MODO STAFF: Restauración absoluta y libertad total
+      // Devolvemos el control original de las pestañas
+      if (window._originalST) {
+          window.ST = window._originalST;
+      }
+
+      // Mostramos de nuevo la barra de navegación y todos los botones
       document.querySelectorAll('.nb').forEach(b => {
           b.style.display = '';
           if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('t-compare')) {
               b.innerHTML = '⚖️ Próximo Rival';
           }
       });
-      const navContainer = document.querySelector('.tabs-nav') || document.querySelector('.nav') || document.querySelector('nav');
+
+      const navContainer = document.querySelector('.nav') || document.querySelector('.tabs-nav') || document.querySelector('nav');
       if (navContainer) navContainer.style.display = '';
+
+      // Mostramos todas las pestañas principales por si se habían ocultado
+      ['t-eq', 't-imp', 't-live', 't-shots', 't-standings', 't-stats', 't-club', 't-scout', 't-compare', 't-video'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = '';
+      });
   }
   
   rAll();

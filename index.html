@@ -1583,7 +1583,18 @@ select {
       <div class="fc"><label>CATEGORÍA (LIGA)</label><select id="st-leader-league" onchange="renderLeaders()"><option value="">Todas</option></select></div>
       <div class="fc"><label>ESTADÍSTICA</label><select id="st-leader-category" onchange="renderLeaders()"></select></div>
       <div class="fc"><label>Grupo</label><select id="st-leader-group" onchange="renderLeaders()"><option value="">Todos</option></select></div>
-      <div class="fc"><label>Mínimo de tiros</label><select id="st-leader-minshots" onchange="renderLeaders()"><option value="0">Sin mínimo</option><option value="5">5 intentos</option><option value="10" selected>10 intentos</option><option value="20">20 intentos</option></select></div>
+      <div class="fc"><label>Mín. partidos</label><select id="st-leader-mingames" onchange="renderLeaders()">
+        <option value="1">1 partido</option>
+        <option value="3">3 partidos</option>
+        <option value="5">5 partidos</option>
+        <option value="10">10 partidos</option>
+      </select></div>
+      <div class="fc"><label>Mín. tiros</label><select id="st-leader-minshots" onchange="renderLeaders()">
+        <option value="0">Sin mínimo</option>
+        <option value="5">5 intentos</option>
+        <option value="10" selected>10 intentos</option>
+        <option value="20">20 intentos</option>
+      </select></div>
     </div>
     <div id="st-leaders-body"></div>
   </div>
@@ -5594,21 +5605,140 @@ function populateRivalSelect() {
   if(!keep)sel.value='';
 }
 
-// Generador de Insights Profundos (Dashboard portado a Scouting)
+// ── Métricas cruzadas para los splits ──
+var _SPLIT_METRICS = [
+    ['PJ', 'pj', x=>x],
+    ['Pts Favor', 'pf', x=>x.toFixed(1)],
+    ['Pts Contra', 'pc', x=>x.toFixed(1)],
+    ['T2%', 't2', x=>x.toFixed(1)+'%'],
+    ['T3%', 't3', x=>x.toFixed(1)+'%'],
+    ['TL%', 'tl', x=>x.toFixed(1)+'%'],
+    ['%T3/TC', 't3Rate', x=>x.toFixed(1)+'%'],
+    ['AST', 'ast', x=>x.toFixed(1)],
+    ['PER', 'to', x=>x.toFixed(1)],
+    ['TAP', 'blk', x=>x.toFixed(1)],
+    ['ROB', 'stl', x=>x.toFixed(1)],
+    ['Pace', 'pace', x=>x.toFixed(1)],
+    ['ORtg', 'ortg', x=>x.toFixed(1)],
+    ['DRtg', 'drtg', x=>x.toFixed(1)]
+];
+
+function _calcTeamAggr(matches, team) {
+    const a = _advancedTeam(matches, team);
+    if (!a.n) return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0 };
+    return {
+        pj: a.n, pf: a.pts / a.n, pc: a.opp / a.n, dif: (a.pts - a.opp) / a.n,
+        t2: a.t2a ? 100 * a.t2m / a.t2a : 0, t3: a.t3a ? 100 * a.t3m / a.t3a : 0, tl: a.fta ? 100 * a.ftm / a.fta : 0,
+        t3Rate: a.fga ? 100 * a.t3a / a.fga : 0, ast: a.ast / a.n, to: a.to / a.n, blk: a.blk / a.n, stl: a.stl / a.n,
+        pace: a.pace, ortg: a.ortg, drtg: a.drtg
+    };
+}
+
+function _renderSplitBars(labelL, labelR, h, a, colorL, colorR) {
+    let html = `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:16px;border-bottom:2px solid var(--bd);padding-bottom:6px">
+       <span style="color:${colorL}">◀ ${labelL}</span><span style="color:${colorR}">${labelR} ▶</span>
+    </div>`;
+    html += _SPLIT_METRICS.map(([label,key,fmt])=>{
+       const hv=h[key]||0, av=a[key]||0, mx=Math.max(Math.abs(hv),Math.abs(av),1);
+       const pwL = hv === 0 ? 0 : Math.max(1, Math.abs(hv)/mx*100);
+       const pwR = av === 0 ? 0 : Math.max(1, Math.abs(av)/mx*100);
+       
+       return `<div style="margin-bottom:8px; display:flex; align-items:center; font-size:11px">
+          <b style="width:44px; text-align:right; color:${colorL}; font-size:12px">${fmt(hv)}</b>
+          <div style="flex:1; display:flex; justify-content:flex-end; margin:0 12px">
+             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; display:flex; justify-content:flex-end">
+                ${pwL > 0 ? `<div style="height:100%; background:${colorL}; width:${pwL}%; border-radius:5px"></div>` : ''}
+             </div>
+          </div>
+          <span style="width:100px; text-align:center; font-weight:800; color:var(--t3); text-transform:uppercase; font-size:10px">${label}</span>
+          <div style="flex:1; display:flex; justify-content:flex-start; margin:0 12px">
+             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; display:flex; justify-content:flex-start">
+                ${pwR > 0 ? `<div style="height:100%; background:${colorR}; width:${pwR}%; border-radius:5px"></div>` : ''}
+             </div>
+          </div>
+          <b style="width:44px; text-align:left; color:${colorR}; font-size:12px">${fmt(av)}</b>
+       </div>`;
+    }).join('');
+    return html;
+}
+
+function _generateHomeAwayHTML(team, matches, playerName = '') {
+    if (playerName) return ''; 
+    const h = _calcTeamAggr(matches.filter(m => m.homeTeam === team), team);
+    const a = _calcTeamAggr(matches.filter(m => m.awayTeam === team), team);
+    if (!h.pj || !a.pj) return '<div class="empty">Se necesitan partidos en casa y fuera.</div>';
+
+    let ins = [];
+    const ptDiff = h.pf - a.pf;
+    if(Math.abs(ptDiff) > 5) ins.push(ptDiff > 0 ? `Anotan ${ptDiff.toFixed(1)} puntos más cuando juegan en casa.` : `Su ataque es ${Math.abs(ptDiff).toFixed(1)} puntos mejor como visitantes.`);
+    const drtgDiff = h.drtg - a.drtg;
+    if(Math.abs(drtgDiff) > 5) ins.push(drtgDiff < 0 ? `Defensa mucho más sólida en casa (DRtg ${h.drtg.toFixed(1)}).` : `Defienden mejor a domicilio (DRtg ${a.drtg.toFixed(1)}).`);
+
+    let insightsHtml = ins.length ? `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:8px">💡 Conclusiones Local vs Visitante</div>${ins.map(i => `<div style="font-size:12px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
+
+    return _renderSplitBars('LOCAL', 'VISITANTE', h, a, '#15803d', '#dc2626') + insightsHtml;
+}
+
+function _v4AnalyzeTeamSplits(matches, team) {
+  const win = _calcTeamAggr(matches.filter(m => {
+      const my = Number(m.homeTeam === team ? m.scoreHome : m.scoreAway);
+      const op = Number(m.homeTeam === team ? m.scoreAway : m.scoreHome);
+      return my > op;
+  }), team);
+  
+  const loss = _calcTeamAggr(matches.filter(m => {
+      const my = Number(m.homeTeam === team ? m.scoreHome : m.scoreAway);
+      const op = Number(m.homeTeam === team ? m.scoreAway : m.scoreHome);
+      return my < op;
+  }), team);
+  
+  if (!win.pj || !loss.pj) return { htmlSplit: '<div class="empty">Se necesitan victorias y derrotas registradas para la comparativa.</div>' };
+
+  let ins = [];
+  const t3diff = win.t3 - loss.t3;
+  if(Math.abs(t3diff) > 5) ins.push(`El acierto de 3 es clave: ${win.t3.toFixed(1)}% en victorias vs ${loss.t3.toFixed(1)}% en derrotas.`);
+  const toDiff = win.to - loss.to;
+  if(Math.abs(toDiff) >= 2) ins.push(toDiff < 0 ? `Cuidan mucho mejor el balón en las victorias (${Math.abs(toDiff).toFixed(1)} pérdidas menos).` : `Ganan a pesar de perder más balones.`);
+  const paceDiff = win.pace - loss.pace;
+  if(Math.abs(paceDiff) >= 3) ins.push(paceDiff > 0 ? `Les favorece un ritmo alto (PACE de ${win.pace.toFixed(1)} en victorias).` : `Ganan cuando bajan el ritmo (PACE de ${loss.pace.toFixed(1)} en derrotas).`);
+
+  let insightsHtml = ins.length ? `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:8px">💡 Conclusiones Victorias vs Derrotas</div>${ins.map(i => `<div style="font-size:12px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
+
+  const htmlSplit = _renderSplitBars('VICTORIAS', 'DERROTAS', win, loss, '#16a34a', '#ef4444') + insightsHtml;
+  return { htmlSplit };
+}
+
+// Generador de anillos Full Verde/Rojo con texto en el interior
+function _scoutRingSvgFull(pct, size=64) {
+    const R = 22, C = 2 * Math.PI * R, off = C * (1 - Math.min(100, Math.max(0, pct)) / 100);
+    return `<svg viewBox="0 0 54 54" style="width:${size}px; height:${size}px; display:block; flex-shrink:0;">
+        <circle cx="27" cy="27" r="${R}" stroke="#ef4444" stroke-width="8" fill="transparent"></circle>
+        <circle cx="27" cy="27" r="${R}" stroke="#16a34a" stroke-width="8" stroke-linecap="round" fill="transparent" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 27 27)"></circle>
+        <text x="27" y="32" text-anchor="middle" font-size="14" font-weight="900" fill="var(--nv)">${Math.round(pct)}%</text>
+    </svg>`;
+}
+
+// Generador de Insights Profundos
 function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     const ins = [];
     const t3Rate = advData.fga ? (advData.t3a/advData.fga)*100 : 0;
     
-    // 1. Mejores tiradores y estilo
     const topScorer = rpList[0];
     if (topScorer) ins.push(`🏀 <b>${_esc(topScorer.name)}</b>: máximo anotador con <b>${topScorer.pts} puntos</b> en ${topScorer.games} partidos (${(topScorer.pts/topScorer.games).toFixed(1)}/partido).`);
     
     const t3pl = rpList.filter(p=>p.t3a>=5).sort((a,b)=>(b.t3m/b.t3a)-(a.t3m/a.t3a));
     if(t3pl.length) ins.push(`🎯 Mejor tirador T3 (mín. 5 int.): <b>${_esc(t3pl[0].name)}</b> → <b>${Math.round(t3pl[0].t3m/t3pl[0].t3a*100)}%</b> (${t3pl[0].t3m}/${t3pl[0].t3a}).`);
     
-    ins.push(`📍 <b>${Math.round(t3Rate)}% de los tiros</b> desde fuera del arco (${advData.t3a}/${advData.fga}).`);
+    let shotBalance = '';
+    if (t3Rate >= 42) shotBalance = `🎯 <b>Ataque Perimetral:</b> Fuerte dependencia del triple`;
+    else if (t3Rate <= 28) shotBalance = `🏀 <b>Ataque Interior:</b> Buscan constantemente la pintura`;
+    else shotBalance = `⚖️ <b>Ataque Equilibrado:</b> Reparto compensado de tiros`;
+    ins.push(`${shotBalance} (${100 - Math.round(t3Rate)}% T2 / ${Math.round(t3Rate)}% T3). Promedian ${(advData.t2a/(advData.n||1)).toFixed(1)} dobles vs ${(advData.t3a/(advData.n||1)).toFixed(1)} triples por partido.`);
     
-    // 2. Esquinas (Corners)
+    if (advData.n > 0) {
+        ins.push(`🎯 <b>Tiros Libres:</b> Promedian ${(advData.fta/advData.n).toFixed(1)} intentos por partido (anotando ${(advData.ftm/advData.n).toFixed(1)}, un ${advData.fta ? Math.round(advData.ftm/advData.fta*100) : 0}%).`);
+    }
+
     let allShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
     const teamShots = allShots.filter(s => {
         const m = matches.find(mm => mm.id === (s.mId || s.matchId));
@@ -5617,14 +5747,13 @@ function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     const corn = teamShots.filter(s => shotZone(s).includes('Cantonada'));
     if(corn.length) ins.push(`📐 Esquinas: <b>${Math.round(corn.filter(s=>s.made).length/corn.length*100)}%</b> de acierto (${corn.filter(s=>s.made).length}/${corn.length}).`);
 
-    // 3. Faltas y +/-
     const foulRate = rpList.filter(p=>p.games>=1).map(p=>({name:p.name,avg:p.fc/p.games,tot:p.fc,g:p.games})).sort((a,b)=>b.avg-a.avg);
     if(foulRate.length && foulRate[0].avg >= 2.5) ins.push(`⚠️ Más cargado de faltas: <b>${_esc(foulRate[0].name.split(' ')[0])}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
     
     const pmPl = [...rpList].sort((a,b)=>(b.pm||0)-(a.pm||0));
     if(pmPl[0] && pmPl[0].pm > 0) ins.push(`📈 Mejor +/-: <b>${_esc(pmPl[0].name)}</b> con <b>+${pmPl[0].pm}</b> (${pmPl[0].games} jug.).`);
 
-    if (advData.pace > 0) ins.push(`⚡ <b>Ritmo de juego:</b> Juegan a ${advData.pace.toFixed(1)} posesiones por partido.`);
+    if (advData.pace > 0) ins.push(`⚡ <b>Ritmo (Pace):</b> Juegan a ${advData.pace.toFixed(1)} posesiones por partido.`);
     if (advData.astTo > 0) ins.push(`🤝 <b>Ratio AST/PER:</b> Reparten ${advData.astTo.toFixed(1)} asistencias por cada balón perdido.`);
 
     return ins;
@@ -5653,7 +5782,9 @@ function renderScouting() {
     return;
   }
   
-  document.getElementById('sc-content').style.display = 'block';
+  const scContent = document.getElementById('sc-content');
+  scContent.style.display = 'block';
+
   const emptySt = document.getElementById('sc-empty');
   if(emptySt) emptySt.style.display = 'none';
 
@@ -5681,24 +5812,26 @@ function renderScouting() {
   });
   const rpList = Object.values(rivalPlayers).sort((a, b) => b.pts - a.pts);
 
-  // Generador de anillos Full Verde/Rojo
-  function _scoutRingSvgFull(pct) {
-      const R = 22, C = 2 * Math.PI * R, off = C * (1 - Math.min(100, Math.max(0, pct)) / 100);
-      return `<svg viewBox="0 0 50 50" style="width:50px; height:50px; display:block; flex-shrink:0;">
-          <circle cx="25" cy="25" r="${R}" stroke="#ef4444" stroke-width="6" fill="transparent"></circle>
-          <circle cx="25" cy="25" r="${R}" stroke="#16a34a" stroke-width="6" stroke-linecap="round" fill="transparent" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 25 25)"></circle>
-      </svg>`;
-  }
-
-  // ── 1. STATS BÁSICAS (2x3) CON RANKING LIGA ──
+  // ── 1. STATS BÁSICAS (2x3) CON RANKING LIGA Y ANILLOS VERDE/ROJO ──
   const b1 = document.getElementById('sc-block-1');
   if (b1) {
-      const W = matches.filter(m => m.homeTeam === _scoutRival ? m.scoreHome > m.scoreAway : m.scoreAway > m.scoreHome).length;
+      const W = matches.filter(m => m.homeTeam === _scoutRival ? Number(m.scoreHome) > Number(m.scoreAway) : Number(m.scoreAway) > Number(m.scoreHome)).length;
       const L = matches.length - W;
       
-      const form = matches.slice(-5).map(m => {
-          const isWin = m.homeTeam === _scoutRival ? m.scoreHome > m.scoreAway : m.scoreAway > m.scoreHome;
-          return `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${isWin?'#16a34a':'#dc2626'};margin:0 2px;" title="${isWin?'V':'D'}"></span>`;
+      const formListHtml = matches.slice(-5).reverse().map(m => {
+          const isWin = m.homeTeam === _scoutRival ? Number(m.scoreHome) > Number(m.scoreAway) : Number(m.scoreAway) > Number(m.scoreHome);
+          const rivalName = m.homeTeam === _scoutRival ? m.awayTeam : m.homeTeam;
+          const myScore = m.homeTeam === _scoutRival ? m.scoreHome : m.scoreAway;
+          const opScore = m.homeTeam === _scoutRival ? m.scoreAway : m.scoreHome;
+          const dateStr = m.date ? m.date.slice(0,5) : '';
+          return `<div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; margin-bottom:5px">
+             <div style="display:flex; align-items:center; gap:8px">
+                <span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:${isWin?'#16a34a':'#dc2626'}; color:#fff; font-size:9px; font-weight:900">${isWin?'W':'L'}</span>
+                <span style="color:var(--t3); width:32px; font-weight:600">${dateStr}</span>
+                <b style="color:var(--nv); width:40px; text-align:center">${myScore}-${opScore}</b>
+             </div>
+             <span style="color:var(--t2); text-align:right; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:80px">vs ${_esc(rivalName.split(' ')[0])}</span>
+          </div>`;
       }).join('');
       
       const ptA = advData.pts / advData.n;
@@ -5727,51 +5860,61 @@ function renderScouting() {
           tl: getRank(t => t.tla ? t.tlm/t.tla : 0, true, true)
       };
 
-      const bx = (title, big, sub, rank, isPct, pctVal, extraRightHtml='') => {
+      const bxNum = (title, big, sub, rank) => {
+          let bg = '#fff', bd = 'var(--bd)', txt = 'var(--nv)';
+          if(rank && rank.good) { bg = '#f0fdf4'; bd = '#16a34a'; txt = '#15803d'; }
+          if(rank && rank.bad) { bg = '#fef2f2'; bd = '#dc2626'; txt = '#991b1b'; }
+          return `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.02);min-height:120px">
+              <div style="font-size:13px;font-weight:900;color:${txt};text-transform:uppercase;margin-bottom:8px">${title}</div>
+              <div style="font-size:36px;font-weight:900;color:var(--nv);line-height:1">${big}</div>
+              <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:6px">${sub}</div>
+              ${rank ? `<div style="font-size:11px;font-weight:800;color:var(--t3);margin-top:8px">${rank.pos}º de ${rank.N} en la liga</div>` : ''}
+          </div>`;
+      };
+
+      const bxPct = (title, made, att, pctVal, rank) => {
           let bg = '#fff', bd = 'var(--bd)', txt = 'var(--nv)';
           if(rank && rank.good) { bg = '#f0fdf4'; bd = '#16a34a'; txt = '#15803d'; }
           if(rank && rank.bad) { bg = '#fef2f2'; bd = '#dc2626'; txt = '#991b1b'; }
           
-          let content = '';
-          if (isPct) {
-              content = `<div style="display:flex; align-items:center; justify-content:center; gap:24px; margin-top:12px">
-                  <div style="text-align:right">
-                      <div style="font-size:26px; font-weight:900; color:var(--nv); line-height:1">${Math.round(pctVal)}%</div>
-                      <div style="font-size:9px; color:var(--t3); font-weight:600; margin-top:4px">${sub}</div>
-                      ${rank ? `<div style="font-size:10px; font-weight:800; color:var(--nv); margin-top:6px">${rank.pos}º <span style="font-weight:500; font-size:9px; color:var(--t3)">de ${rank.N} en la liga</span></div>` : ''}
+          return `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.02);min-height:120px">
+              <div style="font-size:13px;font-weight:900;color:${txt};text-transform:uppercase;margin-bottom:12px;text-align:center">${title}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+                  <div style="text-align:center;flex:1">
+                      <div style="font-size:14px;font-weight:800;color:var(--nv)">${made}/${att}</div>
+                      <div style="font-size:10px;color:var(--t3)">anotados</div>
                   </div>
-                  <div style="position:relative">
-                      ${_scoutRingSvgFull(pctVal)}
+                  <div style="flex:0;display:flex;justify-content:center;align-items:center;padding:0 10px">
+                      ${_scoutRingSvgFull(pctVal, 64)}
                   </div>
-                  <div style="text-align:left; font-size:9.5px; line-height:1.5">
+                  <div style="text-align:left;font-size:10px;flex:1.2;line-height:1.4;padding-left:6px">
                       ${rank ? `
-                      <div style="color:var(--t3)">1º: <b style="color:var(--nv)">${rank.bestName}</b> (${rank.bestVal}%)</div>
-                      <div style="color:var(--t3); margin-top:3px">Últ: <b style="color:var(--nv)">${rank.worstName}</b> (${rank.worstVal}%)</div>
-                      ` : ''}
+                      <div style="color:var(--t3)">1º: <b style="color:var(--nv)">${rank.bestVal}%</b> <span style="font-size:9px">(${rank.bestName})</span></div>
+                      <div style="color:var(--nv);font-weight:900;margin:4px 0;font-size:11px">${rank.pos}º de ${rank.N}</div>
+                      <div style="color:var(--t3)">Últ: <b style="color:var(--nv)">${rank.worstVal}%</b> <span style="font-size:9px">(${rank.worstName})</span></div>
+                      ` : '<div style="color:var(--t3);text-align:center">Sin datos</div>'}
                   </div>
-              </div>`;
-          } else {
-              content = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; margin-top:12px">
-                  <div style="font-size:32px; font-weight:900; color:var(--nv); line-height:1">${big}</div>
-                  <div style="font-size:11px; color:var(--t3); font-weight:600; margin-top:6px">${sub}</div>
-                  ${rank ? `<div style="font-size:10px; font-weight:800; color:var(--nv); margin-top:8px">${rank.pos}º <span style="font-weight:500; font-size:9px; color:var(--t3)">de ${rank.N} en la liga</span></div>` : ''}
-                  ${extraRightHtml}
-              </div>`;
-          }
-
-          return `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
-              <div style="font-size:11px;font-weight:900;color:${txt};text-transform:uppercase">${title}</div>
-              ${content}
+              </div>
           </div>`;
       };
 
       b1.innerHTML = `
-          ${bx('Balance', `${W}-${L}`, '', ranks.diff, false, 0, `<div style="margin-top:8px">${form}</div>`)}
-          ${bx('Pts a Favor', ptA.toFixed(1), 'por partido', ranks.ptA, false, 0)}
-          ${bx('Pts en Contra', ptC.toFixed(1), 'por partido', ranks.ptC, false, 0)}
-          ${bx('T2%', 0, `${advData.t2m}/${advData.t2a} anotados`, ranks.t2, true, t2p)}
-          ${bx('T3%', 0, `${advData.t3m}/${advData.t3a} anotados`, ranks.t3, true, t3p)}
-          ${bx('TL%', 0, `${advData.ftm}/${advData.fta} anotados`, ranks.tl, true, tlp)}
+          <div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:12px;display:flex;box-shadow:0 1px 3px rgba(0,0,0,0.02);min-height:120px">
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;border-right:1px solid var(--bd);padding-right:10px">
+                  <div style="font-size:12px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:6px">Balance</div>
+                  <div style="font-size:36px;font-weight:900;color:var(--nv);line-height:1">${W}-${L}</div>
+                  ${ranks.diff ? `<div style="font-size:11px;font-weight:800;color:var(--t3);margin-top:8px">${ranks.diff.pos}º de ${ranks.diff.N} en la liga</div>` : ''}
+              </div>
+              <div style="flex:1.2;padding-left:16px;display:flex;flex-direction:column;justify-content:center">
+                  <div style="font-size:9.5px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:8px">Últimos 5 partidos</div>
+                  ${formListHtml || '<div class="empty" style="font-size:9px">Sin datos</div>'}
+              </div>
+          </div>
+          ${bxNum('Pts a Favor', ptA.toFixed(1), 'por partido', ranks.ptA)}
+          ${bxNum('Pts en Contra', ptC.toFixed(1), 'por partido', ranks.ptC)}
+          ${bxPct('T2%', advData.t2m, advData.t2a, t2p, ranks.t2)}
+          ${bxPct('T3%', advData.t3m, advData.t3a, t3p, ranks.t3)}
+          ${bxPct('TL%', advData.ftm, advData.fta, tlp, ranks.tl)}
       `;
   }
 
@@ -5781,7 +5924,7 @@ function renderScouting() {
       const ins = _generateScoutInsights(advData, rpList, advFCBQ, matches, _scoutRival);
       b2.innerHTML = `<div class="ct" style="margin-bottom:12px">💡 CONCLUSIONES AUTOMÁTICAS</div>
           <div style="display:flex;flex-direction:column;gap:6px">
-             ${ins.map(i => `<div style="padding:10px 12px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;font-size:12px;color:var(--nv)">• ${i}</div>`).join('')}
+             ${ins.map(i => `<div style="padding:10px 12px;background:#f8fafc;border-left:3px solid var(--ac);border-radius:0 8px 8px 0;font-size:12px;color:var(--nv)">• ${i}</div>`).join('')}
           </div>`;
   }
 
@@ -5900,13 +6043,12 @@ function renderScouting() {
           </div>`;
       }).join('') : '<div style="font-size:11px;color:var(--t3);padding:10px 0">Sin datos suficientes.</div>';
 
-      // ── AQUÍ: LA CUADRÍCULA 2x2 TOTALMENTE AJUSTADA A TUS FOTOS ──
-      b8.innerHTML = `<div class="card" style="padding:16px; margin:0">
-          <div class="ct" style="margin-bottom:16px; font-size:13px; display:flex; align-items:center; gap:6px">
+      b8.innerHTML = `<div class="card" style="padding:12px; margin:0">
+          <div class="ct" style="margin-bottom:12px; font-size:13px; display:flex; align-items:center; gap:6px; justify-content:flex-start">
              <span style="font-size:18px; color:#be185d">🎯</span> ANALÍTICA AVANZADA (PLAY-BY-PLAY)
           </div>
           
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               
               <!-- 1. MOMENTUM -->
               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
@@ -5981,156 +6123,6 @@ function renderScouting() {
   });
 }
 
-// ── AUXILIARES Y RENDERIZADORES DE SCOUTING ──
-
-window.setScoutSplit = function(mode) {
-    window._scoutSplitMode = mode;
-    const btnHA = document.getElementById('sc-split-btn-ha');
-    const btnWL = document.getElementById('sc-split-btn-wl');
-    if(btnHA) btnHA.classList.toggle('active', mode === 'ha');
-    if(btnWL) btnWL.classList.toggle('active', mode === 'wl');
-    
-    const cont = document.getElementById('sc-split-content');
-    if(!cont) return;
-
-    const sfEff = document.getElementById('sc-sf')?.value || '';
-    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff));
-    
-    if (mode === 'ha') cont.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
-    else cont.innerHTML = _v4AnalyzeTeamSplits(matches, _scoutRival).htmlSplit;
-};
-
-window.toggleScoutPl = function(idx, name) {
-    const r = document.getElementById(`sc-pl-row-${idx}`);
-    if(!r) return;
-    if(r.style.display === 'none') {
-        r.style.display = 'table-row';
-        const sfEff = document.getElementById('sc-sf')?.value || '';
-        let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
-        shots = shots.filter(s => {
-            const m = S.matches.find(m => m.id === (s.mId || s.matchId));
-            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff);
-        });
-        if(shots.length >= 3) drawHeatmap(`sc-cv-heat-${idx}`, shots);
-        else {
-            const cv = document.getElementById(`sc-cv-heat-${idx}`);
-            cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots);
-        }
-        drawZoneMap(`sc-cv-zone-${idx}`, shots);
-    } else r.style.display = 'none';
-};
-
-// Sustituimos las métricas de las comparativas cruzadas por la lista hipercompleta que pediste
-var _SPLIT_METRICS = [
-    ['PJ', 'pj', x=>x],
-    ['Puntos a favor', 'pf', x=>x.toFixed(1)],
-    ['Puntos en contra', 'pc', x=>x.toFixed(1)],
-    ['T2%', 't2', x=>x.toFixed(1)+'%'],
-    ['T3%', 't3', x=>x.toFixed(1)+'%'],
-    ['TL%', 'tl', x=>x.toFixed(1)+'%'],
-    ['%T3 (Ratio)', 't3Rate', x=>x.toFixed(1)+'%'],
-    ['Asistencias', 'ast', x=>x.toFixed(1)],
-    ['Pérdidas', 'to', x=>x.toFixed(1)],
-    ['Tapones', 'blk', x=>x.toFixed(1)],
-    ['Robos', 'stl', x=>x.toFixed(1)],
-    ['Pace (Ritmo)', 'pace', x=>x.toFixed(1)],
-    ['ORtg (Ataque/100p)', 'ortg', x=>x.toFixed(1)],
-    ['DRtg (Defensa/100p)', 'drtg', x=>x.toFixed(1)]
-];
-
-// ── Métricas cruzadas para los splits ──
-var _SPLIT_METRICS = [
-    ['PJ', 'pj', x=>x],
-    ['Pts Favor', 'pf', x=>x.toFixed(1)],
-    ['Pts Contra', 'pc', x=>x.toFixed(1)],
-    ['T2%', 't2', x=>x.toFixed(1)+'%'],
-    ['T3%', 't3', x=>x.toFixed(1)+'%'],
-    ['TL%', 'tl', x=>x.toFixed(1)+'%'],
-    ['%T3/TC', 't3Rate', x=>x.toFixed(1)+'%'],
-    ['AST', 'ast', x=>x.toFixed(1)],
-    ['PER', 'to', x=>x.toFixed(1)],
-    ['TAP', 'blk', x=>x.toFixed(1)],
-    ['ROB', 'stl', x=>x.toFixed(1)],
-    ['Pace', 'pace', x=>x.toFixed(1)],
-    ['ORtg', 'ortg', x=>x.toFixed(1)],
-    ['DRtg', 'drtg', x=>x.toFixed(1)]
-];
-
-function _calcTeamAggr(matches, team) {
-    const a = _advancedTeam(matches, team);
-    if (!a.n) return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0 };
-    return {
-        pj: a.n, pf: a.pts / a.n, pc: a.opp / a.n, dif: (a.pts - a.opp) / a.n,
-        t2: a.t2a ? 100 * a.t2m / a.t2a : 0, t3: a.t3a ? 100 * a.t3m / a.t3a : 0, tl: a.fta ? 100 * a.ftm / a.fta : 0,
-        t3Rate: a.fga ? 100 * a.t3a / a.fga : 0, ast: a.ast / a.n, to: a.to / a.n, blk: a.blk / a.n, stl: a.stl / a.n,
-        pace: a.pace, ortg: a.ortg, drtg: a.drtg
-    };
-}
-
-function _renderSplitBars(labelL, labelR, h, a, colorL, colorR) {
-    let html = `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:16px;border-bottom:2px solid var(--bd);padding-bottom:6px">
-     <span style="color:${colorL}">◀ ${labelL}</span><span style="color:${colorR}">${labelR} ▶</span>
-  </div>`;
-    html += _SPLIT_METRICS.map(([label,key,fmt])=>{
-       const hv=h[key]||0, av=a[key]||0, mx=Math.max(Math.abs(hv),Math.abs(av),1);
-       const pwL = Math.max(2, Math.min(100, Math.abs(hv)/mx*100));
-       const pwR = Math.max(2, Math.min(100, Math.abs(av)/mx*100));
-       
-       return `<div style="margin-bottom:8px; display:flex; align-items:center; font-size:11px">
-          <b style="width:40px; text-align:right; color:${colorL}; font-size:12px">${fmt(hv)}</b>
-          <div style="flex:1; display:flex; justify-content:flex-end; margin:0 12px">
-             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; max-width:240px; display:flex; justify-content:flex-end">
-                <div style="height:100%; background:${colorL}; width:${pwL}%; border-radius:5px"></div>
-             </div>
-          </div>
-          <span style="width:110px; text-align:center; font-weight:800; color:var(--t3); text-transform:uppercase; font-size:10px">${label}</span>
-          <div style="flex:1; display:flex; justify-content:flex-start; margin:0 12px">
-             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; max-width:240px; display:flex; justify-content:flex-start">
-                <div style="height:100%; background:${colorR}; width:${pwR}%; border-radius:5px"></div>
-             </div>
-          </div>
-          <b style="width:40px; text-align:left; color:${colorR}; font-size:12px">${fmt(av)}</b>
-       </div>`;
-    }).join('');
-    return html;
-}
-
-function _generateHomeAwayHTML(team, matches, playerName = '') {
-    if (playerName) return ''; // Anulamos la comparativa individual de jugadores por ahora
-    const h = _calcTeamAggr(matches.filter(m => m.homeTeam === team), team);
-    const a = _calcTeamAggr(matches.filter(m => m.awayTeam === team), team);
-    if (!h.pj || !a.pj) return '<div class="empty">Se necesitan partidos en casa y fuera.</div>';
-
-    let ins = [];
-    const ptDiff = h.pf - a.pf;
-    if(Math.abs(ptDiff) > 5) ins.push(ptDiff > 0 ? `Anotan ${ptDiff.toFixed(1)} puntos más cuando juegan en casa.` : `Su ataque es ${Math.abs(ptDiff).toFixed(1)} puntos mejor como visitantes.`);
-    const drtgDiff = h.drtg - a.drtg;
-    if(Math.abs(drtgDiff) > 5) ins.push(drtgDiff < 0 ? `Defensa mucho más sólida en casa (DRtg ${h.drtg.toFixed(1)}).` : `Defienden mejor a domicilio (DRtg ${a.drtg.toFixed(1)}).`);
-
-    let insightsHtml = ins.length ? `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:8px">💡 Conclusiones Local vs Visitante</div>${ins.map(i => `<div style="font-size:12px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
-
-    return _renderSplitBars('LOCAL', 'VISITANTE', h, a, '#15803d', '#dc2626') + insightsHtml;
-}
-
-function _v4AnalyzeTeamSplits(matches, team) {
-  const win = _calcTeamAggr(matches.filter(m => m.homeTeam === team ? m.scoreHome > m.scoreAway : m.scoreAway > m.scoreHome), team);
-  const loss = _calcTeamAggr(matches.filter(m => m.homeTeam === team ? m.scoreHome < m.scoreAway : m.scoreAway < m.scoreHome), team);
-  if (!win.pj || !loss.pj) return { htmlSplit: '<div class="empty">Se necesitan victorias y derrotas registradas para la comparativa.</div>' };
-
-  let ins = [];
-  const t3diff = win.t3 - loss.t3;
-  if(Math.abs(t3diff) > 5) ins.push(`El acierto de 3 es clave: ${win.t3.toFixed(1)}% en victorias vs ${loss.t3.toFixed(1)}% en derrotas.`);
-  const toDiff = win.to - loss.to;
-  if(Math.abs(toDiff) >= 2) ins.push(toDiff < 0 ? `Cuidan mucho mejor el balón en las victorias (${Math.abs(toDiff).toFixed(1)} pérdidas menos).` : `Ganan a pesar de perder más balones.`);
-  const paceDiff = win.pace - loss.pace;
-  if(Math.abs(paceDiff) >= 3) ins.push(paceDiff > 0 ? `Les favorece un ritmo alto (PACE de ${win.pace.toFixed(1)} en victorias).` : `Ganan cuando bajan el ritmo (PACE de ${win.pace.toFixed(1)} en victorias).`);
-
-  let insightsHtml = ins.length ? `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--nv);text-transform:uppercase;margin-bottom:8px">💡 Conclusiones Victorias vs Derrotas</div>${ins.map(i => `<div style="font-size:12px;padding:4px 0">• ${i}</div>`).join('')}</div>` : '';
-
-  const htmlSplit = _renderSplitBars('VICTORIAS', 'DERROTAS', win, loss, '#16a34a', '#dc2626') + insightsHtml;
-  return { htmlSplit };
-}
-
 function renderScoutClutch(matches) {
   const el = document.getElementById('sc-sit-clutch'); if (!el) return;
   const clutchEvents = [];
@@ -6154,10 +6146,10 @@ function renderScoutClutch(matches) {
   });
   const topScorers=Object.entries(cScorers).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  el.innerHTML = `<div class="ct" style="margin-bottom:12px; padding:16px 16px 0; border:none; display:flex; align-items:center; gap:6px">
+  el.innerHTML = `<div class="ct" style="margin-bottom:12px; padding:12px 12px 0; border:none; display:flex; align-items:center; gap:6px; justify-content:flex-start">
      <span style="font-size:16px">⏰</span> EJECUTORES EN CLUTCH (ÚLT. 3MIN + PRÓRROGAS)
   </div>
-  <div style="padding:0 16px 16px">
+  <div style="padding:0 12px 12px">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;text-align:center">
       <div style="background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:12px">
          <div style="font-size:24px;font-weight:900">${totalPts}</div><div style="font-size:9px;color:var(--t3);font-weight:700;margin-top:2px">PTS CLUTCH</div>
@@ -6228,15 +6220,54 @@ function renderScoutTimeout(matches) {
       </div>`;
   };
 
-  el.innerHTML = `<div class="ct" style="padding:16px 16px 0; border:none; margin-bottom:10px; display:flex; align-items:center; gap:6px">
+  el.innerHTML = `<div class="ct" style="padding:12px 12px 0; border:none; margin-bottom:10px; display:flex; align-items:center; gap:6px; justify-content:flex-start">
     <span style="font-size:16px; color:#be185d">🛑</span> JUGADAS DE PIZARRA (ATO)
   </div>
-  <div style="padding:0 16px 16px">
+  <div style="padding:0 12px 12px">
     <div style="font-size:11px;color:var(--t3);margin-bottom:20px">Analiza la eficacia de sus jugadas de pizarra (ATO). Excluye tiros libres.</div>
     ${box('En la primera posesión de cuarto', startEvents)}
     ${box('Tras pedir tiempo muerto', afterTO)}
   </div>`;
 }
+
+// ── AUXILIARES Y RENDERIZADORES DE SCOUTING ──
+
+window.setScoutSplit = function(mode) {
+    window._scoutSplitMode = mode;
+    const btnHA = document.getElementById('sc-split-btn-ha');
+    const btnWL = document.getElementById('sc-split-btn-wl');
+    if(btnHA) btnHA.classList.toggle('active', mode === 'ha');
+    if(btnWL) btnWL.classList.toggle('active', mode === 'wl');
+    
+    const cont = document.getElementById('sc-split-content');
+    if(!cont) return;
+
+    const sfEff = document.getElementById('sc-sf')?.value || '';
+    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff));
+    
+    if (mode === 'ha') cont.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
+    else cont.innerHTML = _v4AnalyzeTeamSplits(matches, _scoutRival).htmlSplit;
+};
+
+window.toggleScoutPl = function(idx, name) {
+    const r = document.getElementById(`sc-pl-row-${idx}`);
+    if(!r) return;
+    if(r.style.display === 'none') {
+        r.style.display = 'table-row';
+        const sfEff = document.getElementById('sc-sf')?.value || '';
+        let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+        shots = shots.filter(s => {
+            const m = S.matches.find(m => m.id === (s.mId || s.matchId));
+            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff);
+        });
+        if(shots.length >= 3) drawHeatmap(`sc-cv-heat-${idx}`, shots);
+        else {
+            const cv = document.getElementById(`sc-cv-heat-${idx}`);
+            cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots);
+        }
+        drawZoneMap(`sc-cv-zone-${idx}`, shots);
+    } else r.style.display = 'none';
+};
 
 function saveScoutNotes() {
   if (!_scoutRival) return;
@@ -9290,9 +9321,7 @@ async function importFromFCBQ(){
       const teams = stats.teams || [];
       const local = teams.find(t => t.teamIdIntern === stats.localId) || teams[0] || {};
       const visit = teams.find(t => t.teamIdIntern === stats.visitId) || teams[1] || {};
-
-      console.log("🏀 DATOS DEL EQUIPO LOCAL (BUSCANDO LOGO):", local);
-      
+    
       _fcbqEnsureTeam(local.name, local.players);
       _fcbqEnsureTeam(visit.name, visit.players);
 
@@ -9516,6 +9545,7 @@ window.vSeekBy = function(seconds) {
 };
 
 // ── 5. FORMULARIO FLOTANTE (SE VE EN PANTALLA COMPLETA) ──
+// ── 5. FORMULARIO FLOTANTE (SE VE EN PANTALLA COMPLETA) ──
 window.vClipMark = function() {
     const v = document.getElementById('v-video');
     if (!v || !v.duration) return;
@@ -9538,16 +9568,22 @@ window.vClipMark = function() {
 
         if (range) range.innerText = `[${formatTime(window._vState.start)} - ${formatTime(window._vState.end)}]`;
         
+        // Inyectamos los nombres reales de los equipos en los botones
+        const bL = document.getElementById('v-side-local');
+        const bA = document.getElementById('v-side-away');
+        if (S.clips2 && S.clips2[_vMatchKey]) {
+            if (bL) bL.innerText = S.clips2[_vMatchKey].local || 'LOCAL';
+            if (bA) bA.innerText = S.clips2[_vMatchKey].away || 'VISITANTE';
+        }
+        
         if (form) {
             const cont = document.getElementById('v-container');
             if (document.fullscreenElement) {
-                // Si está en pantalla completa, inyectamos el formulario DENTRO del vídeo
                 cont.appendChild(form);
                 form.style.position = 'absolute'; form.style.bottom = '50px'; form.style.left = '50%';
                 form.style.transform = 'translateX(-50%)'; form.style.width = '90%'; form.style.maxWidth = '500px';
                 form.style.zIndex = '999999'; form.style.boxShadow = '0 10px 50px rgba(0,0,0,.9)';
             } else {
-                // Modo normal
                 document.getElementById('v-wrap').appendChild(form);
                 form.style.position = ''; form.style.bottom = ''; form.style.left = '';
                 form.style.transform = ''; form.style.width = ''; form.style.maxWidth = ''; form.style.zIndex = ''; form.style.boxShadow = '';
@@ -9555,7 +9591,7 @@ window.vClipMark = function() {
             form.style.display = 'block'; 
             form.scrollIntoView({behavior: 'smooth', block: 'center'});
         }
-        window.applyCustomSpeed(0); // Pausamos el vídeo
+        window.applyCustomSpeed(0);
     }
 };
 
@@ -9564,6 +9600,9 @@ window.vSetTeamSide = function(side) {
     const bl = document.getElementById('v-side-local'), ba = document.getElementById('v-side-away');
     if(bl) { bl.style.background = side==='local' ? '#3b82f6' : 'transparent'; bl.style.color = side==='local' ? '#fff' : '#cbd5e1'; }
     if(ba) { ba.style.background = side==='away' ? '#f59e0b' : 'transparent'; ba.style.color = side==='away' ? '#fff' : '#cbd5e1'; }
+    
+    // Si ya habíamos marcado "Ataque/Defensa", refrescamos las carpetas para este equipo
+    if (window._vState.cat) window.vSetCat(window._vState.cat);
 };
 
 window.vSetCat = function(cat) {
@@ -9577,9 +9616,10 @@ window.vSetCat = function(cat) {
         sel.innerHTML = '<option value="">— Selecciona Carpeta —</option>';
         (window._vFolders[cat] || []).forEach(f => { sel.innerHTML += `<option value="${f}">${f}</option>`; });
         
-        if (window.S && window.S.clips2 && window.S.clips2[_vMatchKey]) {
-            const tName = window._vState.side === 'local' ? window.S.clips2[_vMatchKey].local : window.S.clips2[_vMatchKey].away;
-            const existing = window.S.clips2[_vMatchKey].teams?.[tName]?.[cat] || {};
+        // LA CLAVE ESTABA AQUÍ: Usar "S" directamente en lugar de "window.S"
+        if (window._vState.side && S && S.clips2 && S.clips2[_vMatchKey]) {
+            const tName = window._vState.side === 'local' ? S.clips2[_vMatchKey].local : S.clips2[_vMatchKey].away;
+            const existing = S.clips2[_vMatchKey].teams?.[tName]?.[cat] || {};
             const custom = Object.keys(existing).filter(f => !(window._vFolders[cat]||[]).includes(f));
             if (custom.length) {
                 sel.innerHTML += '<optgroup label="Tus carpetas creadas">';
@@ -9652,7 +9692,12 @@ window.vCancelClip = function() {
         form.style.transform = ''; form.style.width = ''; form.style.maxWidth = ''; form.style.zIndex = ''; form.style.boxShadow = '';
     }
     window._vState.start = null; window._vState.end = null; window._vState.side = null; window._vState.cat = null;
+    
+    // REINICIO CORRECTO DEL MODO "NUEVA CARPETA"
     document.getElementById('v-new-folder').value = '';
+    document.getElementById('v-new-folder').style.display = 'none'; 
+    document.getElementById('v-folder-sel').style.display = 'block'; 
+
     document.getElementById('v-clip-label').value = '';
     document.getElementById('v-folder-wrap').style.display = 'none';
     ['v-side-local','v-side-away','v-cat-atk','v-cat-def'].forEach(id => {
@@ -10264,19 +10309,19 @@ function toggleAdvancedColumns(scope){
 }
 
 const _leaderCategories={
-  min:['MIN/PARTIDO',p=>p.g?p.min/p.g:0,v=>v.toFixed(1)],
-  pts:['PTS',p=>p.pts,v=>Math.round(v)],
-  reb:['REB',p=>p.reb,v=>Math.round(v)],
-  ast:['AST',p=>p.ast,v=>Math.round(v)],
+  min:['MINUTOS',p=>p.min,v=>v.toFixed(1)],
+  pts:['PUNTOS',p=>p.pts,v=>v.toFixed(1)],
+  reb:['REBOTES',p=>p.reb,v=>v.toFixed(1)],
+  ast:['ASISTENCIAS',p=>p.ast,v=>v.toFixed(1)],
   t2:['T2%',p=>p.t2a?p.t2m/p.t2a*100:0,v=>v.toFixed(1)+'%'],
   t3:['T3%',p=>p.t3a?p.t3m/p.t3a*100:0,v=>v.toFixed(1)+'%'],
-  tl:['TL%',p=>p.tla?p.tlm/p.tla*100:0,v=>v.toFixed(1)+'%'],
-  pm:['+/-',p=>p.pm,v=>`${v>0?'+':''}${Math.round(v)}`],
-  blk:['BLK',p=>p.blk,v=>Math.round(v)],
-  stl:['STL',p=>p.stl,v=>Math.round(v)],
-  to:['PERDIDAS',p=>p.to,v=>Math.round(v)],
-  fc:['FC',p=>p.fc,v=>Math.round(v)],
-  fr:['FR',p=>p.fr,v=>Math.round(v)]
+  tl:['TL%',p=>p.tla?p.tlm/t.tla*100:0,v=>v.toFixed(1)+'%'],
+  pm:['+/-',p=>p.pm,v=>`${v>0?'+':''}${v.toFixed(1)}`],
+  blk:['TAPONES',p=>p.blk,v=>v.toFixed(1)],
+  stl:['ROBOS',p=>p.stl,v=>v.toFixed(1)],
+  to:['PÉRDIDAS',p=>p.to,v=>v.toFixed(1)],
+  fc:['FALTAS COMETIDAS',p=>p.fc,v=>v.toFixed(1)],
+  fr:['FALTAS RECIBIDAS',p=>p.fr,v=>v.toFixed(1)]
 };
 
 function renderLeaders(){
@@ -10289,9 +10334,12 @@ function renderLeaders(){
 
   const season=seasonEl.value,league=leagueEl.value,category=categoryEl.value,group=groupEl.value;
   const minShots=Number(document.getElementById('st-leader-minshots')?.value||0);
+  const minGames=Number(document.getElementById('st-leader-mingames')?.value||1);
+  
   const seasons=[...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
   const leagues=[...new Set(S.matches.map(m=>m.competition).filter(Boolean))].sort();
   const groups=[...new Set(S.matches.map(m=>m.group).filter(g=>g!==undefined&&g!==null&&String(g)!==''))].map(String).sort();
+  
   seasonEl.innerHTML='<option value="">Todas</option>'+seasons.map(s=>`<option value="${_esc(s)}"${s===season?' selected':''}>${_esc(s)}</option>`).join('');
   leagueEl.innerHTML='<option value="">Todas</option>'+leagues.map(l=>`<option value="${_esc(l)}"${l===league?' selected':''}>${_esc(l)}</option>`).join('');
   groupEl.innerHTML='<option value="">Todos</option>'+groups.map(g=>`<option value="${_esc(g)}"${g===group?' selected':''}>${_esc(g)}</option>`).join('');
@@ -10312,11 +10360,15 @@ function renderLeaders(){
     });
   });
   const metric=_leaderCategories[category]||_leaderCategories.pts;
-  const perGame=new Set(['min','pts','reb','ast','pm']);
+  // Estos son los que se dividen por el número de partidos
+  const perGame=new Set(['min','pts','reb','ast','pm','blk','stl','to','fc','fr']); 
   const valueOf=p=>perGame.has(category)?metric[1](p)/Math.max(p.g,1):metric[1](p);
   const shotAttempts={t2:p=>p.t2a,t3:p=>p.t3a,tl:p=>p.tla};
-  const eligible=[...totals.values()].filter(p=>!shotAttempts[category]||shotAttempts[category](p)>=minShots);
+  
+  // Filtrar por mínimo de partidos y mínimo de tiros (si procede)
+  const eligible=[...totals.values()].filter(p=>p.g>=minGames && (!shotAttempts[category]||shotAttempts[category](p)>=minShots));
   const leaders=eligible.sort((a,b)=>valueOf(b)-valueOf(a)).slice(0,10);
+  
   body.innerHTML=leaders.length?`<div style="font-size:10px;color:var(--t3);margin-bottom:7px">Top 10 · ${metric[0]}${perGame.has(category)?' por partido':''}${['t2','t3','tl'].includes(category)?` · mínimo ${minShots} intentos`:''}</div><div style="display:grid;gap:5px">${leaders.map((p,i)=>{const value=valueOf(p),teamLabel=[...p.teams].join(', ')||'Equipo no indicado';return `<div onclick="openPlayerProfile(this.dataset.n,'__ALL__','')" data-n="${_esc(p.name)}" title="Ver historial del jugador" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:${i===0?'#fffbeb':'#fff'};cursor:pointer"><b style="width:18px;color:var(--t3)">${i+1}</b><span style="flex:1;min-width:0;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#${_esc(p.dorsal||'—')} ${_esc(p.name)} <span style="font-weight:500;color:var(--t3)">(${_esc(teamLabel)})</span></span><span style="font-size:10px;color:var(--t3)">${p.g} PJ</span><b style="font-size:14px;color:${category==='pm'?(value>=0?'var(--gn)':'#dc2626'):'var(--nv)'}">${metric[2](value)}</b></div>`;}).join('')}</div>`:'<div class="empty">No hay datos para estos filtros.</div>';
 }
 window.renderLeaders=renderLeaders;
@@ -10324,17 +10376,10 @@ window.renderLeaders=renderLeaders;
 let _advancedMode={st:false,cl:false};
 
 function _installAdvancedUI(){
-  const sub = document.querySelector('.stsub');
-  if(sub && !document.getElementById('stsb-adv')){
-     sub.insertAdjacentHTML('beforeend','<button class="stsb" id="stsb-adv" onclick="setStSub(\'adv\')">📈 Avanzadas</button>');
-  }
-  const map = document.getElementById('stv-map');
-  if(map && !document.getElementById('stv-adv')){
-     map.insertAdjacentHTML('afterend','<div id="stv-adv" class="stv" style="display:none"></div>');
-  }
-  // Botones de toggle para la tabla
+  // Mantenemos los botones de toggle para las tablas, pero eliminamos la inyección de la minipestaña "Avanzadas"
   const box=document.getElementById('st-view-btns');
   if(box&&!document.getElementById('st-advanced-toggle'))box.insertAdjacentHTML('beforeend','<button id="st-advanced-toggle" onclick="toggleAdvancedColumns(\'st\')" style="padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">Toggle avanzadas</button>');
+  
   const club=document.querySelector('#t-club .tw');
   if(club&&!document.getElementById('cl-advanced-toggle'))club.insertAdjacentHTML('beforebegin','<button id="cl-advanced-toggle" onclick="toggleAdvancedColumns(\'cl\')" style="margin:0 0 8px;padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">Toggle avanzadas</button>');
 }

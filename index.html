@@ -5,6 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BascatApp</title>
 <style>
+
+/* 🔒 MODO JUGADOR: Bloqueo visual absoluto desde la raíz */
+body.player-mode .tabs-nav,
+body.player-mode .nav,
+body.player-mode nav,
+body.player-mode .nb {
+    display: none !important;
+}
+
+body.player-mode #t-matches, 
+body.player-mode #t-teams, 
+body.player-mode #t-stats, 
+body.player-mode #t-scouting, 
+body.player-mode #t-video, 
+body.player-mode #t-club {
+    display: none !important;
+}
+
+body.player-mode #t-compare {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 
 :root {
@@ -7637,7 +7661,17 @@ function renderCompare() {
 
     const rival = S.nextMatch.rival;
     if (!rival) {
-        tabMain.innerHTML = configHtml + '<div class="empty">El staff aún no ha configurado el próximo partido.</div>';
+        if (_playerMode) {
+            // Pantalla vacía limpia exclusiva para los jugadores
+            tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
+                <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
+                <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
+                <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
+            </div>`;
+        } else {
+            // Vista normal del Staff si aún no hay partido
+            tabMain.innerHTML = configHtml + '<div class="empty">Aún no has configurado el próximo partido.</div>';
+        }
         return;
     }
 
@@ -8563,29 +8597,35 @@ function doLogout(){
 }
 
 function _applyRole(role){
-  _playerMode=(role==='player');
-  document.body.classList.toggle('player-mode',_playerMode);
+  _playerMode = (role === 'player');
   
-  // Encontramos el contenedor del menú de navegación superior
-  const navContainer = document.querySelector('.tabs-nav') || document.querySelector('nav') || document.querySelector('.nav');
+  // Esto activa instantáneamente el muro de CSS que acabamos de poner arriba
+  document.body.classList.toggle('player-mode', _playerMode);
+  
+  if (!window._originalST) window._originalST = window.ST;
   
   if(_playerMode) {
-    // Modo JUGADOR: El menú de navegación desaparece completamente. No pueden navegar.
-    if(navContainer) navContainer.style.display = 'none';
-    
-    // Forzamos ir a la pestaña del próximo rival
-    ST('t-compare'); 
+      // 1. Borramos la memoria del navegador para que ni intente cargar 't-teams'
+      localStorage.removeItem('bascat_tab');
+      
+      // 2. Anulamos la función de cambio de pestañas. Si alguien hace clic, no pasa nada.
+      window.ST = function(id) { };
+      
+      // 3. Renderizamos el partido inmediatamente
+      if(typeof renderCompare === 'function') renderCompare();
+      
   } else {
-    // Modo STAFF: Vuelve el menú para poder navegar por toda la app
-    if(navContainer) navContainer.style.display = '';
-    
-    // Renombramos el botón para que sepáis lo que es
-    document.querySelectorAll('.nb').forEach(b => {
-        if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('t-compare')) {
-            b.innerHTML = '⚖️ Próximo Rival';
-        }
-    });
+      // MODO STAFF: Devolvemos el control de las pestañas
+      if (window._originalST) window.ST = window._originalST;
+      
+      // Renombramos el botón para Staff
+      document.querySelectorAll('.nb').forEach(b => {
+          if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('t-compare')) {
+              b.innerHTML = '⚖️ Próximo Rival';
+          }
+      });
   }
+  
   rAll();
 }
 

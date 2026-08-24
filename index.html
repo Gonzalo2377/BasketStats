@@ -5,30 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BascatApp</title>
 <style>
-
-/* 🎯 CORRECCIÓN DEFINITIVA PARA MAPAS EN DESPLEGABLES DE TABLA */
-td [id*="cv-heat"], 
-td [id*="cv-zone"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 420 / 400 !important;
-    object-fit: contain !important;
-    display: block !important;
-    margin: 0 auto !important;
+/* 🎯 AJUSTE DE MAPAS DESPLEGABLES EN TABLAS MÓVILES (PRÓXIMO RIVAL Y SCOUTING) */
+tr[id*="-pl-row-"] > td {
+    padding: 0 !important; /* Eliminamos el padding forzado de la celda */
 }
 
-/* Forzar que el contenedor .cw dentro de filas de tabla despliegue bien el flex/grid */
-tr[id*="row"] .g2 {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12px !important;
-    width: 100% !important;
+tr[id*="-pl-row-"] > td > div.g2 {
+    padding: 15px;
+    box-sizing: border-box;
 }
 
 @media (max-width: 767px) {
-    tr[id*="row"] .g2 {
-        grid-template-columns: 1fr !important; /* En móvil se apilan uno debajo de otro igual que arriba */
+    tr[id*="-pl-row-"] > td > div.g2 {
+        position: sticky;
+        left: 0;
+        /* Desvincula el mapa de los 700px de la tabla y le da el ancho exacto de tu móvil */
+        width: calc(100vw - 46px) !important; 
+        padding: 12px 6px;
     }
 }
 

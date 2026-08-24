@@ -2045,11 +2045,19 @@ async function ldLS() {
     S.playerNotes = snap.exists() ? (snap.data().playerNotes || {}) : {};
     S.watchGroups = snap.exists() ? (snap.data().watchGroups || []) : [];
     
-    // 🏀 RECUPERAR EL PRÓXIMO RIVAL DE LA NUBE
-    S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
-    if (typeof renderCompare === 'function') renderCompare();
+    // 🏀 RECUPERAR EL PRÓXIMO RIVAL DE LA NUBE DE FORMA SEGURA
+    if (snap.exists() && snap.data().nextMatch) {
+        S.nextMatch = snap.data().nextMatch;
+    } else {
+        S.nextMatch = null;
+    }
 
     _refreshAfterSync();
+    
+    // Si estamos en la pestaña de comparación (o en modo jugador), repintamos al instante
+    if (typeof renderCompare === 'function') {
+        renderCompare();
+    }
   }, (err) => { console.error(err); setSyncStatus('error'); });
 
   onSnapshot(CLIPS_DOC, async (snap) => {
@@ -7616,75 +7624,68 @@ function renderCompare() {
     const tabMain = document.querySelector('#t-compare .main');
     if (!tabMain) return;
     
-    // Asegurarnos de que existe el objeto de configuración
-    S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
-    
-    // 1. PANEL DE CONFIGURACIÓN (Solo Staff)
-    let configHtml = '';
-    if (!_playerMode) {
-        const rivals = new Set();
-        const allSeasonsSet = new Set();
-        S.matches.forEach(m => {
-            if(m.homeTeam && !isOurTeam(m.homeTeam)) rivals.add(m.homeTeam);
-            if(m.awayTeam && !isOurTeam(m.awayTeam)) rivals.add(m.awayTeam);
-            if(m.season) allSeasonsSet.add(m.season);
-        });
-        const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
-        
-        const allSeasons = [...allSeasonsSet].sort().reverse();
-        const getSeasonsOpts = (sel) => `<option value="">Todas (Acumulado)</option>` + allSeasons.map(s => `<option value="${_esc(s)}"${s===sel?' selected':''}>${_esc(s)}</option>`).join('');
+    // Comprobar si hay un rival válido guardado
+    const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
-        configHtml = `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
-            <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
-            <div class="fr" style="gap:10px; margin-bottom:12px">
-                <div class="fc" style="flex:2">
-                    <label>Rival</label>
-                    <select id="nm-rival" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"><option value="">-- Selecciona Rival --</option>${opts}</select>
-                </div>
-                <div class="fc" style="flex:1">
-                    <label>Temp. Rival</label>
-                    <select id="nm-r-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch.rivalSeason)}</select>
-                </div>
-                <div class="fc" style="flex:1">
-                    <label>Nuestra Temp.</label>
-                    <select id="nm-m-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch.mySeason)}</select>
-                </div>
-            </div>
-            <div class="fr" style="gap:10px">
-                <div class="fc" style="flex:1.5">
-                    <label>Condición</label>
-                    <select id="nm-venue" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                        <option value="home" ${S.nextMatch.venue!=='away'?'selected':''}>Jugamos en Casa (Local)</option>
-                        <option value="away" ${S.nextMatch.venue==='away'?'selected':''}>Jugamos Fuera (Visitante)</option>
-                    </select>
-                </div>
-                <div class="fc" style="flex:1">
-                    <label>Fecha</label>
-                    <input type="text" id="nm-date" placeholder="Ej: 30/09" value="${_esc(S.nextMatch.date)}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                </div>
-                <div class="fc" style="flex:1">
-                    <label>Hora</label>
-                    <input type="text" id="nm-time" placeholder="Ej: 18:30" value="${_esc(S.nextMatch.time)}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                </div>
-                <div class="fc" style="flex:1; justify-content:flex-end">
-                    <button onclick="saveNextMatch()" style="background:var(--nv);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">Guardar</button>
-                </div>
-            </div>
-        </div>`;
-    }
-
-    const rival = S.nextMatch.rival;
-    if (!rival) {
+    // 1. SI NO HAY RIVAL CONFIGURADO
+    if (!hasRival) {
         if (_playerMode) {
-            // Pantalla vacía limpia exclusiva para los jugadores
+            // Pantalla limpia y exclusiva para jugadores indicando que aún no hay partido
             tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
                 <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
                 <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
                 <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
             </div>`;
         } else {
-            // Vista normal del Staff si aún no hay partido
-            tabMain.innerHTML = configHtml + '<div class="empty">Aún no has configurado el próximo partido.</div>';
+            // Vista de configuración para el Staff (con el formulario de selección)
+            const rivals = new Set();
+            const allSeasonsSet = new Set();
+            S.matches.forEach(m => {
+                if(m.homeTeam && !isOurTeam(m.homeTeam)) rivals.add(m.homeTeam);
+                if(m.awayTeam && !isOurTeam(m.awayTeam)) rivals.add(m.awayTeam);
+                if(m.season) allSeasonsSet.add(m.season);
+            });
+            const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch?.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
+            const allSeasons = [...allSeasonsSet].sort().reverse();
+            const getSeasonsOpts = (sel) => `<option value="">Todas (Acumulado)</option>` + allSeasons.map(s => `<option value="${_esc(s)}"${s===sel?' selected':''}>${_esc(s)}</option>`).join('');
+
+            tabMain.innerHTML = `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
+                <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
+                <div class="fr" style="gap:10px; margin-bottom:12px">
+                    <div class="fc" style="flex:2">
+                        <label>Rival</label>
+                        <select id="nm-rival" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"><option value="">-- Selecciona Rival --</option>${opts}</select>
+                    </div>
+                    <div class="fc" style="flex:1">
+                        <label>Temp. Rival</label>
+                        <select id="nm-r-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.rivalSeason)}</select>
+                    </div>
+                    <div class="fc" style="flex:1">
+                        <label>Nuestra Temp.</label>
+                        <select id="nm-m-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.mySeason)}</select>
+                    </div>
+                </div>
+                <div class="fr" style="gap:10px">
+                    <div class="fc" style="flex:1.5">
+                        <label>Condición</label>
+                        <select id="nm-venue" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
+                            <option value="home" ${S.nextMatch?.venue!=='away'?'selected':''}>Jugamos en Casa (Local)</option>
+                            <option value="away" ${S.nextMatch?.venue==='away'?'selected':''}>Jugamos Fuera (Visitante)</option>
+                        </select>
+                    </div>
+                    <div class="fc" style="flex:1">
+                        <label>Fecha</label>
+                        <input type="text" id="nm-date" placeholder="Ej: 30/09" value="${_esc(S.nextMatch?.date || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
+                    </div>
+                    <div class="fc" style="flex:1">
+                        <label>Hora</label>
+                        <input type="text" id="nm-time" placeholder="Ej: 18:30" value="${_esc(S.nextMatch?.time || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
+                    </div>
+                    <div class="fc" style="flex:1; justify-content:flex-end">
+                        <button onclick="saveNextMatch()" style="background:var(--nv);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">Guardar</button>
+                    </div>
+                </div>
+            </div><div class="empty">Aún no has configurado el próximo partido.</div>`;
         }
         return;
     }

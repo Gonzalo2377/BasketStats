@@ -6,6 +6,32 @@
 <title>BascatApp</title>
 <style>
 
+/* 🎯 CORRECCIÓN DEFINITIVA PARA MAPAS EN DESPLEGABLES DE TABLA */
+td [id*="cv-heat"], 
+td [id*="cv-zone"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 420 / 400 !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+/* Forzar que el contenedor .cw dentro de filas de tabla despliegue bien el flex/grid */
+tr[id*="row"] .g2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+@media (max-width: 767px) {
+    tr[id*="row"] .g2 {
+        grid-template-columns: 1fr !important; /* En móvil se apilan uno debajo de otro igual que arriba */
+    }
+}
+
 /* 🔒 BLOQUEO ABSOLUTO MODO JUGADOR */
 body.player-mode .nav,
 body.player-mode .tabs-nav,

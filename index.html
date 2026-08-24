@@ -7766,29 +7766,31 @@ function renderCompare() {
         <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()";" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
     </div>` : '';
 
-    const headHtml = `<div class="card" style="margin-bottom:16px; padding:24px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
-        <div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:16px">🔥 PRÓXIMO PARTIDO</div>
-        <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-bottom:20px">
-            <div style="flex:1; text-align:right; font-size:24px; font-weight:900; color:${leftColor}">
-                <div style="font-size:9px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:4px">Local</div>
+    // Reemplaza el bloque de las cajas de últimos 5 partidos dentro de headHtml por este:
+    const headHtml = `<div class="card" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
+        <div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:12px">🔥 PRÓXIMO PARTIDO</div>
+        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
+            <div style="flex:1; text-align:right; font-size:18px; font-weight:900; color:${leftColor}; overflow:hidden; text-overflow:ellipsis">
+                <div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Local</div>
                 ${_esc(leftTeam)}
             </div>
-            <div style="font-size:14px; font-weight:900; color:#cbd5e1; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; margin-top:14px">VS</div>
-            <div style="flex:1; text-align:left; font-size:24px; font-weight:900; color:${rightColor}">
-                <div style="font-size:9px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:4px">Visitante</div>
+            <div style="font-size:12px; font-weight:900; color:#cbd5e1; background:rgba(255,255,255,0.1); padding:4px 6px; border-radius:6px; flex-shrink:0">VS</div>
+            <div style="flex:1; text-align:left; font-size:18px; font-weight:900; color:${rightColor}; overflow:hidden; text-overflow:ellipsis">
+                <div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Visitante</div>
                 ${_esc(rightTeam)}
             </div>
         </div>
-        <div style="text-align:center; font-size:14px; font-weight:800; color:#fff; margin-bottom:24px; background:rgba(255,255,255,0.1); display:inline-block; padding:6px 16px; border-radius:12px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">
-            📅 ${S.nextMatch.date || 'Día por definir'} &nbsp;&nbsp;|&nbsp;&nbsp; ⏰ ${S.nextMatch.time || 'Hora por definir'}
+        <div style="text-align:center; font-size:12px; font-weight:800; color:#fff; margin-bottom:16px; background:rgba(255,255,255,0.1); display:inline-block; padding:4px 12px; border-radius:10px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">
+            📅 ${S.nextMatch.date || 'Por definir'} &nbsp;|&nbsp; ⏰ ${S.nextMatch.time || 'Por definir'}
         </div>
-        <div style="display:flex; gap:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px">
-            <div style="flex:1; background:rgba(255,255,255,0.05); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:11px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:12px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
+        <!-- Usamos flex-wrap para que en móvil baje uno debajo de otro si no caben, y flex:1 min-width para evitar desbordes -->
+        <div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px">
+            <div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
+                <div style="font-size:10px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
                 ${getL5(leftTeam, leftMatches)}
             </div>
-            <div style="flex:1; background:rgba(255,255,255,0.05); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:11px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:12px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>
+            <div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
+                <div style="font-size:10px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>
                 ${getL5(rightTeam, rightMatches)}
             </div>
         </div>
@@ -7848,10 +7850,16 @@ function renderCompare() {
             <td style="text-align:center">${p.games}</td><td style="text-align:center">${Math.round(p.min/p.games)||0}</td><td style="text-align:center"><b style="color:var(--nv);font-size:14px">${(p.pts/p.games).toFixed(1)}</b></td>
             <td style="text-align:center">${t2p}%</td><td style="text-align:center">${t3p}%</td><td style="text-align:center">${tlp}%</td><td style="text-align:center">${(p.reb/p.games).toFixed(1)}</td><td style="text-align:center">${(p.ast/p.games).toFixed(1)}</td>
         </tr>
-        <tr id="nm-pl-row-${idx}" style="display:none;background:#f8fafc"><td colspan="9" style="padding:15px">
+        <tr id="nm-pl-row-${idx}" style="display:none;background:#f8fafc"><td colspan="9" style="padding:12px">
             <div class="g2">
-                <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">MAPA DE CALOR</div><div class="cw"><canvas id="nm-cv-heat-${idx}"></canvas></div></div>
-                <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">POR ZONAS</div><div class="cw"><canvas id="nm-cv-zone-${idx}"></canvas></div></div>
+                <div style="background:#fff; padding:12px; border-radius:10px; border:1px solid var(--bd)">
+                    <div style="font-size:10px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px;text-transform:uppercase">Mapa de Calor</div>
+                    <div class="cw"><canvas id="nm-cv-heat-${idx}"></canvas></div>
+                </div>
+                <div style="background:#fff; padding:12px; border-radius:10px; border:1px solid var(--bd)">
+                    <div style="font-size:10px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px;text-transform:uppercase">Acierto por Zonas (%)</div>
+                    <div class="cw"><canvas id="nm-cv-zone-${idx}"></canvas></div>
+                </div>
             </div>
         </td></tr>`;
     });

@@ -7663,20 +7663,47 @@ window.clearNextMatch = async function() {
 window.toggleNextRivalPl = function(idx, name) {
     const r = document.getElementById(`nm-pl-row-${idx}`);
     if(!r) return;
+    
     if(r.style.display === 'none') {
         r.style.display = 'table-row';
+        
+        // Damos un pequeño respiro (60ms) para que el navegador pinte el DOM de la fila
         setTimeout(() => {
             let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
             const rivalName = S.nextMatch?.rival;
             const rSeason = S.nextMatch?.rivalSeason;
+            
             shots = shots.filter(s => {
                 const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
                 return m && s.player === name && (m.homeTeam === rivalName || m.awayTeam === rivalName) && (!rSeason || m.season === rSeason);
             });
-            if(shots.length >= 0) drawHeatmap(`nm-cv-heat-${idx}`, shots);
-            drawZoneMap(`nm-cv-zone-${idx}`, shots);
+
+            // 1. MAPA DE CALOR DEL JUGADOR
+            const heatCv = document.getElementById(`nm-cv-heat-${idx}`);
+            if (heatCv) {
+                heatCv.width = CW;   // Forzamos el ancho estándar (420)
+                heatCv.height = CH;  // Forzamos el alto estándar (400)
+                if (shots.length >= 3) {
+                    drawHeatmap(`nm-cv-heat-${idx}`, shots);
+                } else {
+                    const ctx = heatCv.getContext('2d');
+                    drawCourt(ctx);
+                    drawShots(ctx, shots);
+                }
+            }
+
+            // 2. MAPA DE ZONAS DEL JUGADOR
+            const zoneCv = document.getElementById(`nm-cv-zone-${idx}`);
+            if (zoneCv) {
+                zoneCv.width = CW;   // Forzamos el ancho estándar (420)
+                zoneCv.height = CH;  // Forzamos el alto estándar (400)
+                drawZoneMap(`nm-cv-zone-${idx}`, shots);
+            }
         }, 60);
-    } else r.style.display = 'none';
+
+    } else {
+        r.style.display = 'none';
+    }
 };
 
 function renderCompare() {

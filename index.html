@@ -7578,15 +7578,14 @@ function saveMatchEdit(){
 
 window.saveNextMatch = async function() {
     S.nextMatch = {
-        rival: document.getElementById('nm-rival').value,
-        rivalSeason: document.getElementById('nm-r-season').value,
-        mySeason: document.getElementById('nm-m-season').value,
-        venue: document.getElementById('nm-venue').value,
-        date: document.getElementById('nm-date').value,
-        time: document.getElementById('nm-time').value
+        rival: document.getElementById('nm-rival')?.value || '',
+        rivalSeason: document.getElementById('nm-r-season')?.value || '',
+        mySeason: document.getElementById('nm-m-season')?.value || '',
+        venue: document.getElementById('nm-venue')?.value || 'home',
+        date: document.getElementById('nm-date')?.value || '',
+        time: document.getElementById('nm-time')?.value || ''
     };
     
-    // Guardar en la nube (Firestore) para que los jugadores lo reciban al instante
     try {
         await setDoc(META_DOC, { nextMatch: S.nextMatch }, { merge: true });
         if(typeof toast === 'function') toast("✅ Próximo rival guardado y sincronizado", 'ok');
@@ -7624,20 +7623,18 @@ function renderCompare() {
     const tabMain = document.querySelector('#t-compare .main');
     if (!tabMain) return;
     
-    // Comprobar si hay un rival válido guardado
+    S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
     // 1. SI NO HAY RIVAL CONFIGURADO
     if (!hasRival) {
         if (_playerMode) {
-            // Pantalla limpia y exclusiva para jugadores indicando que aún no hay partido
             tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
                 <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
                 <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
                 <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
             </div>`;
         } else {
-            // Vista de configuración para el Staff (con el formulario de selección)
             const rivals = new Set();
             const allSeasonsSet = new Set();
             S.matches.forEach(m => {
@@ -7690,7 +7687,7 @@ function renderCompare() {
         return;
     }
 
-    // Identificar nuestro equipo y filtrar partidos por la temporada configurada
+    const rival = S.nextMatch.rival;
     let myTeamName = 'U.E. Claret'; 
     const myTeamObj = S.teams.find(t => isOurTeam(t.name));
     if (myTeamObj) myTeamName = myTeamObj.name;
@@ -7706,7 +7703,6 @@ function renderCompare() {
     const myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
     const rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
 
-    // Helper: Últimos 5 partidos (Marcador literal, vs / @ y nombre completo)
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
         if(!matches.length) return '<div class="empty" style="font-size:10px;padding:4px">Sin partidos</div>';
@@ -7728,13 +7724,17 @@ function renderCompare() {
         }).join('');
     };
 
-    // 1. CABECERA GIGANTE (H2H posicional)
     const leftTeam = isMyTeamHome ? myTeamName : rival;
     const rightTeam = isMyTeamHome ? rival : myTeamName;
     const leftColor = isMyTeamHome ? '#f59e0b' : '#3b82f6';
     const rightColor = isMyTeamHome ? '#3b82f6' : '#f59e0b';
     const leftMatches = isMyTeamHome ? myMatches : rivMatches;
     const rightMatches = isMyTeamHome ? rivMatches : myMatches;
+
+    const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
+        <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
+        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="S.nextMatch.rival='';renderCompare();" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
+    </div>` : '';
 
     const headHtml = `<div class="card" style="margin-bottom:16px; padding:24px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
         <div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:16px">🔥 PRÓXIMO PARTIDO</div>
@@ -7752,29 +7752,25 @@ function renderCompare() {
         <div style="text-align:center; font-size:14px; font-weight:800; color:#fff; margin-bottom:24px; background:rgba(255,255,255,0.1); display:inline-block; padding:6px 16px; border-radius:12px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">
             📅 ${S.nextMatch.date || 'Día por definir'} &nbsp;&nbsp;|&nbsp;&nbsp; ⏰ ${S.nextMatch.time || 'Hora por definir'}
         </div>
-        
         <div style="display:flex; gap:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px">
             <div style="flex:1; background:rgba(255,255,255,0.05); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:11px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:12px; text-align:center; letter-spacing:0.5px">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
+                <div style="font-size:11px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:12px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
                 ${getL5(leftTeam, leftMatches)}
             </div>
             <div style="flex:1; background:rgba(255,255,255,0.05); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:11px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:12px; text-align:center; letter-spacing:0.5px">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>
+                <div style="font-size:11px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:12px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>
                 ${getL5(rightTeam, rightMatches)}
             </div>
         </div>
     </div>`;
 
-    // 2. COMPARATIVA MÉTRICA A MÉTRICA (Usa la función de las barras expansivas)
     const myAggr = _calcTeamAggr(myMatches, myTeamName);
     const rivAggr = _calcTeamAggr(rivMatches, rival);
-    
     const compHtml = `<div class="card" style="margin-bottom:16px">
         <div class="ct" style="margin-bottom:20px; font-size:13px">📊 Comparativa Métrica a Métrica</div>
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
-    // 3. MAPAS DEL EQUIPO RIVAL
     let rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
         const m = rivMatches.find(mm => mm.id === (s.mId || s.matchId));
         return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
@@ -7794,7 +7790,6 @@ function renderCompare() {
         </div>
     </div>`;
 
-    // 4. LISTA DE JUGADORES DEL RIVAL CON MAPAS
     const rivalPlayers = {};
     rivMatches.forEach(m => {
         const isHome = m.homeTeam === rival;
@@ -8615,29 +8610,21 @@ function _applyRole(role){
   _playerMode = (role === 'player');
   document.body.classList.toggle('player-mode', _playerMode);
   
-  // Guardamos la función original a salvo
   if (!window._originalST) window._originalST = window.ST;
   
   if(_playerMode) {
-      // 1. Ocultar menús superiores
       document.querySelectorAll('.nb').forEach(b => b.style.display = 'none');
       const navContainer = document.querySelector('.tabs-nav') || document.querySelector('.nav') || document.querySelector('nav');
       if (navContainer) navContainer.style.display = 'none';
 
-      // 2. LA CLAVE: Interceptamos la función. 
-      // Si la app intenta abrir Equipos (o cualquier otra), la forzamos a abrir 't-compare'.
-      // Así, la función original SÍ se ejecuta y se encarga ella misma de ocultar 'Equipos'.
       window.ST = function(id) {
           window._originalST('t-compare');
       };
       
-      // 3. Lanzamos el cambio de pestaña ahora mismo
       window._originalST('t-compare');
-      
+      setTimeout(() => { renderCompare(); }, 50);
   } else {
-      // MODO STAFF: Devolvemos todo a la normalidad
       window.ST = window._originalST;
-      
       document.querySelectorAll('.nb').forEach(b => {
           b.style.display = '';
           if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('t-compare')) {

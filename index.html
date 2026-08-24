@@ -2044,6 +2044,11 @@ async function ldLS() {
     S.access = snap.exists() ? (snap.data().access || null) : null;
     S.playerNotes = snap.exists() ? (snap.data().playerNotes || {}) : {};
     S.watchGroups = snap.exists() ? (snap.data().watchGroups || []) : [];
+    
+    // 🏀 RECUPERAR EL PRÓXIMO RIVAL DE LA NUBE
+    S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
+    if (typeof renderCompare === 'function') renderCompare();
+
     _refreshAfterSync();
   }, (err) => { console.error(err); setSyncStatus('error'); });
 
@@ -7563,7 +7568,7 @@ function saveMatchEdit(){
 // Panel exclusivo para jugadores. El Staff elige el rival y se genera el scouting.
 // ═══════════════════════════════════════════════════════════════════════════
 
-window.saveNextMatch = function() {
+window.saveNextMatch = async function() {
     S.nextMatch = {
         rival: document.getElementById('nm-rival').value,
         rivalSeason: document.getElementById('nm-r-season').value,
@@ -7572,9 +7577,18 @@ window.saveNextMatch = function() {
         date: document.getElementById('nm-date').value,
         time: document.getElementById('nm-time').value
     };
+    
+    // Guardar en la nube (Firestore) para que los jugadores lo reciban al instante
+    try {
+        await setDoc(META_DOC, { nextMatch: S.nextMatch }, { merge: true });
+        if(typeof toast === 'function') toast("✅ Próximo rival guardado y sincronizado", 'ok');
+    } catch(e) {
+        console.error("Error al sincronizar próximo rival:", e);
+        if(typeof toast === 'function') toast("⚠️ Guardado local, error al sincronizar", 'err');
+    }
+    
     svL();
     renderCompare();
-    if(typeof toast === 'function') toast("✅ Próximo rival configurado", 'ok');
 };
 
 window.toggleNextRivalPl = function(idx, name) {
@@ -8598,32 +8612,39 @@ function doLogout(){
 
 function _applyRole(role){
   _playerMode = (role === 'player');
-  
-  // Esto activa instantáneamente el muro de CSS que acabamos de poner arriba
   document.body.classList.toggle('player-mode', _playerMode);
   
+  // Guardamos la función original a salvo
   if (!window._originalST) window._originalST = window.ST;
   
   if(_playerMode) {
-      // 1. Borramos la memoria del navegador para que ni intente cargar 't-teams'
-      localStorage.removeItem('bascat_tab');
+      // 1. Ocultar menús superiores
+      document.querySelectorAll('.nb').forEach(b => b.style.display = 'none');
+      const navContainer = document.querySelector('.tabs-nav') || document.querySelector('.nav') || document.querySelector('nav');
+      if (navContainer) navContainer.style.display = 'none';
+
+      // 2. LA CLAVE: Interceptamos la función. 
+      // Si la app intenta abrir Equipos (o cualquier otra), la forzamos a abrir 't-compare'.
+      // Así, la función original SÍ se ejecuta y se encarga ella misma de ocultar 'Equipos'.
+      window.ST = function(id) {
+          window._originalST('t-compare');
+      };
       
-      // 2. Anulamos la función de cambio de pestañas. Si alguien hace clic, no pasa nada.
-      window.ST = function(id) { };
-      
-      // 3. Renderizamos el partido inmediatamente
-      if(typeof renderCompare === 'function') renderCompare();
+      // 3. Lanzamos el cambio de pestaña ahora mismo
+      window._originalST('t-compare');
       
   } else {
-      // MODO STAFF: Devolvemos el control de las pestañas
-      if (window._originalST) window.ST = window._originalST;
+      // MODO STAFF: Devolvemos todo a la normalidad
+      window.ST = window._originalST;
       
-      // Renombramos el botón para Staff
       document.querySelectorAll('.nb').forEach(b => {
+          b.style.display = '';
           if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('t-compare')) {
               b.innerHTML = '⚖️ Próximo Rival';
           }
       });
+      const navContainer = document.querySelector('.tabs-nav') || document.querySelector('.nav') || document.querySelector('nav');
+      if (navContainer) navContainer.style.display = '';
   }
   
   rAll();

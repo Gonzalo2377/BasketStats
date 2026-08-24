@@ -328,21 +328,22 @@ tbody tr:hover td { background: rgba(0, 113, 227, 0.03); }
 
 /* CANVAS Y MAPAS A TAMAÑO COMPLETO */
 .cw {
-  position: relative;
-  touch-action: none;
-  user-select: none;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  aspect-ratio: 420 / 400;
+    position: relative;
+    touch-action: none;
+    user-select: none;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    aspect-ratio: 420 / 400;
+    overflow: hidden;
 }
 .cw canvas {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-  border-radius: 10px;
-  object-fit: fill;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    border-radius: 8px;
+    object-fit: contain !important; /* Evita que la imagen se estire de más */
 }
 
 /* MODAL DE STATS EN DIRECTO */
@@ -5498,10 +5499,17 @@ function quickSelectMatch(id){
 // STATS TAB — aggregate per player with expandable match rows
 // ══════════════════════════════════════════════════════════════
 // Estado de ordenación de la tabla agregada de Stats. dir: -1 = mayor→menor.
-let _stAggSort={field:'pts',dir:-1};
+// Estado actual de ordenación de la tabla de stats
+let _stAggSort = { field: 'pts', dir: -1 }; // -1 = descendente (mayor a menor), 1 = ascendente
+
 function stAggSort(field){
-  if(_stAggSort.field===field)_stAggSort.dir*=-1;       // mismo campo → invierte
-  else _stAggSort={field,dir:(field==='name'||field==='team')?1:-1}; // texto asc, números desc
+  if(_stAggSort.field === field) {
+      _stAggSort.dir *= -1; // Si ya estaba seleccionada, invertimos la dirección
+  } else {
+      _stAggSort.field = field;
+      // Por defecto, texto ascendente (A-Z) y números descendentes (mayor a menor)
+      _stAggSort.dir = (field === 'name' || field === 'team') ? 1 : -1; 
+  }
   renderStatsAggregated();
 }
 
@@ -5863,12 +5871,12 @@ function renderScouting() {
       if (p.starter) rp.starts++;
     });
   });
-  const rpList = Object.values(rivalPlayers).sort((a, b) => b.pts - a.pts);
+  const rpList = Object.values(rivalPlayers);
 
   // ── 1. STATS BÁSICAS (2x3) CON RANKING LIGA Y ANILLOS VERDE/ROJO ──
   const b1 = document.getElementById('sc-block-1');
   if (b1) {
-      b1.style.gridAutoRows = '1fr'; // ¡LA CLAVE! Obliga a que todas las filas tengan el mismo alto
+      b1.style.gridAutoRows = '1fr'; 
       
       const W = matches.filter(m => m.homeTeam === _scoutRival ? Number(m.scoreHome) > Number(m.scoreAway) : Number(m.scoreAway) > Number(m.scoreHome)).length;
       const L = matches.length - W;
@@ -5973,23 +5981,19 @@ function renderScouting() {
       `;
   }
 
-  // ── 2. CONCLUSIONES ELABORADAS ──
   const b2 = document.getElementById('sc-block-2');
   if (b2) {
       const ins = _generateScoutInsights(advData, rpList, advFCBQ, matches, _scoutRival);
       b2.innerHTML = `<div class="ct" style="margin-bottom:12px">💡 CONCLUSIONES AUTOMÁTICAS</div>
           <div style="display:flex;flex-direction:column;gap:6px">
-             ${ins.map(i => `<div style="padding:10px 12px;background:#f8fafc;border-left:3px solid var(--ac);border-radius:0 8px 8px 0;font-size:12px;color:var(--nv)">• ${i}</div>`).join('')}
+               ${ins.map(i => `<div style="padding:10px 12px;background:#f8fafc;border-left:3px solid var(--ac);border-radius:0 8px 8px 0;font-size:12px;color:var(--nv)">• ${i}</div>`).join('')}
           </div>`;
   }
 
-  // ── 3. COMPARATIVA SPLITS ──
   window.setScoutSplit(window._scoutSplitMode);
 
-  // ── 4. RELOJ DE POSESIÓN ──
   if (typeof _renderScoutPossessionClocksSeguro === 'function') setTimeout(_renderScoutPossessionClocksSeguro, 50);
 
-  // ── 5. MAPAS EQUIPO ──
   let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
   shots = shots.filter(s => {
     const m = S.matches.find(m => m.id === (s.mId || s.matchId));
@@ -6022,15 +6026,52 @@ function renderScouting() {
       </div>` : '<div class="empty">Sin tiros ubicados</div>';
   }
 
-  // ── 6. JUGADORES Y MAPAS INDIVIDUALES ──
+  // ── 6. JUGADORES Y MAPAS INDIVIDUALES (CON ORDENACIÓN INTERACTIVA) ──
+  if (!window._scSort) window._scSort = { col: 'pts', dir: -1 };
+  window.scSort = function(col) {
+      if (window._scSort.col === col) window._scSort.dir *= -1;
+      else { window._scSort.col = col; window._scSort.dir = -1; }
+      renderScouting();
+  };
+
+  const scs = window._scSort;
+  const arrSc = [...rpList].sort((a, b) => {
+      let va, vb;
+      if (scs.col === 'name') { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
+      else if (scs.col === 'dorsal') { va = parseInt(a.dorsal)||0; vb = parseInt(b.dorsal)||0; }
+      else if (scs.col === 'games') { va = a.games; vb = b.games; }
+      else if (scs.col === 'min') { va = a.games ? a.min/a.games : 0; vb = b.games ? b.min/b.games : 0; }
+      else if (scs.col === 'pts') { va = a.games ? a.pts/a.games : 0; vb = b.games ? b.pts/b.games : 0; }
+      else if (scs.col === 't2') { va = a.t2a ? a.t2m/a.t2a : 0; vb = b.t2a ? b.t2m/b.t2a : 0; }
+      else if (scs.col === 't3') { va = a.t3a ? a.t3m/a.t3a : 0; vb = b.t3a ? b.t3m/b.t3a : 0; }
+      else if (scs.col === 'tl') { va = a.tla ? a.tlm/a.tla : 0; vb = b.tla ? b.tlm/b.tla : 0; }
+      else if (scs.col === 'reb') { va = a.games ? a.reb/a.games : 0; vb = b.games ? b.reb/b.games : 0; }
+      else if (scs.col === 'ast') { va = a.games ? a.ast/a.games : 0; vb = b.games ? b.ast/b.games : 0; }
+      else { va = a.pts; vb = b.pts; }
+      if (typeof va === 'string') return scs.dir * va.localeCompare(vb);
+      return scs.dir * (va - vb);
+  });
+  const scArrow = (c) => scs.col === c ? (scs.dir > 0 ? ' ▲' : ' ▼') : '';
+
   const b6 = document.getElementById('sc-block-6');
   if (b6) {
-      let html = `<div class="ct" style="padding:16px 16px 0">👥 Plantilla y Mapas de Tiro Individuales</div>
+      let html = `<div class="ct" style="padding:16px 16px 0">👥 Plantilla y Mapas de Tiro Individuales <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
       <div class="tw" style="margin-bottom:0;border:none;border-radius:0">
       <table style="min-width:700px">
-      <thead><tr><th style="text-align:left;background:#f8fafc;color:var(--t2)">Jugador</th><th style="background:#f8fafc;color:var(--t2)">PJ</th><th style="background:#f8fafc;color:var(--t2)">MIN</th><th style="background:#f8fafc;color:var(--t2)">PTS</th><th style="background:#f8fafc;color:var(--t2)">T2%</th><th style="background:#f8fafc;color:var(--t2)">T3%</th><th style="background:#f8fafc;color:var(--t2)">TL%</th><th style="background:#f8fafc;color:var(--t2)">REB</th><th style="background:#f8fafc;color:var(--t2)">AST</th></tr></thead><tbody>`;
+      <thead><tr>
+          <th onclick="scSort('name')" style="text-align:left;background:#f8fafc;color:var(--t2);cursor:pointer">Jugador${scArrow('name')}</th>
+          <th onclick="scSort('games')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">PJ${scArrow('games')}</th>
+          <th onclick="scSort('min')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">MIN${scArrow('min')}</th>
+          <th onclick="scSort('pts')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">PTS${scArrow('pts')}</th>
+          <th onclick="scSort('t2')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">T2%${scArrow('t2')}</th>
+          <th onclick="scSort('t3')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">T3%${scArrow('t3')}</th>
+          <th onclick="scSort('tl')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">TL%${scArrow('tl')}</th>
+          <th onclick="scSort('reb')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">REB${scArrow('reb')}</th>
+          <th onclick="scSort('ast')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">AST${scArrow('ast')}</th>
+      </tr></thead><tbody>`;
       
-      rpList.forEach((p, idx) => {
+      arrSc.forEach((p) => {
+          const idx = rpList.findIndex(x => x.name === p.name);
           const t2p = p.t2a ? Math.round(p.t2m/p.t2a*100) : 0;
           const t3p = p.t3a ? Math.round(p.t3m/p.t3a*100) : 0;
           const tlp = p.tla ? Math.round(p.tlm/p.tla*100) : 0;
@@ -6041,8 +6082,8 @@ function renderScouting() {
           </tr>
           <tr id="sc-pl-row-${idx}" style="display:none;background:#f8fafc"><td colspan="9" style="padding:15px">
               <div class="g2">
-                  <div><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">MAPA DE CALOR</div><div class="cw"><canvas id="sc-cv-heat-${idx}"></canvas></div></div>
-                  <div><div style="font-size:10px;font-weight:800;text-align:center;color:var(--t3);margin-bottom:6px">POR ZONAS</div><div class="cw"><canvas id="sc-cv-zone-${idx}"></canvas></div></div>
+                  <div style="background:#fff; padding:12px; border-radius:10px; border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px;text-transform:uppercase">Mapa de Calor</div><div class="cw"><canvas id="sc-cv-heat-${idx}"></canvas></div></div>
+                  <div style="background:#fff; padding:12px; border-radius:10px; border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px;text-transform:uppercase">Acierto por Zonas (%)</div><div class="cw"><canvas id="sc-cv-zone-${idx}"></canvas></div></div>
               </div>
           </td></tr>`;
       });
@@ -6050,11 +6091,9 @@ function renderScouting() {
       b6.innerHTML = html;
   }
 
-  // ── 7. SITUACIONES ESPECIALES (Clutch y ATO) ──
   renderScoutClutch(matches);
   renderScoutTimeout(matches);
 
-  // ── 8. ANALÍTICA AVANZADA E INYECCIÓN GLOBAL (2x2 GRID TOTAL) ──
   const b8 = document.getElementById('sc-block-8');
   if (b8 && advFCBQ) {
       const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
@@ -6066,10 +6105,10 @@ function renderScouting() {
           let rect = '';
           if (d.net > 0) {
               rect = `<path d="M${x-15} 45 L${x+15} 45 L${x+15} 35 Q${x+15} 25 ${x} 25 Q${x-15} 25 ${x-15} 35 Z" fill="#16a34a" />
-                      <text x="${x}" y="20" font-size="12" font-weight="900" fill="#15803d" text-anchor="middle">+${d.net.toFixed(1)}</text>`;
+                    <text x="${x}" y="20" font-size="12" font-weight="900" fill="#15803d" text-anchor="middle">+${d.net.toFixed(1)}</text>`;
           } else if (d.net < 0) {
               rect = `<path d="M${x-15} 55 L${x+15} 55 L${x+15} 65 Q${x+15} 75 ${x} 75 Q${x-15} 75 ${x-15} 65 Z" fill="#ef4444" />
-                      <text x="${x}" y="90" font-size="12" font-weight="900" fill="#991b1b" text-anchor="middle">${d.net.toFixed(1)}</text>`;
+                    <text x="${x}" y="90" font-size="12" font-weight="900" fill="#991b1b" text-anchor="middle">${d.net.toFixed(1)}</text>`;
           }
           bars += `${rect}
               <rect x="${x-14}" y="42" width="28" height="16" rx="8" fill="#fff" stroke="var(--bd)" stroke-width="2"/>
@@ -6080,12 +6119,10 @@ function renderScouting() {
           ${bars}
       </svg>`;
 
-      // Nuevos cálculos para la gráfica de anillo de Segundas Oportunidades
       const scPctT3 = advFCBQ.scPts > 0 ? Math.round((advFCBQ.scT3 / advFCBQ.scPts) * 100) : 0;
       const scPctT2 = advFCBQ.scPts > 0 ? 100 - scPctT3 : 0;
       const avgScPts = (advFCBQ.scPts / (matches.length || 1)).toFixed(1);
 
-      // Dibujo del Anillo Dinámico (Rojo T2, Azul T3)
       const scRingHtml = advFCBQ.scPts === 0 
           ? `<svg viewBox="0 0 54 54" style="width:54px; height:54px; display:block; flex-shrink:0"><circle cx="27" cy="27" r="22" stroke="#e2e8f0" stroke-width="8" fill="transparent"></circle></svg>`
           : `<svg viewBox="0 0 54 54" style="width:54px; height:54px; display:block; flex-shrink:0; transform:rotate(-90deg)">
@@ -6193,7 +6230,6 @@ function renderScouting() {
       </div>`;
   } else if(b8) b8.innerHTML = '';
 
-  // Notas
   const notes = _scoutNotes[_scoutRival] || {};
   ['pr','side','def','other'].forEach(k => {
     const el = document.getElementById('sc-note-' + k);
@@ -7602,7 +7638,6 @@ window.saveNextMatch = async function() {
         time: document.getElementById('nm-time')?.value || ''
     };
     
-    // Guardado forzoso en Firebase (META_DOC) para sincronizar móviles y PC
     try {
         await setDoc(META_DOC, { nextMatch: S.nextMatch }, { merge: true });
         if(typeof toast === 'function') toast("✅ Próximo rival sincronizado en la nube", 'ok');
@@ -7615,7 +7650,6 @@ window.saveNextMatch = async function() {
     renderCompare();
 };
 
-// Función de seguridad para el botón de "Cambiar" rival que no funcionaba
 window.clearNextMatch = async function() {
     S.nextMatch = null;
     try {
@@ -7631,19 +7665,17 @@ window.toggleNextRivalPl = function(idx, name) {
     if(!r) return;
     if(r.style.display === 'none') {
         r.style.display = 'table-row';
-        let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
-        const rivalName = S.nextMatch?.rival;
-        const rSeason = S.nextMatch?.rivalSeason;
-        shots = shots.filter(s => {
-            const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
-            return m && s.player === name && (m.homeTeam === rivalName || m.awayTeam === rivalName) && (!rSeason || m.season === rSeason);
-        });
-        if(shots.length >= 3) drawHeatmap(`nm-cv-heat-${idx}`, shots);
-        else {
-            const cv = document.getElementById(`nm-cv-heat-${idx}`);
-            if (cv) { cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots); }
-        }
-        drawZoneMap(`nm-cv-zone-${idx}`, shots);
+        setTimeout(() => {
+            let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+            const rivalName = S.nextMatch?.rival;
+            const rSeason = S.nextMatch?.rivalSeason;
+            shots = shots.filter(s => {
+                const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
+                return m && s.player === name && (m.homeTeam === rivalName || m.awayTeam === rivalName) && (!rSeason || m.season === rSeason);
+            });
+            if(shots.length >= 0) drawHeatmap(`nm-cv-heat-${idx}`, shots);
+            drawZoneMap(`nm-cv-zone-${idx}`, shots);
+        }, 60);
     } else r.style.display = 'none';
 };
 
@@ -7651,20 +7683,17 @@ function renderCompare() {
     const tabMain = document.querySelector('#t-compare .main');
     if (!tabMain) return;
     
-    // Asegurarnos de que existe el objeto y tiene un RIVAL válido y con texto
+    S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
-    // 1. SI NO HAY RIVAL CONFIGURADO (BLINDAJE ABSOLUTO)
     if (!hasRival) {
         if (_playerMode) {
-            // Pantalla limpia exclusiva para jugadores indicando que aún no hay partido
             tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
                 <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
                 <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
                 <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
             </div>`;
         } else {
-            // Vista de configuración para el Staff
             const rivals = new Set();
             const allSeasonsSet = new Set();
             S.matches.forEach(m => {
@@ -7714,7 +7743,7 @@ function renderCompare() {
                 </div>
             </div><div class="empty">Aún no has configurado el próximo partido.</div>`;
         }
-        return; // <--- ESTE "return" es clave para que frene aquí y no pinte el partido vacío debajo
+        return;
     }
 
     const rival = S.nextMatch.rival;
@@ -7763,10 +7792,9 @@ function renderCompare() {
 
     const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
         <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
-        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()";" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
+        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
     </div>` : '';
 
-    // Reemplaza el bloque de las cajas de últimos 5 partidos dentro de headHtml por este:
     const headHtml = `<div class="card" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
         <div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:12px">🔥 PRÓXIMO PARTIDO</div>
         <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
@@ -7783,7 +7811,6 @@ function renderCompare() {
         <div style="text-align:center; font-size:12px; font-weight:800; color:#fff; margin-bottom:16px; background:rgba(255,255,255,0.1); display:inline-block; padding:4px 12px; border-radius:10px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">
             📅 ${S.nextMatch.date || 'Por definir'} &nbsp;|&nbsp; ⏰ ${S.nextMatch.time || 'Por definir'}
         </div>
-        <!-- Usamos flex-wrap para que en móvil baje uno debajo de otro si no caben, y flex:1 min-width para evitar desbordes -->
         <div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px">
             <div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                 <div style="font-size:10px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
@@ -7833,15 +7860,53 @@ function renderCompare() {
             rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
         });
     });
-    const rpList = Object.values(rivalPlayers).sort((a, b) => b.pts - a.pts);
+    const rpList = Object.values(rivalPlayers);
+
+    if (!window._nmSort) window._nmSort = { col: 'pts', dir: -1 };
+    window.nmSort = function(col) {
+        if (window._nmSort.col === col) window._nmSort.dir *= -1;
+        else { window._nmSort.col = col; window._nmSort.dir = -1; }
+        renderCompare();
+    };
+
+    const nms = window._nmSort;
+    const arrRp = [...rpList].sort((a, b) => {
+        let va, vb;
+        if (nms.col === 'name') { va = a.name.toLowerCase(); vb = b.name.toLowerCase(); }
+        else if (nms.col === 'dorsal') { va = parseInt(a.dorsal)||0; vb = parseInt(b.dorsal)||0; }
+        else if (nms.col === 'games') { va = a.games; vb = b.games; }
+        else if (nms.col === 'min') { va = a.games ? a.min/a.games : 0; vb = b.games ? b.min/b.games : 0; }
+        else if (nms.col === 'pts') { va = a.games ? a.pts/a.games : 0; vb = b.games ? b.pts/b.games : 0; }
+        else if (nms.col === 't2') { va = a.t2a ? a.t2m/a.t2a : 0; vb = b.t2a ? b.t2m/b.t2a : 0; }
+        else if (nms.col === 't3') { va = a.t3a ? a.t3m/a.t3a : 0; vb = b.t3a ? b.t3m/b.t3a : 0; }
+        else if (nms.col === 'tl') { va = a.tla ? a.tlm/a.tla : 0; vb = b.tla ? b.tlm/b.tla : 0; }
+        else if (nms.col === 'reb') { va = a.games ? a.reb/a.games : 0; vb = b.games ? b.reb/b.games : 0; }
+        else if (nms.col === 'ast') { va = a.games ? a.ast/a.games : 0; vb = b.games ? b.ast/b.games : 0; }
+        else { va = a.pts; vb = b.pts; }
+        if (typeof va === 'string') return nms.dir * va.localeCompare(vb);
+        return nms.dir * (va - vb);
+    });
+
+    const nmArrow = (c) => nms.col === c ? (nms.dir > 0 ? ' ▲' : ' ▼') : '';
 
     let rosterHtml = `<div class="card">
-        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Plantilla (${_esc(rival)})</div>
+        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Plantilla (${_esc(rival)}) <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
         <div class="tw" style="margin-bottom:0;border:none;border-radius:0">
         <table style="min-width:700px">
-        <thead><tr><th style="text-align:left;background:#f8fafc;color:var(--t2)">Jugador</th><th style="background:#f8fafc;color:var(--t2)">PJ</th><th style="background:#f8fafc;color:var(--t2)">MIN</th><th style="background:#f8fafc;color:var(--t2)">PTS</th><th style="background:#f8fafc;color:var(--t2)">T2%</th><th style="background:#f8fafc;color:var(--t2)">T3%</th><th style="background:#f8fafc;color:var(--t2)">TL%</th><th style="background:#f8fafc;color:var(--t2)">REB</th><th style="background:#f8fafc;color:var(--t2)">AST</th></tr></thead><tbody>`;
+        <thead><tr>
+            <th onclick="nmSort('name')" style="text-align:left;background:#f8fafc;color:var(--t2);cursor:pointer">Jugador${nmArrow('name')}</th>
+            <th onclick="nmSort('games')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">PJ${nmArrow('games')}</th>
+            <th onclick="nmSort('min')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">MIN${nmArrow('min')}</th>
+            <th onclick="nmSort('pts')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">PTS${nmArrow('pts')}</th>
+            <th onclick="nmSort('t2')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">T2%${nmArrow('t2')}</th>
+            <th onclick="nmSort('t3')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">T3%${nmArrow('t3')}</th>
+            <th onclick="nmSort('tl')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">TL%${nmArrow('tl')}</th>
+            <th onclick="nmSort('reb')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">REB${nmArrow('reb')}</th>
+            <th onclick="nmSort('ast')" style="background:#f8fafc;color:var(--t2);cursor:pointer;text-align:center">AST${nmArrow('ast')}</th>
+        </tr></thead><tbody>`;
     
-    rpList.forEach((p, idx) => {
+    arrRp.forEach((p) => {
+        const idx = rpList.findIndex(x => x.name === p.name);
         const t2p = p.t2a ? Math.round(p.t2m/p.t2a*100) : 0;
         const t3p = p.t3a ? Math.round(p.t3m/p.t3a*100) : 0;
         const tlp = p.tla ? Math.round(p.tlm/p.tla*100) : 0;

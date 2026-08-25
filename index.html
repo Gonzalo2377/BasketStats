@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BascatApp</title>
 <style>
+
 /* 🎯 AJUSTE DE MAPAS DESPLEGABLES EN TABLAS MÓVILES (PRÓXIMO RIVAL Y SCOUTING) */
 tr[id*="-pl-row-"] > td {
     padding: 0 !important; /* Eliminamos el padding forzado de la celda */
@@ -2051,6 +2052,23 @@ function _refreshAfterSync(){
 // Firestore document, so the old 1MB single-document ceiling is gone: the
 // only per-document limit now applies to ONE match (~50-100KB), never the whole club.
 async function ldLS() {
+  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC en 0 milisegundos
+  try {
+    const localData = localStorage.getItem('bascatapp_data');
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      if (parsed && parsed.teams) {
+        // Restaurar todo el estado guardado al instante
+        S = parsed;
+        console.log("⚡ Cargado desde caché al instante");
+        // Pintar toda la interfaz de la web inmediatamente sin esperar a la nube
+        _refreshAfterSync();
+        if (typeof renderCompare === 'function') renderCompare();
+      }
+    }
+  } catch (e) {
+    console.warn("Caché local no disponible", e);
+  }
   setSyncStatus('conn');
   // ── One-time migration from legacy single doc ──
   try {

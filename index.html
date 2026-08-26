@@ -6,6 +6,12 @@
 <title>BascatApp</title>
 <style>
 
+/* Para el tablero de la pista */
+background-image: url('fondo-pista.jpg'); 
+
+/* Para el botón central (Play/Pausa) */
+background-image: url('logo-claret.png');
+
 /* 🎯 AJUSTE DE MAPAS DESPLEGABLES EN TABLAS MÓVILES (PRÓXIMO RIVAL Y SCOUTING) */
 tr[id*="-pl-row-"] > td {
     padding: 0 !important; /* Eliminamos el padding forzado de la celda */
@@ -926,6 +932,123 @@ select {
         overscroll-behavior-y: contain !important;
     }
 }
+
+/* ═══════════════════════════════════════════
+   🏀 PIZARRA TÁCTICA EN DIRECTO (DRAG & DROP) v2
+   ═══════════════════════════════════════════ */
+.tac-board {
+    position: relative; width: 100%; aspect-ratio: 16/9; background: #eab308;
+    border: 3px solid #1e293b; border-radius: 8px; overflow: hidden; margin-bottom: 12px;
+    /* PON AQUÍ LA RUTA DE LA IMAGEN DE TU PISTA */
+    background-image: url('RUTA_A_TU_IMAGEN_DE_PISTA.jpeg'); 
+    background-size: cover; background-position: center;
+    touch-action: none;
+}
+
+/* Ocultamos las líneas dibujadas por CSS porque ahora tienes tu imagen de fondo */
+.tac-line, .tac-center, .tac-circle, .tac-paint-l, .tac-paint-r { display: none !important; }
+
+/* Botón central Play/Pausa (Logo Claret) */
+.tac-play-btn {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 60px; height: 60px; background-color: rgba(255,255,255,0.85);
+    border-radius: 50%; cursor: pointer; border: 3px solid #1e293b; z-index: 5;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;
+    /* PON AQUÍ LA RUTA DEL LOGO DEL CLARET */
+    background-image: url('RUTA_AL_LOGO_CLARET.png'); 
+    background-size: 75%; background-position: center; background-repeat: no-repeat;
+    color: transparent !important; /* Oculta el texto ▶ o ⏸ */
+}
+
+/* Fichas de Jugador (Estilo Camiseta) */
+.tac-slot {
+    position: absolute; width: 44px; height: 50px; border: 2px dashed rgba(0,0,0,0.4);
+    border-radius: 8px 8px 20px 20px; transform: translate(-50%, -50%); z-index: 1;
+}
+.d-token {
+    width: 44px; height: 50px; border-radius: 8px 8px 20px 20px; /* Forma de torso/camiseta */
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 6px; position: absolute; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    cursor: grab; user-select: none; transform: translate(-50%, -50%); font-family: var(--fn);
+}
+.d-token[data-team="home"] { background: var(--ac); color: #fff; border: 1.5px solid #fff; }
+.d-token[data-team="away"] { background: #ef4444; color: #fff; border: 1.5px solid #fff; }
+.d-token .tk-d { font-size: 17px; font-weight: 900; line-height: 1; }
+.d-token .tk-n { font-size: 8px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40px; margin-top: 2px; }
+
+/* Fichas de Acción (Rectangulares) */
+.d-token.action {
+    width: auto; height: 26px; border-radius: 6px; padding: 0 8px; font-size: 10px;
+    font-weight: 800; background: #fff; border: 2px solid var(--nv); color: var(--nv);
+    display: flex; align-items: center; justify-content: center;
+}
+.d-token.action.red { border-color: #ef4444; color: #ef4444; }
+
+.d-token.dragging { z-index: 99999; transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; cursor: grabbing; pointer-events: none; }
+
+.bench-zone { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background: rgba(0,0,0,0.04); border-radius: 10px; border: 1.5px dashed var(--bd); min-height: 68px; flex: 1; }
+.bench-zone .d-token { position: relative; transform: none; box-shadow: none; flex-shrink: 0; }
+
+.tac-layout { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+.tac-sidebar { display: flex; flex-direction: column; gap: 6px; width: 44px; flex-shrink: 0; justify-content: center; }
+.tac-sb-btn { width: 100%; aspect-ratio: 1/1; background: #fff; border: 1.5px solid var(--bd); border-radius: 8px; font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--t2); box-shadow: 0 2px 4px rgba(0,0,0,0.02); line-height: 1; }
+.tac-sb-btn:hover { background: #f8fafc; color: var(--ac); }
+
+/* ═══════════════════════════════════════════
+   🏀 REAJUSTES DE TAMAÑO, CAMISETAS Y Z-INDEX
+   ═══════════════════════════════════════════ */
+/* 1. Botones laterales gigantes */
+.tac-sidebar { width: 75px !important; gap: 12px !important; }
+.tac-sb-btn { font-size: 32px !important; border-radius: 12px !important; padding: 10px 0 !important; }
+.tac-sb-btn small { font-size: 11px !important; margin-top: 6px !important; }
+
+/* 2. Fichas de acción (Robo, Tapón, etc.) más grandes */
+.d-token.action {
+    height: 38px !important; 
+    padding: 0 16px !important; 
+    font-size: 13px !important;
+    border-width: 2.5px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* 3. Popups SIEMPRE por encima y más grandes */
+#shot-popup {
+    z-index: 9999999 !important; /* Capa más alta de toda la app */
+    min-width: 360px !important; 
+    padding: 20px !important;
+}
+#shot-popup-inner button {
+    padding: 18px !important;
+    font-size: 16px !important;
+}
+
+/* 4. Flechas del reloj y estilo camiseta (para resetear el estilo viejo) */
+.timer-arr {
+    background: var(--bg); border: 1.5px solid var(--bd); border-radius: 6px;
+    font-size: 18px; cursor: pointer; padding: 8px 16px; font-weight: 900; color: var(--nv);
+}
+.timer-arr:hover { background: #e2e8f0; }
+
+.d-token.player-token {
+    background: transparent !important; border: none !important; box-shadow: none !important;
+    width: 50px !important; height: 75px !important; border-radius: 0 !important;
+}
+.foul-circle {
+    position: absolute; bottom: 12px; left: -8px; width: 24px; height: 24px;
+    background: #f59e0b; border: 2.5px solid #fff; border-radius: 50%;
+    color: #fff; font-size: 13px; font-weight: 900; display: flex;
+    align-items: center; justify-content: center; z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.tk-name-plate {
+    position: absolute; bottom: -8px; font-size: 11px; font-weight: 900;
+    background: #fff; color: #0f172a; padding: 3px 8px; border-radius: 6px;
+    border: 1.5px solid var(--bd); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 70px; z-index: 10;
+}
+
 </style>
 </head>
 <body>
@@ -1187,138 +1310,153 @@ select {
     <div id="lv-st" class="st-msg"></div>
   </div>
 
-  <!-- Live panel -->
+  <!-- Live panel (REDISEÑO PIZARRA TÁCTICA) -->
   <div id="lv-panel" style="display:none">
-  
-  <!-- 📍 INICIO MARCADOR STICKY (Fijo al hacer scroll) -->
-  <div style="position: sticky; top: 96px; z-index: 100; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--bd); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);">
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px">
-      <div style="text-align:center">
-        <div style="font-size:11px;opacity:.65;margin-bottom:1px" id="lv-hl">Local</div>
-        <div style="font-size:44px;font-weight:900;line-height:1" id="lv-score-h">0</div>
-        <div style="font-size:9px;opacity:.6;margin-top:1px" id="lv-h-pp">P1: 0pts</div>
-        <div id="lv-h-bonus" style="display:none;font-size:9px;font-weight:800;color:#fbbf24;margin-top:1px">🎁 BONUS</div>
-      </div>
-      
-      <div style="text-align:center">
-        <div style="font-size:10px;opacity:.6;font-weight:bold;margin-bottom:2px" id="lv-pd">P1</div>
-        <!-- Reloj con botones de ajuste de +/- 1 segundo -->
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px">
-          <button onclick="adjustTimer(-1)" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:0.7">➖</button>
-          <!-- El ID lv-timer se mantiene para que tu función toggleTimer() siga funcionando -->
-          <div id="lv-timer" onclick="toggleTimer()" style="font-size:26px;font-weight:800;font-family:monospace;cursor:pointer;background:rgba(255,255,255,.13);border-radius:8px;padding:3px 10px;min-width:78px;text-align:center;border:1.5px solid rgba(255,255,255,.2);user-select:none">10:00</div>
-          <button onclick="adjustTimer(1)" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:0.7">➕</button>
-        </div>
-        <!-- Botones de cuartos (Dinámicos hasta PT2) -->
-        <div style="display:flex;gap:3px;margin-top:4px;justify-content:center">
-          <button onclick="resetTimer()" class="per-btn" title="Resetear Reloj">↺</button>
-          <button onclick="setPer(1)" id="pb1" class="per-btn active-per">P1</button>
-          <button onclick="setPer(2)" id="pb2" class="per-btn">P2</button>
-          <button onclick="setPer(3)" id="pb3" class="per-btn">P3</button>
-          <button onclick="setPer(4)" id="pb4" class="per-btn">P4</button>
-          <button onclick="setPer(5)" id="pb5" class="per-btn">PT1</button>
-          <button onclick="setPer(6)" id="pb6" class="per-btn">PT2</button>
-        </div>
-        <input type="hidden" id="lv-min" value="0">
-      </div>
-      
-      <div style="text-align:center">
-        <div style="font-size:11px;opacity:.65;margin-bottom:1px" id="lv-al">Rival</div>
-        <div style="font-size:44px;font-weight:900;line-height:1" id="lv-score-a">0</div>
-        <div style="font-size:9px;opacity:.6;margin-top:1px" id="lv-a-pp">P1: 0pts</div>
-        <div id="lv-a-bonus" style="display:none;font-size:9px;font-weight:800;color:#fbbf24;margin-top:1px">🎁 BONUS</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;justify-content:center;margin-top:7px">
-      <button id="kb-toggle" onclick="toggleKb()" class="per-btn" style="font-size:10px">⌨️ Atajos OFF</button>
-      <button onclick="openLiveStatsModal()" class="per-btn" style="background:rgba(79,70,229,.7);font-size:10px">📊 Stats en directo</button>
-      <button onclick="endLive()" class="per-btn" style="background:rgba(232,64,42,.75);font-size:10px">🏁 Finalizar</button>
-    </div>
-  </div>
-  <div class="card" style="padding:9px 10px;margin-bottom:8px">
-    <div class="g2" style="gap:8px">
-      <div>
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-          <span style="width:9px;height:9px;border-radius:50%;background:var(--ac)"></span>
-          <span style="font-size:10px;font-weight:800;color:var(--ac);text-transform:uppercase" id="lv-home-label-strip">LOCAL</span>
-          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=activo · mantén=banquillo</span>
-        </div>
-        <div id="lv-court-strip-home" style="display:flex;gap:4px;flex-wrap:wrap;min-height:42px;background:#fff0ee;border:2px solid #fecaca;border-radius:8px;padding:5px"></div>
-      </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-          <span style="width:9px;height:9px;border-radius:50%;background:#3b82f6"></span>
-          <span style="font-size:10px;font-weight:800;color:#3b82f6;text-transform:uppercase" id="lv-away-label-strip">RIVAL</span>
-          <span style="font-size:8px;color:var(--t3);margin-left:auto">toca=activo · mantén=banquillo</span>
-        </div>
-        <div id="lv-court-strip-away" style="display:flex;gap:4px;flex-wrap:wrap;min-height:42px;background:#eff6ff;border:2px solid #bfdbfe;border-radius:8px;padding:5px"></div>
-      </div>
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
-    <div>
-      <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-      <div class="card" style="padding:7px 10px;margin-bottom:8px;background:linear-gradient(135deg,#fff,#fff8f6)"> 
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px" id="lv-sel-dorsal">—</div>
-          <div style="flex:1">
-            <div style="font-size:9px;color:var(--t3)">JUGADOR ACTIVO</div>
-            <div style="font-size:14px;font-weight:800;color:var(--ac)" id="lv-sel-name">Toca un jugador arriba</div>
+    
+    <!-- MARCADOR SUPERIOR (Sticky) -->
+    <div style="position: sticky; top: 48px; z-index: 100; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);">
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px">
+        <div style="display:flex; justify-content:center; align-items:center; gap:16px">
+          <div style="text-align:center">
+            <div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase" id="lv-hl">Local</div>
+            <div style="font-size:44px;font-weight:900;line-height:1;color:var(--ac)" id="lv-score-h">0</div>
+            <div style="font-size:9px;color:var(--t3)" id="lv-h-pp">P1: 0pts</div>
           </div>
-          <span id="lv-hot" style="display:none;font-size:15px">🔥</span>
+          <div style="text-align:center; background:#fef2f2; border:2px solid #fca5a5; border-radius:8px; padding:6px 10px; min-width:50px">
+            <div style="font-size:9px;font-weight:800;color:#dc2626">FALTAS</div>
+            <div style="font-size:22px;font-weight:900;color:#991b1b" id="lv-fouls-h">0</div>
+          </div>
+        </div>
+        
+        <!-- RELOJ Y MINUTOS -->
+        <div style="text-align:center; min-width:160px">
+          <div style="font-size:10px;font-weight:800;color:var(--t3);margin-bottom:4px" id="lv-pd">P1</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+            
+            <!-- BOTONES DE MINUTOS (Forzados para funcionar siempre) -->
+            <div style="display:flex; flex-direction:column; gap:4px; z-index:100">
+              <button class="timer-arr" type="button" onmousedown="adjustTimer(60); event.preventDefault();" ontouchstart="adjustTimer(60); event.preventDefault();">▲</button>
+              <button class="timer-arr" type="button" onmousedown="adjustTimer(-60); event.preventDefault();" ontouchstart="adjustTimer(-60); event.preventDefault();">▼</button>
+            </div>
+            
+            <div id="lv-timer" onclick="toggleTimer()" style="font-size:32px;font-weight:900;font-family:monospace;cursor:pointer;background:#0f172a;color:#fff;border-radius:10px;padding:6px 16px;text-align:center;min-width:100px;user-select:none">10:00</div>
+            
+            <!-- BOTONES DE SEGUNDOS (Forzados para funcionar siempre) -->
+            <div style="display:flex; flex-direction:column; gap:4px; z-index:100">
+              <button class="timer-arr" type="button" onmousedown="adjustTimer(1); event.preventDefault();" ontouchstart="adjustTimer(1); event.preventDefault();">▲</button>
+              <button class="timer-arr" type="button" onmousedown="adjustTimer(-1); event.preventDefault();" ontouchstart="adjustTimer(-1); event.preventDefault();">▼</button>
+            </div>
+
+          </div>
+          <div style="display:flex;gap:4px;margin-top:10px;justify-content:center">
+            <button onclick="setPer(1)" id="pb1" class="per-btn active-per">P1</button>
+            <button onclick="setPer(2)" id="pb2" class="per-btn">P2</button>
+            <button onclick="setPer(3)" id="pb3" class="per-btn">P3</button>
+            <button onclick="setPer(4)" id="pb4" class="per-btn">P4</button>
+            <button onclick="setPer(5)" id="pb5" class="per-btn">PT1</button>
+            <button onclick="setPer(6)" id="pb5" class="per-btn">PT2</button>
+
+          </div>
+          <input type="hidden" id="lv-min" value="0">
+        </div>
+        
+        <div style="display:flex; justify-content:center; align-items:center; gap:16px; flex-direction:row-reverse">
+          <div style="text-align:center">
+            <div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase" id="lv-al">Rival</div>
+            <div style="font-size:44px;font-weight:900;line-height:1;color:#ef4444" id="lv-score-a">0</div>
+            <div style="font-size:9px;color:var(--t3)" id="lv-a-pp">P1: 0pts</div>
+          </div>
+          <div style="text-align:center; background:#fef2f2; border:2px solid #fca5a5; border-radius:8px; padding:6px 10px; min-width:50px">
+            <div style="font-size:9px;font-weight:800;color:#dc2626">FALTAS</div>
+            <div style="font-size:22px;font-weight:900;color:#991b1b" id="lv-fouls-a">0</div>
+          </div>
         </div>
       </div>
-      <div class="card" style="padding:10px">
-        <div class="ct">🏀 Camp — clica per registrar tir <span style="font-size:10px;color:var(--t3)" id="lv-sc"></span></div>
-        <div class="cw"><canvas id="lv-cv"></canvas></div>
-        <div style="display:flex;gap:6px;margin-top:4px;font-size:10px;color:var(--t3)">
-          <span style="color:var(--gn)">● Anotado</span><span style="color:#dc2626">✕ Fallado</span>
-          <span style="margin-left:auto">T2 dentro · T3 fuera</span>
-        </div>
-        <div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
-          <button class="bxs btn bp" id="lv-view-live" onclick="setLvCourtView('live')" style="flex:1;min-width:60px;font-size:10px">🎯 Actual</button>
-          <button class="bxs btn bo" id="lv-view-full" onclick="setLvCourtView('full')" style="flex:1;min-width:60px;font-size:10px">📋 Todo</button>
-          <button class="bxs btn bo" id="lv-view-heatp" onclick="setLvCourtView('heatp')" style="flex:1;min-width:60px;font-size:10px">🔥 Jugador</button>
-          <button class="bxs btn bo" id="lv-view-heatt" onclick="setLvCourtView('heatt')" style="flex:1;min-width:60px;font-size:10px">🔥 Equipo</button>
-          <button class="bxs btn bo" id="lv-view-zonest" onclick="setLvCourtView('zonest')" style="flex:1;min-width:60px;font-size:10px">📊 Zonas</button>
-        </div>
-        <div id="lv-view-hint" style="font-size:9px;color:var(--t3);margin-top:4px"></div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:10px">
+        <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:10px">📊 Stats Directo</button>
+        <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:10px">✏️ Editar Equipos</button>
+        <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:10px">🏁 Finalizar Partido</button>
       </div>
     </div>
-    <div>
-      <div class="card" style="padding:10px;margin-bottom:8px">
-        <div class="ct">⚡ Acciones rápidas</div>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:6px 9px;margin-bottom:6px;font-size:10px;color:#1e40af">
-          💡 Los <b>rebotes</b> se piden solos al fallar un tiro, y las <b>asistencias</b> al anotar.
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-          <button class="ab am" onclick="lvAct('ast')" style="padding:18px 4px;font-size:14px">🤝<br>Asist.</button>
-          <button class="ab ao" onclick="lvAct('foul')" style="padding:18px 4px;font-size:14px">⚠️<br>Falta</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('stl')" style="padding:9px 2px;font-size:11px">🔥<br>Robo</button>
-          <button class="ab ao" onclick="lvAct('blk')" style="padding:13px 2px;font-size:13px">✋<br>Tapón</button>
-          <button class="ab ao" onclick="lvAct('to')" style="padding:9px 2px;font-size:11px">💨<br>Pérdida</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="lvAct('ro')" style="padding:8px 2px;font-size:10px">📌 Reb.Of<br><span style="font-size:8px;opacity:.65">manual</span></button>
-          <button class="ab ao" onclick="lvAct('rd')" style="padding:8px 2px;font-size:10px">🛡️ Reb.Def<br><span style="font-size:8px;opacity:.65">manual</span></button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-          <button class="ab ao" onclick="window.lvActTechInteligente()" style="background:#fefce8;color:#854d0e;border-color:#fde047;padding:13px 2px;font-size:12px">🟡 Técnica</button>
-          <button class="ab ao" onclick="window.lvActAntiInteligente()" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;padding:13px 2px;font-size:12px">🔴 Antidep.</button>
-        </div>
-        <button class="btn bo" onclick="openSubModal()" style="width:100%;font-size:17px;font-weight:800;padding:22px 8px;margin-bottom:6px;background:#f0fdf4;border:2.5px solid #16a34a;color:#15803d;border-radius:12px">🔄 CAMBIOS</button>
-        <button class="btn bo" onclick="openLvEdit()" style="width:100%;font-size:11.5px;font-weight:700;margin-bottom:6px;background:#eff6ff;border:1.5px solid #3b82f6;color:#1e40af">✏️ Editar equipos / dorsales</button>
-        <button class="btn bo" onclick="lvUndo()" style="width:100%;font-size:11px">↩ Deshacer última acción</button>
+
+    <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+
+    <div class="tac-layout">
+      <!-- SIDEBAR LOCAL -->
+      <div class="tac-sidebar">
+        <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas Eq. Partido" onclick="tacSideModal('heatt_match', 'home')">📍<br><small style="font-size:9px;font-weight:900;color:var(--ac)">HOY</small></button>
+        <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'home')">⛹️<br><small style="font-size:9px;font-weight:900;color:var(--ac)">HOY</small></button>
       </div>
-      <div class="card" style="padding:8px">
-        <div class="ct">⚡ Últimas acciones</div>
-        <div id="lv-log" style="max-height:160px;overflow-y:auto;font-size:11px"></div>
+
+      <!-- TABLERO TÁCTICO CENTRAL -->
+      <div class="tac-board" id="tac-board">
+         <div class="tac-play-btn" id="tac-play-btn" onclick="toggleTimer()"></div>
+         <div id="tac-slots-layer"></div>
+
+         <!-- Fichas de Acción (Arrastrables) Arriba -->
+         <div class="d-token action red" data-type="action" data-action="foul" style="left: 28%; top: 12%;">FALTA</div>
+         <div class="d-token action" data-type="action" data-action="stl" style="left: 43%; top: 12%;">ROBO</div>
+         <div class="d-token action" data-type="action" data-action="blk" style="left: 57%; top: 12%;">TAPÓN</div>
+         <div class="d-token action" data-type="action" data-action="to" style="left: 72%; top: 12%;">PÉRDIDA</div>
+
+         <!-- Fichas de Acción Abajo (Anti Fusionada y Técnicas) -->
+         <div class="d-token action red" data-type="action" data-action="anti" style="left: 30%; top: 88%;">ANTIDEPORTIVA</div>
+         
+         <!-- TÉCNICA A JUGADOR (Arrastrable) -->
+         <div class="d-token action" data-type="action" data-action="tech" style="left: 50%; top: 88%; background:#fefce8; color:#854d0e; border-color:#fde047;">TÉCNICA JUG.</div>
+         
+         <!-- TÉCNICA E/B (¡IMPORTANTE! Ahora es un <button> para que el drag lo ignore) -->
+        <div class="d-token action" data-type="action_click" data-action="tech_staff" style="left: 70%; top: 88%; background:#fefce8; color:#854d0e; border:2px solid #fde047; cursor:pointer; z-index:15;">TÉCNICA E/B</div>      </div>
+
+      <!-- SIDEBAR RIVAL -->
+      <div class="tac-sidebar">
+        <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'away')">📊<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas Eq. Partido" onclick="tacSideModal('heatt_match', 'away')">📍<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
+        <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'away')">⛹️<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
       </div>
+
     </div>
+
+    <!-- BANQUILLOS INFERIORES -->
+    <div style="display:flex; gap:12px; align-items:stretch">
+        <div style="display:flex; flex-direction:column; flex:1">
+            <div style="font-size:10px;font-weight:800;color:var(--ac);margin-bottom:4px;text-transform:uppercase" id="tac-lbl-home">LOCAL</div>
+            <div class="bench-zone drop-zone" data-bench="home" id="tac-bench-home"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; width:60px; justify-content:center">
+            <button onclick="lvUndo()" style="width:100%;aspect-ratio:1/1;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:20px;cursor:pointer" title="Deshacer última acción">↩</button>
+        </div>
+        <div style="display:flex; flex-direction:column; flex:1">
+            <div style="font-size:10px;font-weight:800;color:#ef4444;margin-bottom:4px;text-transform:uppercase;text-align:right" id="tac-lbl-away">RIVAL</div>
+            <div class="bench-zone drop-zone" data-bench="away" id="tac-bench-away"></div>
+        </div>
+    </div>
+    
+    <!-- HISTORIAL PEQUEÑO -->
+    <div class="card" style="margin-top:12px; padding:8px">
+      <div class="ct">⚡ Historial de acciones</div>
+      <div id="lv-log" style="max-height:100px;overflow-y:auto;font-size:11px"></div>
+    </div>
+
+  </div> <!-- FIN LV-PANEL -->
+
+  <!-- MODAL DE TIRO DESDE PIZARRA (Oculto por defecto) -->
+  <div id="tac-shot-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:99999;align-items:center;justify-content:center;padding:15px">
+      <div style="background:#fff;border-radius:14px;width:100%;max-width:460px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,0.5)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="font-size:14px;font-weight:900;color:var(--nv)">🎯 ¿Desde dónde tiró <span id="tac-shot-name" style="color:var(--ac)"></span>?</div>
+              <button onclick="document.getElementById('tac-shot-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Toca en el punto exacto de la cancha para registrar el tiro.</div>
+          <div class="cw"><canvas id="tac-shot-cv"></canvas></div>
+      </div>
   </div>
-</div></div></div>
+</div></div>
 <!-- Editor de equipos de un grupo de seguimiento -->
 <div id="wg-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:775;align-items:center;justify-content:center;padding:12px">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)">
@@ -3506,6 +3644,24 @@ function bindLvCourt(){
   };
 }
 
+// ═══════════════════════════════════════════
+// 🧠 LÓGICA DE LA PIZARRA TÁCTICA (DRAG & DROP)
+// ═══════════════════════════════════════════
+
+// Estado del tablero (qué jugador está en qué posición exacta de la pista)
+window._tacBoard = {
+    slots: {
+        home: [null, null, null, null, null], // 5 Posiciones (0 a 4)
+        away: [null, null, null, null, null]  // 5 Posiciones (0 a 4)
+    }
+};
+
+// Coordenadas relativas (%) para los 5 huecos de cada equipo en la pista (Base al dibujo a mano)
+const SLOT_POS = {
+    home: [ {x:22, y:50}, {x:37, y:20}, {x:37, y:80}, {x:44, y:36}, {x:44, y:64} ], // Base, Aleros, Pívots
+    away: [ {x:78, y:50}, {x:63, y:20}, {x:63, y:80}, {x:56, y:36}, {x:56, y:64} ]
+};
+
 function startLive(){
   const hn=document.getElementById('lv-hn').value.trim(),an=document.getElementById('lv-an').value.trim();
   if(!hn||!an){setSt('lv-st','Debes poner los nombres de los equipos.','err');return;}
@@ -3513,58 +3669,705 @@ function startLive(){
   lv.pl.home=parsePlList(document.getElementById('lv-hp').value);
   lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
   if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
+  
   lv.st={home:{},away:{}};lv.periodScores=[];
   ['home','away'].forEach(t=>lv.pl[t].forEach(p=>{lv.st[t][p.name]={pts:0,t2Made:0,t2Att:0,t3Made:0,t3Att:0,tlMade:0,tlAtt:0,fc:0,ast:0,ro:0,rd:0,stl:0,blk:0,to:0,pm:0,fr:0,tech:0,anti:0};}));
+  
   lv.timer={running:false,seconds:600,interval:null};
   lv.score={home:0,away:0};lv.period=1;lv.curMin=0;
   lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
-  lv.onCourt={home:new Set(),away:new Set()};lv.statsVisible=true;lv.courtView='live';
+  lv.onCourt={home:new Set(),away:new Set()};
+  
+  // Limpiar el tablero lógico
+  window._tacBoard.slots = { home: [null,null,null,null,null], away: [null,null,null,null,null] };
+
   document.getElementById('lv-setup').style.display='none';
   document.getElementById('lv-panel').style.display='block';
   document.getElementById('lv-hl').textContent=hn;
   document.getElementById('lv-al').textContent=an;
-  bindLvCourt();
+  document.getElementById('tac-lbl-home').textContent=hn;
+  document.getElementById('tac-lbl-away').textContent=an;
+  
   lv._startersOk=false;lv.starters=null;
-  setLvCourtView('live');
+  
   rLvAll();
-  toast('⭐ Marca los 5 titulares de cada equipo antes de iniciar el reloj');
+  initDragEngine(); // Encender motor táctil
+  
+  // Pedir titulares
+  toast('⭐ Marca los 5 titulares de cada equipo en la ventana');
   setTimeout(()=>openSubModal(),400);
 }
 
-function setLvCourtView(mode){
-  lv.courtView=mode;
-  ['live','full','heatp','heatt','zonest'].forEach(m=>{const b=document.getElementById('lv-view-'+m);if(b)b.className='bxs btn '+(m===mode?'bp':'bo');});
-  redrawLvCourt();
+// 1. REPARACIÓN DEL RELOJ INVISIBLE AL PAUSAR
+function renderTimer() {
+    const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60;
+    const el=document.getElementById('lv-timer');
+    if(!el)return;
+    el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+    
+    // Contraste extremo para que siempre se vea
+    el.style.background=lv.timer.running?'#dc2626':'#f1f5f9';
+    el.style.color=lv.timer.running?'#fff':'#0f172a';
+    el.style.border=lv.timer.running?'2px solid #b91c1c':'2px solid #cbd5e1';
+
+    const dur=lv.period>4?300:600,elapsed=Math.max(0,(dur-s)/60);
+    const me=document.getElementById('lv-min');
+    if(me)me.value=Math.floor(elapsed);
+    lv.curMin=(lv.period-1)*10+elapsed;
+
+    const pBtn = document.getElementById('tac-play-btn');
+    if(pBtn) {
+        pBtn.style.borderColor = lv.timer.running ? '#16a34a' : '#1e293b';
+        pBtn.style.transform = lv.timer.running ? 'translate(-50%, -50%) scale(1.08)' : 'translate(-50%, -50%) scale(1)';
+    }
 }
-function redrawLvCourt(){
-  const cv=document.getElementById('lv-cv');if(!cv)return;
-  const hint=document.getElementById('lv-view-hint');
-  const mode=lv.courtView;
-  if(mode==='heatp'){
-    if(!lv.selPl){cv.width=CW;cv.height=CH;drawCourt(cv.getContext('2d'));if(hint)hint.textContent='Selecciona un jugador';document.getElementById('lv-sc').textContent='';return;}
-    const ps=lv.shots.filter(s=>s.player===lv.selPl);
-    drawHeatmap('lv-cv',ps);if(hint)hint.textContent=`Calor — ${lv.selPl.split(' ')[0]} (${ps.length} tirs)`;
-    document.getElementById('lv-sc').textContent=ps.length+' tirs';return;
-  }
-  if(mode==='heatt'){
-    const ts=lv.shots.filter(s=>s.team===lv.actTeam);
-    drawHeatmap('lv-cv',ts);const tn=lv.actTeam==='home'?(lv.hn||'Local'):(lv.an||'Rival');
-    if(hint)hint.textContent=`Calor — ${tn} (${ts.length} tirs)`;document.getElementById('lv-sc').textContent=ts.length+' tirs';return;
-  }
-  if(mode==='zonest'){
-    const ts=lv.shots.filter(s=>s.team===lv.actTeam);
-    drawZoneMap('lv-cv',ts);const tn=lv.actTeam==='home'?(lv.hn||'Local'):(lv.an||'Rival');
-    if(hint)hint.textContent=`% por zona — ${tn} (${ts.length} tirs)`;document.getElementById('lv-sc').textContent=ts.length+' tirs';return;
-  }
-  cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');drawCourt(ctx);
-  const shots=mode==='live'?lv.shots.filter(s=>s.period===lv.period):lv.shots;
-  drawShots(ctx,shots);document.getElementById('lv-sc').textContent=shots.length+' tirs';
-  if(hint)hint.textContent=mode==='live'?`P${lv.period===5?'T':lv.period} — dades completes conservades`:`Tot el partit (${lv.shots.length} tirs)`;
+
+
+
+function applyActionToPlayer(action, name, team) {
+    lv.selPl = name; lv.actTeam = team;
+    if (action === 'foul') lvAct('foul');
+    else if (action === 'stl') lvAct('stl');
+    else if (action === 'to') lvAct('to');
+    else if (action === 'blk') lvAct('blk');
+    else if (action === 'anti') window.lvActAntiInteligente();
+    else if (action === 'tech') {
+        const s = lv.st[team][name];
+        s.tech = (s.tech || 0) + 1;
+        s.fc = (s.fc || 0) + 1;
+        lv.log.unshift({team, msg: `🟡 Técnica — ${name.split(' ')[0]}`, period: lv.period, min: lv.curMin});
+        lv.events.push({type: 'tech', player: name, team, period: lv.period, min: lv.curMin});
+
+        // Preguntamos INMEDIATAMENTE quién tira del otro equipo
+        const opp = team === 'home' ? 'away' : 'home';
+        const courtPl = [...lv.onCourt[opp]].map(n => lv.pl[opp].find(p => p.name === n)).filter(Boolean);
+        window._foulCtx = { shooterTeam: opp, nTL: 1 };
+        window._foulOpciones = courtPl.length ? courtPl : lv.pl[opp];
+        
+        const popup = document.getElementById('shot-popup');
+        const inner = document.getElementById('shot-popup-inner');
+        inner.innerHTML = `<div style="font-weight:900;font-size:15px;text-align:center;margin-bottom:12px;color:var(--nv)">Tiro Libre por Técnica</div>
+          <div style="font-size:12px;color:var(--t3);text-align:center;margin-bottom:16px">Elige qué jugador de ${_esc(opp==='home'?lv.hn:lv.an)} lanza:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            ${window._foulOpciones.map((p,ix)=>`<button onclick="foulShooterSel('${p.name.replace(/'/g,"\\'")}')"
+              style="display:flex;align-items:center;gap:8px;background:#eff6ff;border:2px solid #3b82f6;border-radius:10px;padding:16px 12px;cursor:pointer;text-align:left">
+              <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:4px 10px;font-size:14px;font-weight:900">#${_esc(p.dorsal)}</span>
+              <span style="font-size:14px;font-weight:800">${_esc(p.name.split(' ')[0])}</span></button>`).join('')}
+          </div>`;
+        popup.style.display = 'block';
+        rLvAll(); svL(); window.lvCheckAlerts();
+    }
+} 
+
+function openTacticalShotModal(name, team) {
+    lv.selPl = name; lv.actTeam = team;
+    const modal = document.getElementById('tac-shot-modal');
+    const nameEl = document.getElementById('tac-shot-name');
+    const cv = document.getElementById('tac-shot-cv');
+    if(!modal || !cv) return;
+    
+    nameEl.textContent = name.split(' ')[0];
+    modal.style.display = 'flex';
+    
+    cv.width = CW; cv.height = CH;
+    drawCourt(cv.getContext('2d'));
+    
+    cv.onclick = e => {
+        const r = cv.getBoundingClientRect();
+        const x = Math.round((e.clientX - r.left) / r.width * CW);
+        const y = Math.round((e.clientY - r.top) / r.height * CH);
+        const type = isThree(x,y) ? 'T3' : 'T2';
+        
+        // ¡LA CLAVE! NO CERRAMOS EL MODAL AQUÍ. LO CERRAMOS EN EL CALLBACK.
+        showShotPopup('tac-shot-cv', x, y, type, (made) => {
+            modal.style.display = 'none'; // AHORA SÍ, DESAPARECE EL MODAL DE TIRO
+            
+            if(made===null) return;
+            lv.shots.push({x,y,made,player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,type});
+            const s = lv.st[lv.actTeam][lv.selPl];
+            const pmAll = (pts) => {
+                const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam==='home'?'away':'home'];
+                my.forEach(n => {if(lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts;});
+                op.forEach(n => {if(lv.st[lv.actTeam==='home'?'away':'home'][n]) lv.st[lv.actTeam==='home'?'away':'home'][n].pm -= pts;});
+            };
+            const pts = type==='T3'?3:2;
+            if(made) {
+                if(type==='T3'){s.t3Made++;s.t3Att++;s.pts+=3;lv.score[lv.actTeam]+=3;pmAll(3);}
+                else{s.t2Made++;s.t2Att++;s.pts+=2;lv.score[lv.actTeam]+=2;pmAll(2);}
+                lv.log.unshift({team:lv.actTeam,msg:`✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`,period:lv.period,min:lv.curMin});
+                lv.events.push({type:type==='T3'?'pts3':'pts2',player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
+                askAssist(()=>{});
+            } else {
+                if(type==='T3'){s.t3Att++;}else{s.t2Att++;}
+                lv.log.unshift({team:lv.actTeam,msg:`❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`,period:lv.period});
+                lv.events.push({type:type==='T3'?'miss3':'miss2',player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,score:{...lv.score}});
+                const _st = lv.actTeam; setTimeout(() => askRebound(_st), 120);
+            }
+            rLvAll(); svL();
+        });
+    };
 }
+
+// D) MODALES LATERALES MÁS GRANDES Y ADAPTADOS (max-width: 900px)
+window.tacSideModal = function(type, team) {
+    let mod = document.getElementById('tac-side-modal');
+    if(!mod) {
+        mod = document.createElement('div');
+        mod.id = 'tac-side-modal';
+        mod.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:15px;';
+        document.body.appendChild(mod);
+    }
+    const tName = team === 'home' ? lv.hn : lv.an;
+    const isLocal = team === 'home';
+    const color = isLocal ? 'var(--ac)' : '#ef4444';
+    
+    let htmlContent = '';
+    
+    const isAcc = type.includes('_acc');
+    let tShots = [];
+    if (isAcc) {
+        tShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
+            const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
+            return m && s.team === (m.homeTeam === tName ? 'home' : 'away');
+        });
+    } else {
+        tShots = lv.shots.filter(s => s.team === team);
+    }
+
+    if (type.includes('heatt_')) {
+        htmlContent = `
+            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">🗺️ MAPAS EQUIPO: ${tName} (${isAcc?'HISTÓRICO':'SOLO ESTE PARTIDO'})</div>
+            <div class="g2" style="gap:16px">
+                <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--bd)"><div style="font-size:12px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px">Mapa de Calor</div><div class="cw"><canvas id="tac-m-heat"></canvas></div></div>
+                <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--bd)"><div style="font-size:12px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px">Por Zonas (%)</div><div class="cw"><canvas id="tac-m-zone"></canvas></div></div>
+            </div>`;
+    } 
+    else if (type === 'stats_acc') {
+        const matches = S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName);
+        const advData = _advancedTeam(matches, tName);
+        htmlContent = `<div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">📊 STATS Y CONCLUSIONES: ${tName}</div>`;
+        if(!matches.length) htmlContent += `<div class="empty">No hay partidos históricos de este equipo.</div>`;
+        else {
+            const splits = _v4AnalyzeTeamSplits(matches, tName);
+            htmlContent += `<div style="background:#f8fafc;padding:16px;border-radius:12px;border:1px solid var(--bd);max-height:65vh;overflow-y:auto">${splits.htmlSplit}</div>`;
+        }
+    }
+    else if (type.includes('indiv_')) {
+        let pStats = [];
+        // Calcular estadísticas según si es Histórico o del Partido
+        if (isAcc) {
+            const matches = S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName);
+            const pMap = {};
+            matches.forEach(m => {
+                const isHome = m.homeTeam === tName;
+                const pls = isHome ? m.homePlayers : m.awayPlayers;
+                (pls||[]).forEach(p => {
+                    if(!pMap[p.name]) pMap[p.name] = { name: p.name, dorsal: p.dorsal, games: 0, min: 0, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, reb: 0, ast: 0 };
+                    const rp = pMap[p.name];
+                    rp.games++; rp.min+=p.min||0; rp.pts+=p.pts||0;
+                    rp.t2m+=p.t2Made||0; rp.t2a+=p.t2Att||0;
+                    rp.t3m+=p.t3Made||0; rp.t3a+=p.t3Att||0;
+                    rp.tlm+=p.tlMade||0; rp.tla+=p.tlAtt||0;
+                    rp.reb+=p.reb||0; rp.ast+=p.ast||0;
+                });
+            });
+            pStats = Object.values(pMap);
+        } else {
+            pStats = lv.pl[team].map(p => {
+                const s = lv.st[team][p.name] || {};
+                return {
+                    name: p.name, dorsal: p.dorsal, games: 1, min: s.min||0, pts: s.pts||0,
+                    t2m: s.t2Made||0, t2a: s.t2Att||0, t3m: s.t3Made||0, t3a: s.t3Att||0,
+                    tlm: s.tlMade||0, tla: s.tlAtt||0, reb: (s.ro||0)+(s.rd||0), ast: s.ast||0
+                };
+            });
+        }
+
+        // Ordenamos por Puntos de mayor a menor
+        pStats.sort((a,b) => (b.pts/b.games||0) - (a.pts/a.games||0));
+        const pc = (m,a) => a ? Math.round(m/a*100)+'%' : '0%';
+
+        htmlContent = `
+            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">👥 PLANTILLA Y MAPAS INDIVIDUALES (${isAcc?'HISTÓRICO':'SOLO ESTE PARTIDO'})</div>
+            <div class="tw" style="margin-bottom:0;border:1px solid var(--bd);border-radius:10px;max-height:65vh;overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; min-width:750px;">
+                    <thead style="position:sticky; top:0; z-index:5;">
+                        <tr style="background:#f8fafc; border-bottom:2px solid var(--bd);">
+                            <th style="text-align:left; color:var(--t2); padding:12px; font-size:11px;">JUGADOR</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">PJ</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">MIN</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">PTS ▼</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">T2%</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">T3%</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">TL%</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">REB</th>
+                            <th style="text-align:center; color:var(--t2); padding:12px; font-size:11px;">AST</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    ${pStats.map((p, idx) => `
+                        <tr style="cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background 0.2s" onclick="window.toggleTacIndivPl(${idx}, '${_esc(p.name)}', '${team}', ${isAcc})">
+                            <td style="font-weight:900;text-align:left;color:#3b82f6;padding:14px 12px;">#${p.dorsal} ${_esc(p.name)} <span style="font-size:10px;margin-left:6px;background:#eff6ff;padding:3px 8px;border-radius:6px;color:#1e40af">▾ MAPAS</span></td>
+                            <td style="text-align:center;padding:14px 12px;">${p.games}</td>
+                            <td style="text-align:center;padding:14px 12px;">${Math.round(p.min/p.games)||0}</td>
+                            <td style="text-align:center;padding:14px 12px;"><b style="color:var(--nv);font-size:15px">${(p.pts/p.games).toFixed(1)}</b></td>
+                            <td style="text-align:center;padding:14px 12px;">${pc(p.t2m, p.t2a)}</td>
+                            <td style="text-align:center;padding:14px 12px;">${pc(p.t3m, p.t3a)}</td>
+                            <td style="text-align:center;padding:14px 12px;">${pc(p.tlm, p.tla)}</td>
+                            <td style="text-align:center;padding:14px 12px;">${(p.reb/p.games).toFixed(1)}</td>
+                            <td style="text-align:center;padding:14px 12px;">${(p.ast/p.games).toFixed(1)}</td>
+                        </tr>
+                        <div id="tac-indiv-${idx}" style="display:none;padding:20px;border-top:1px solid var(--bd)">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%;">
+                                <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
+                                    <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Mapa de Calor</div>
+                                    <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-heat-${idx}"></canvas></div>
+                                </div>
+                                <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
+                                    <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Acierto por Zonas (%)</div>
+                                    <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-zone-${idx}"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }
+
+    // AHORA EL MODAL MIDE HASTA 900PX DE ANCHO
+    mod.innerHTML = `
+        <div style="background:#fff;border-radius:16px;width:95%;max-width:900px;padding:25px;position:relative;box-shadow:0 25px 50px rgba(0,0,0,0.5)">
+            <button onclick="document.getElementById('tac-side-modal').style.display='none'" style="position:absolute;top:15px;right:15px;background:#fef2f2;border:2px solid #fecaca;color:#dc2626;border-radius:50%;font-size:20px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:900;z-index:10;">✕</button>
+            ${htmlContent}
+        </div>`;
+    mod.style.display = 'flex';
+
+    setTimeout(() => {
+        if (type.includes('heatt_')) {
+            if(tShots.length >= 3) drawHeatmap('tac-m-heat', tShots);
+            else { const cv = document.getElementById('tac-m-heat'); if(cv) { cv.width=CW; cv.height=CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), tShots); } }
+            drawZoneMap('tac-m-zone', tShots);
+        } else if (type.includes('indiv_')) {
+            lv.pl[team].forEach((p, idx) => {
+                const pShots = tShots.filter(s => s.player === p.name);
+                const head = document.getElementById(`tac-indiv-${idx}`).previousElementSibling;
+                head.addEventListener('click', function renderOnce() {
+                    setTimeout(() => {
+                        if(pShots.length >= 3) drawHeatmap(`tac-i-heat-${idx}`, pShots);
+                        else { const cv = document.getElementById(`tac-i-heat-${idx}`); if(cv) { cv.width=CW; cv.height=CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), pShots); } }
+                        drawZoneMap(`tac-i-zone-${idx}`, pShots);
+                    }, 50);
+                    head.removeEventListener('click', renderOnce);
+                });
+            });
+        }
+    }, 50);
+};
+
+// ── FUNCIÓN EXACTA DE SCOUTING PARA LOS MAPAS INDIVIDUALES DEL DIRECTO ──
+window.toggleTacIndivPl = function(idx, name, team, isAcc) {
+    const r = document.getElementById(`tac-indiv-${idx}`);
+    if(!r) return;
+    
+    if(r.style.display === 'none') {
+        r.style.display = 'block';
+        
+        // Recopilamos los tiros exactos
+        let tShots = [];
+        const tName = team === 'home' ? lv.hn : lv.an;
+        if (isAcc) {
+            tShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
+                const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
+                return m && s.player === name && s.team === (m.homeTeam === tName ? 'home' : 'away');
+            });
+        } else {
+            tShots = lv.shots.filter(s => s.team === team && s.player === name);
+        }
+
+        // Damos 60ms para que el DOM se despliegue y el canvas tenga tamaño
+        setTimeout(() => {
+            const heatId = `tac-i-heat-${idx}`;
+            const zoneId = `tac-i-zone-${idx}`;
+            
+            if(tShots.length >= 3) {
+                drawHeatmap(heatId, tShots);
+            } else {
+                const cv = document.getElementById(heatId);
+                if(cv) {
+                    cv.width = CW; cv.height = CH;
+                    drawCourt(cv.getContext('2d'));
+                    drawShots(cv.getContext('2d'), tShots);
+                }
+            }
+            drawZoneMap(zoneId, tShots);
+        }, 60);
+    } else {
+        r.style.display = 'none';
+    }
+};
+
+// ── EL MOTOR TÁCTIL (MÓVIL Y RATÓN) CON SOPORTE DE SCROLL ──
+let dState = { active: false, isDragging: false, el: null, clone: null, type: '', data: {}, sx: 0, sy: 0, startX: 0, startY: 0 };
+
+function initDragEngine() {
+    const board = document.getElementById('lv-panel');
+    if(!board) return;
+    board.addEventListener('pointerdown', onPtrDown);
+    // Passive: false permite hacer preventDefault solo cuando arrastramos
+    document.addEventListener('pointermove', onPtrMove, {passive: false}); 
+    document.addEventListener('pointerup', onPtrUp);
+}
+
+function onPtrDown(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+    
+    const token = e.target.closest('.d-token');
+    if (!token) return;
+
+    // Detectar clic directo en "TÉCNICA E/B"
+    if (token.dataset.type === 'action_click' && token.dataset.action === 'tech_staff') {
+        promptTechStaff();
+        return;
+    }
+
+    dState.active = true;
+    dState.isDragging = false; // Aún no arrastramos
+    dState.el = token;
+    dState.type = token.dataset.type;
+    dState.data = token.dataset;
+    dState.startX = e.clientX;
+    dState.startY = e.clientY;
+    
+    const rect = token.getBoundingClientRect();
+    dState.sx = e.clientX - rect.left;
+    dState.sy = e.clientY - rect.top;
+    // NO HACEMOS e.preventDefault() AQUÍ PARA PERMITIR SCROLL NATIVO
+}
+
+function onPtrMove(e) {
+    if (!dState.active) return;
+    
+    if (!dState.isDragging) {
+        const dx = Math.abs(e.clientX - dState.startX);
+        const dy = Math.abs(e.clientY - dState.startY);
+        
+        if (dx > 5 || dy > 5) {
+            // Si movemos más en horizontal y estamos en el banquillo, ¡es un Scroll! Cancelamos Drag.
+            if (dx > dy && dState.data.loc === 'bench') {
+                dState.active = false;
+                return;
+            }
+            
+            // Si movemos vertical, activamos el Drag y creamos el clon
+            dState.isDragging = true;
+            const clone = dState.el.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.left = e.clientX + 'px';
+            clone.style.top = e.clientY + 'px';
+            clone.style.zIndex = 999999;
+            clone.style.pointerEvents = 'none';
+            clone.classList.add('dragging');
+            document.body.appendChild(clone);
+            dState.clone = clone;
+        } else {
+            return; // No se ha movido lo suficiente para decidir
+        }
+    }
+    
+    if (dState.isDragging) {
+        e.preventDefault(); // Ahora sí evitamos que la pantalla salte
+        dState.clone.style.left = e.clientX + 'px';
+        dState.clone.style.top = e.clientY + 'px';
+    }
+}
+
+function onPtrUp(e) {
+    if (!dState.active) return;
+    
+    const wasDragging = dState.isDragging;
+    dState.active = false;
+    dState.isDragging = false;
+    
+    if (dState.clone) {
+        dState.clone.remove();
+        dState.clone = null;
+    }
+
+    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+
+    // 1. CLIC RÁPIDO EN UN JUGADOR EN PISTA = ¡TIRO!
+    if (!wasDragging && dState.type === 'player' && dState.data.loc === 'court') {
+        openTacticalShotModal(dState.data.name, dState.data.team);
+        return;
+    }
+
+    if (!wasDragging) return; // Si no fue tiro ni drag, no hacemos nada
+
+    // 2. SOLTAR ACCIÓN SOBRE JUGADOR
+    if (dState.type === 'action' && dropTarget) {
+        const pToken = dropTarget.closest('.d-token[data-type="player"]');
+        if (pToken && pToken.dataset.loc === 'court') {
+            applyActionToPlayer(dState.data.action, pToken.dataset.name, pToken.dataset.team);
+        }
+        return;
+    }
+
+    // 3. MOVER JUGADOR (CAMBIOS Y POSICIONES)
+    if (dState.type === 'player' && dropTarget) {
+        const slot = dropTarget.closest('.drop-zone.tac-slot');
+        const bench = dropTarget.closest('.drop-zone.bench-zone');
+        const targetToken = dropTarget.closest('.d-token[data-type="player"]');
+
+        const pName = dState.data.name;
+        const pTeam = dState.data.team;
+
+        // A. Soltar Jugador sobre Jugador = INTERCAMBIO
+        if (targetToken && targetToken.dataset.team === pTeam) {
+            const tName = targetToken.dataset.name;
+            const sourceLoc = dState.data.loc;
+            const targetLoc = targetToken.dataset.loc;
+            
+            if (sourceLoc === 'bench' && targetLoc === 'court') {
+                subTapPlayer(tName, pTeam); subTapPlayer(pName, pTeam);
+            } else if (sourceLoc === 'court' && targetLoc === 'bench') {
+                subTapPlayer(pName, pTeam); subTapPlayer(tName, pTeam);
+            }
+            renderTacticalBoard();
+            return;
+        }
+
+        // B. Soltar Jugador en un Hueco Vacío de la Pista
+        if (slot && slot.dataset.team === pTeam) {
+            const slotIdx = parseInt(slot.dataset.slot);
+            if (dState.data.loc === 'bench') {
+                subTapPlayer(pName, pTeam); _tacBoard.slots[pTeam][slotIdx] = pName;
+            } else {
+                const oldIdx = parseInt(dState.data.slot);
+                _tacBoard.slots[pTeam][oldIdx] = null;
+                _tacBoard.slots[pTeam][slotIdx] = pName;
+            }
+            renderTacticalBoard();
+            return;
+        }
+
+        // C. Soltar Jugador en el Banquillo (Forzar salida dejando hueco)
+        if (bench && bench.dataset.bench === pTeam && dState.data.loc === 'court') {
+            subTapPlayer(pName, pTeam);
+            renderTacticalBoard();
+            return;
+        }
+    }
+}
+
+
+window.lvCheckAlerts = function() {
+    const container = document.getElementById('lv-alerts-container');
+    if (!container) return;
+    
+    let alerts = [];
+    const currentQ = lv.period; 
+
+    const checkTeam = (team) => {
+        const sideName = team === 'home' ? 'LOCAL' : 'RIVAL';
+        
+        // Técnica a Entrenador/Banquillo (Aplica al equipo entero, se queda igual)
+        if (lv.teamTechs && lv.teamTechs[team]) {
+            if (lv.teamTechs[team].coach >= 1 && lv.teamTechs[team].bench >= 1) {
+                alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px">
+                    <span style="font-size:16px">🚨</span> EQUIPO ${sideName}: Tienen Técnica de Entrenador Y Banquillo.
+                </div>`);
+            }
+        }
+
+        const players = lv.pl[team] || [];
+        const st = lv.st[team] || {};
+        const oc = lv.onCourt[team] || new Set();
+
+        players.forEach(p => {
+            const s = st[p.name] || {};
+            const totalFouls = s.fc || 0; 
+            const comboDesc = (s.tech || 0) + (s.antiFlagrant || 0);
+
+            const isExpulsado = totalFouls >= 5;
+            const isDescalificado = comboDesc >= 2;
+            
+            const inCourt = oc.has(p.name);
+            
+            // ¡NUEVO! Todo el bloque de alertas SOLO salta si el jugador ESTÁ EN PISTA
+            if (inCourt) {
+                if (isExpulsado) {
+                    alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
+                        🛑 EXPULSADO (5 Faltas): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
+                    </div>`);
+                } else if (isDescalificado) {
+                    alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
+                        🛑 DESCALIFICADO (Técnicas/Antis): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
+                    </div>`);
+                } else if (currentQ === 1 && totalFouls === 2) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q1 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 2 faltas.</div>`);
+                } else if (currentQ === 2 && totalFouls === 3) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q2 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 3 faltas.</div>`);
+                } else if (currentQ === 3 && totalFouls === 4) {
+                    alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:800">🔥 Q3 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 4 faltas.</div>`);
+                } else if (currentQ === 4 && totalFouls === 4) {
+                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q4 - #${p.dorsal} ${p.name.split(' ')[0]} al borde de la expulsión (4).</div>`);
+                }
+            }
+        });
+    };
+
+    checkTeam('home');
+    checkTeam('away');
+    container.innerHTML = alerts.join('');
+    
+    if (!window._isRenderingStrips) {
+        window._isRenderingStrips = true;
+        renderTacticalBoard(); 
+        window._isRenderingStrips = false;
+    }
+}
+// Renderiza el tablero visual (Con soporte para Camisetas Rojas de Expulsión)
+function renderTacticalBoard() {
+    const layer = document.getElementById('tac-slots-layer');
+    const bHome = document.getElementById('tac-bench-home');
+    const bAway = document.getElementById('tac-bench-away');
+    if(!layer || !bHome || !bAway) return;
+
+    let htmlSlots = '', htmlBenchHome = '', htmlBenchAway = '';
+
+    ['home', 'away'].forEach(team => {
+        const currentCourt = lv.onCourt[team];
+        for(let i=0; i<5; i++) { if(_tacBoard.slots[team][i] && !currentCourt.has(_tacBoard.slots[team][i])) _tacBoard.slots[team][i] = null; }
+        currentCourt.forEach(pName => {
+            if(!_tacBoard.slots[team].includes(pName)) {
+                const emptyIdx = _tacBoard.slots[team].findIndex(x => x === null);
+                if(emptyIdx !== -1) _tacBoard.slots[team][emptyIdx] = pName;
+            }
+        });
+
+        // Pintar Pista
+        for(let i=0; i<5; i++) {
+            const pName = _tacBoard.slots[team][i];
+            const pos = SLOT_POS[team][i];
+            htmlSlots += `<div class="tac-slot drop-zone" data-slot="${i}" data-team="${team}" style="left:${pos.x}%; top:${pos.y}%;"></div>`;
+            
+            if (pName) {
+                const p = lv.pl[team].find(x => x.name === pName);
+                if (p) {
+                    const s = lv.st[team][p.name] || {};
+                    const fC = s.fc || 0;
+                    const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
+                    const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
+                    
+                    htmlSlots += `<div class="d-token player-token" data-type="player" data-loc="court" data-team="${team}" data-name="${_esc(p.name)}" data-slot="${i}" style="left:${pos.x}%; top:${pos.y}%;">
+                        <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));">
+                            <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
+                        </svg>
+                        <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
+                        <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
+                        <div class="foul-circle" style="background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                    </div>`;
+                }
+            }
+        }
+
+        // Pintar Banquillo
+        const benchPlayers = lv.pl[team].filter(p => !currentCourt.has(p.name));
+        const benchHtml = benchPlayers.map(p => {
+            const s = lv.st[team][p.name] || {};
+            const fC = s.fc || 0;
+            const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
+            const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
+            
+            return `<div class="d-token player-token" data-type="player" data-loc="bench" data-team="${team}" data-name="${_esc(p.name)}" style="position:relative; transform:none;">
+                <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));">
+                    <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
+                </svg>
+                <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
+                <span class="tk-name-plate" style="bottom:-6px; font-size:9px;">${p.name.split(' ')[0]}</span>
+                <div class="foul-circle" style="bottom:6px; left:-4px; width:20px; height:20px; font-size:11px; background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+            </div>`;
+        }).join('');
+        
+        if (team === 'home') htmlBenchHome = benchHtml; else htmlBenchAway = benchHtml;
+    });
+
+    layer.innerHTML = htmlSlots;
+    bHome.innerHTML = htmlBenchHome;
+    bAway.innerHTML = htmlBenchAway;
+}
+
+// ── TÉCNICAS A BANQUILLO O ENTRENADOR (Botón central) ──
+function promptTechStaff() {
+    _showLvPrompt("TÉCNICA A CUERPO TÉCNICO", [
+        { label: "📕 " + (lv.hn||"Local"), value: "home", color: "var(--ac)", bg: "#f0f9ff" },
+        { label: "📘 " + (lv.an||"Rival"), value: "away", color: "#ef4444", bg: "#fef2f2" }
+    ], (team) => {
+        _showLvPrompt(`Técnica para ${team==='home'?lv.hn:lv.an}`, [
+            { label: "👔 Al Entrenador", value: "coach" },
+            { label: "🪑 Al Banquillo", value: "bench" }
+        ], (type) => {
+            if (!lv.teamTechs) lv.teamTechs = { home: {coach:0, bench:0}, away: {coach:0, bench:0} };
+            lv.teamTechs[team][type]++;
+            const label = type === "coach" ? "Entrenador" : "Banquillo";
+            lv.log.unshift({ team, msg: `🟡 Técnica a ${label} (${team.toUpperCase()})`, period: lv.period });
+            window.lvCheckAlerts();
+            rLvAll(); svL();
+            
+            // Inmediatamente preguntamos quién del otro equipo tira el Tiro Libre
+            const opp = team === 'home' ? 'away' : 'home';
+            const courtPl = [...lv.onCourt[opp]].map(n => lv.pl[opp].find(p => p.name === n)).filter(Boolean);
+            
+            window._foulCtx = { shooterTeam: opp, nTL: 1 };
+            window._foulOpciones = courtPl.length ? courtPl : lv.pl[opp];
+            
+            const popup = document.getElementById('shot-popup');
+            const inner = document.getElementById('shot-popup-inner');
+            inner.innerHTML = `<div style="font-weight:900;font-size:13px;text-align:center;margin-bottom:9px;color:var(--nv)">Tiro Libre por Técnica</div>
+              <div style="font-size:11px;color:var(--t3);text-align:center;margin-bottom:9px">Elige qué jugador de ${_esc(opp==='home'?lv.hn:lv.an)} lanza:</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                ${window._foulOpciones.map((p,ix)=>`<button onclick="foulShooterSel('${p.name.replace(/'/g,"\\'")}')"
+                  style="display:flex;align-items:center;gap:6px;background:#eff6ff;border:2px solid #3b82f6;border-radius:10px;padding:11px 8px;cursor:pointer;text-align:left">
+                  <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800">#${_esc(p.dorsal)}</span>
+                  <span style="font-size:12px;font-weight:700">${_esc(p.name.split(' ')[0])}</span></button>`).join('')}
+              </div>`;
+            popup.style.display = 'block';
+        });
+    });
+}
+
+// ── FLUJO DE TIRO: ABRE POPUP DE MEDIA CANCHA ──
+
+
+// Sustituye el antiguo redrawLvCourt para que actualice la pizarra táctica
+function redrawLvCourt() {
+    renderTacticalBoard();
+}
+
+// Sustituye renderLvStrips para que la UI se actualice sola
+function renderLvStrips() {
+    renderTacticalBoard();
+}
+
+// Modificamos rLvAll para actualizar faltas de equipo
+const _baserLvAll = rLvAll;
+rLvAll = function() {
+    _baserLvAll();
+    const fc_h = lv.events.filter(e => e.team === 'home' && e.period === lv.period && e.type === 'foul').length;
+    const fc_a = lv.events.filter(e => e.team === 'away' && e.period === lv.period && e.type === 'foul').length;
+    const fh = document.getElementById('lv-fouls-h');
+    const fa = document.getElementById('lv-fouls-a');
+    if(fh) fh.textContent = fc_h;
+    if(fa) fa.textContent = fc_a;
+    renderTacticalBoard(); // Forzar update visual
+}
+
+
 function setLvTeam(t){lv.actTeam=t;renderLvStrips();if(lv.courtView==='heatt')redrawLvCourt();}
 
 let _lpTimer=null,_lpFired=false;
-function renderLvStrips(){['home','away'].forEach(t=>renderLvTeamStrip(t));updateSelBanner();}
+
 
 function renderLvTeamStrip(team){
   const oc=lv.onCourt[team],st=lv.st[team]||{};
@@ -3712,7 +4515,6 @@ function lvUndo(){
   lv.events.pop();
   _lvReplay();rLvAll();svL();
 }
-function renderTimer(){const s=lv.timer.seconds,m=Math.floor(s/60),sec=s%60,el=document.getElementById('lv-timer');if(!el)return;el.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');el.style.background=lv.timer.running?'rgba(232,64,42,.4)':'rgba(255,255,255,.13)';const dur=lv.period>4?300:600,elapsed=Math.max(0,(dur-s)/60),me=document.getElementById('lv-min');if(me)me.value=Math.floor(elapsed);lv.curMin=(lv.period-1)*10+elapsed;}
 function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
 function setPer(n) {
   const p = parseInt(n, 10);
@@ -5861,14 +6663,23 @@ function renderScouting() {
   const sel = document.getElementById('sc-rival');
   _scoutRival = sel?.value || '';
 
-  const sfSelect = document.getElementById('sc-sf');
+  let sfSelect = document.getElementById('sc-sf');
+  
+  // 🚀 LA CLAVE: Forzamos el evento 'onchange' para que al tocar, recalcule todo
+  if (sfSelect) {
+      sfSelect.onchange = renderScouting;
+  }
+
   let sfEff = '';
-  if(sfSelect){
+  if (sfSelect) {
       const cur = sfSelect.value;
+      // Filtramos las temporadas disponibles solo para el rival seleccionado
       const matchPool = _scoutRival ? S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) : S.matches;
       const seasons = [...new Set(matchPool.map(m=>m.season).filter(Boolean))].sort().reverse();
       const ok = !cur || seasons.includes(cur);
+      
       sfSelect.innerHTML = '<option value="">Acumulado Histórico</option>' + seasons.map(s => `<option value="${_esc(s)}"${s===cur&&ok?' selected':''}>${_esc(s)}</option>`).join('');
+      
       if(!ok) sfSelect.value = '';
       sfEff = sfSelect.value;
   }
@@ -5883,10 +6694,12 @@ function renderScouting() {
   const scContent = document.getElementById('sc-content');
   scContent.style.display = 'block';
 
-  const emptySt = document.getElementById('sc-empty');
-  if(emptySt) emptySt.style.display = 'none';
-
-  const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff));
+  // 🚀 AQUÍ ESTÁ LA CLAVE: Filtramos los partidos del rival obligando a coincidir con la temporada
+  const matches = S.matches.filter(m => {
+      const isThisRival = (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+      const matchesSeason = !sfEff || m.season === sfEff;
+      return isThisRival && matchesSeason;
+  });
 
   if (!matches.length) {
       document.getElementById('sc-content').innerHTML = '<div class="empty">Sin datos para esta temporada.</div>';
@@ -5940,7 +6753,7 @@ function renderScouting() {
       const t3p = advData.t3a ? advData.t3m / advData.t3a * 100 : 0;
       const tlp = advData.fta ? advData.ftm / advData.fta * 100 : 0;
 
-      const l_aggs = _leagueTeamAggregates(_scoutRival);
+      const l_aggs = _leagueTeamAggregates(_scoutRival, sfEff);
       const getRank = (fn, desc=true, isPct=false) => {
           if(l_aggs.length < 3) return null;
           const sorted = [...l_aggs].sort((a,b) => desc ? fn(b)-fn(a) : fn(a)-fn(b));
@@ -8614,33 +9427,81 @@ function renderClubLineups(ours){
     :'<div class="empty">Se necesitan partidos con cambios registrados (Directo o cronología reimportada)</div>';
 }
 
+
+window._scoutApplyGroup = true;
+window._clubApplyGroup = true;
+
+window.toggleScoutGroup = function() {
+    window._scoutApplyGroup = !window._scoutApplyGroup;
+    renderScouting();
+};
+
+window.toggleClubGroup = function() {
+    window._clubApplyGroup = !window._clubApplyGroup;
+    renderClubLeague();
+};
+
 // Agregados por equipo sobre todos los partidos (opcionalmente filtrados por
 // liga+grupo+temporada del "equipo ancla" para comparar solo contra su liga).
-function _leagueTeamAggregates(filterByMatchOf){
-  // filterByMatchOf: nombre de equipo — si se pasa, solo se usan partidos de las
-  // combinaciones liga·grupo·temporada en las que ese equipo participa.
-  let matches=S.matches;
-  if(filterByMatchOf){
-    const combos=new Set();
-    S.matches.forEach(m=>{
-      if(m.homeTeam===filterByMatchOf||m.awayTeam===filterByMatchOf)
-        combos.add(`${m.competition||''}|${m.group||''}|${m.season||''}`);
+function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true) {
+  let scopedMatches = S.matches;
+
+  if (targetTeamName) {
+    const validCombos = new Set();
+    
+    S.matches.forEach(m => {
+      const playsInMatch = m.homeTeam === targetTeamName || m.awayTeam === targetTeamName || (targetTeamName === '__CLARET__' && (isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)));
+      if (targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return;
+
+      if (playsInMatch && m.competition) {
+        const comp = (m.competition || 'SinLiga').trim();
+        const sea = (m.season || 'SinTemporada').trim();
+        // Si usamos grupo, la firma requiere el grupo exacto. Si no, usamos "ALL".
+        if (applyGroup) {
+            const grp = String(m.group || '1').trim();
+            validCombos.add(`${comp}|${grp}|${sea}`);
+        } else {
+            validCombos.add(`${comp}|ALL|${sea}`);
+        }
+      }
     });
-    if(combos.size)matches=S.matches.filter(m=>combos.has(`${m.competition||''}|${m.group||''}|${m.season||''}`));
+
+    if (validCombos.size > 0) {
+      scopedMatches = S.matches.filter(m => {
+        const comp = (m.competition || 'SinLiga').trim();
+        const sea = (m.season || 'SinTemporada').trim();
+        if (applyGroup) {
+            const grp = String(m.group || '1').trim();
+            return validCombos.has(`${comp}|${grp}|${sea}`);
+        } else {
+            return validCombos.has(`${comp}|ALL|${sea}`);
+        }
+      });
+    } else {
+       return []; 
+    }
   }
-  const T={};
-  matches.forEach(m=>{
-    [['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway],
-     ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome]].forEach(([side,name,players,my,op])=>{
-      if(!name)return;
-      if(!T[name])T[name]={name,g:0,pts:0,ptsA:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,fc:0};
-      const t=T[name];t.g++;t.pts+=my||0;t.ptsA+=op||0;
-      (players||[]).forEach(p=>{t.t2m+=p.t2Made||0;t.t2a+=p.t2Att||0;t.t3m+=p.t3Made||0;t.t3a+=p.t3Att||0;
-        t.tlm+=p.tlMade||0;t.tla+=p.tlAtt||0;t.fc+=p.fc||0;});
+
+  const T = {};
+  scopedMatches.forEach(m => {
+    [['home', m.homeTeam, m.homePlayers, m.scoreHome, m.scoreAway],
+     ['away', m.awayTeam, m.awayPlayers, m.scoreAway, m.scoreHome]].forEach(([side, name, players, my, op]) => {
+      if (!name) return;
+      const keyName = (targetTeamName === '__CLARET__' && isOurTeam(name)) ? '__CLARET__' : name;
+      if (!T[keyName]) T[keyName] = { name: keyName, realName: name, g: 0, pts: 0, ptsA: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0 };
+      const t = T[keyName];
+      t.g++; t.pts += my || 0; t.ptsA += op || 0;
+      (players || []).forEach(p => {
+        t.t2m += p.t2Made || 0; t.t2a += p.t2Att || 0; 
+        t.t3m += p.t3Made || 0; t.t3a += p.t3Att || 0;
+        t.tlm += p.tlMade || 0; t.tla += p.tlAtt || 0; 
+        t.fc += p.fc || 0;
+      });
     });
   });
-  return Object.values(T).filter(t=>t.g>0);
+  return Object.values(T).filter(t => t.g > 0);
 }
+
 
 const _LEAGUE_METRICS=[
   {label:'Puntos a favor /p',val:t=>t.pts/t.g,fmt:v=>v.toFixed(1),desc:true},
@@ -8652,21 +9513,42 @@ const _LEAGUE_METRICS=[
 ];
 
 // Genera el HTML de ranking de un equipo contra su liga (tarjetas + "a mejorar").
-function _leagueComparisonHtml(teamName){
-  const teams=_leagueTeamAggregates(teamName);
-  const us=teams.find(t=>t.name===teamName)||teams.find(t=>teamName==='__CLARET__'&&isOurTeam(t.name));
-  if(!us||teams.length<3)return '<div class="empty">Se necesitan más equipos con partidos para comparar (importa más rivales de su liga)</div>';
-  const N=teams.length;
-  const rows=_LEAGUE_METRICS.map(mt=>{
-    const sorted=[...teams].sort((a,b)=>mt.desc?mt.val(b)-mt.val(a):mt.val(a)-mt.val(b));
-    const pos=sorted.findIndex(t=>t.name===us.name)+1;
-    const bad=pos>N*2/3, good=pos<=Math.ceil(N/3);
-    return {label:mt.label,pos,val:mt.fmt(mt.val(us)),bad,good,best:mt.fmt(mt.val(sorted[0])),bestName:sorted[0].name};
+function _leagueComparisonHtml(teamName, targetSeason){
+  const targetCheck = (teamName === '__CLARET__') ? '__CLARET__' : teamName;
+  const teams = _leagueTeamAggregates(targetCheck, targetSeason);
+  
+  let us = teams.find(t => t.name === teamName);
+  if(!us && teamName === '__CLARET__') {
+    us = teams.find(t => isOurTeam(t.name) || t.name === '__CLARET__');
+  }
+  
+  if(!us || teams.length < 2) return '<div class="empty">Se necesitan más equipos en este grupo exacto para calcular el ranking.</div>';
+  
+  const N = teams.length;
+  const rows = _LEAGUE_METRICS.map(mt => {
+    const sorted = [...teams].sort((a,b) => mt.desc ? mt.val(b)-mt.val(a) : mt.val(a)-mt.val(b));
+    const pos = sorted.findIndex(t => t.name === us.name) + 1;
+    if(pos === 0) return null;
+    const bad = pos > N * (2/3), good = pos <= Math.ceil(N / 3);
+    return { label: mt.label, pos, val: mt.fmt(mt.val(us)), bad, good, best: mt.fmt(mt.val(sorted[0])), bestName: sorted[0].realName || sorted[0].name };
+  }).filter(Boolean);
+
+  const toImprove = rows.filter(r => r.bad);
+
+  // 🚀 Extraer el nombre real de la liga y el grupo para mostrarlo en el texto
+  const refMatch = S.matches.find(m => {
+      const plays = m.homeTeam === targetCheck || m.awayTeam === targetCheck || (targetCheck === '__CLARET__' && (isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)));
+      if (!plays) return false;
+      if (targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return false;
+      return true;
   });
-  const toImprove=rows.filter(r=>r.bad);
+  const lblComp = refMatch && refMatch.competition ? refMatch.competition : 'Liga';
+  const lblGrp = refMatch && refMatch.group ? `Grup ${refMatch.group}` : '';
+  const lblSea = targetSeason || 'Acumulado';
+
   return `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px">
-      ${rows.map(r=>`<div style="border:1.5px solid ${r.bad?'#fca5a5':r.good?'#86efac':'var(--bd)'};background:${r.bad?'#fef2f2':r.good?'#f0fdf4':'#fff'};border-radius:10px;padding:9px 11px">
+      ${rows.map(r => `<div style="border:1.5px solid ${r.bad?'#fca5a5':r.good?'#86efac':'var(--bd)'};background:${r.bad?'#fef2f2':r.good?'#f0fdf4':'#fff'};border-radius:10px;padding:9px 11px">
         <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase">${r.label}</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
           <span style="font-size:18px;font-weight:900;color:${r.bad?'#dc2626':r.good?'#15803d':'var(--nv)'}">${r.pos}º</span>
@@ -8675,17 +9557,14 @@ function _leagueComparisonHtml(teamName){
         <div style="font-size:8px;color:var(--t3);margin-top:2px">1º: ${r.bestName.length>16?r.bestName.slice(0,15)+'…':r.bestName} (${r.best})</div>
       </div>`).join('')}
     </div>
-    ${toImprove.length?`<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 8px 8px 0;padding:8px 12px">
-      <div style="font-size:10px;font-weight:800;color:#dc2626;text-transform:uppercase;margin-bottom:3px">🎯 A mejorar</div>
-      <div style="font-size:11px">${toImprove.map(r=>`<b>${r.label}</b> (${r.pos}º de ${N}, ${r.val})`).join(' · ')}</div>
-    </div>`:'<div style="color:var(--gn);font-size:12px;font-weight:600">✅ Sin métricas en el tercio bajo de la liga</div>'}
-    <div style="font-size:9px;color:var(--t3);margin-top:6px">Comparativa sobre los ${N} equipos de su misma liga·grupo·temporada en la base de datos.</div>`;
+    ${toImprove.length ? `<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 8px 8px 0;padding:8px 12px">
+      <div style="font-size:10px;font-weight:800;color:#dc2626;text-transform:uppercase;margin-bottom:3px">🎯 A mejorar en su grupo</div>
+      <div style="font-size:11px">${toImprove.map(r => `<b>${r.label}</b> (${r.pos}º de ${N}, ${r.val})`).join(' · ')}</div>
+    </div>` : '<div style="color:var(--gn);font-size:12px;font-weight:600">✅ Sin métricas en el tercio bajo del grupo</div>'}
+    <div style="font-size:10px;color:var(--t3);margin-top:8px">Comparativa contra los ${N} equipos de <b>${lblComp} ${lblGrp}</b> (${lblSea}).</div>`;
 }
 
-// ── Parejas de asistencias (quién asiste a quién) ──────────────────────────
-// Se calcula con los eventos de tipo 'ast' que llevan el campo `to` (anotador).
-// Solo los partidos registrados EN DIRECTO con esta versión guardan la pareja;
-// la cronología de la FCBQ no incluye asistencias.
+
 function renderClubAstPairs(){
   const el=document.getElementById('cl-astpairs');if(!el)return;
   const pairs={};       // clave: "A|B" ordenada · valor: {a,b,ab,ba}
@@ -8728,12 +9607,17 @@ function renderClubAstPairs(){
   }).join('');
 }
 
-function renderClubLeague(){
-  const el=document.getElementById('cl-league');if(!el)return;
-  const teams=_leagueTeamAggregates();
-  const us=teams.find(t=>isOurTeam(t.name));
-  if(!us){el.innerHTML='<div class="empty">Se necesitan más equipos en la base de datos para comparar (importa partidos de otros rivales)</div>';return;}
-  el.innerHTML=_leagueComparisonHtml(us.name);
+function renderClubLeague() {
+  const el = document.getElementById('cl-league'); 
+  if(!el) return;
+  const sfEff = document.getElementById('cl-sf')?.value || '';
+  const teams = _leagueTeamAggregates('__CLARET__', sfEff);
+  const us = teams.find(t => isOurTeam(t.name) || t.name === '__CLARET__');
+  if(!us){
+      el.innerHTML='<div class="empty">Se necesitan más equipos en la base de datos para comparar (importa partidos de otros rivales)</div>';
+      return;
+  }
+  el.innerHTML = _leagueComparisonHtml('__CLARET__', sfEff);
 }
 
 
@@ -10046,7 +10930,7 @@ Object.assign(window,{
   renderWatchGroups,wgCreate,wgRename,wgDelete,wgEdit,closeWgEdit,saveWgEdit,
   populateTeamSelects,parseMatch,showImpPrev,confImp,clrImp,teamSelChange,lvTeamSel,
   onImpLeagueChange,onImpGroupChange,_populateSeasonSelect,_populateLvSeason,
-  startLive,endLive,lvAct,lvUndo,setLvCourtView,toggleKb,
+  startLive,endLive,lvAct,lvUndo,toggleKb,
   openSubModal,closeSubModal,subTapPlayer,syncSubFromTimer,onSubTimeChange,
   openLvEdit,closeLvEdit,applyLvEdit,lvEditAdd,lvEditRemove,lvDeleteEvent,
   _lvCourtDown,_lvCourtUp,_lvCourtClick,_lvBenchClick,
@@ -11201,81 +12085,7 @@ window.lvActAntiInteligente = function() {
     });
 };
 
-// 4. Motor Evaluador de Alertas (Se mantiene igual)
-window.lvCheckAlerts = function() {
-    const container = document.getElementById('lv-alerts-container');
-    if (!container) return;
-    
-    let alerts = [];
-    let currentQ = 1;
-    for (let i = 1; i <= 6; i++) {
-        let btn = document.getElementById('pb' + i);
-        if (btn && btn.classList.contains('active-per')) currentQ = i;
-    }
 
-    const checkTeam = (team) => {
-        const sideName = team === 'home' ? 'LOCAL' : 'RIVAL';
-        
-        if (lv.teamTechs && lv.teamTechs[team]) {
-            if (lv.teamTechs[team].coach >= 1 && lv.teamTechs[team].bench >= 1) {
-                alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px">
-                    <span style="font-size:16px">🚨</span> EQUIPO ${sideName}: Tienen Técnica de Entrenador Y Banquillo.
-                </div>`);
-            }
-        }
-
-        const players = lv.pl[team] || [];
-        const st = lv.st[team] || {};
-        const oc = lv.onCourt[team] || new Set();
-
-        players.forEach(p => {
-            const s = st[p.name] || {};
-            const totalFouls = (s.fc || 0) + (p.tech || 0) + (p.anti || 0);
-            const comboDesc = (p.tech || 0) + (p.antiFlagrant || 0);
-
-            p.expulsado = (totalFouls >= 5 || comboDesc >= 2);
-            const inCourt = oc.has(p.name);
-            
-            if (totalFouls >= 5) {
-                alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
-                    🛑 EXPULSADO (5 Faltas): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
-                </div>`);
-            } else if (comboDesc >= 2) {
-                alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
-                    🛑 DESCALIFICADO (Regla Téc/Flag): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
-                </div>`);
-            } else if (inCourt) {
-                if (currentQ === 1 && totalFouls === 2) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
-                        ⚠️ Q1 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 2 faltas.
-                    </div>`);
-                } else if (currentQ === 2 && totalFouls === 3) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
-                        ⚠️ Q2 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 3 faltas.
-                    </div>`);
-                } else if (currentQ === 3 && totalFouls === 4) {
-                    alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:800">
-                        🔥 Q3 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 4 faltas.
-                    </div>`);
-                } else if (currentQ === 4 && totalFouls === 4) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
-                        ⚠️ Q4 - #${p.dorsal} ${p.name.split(' ')[0]} al borde de la expulsión (4 faltas).
-                    </div>`);
-                }
-            }
-        });
-    };
-
-    checkTeam('home');
-    checkTeam('away');
-
-    container.innerHTML = alerts.join('');
-    if (typeof renderLvStrips === 'function' && !window._isRenderingStrips) {
-        window._isRenderingStrips = true;
-        renderLvStrips();
-        window._isRenderingStrips = false;
-    }
-}
 
 
 </script>

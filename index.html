@@ -955,9 +955,9 @@ select {
     border-radius: 50%; cursor: pointer; border: 3px solid #1e293b; z-index: 5;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;
     /* PON AQUÍ LA RUTA DEL LOGO DEL CLARET */
-    background-image: url('logo-calret.png'); 
+    background-image: url('logo-claret.png'); 
     background-size: 75%; background-position: center; background-repeat: no-repeat;
-    color: transparent !important; /* Oculta el texto ▶ o ⏸ */
+    color: transparent !important;
 }
 
 /* Fichas de Jugador (Estilo Camiseta) */
@@ -1049,6 +1049,74 @@ select {
     max-width: 70px; z-index: 10;
 }
 
+/* ═══════════════════════════════════════════
+   🧘 MODO CONCENTRACIÓN: CERO SCROLL (IPAD PRO V2)
+   ═══════════════════════════════════════════ */
+body.zen-mode {
+    overflow: hidden !important;
+    touch-action: none !important;
+}
+
+/* 1. QUITAR BARRAS DE ARRIBA (Ocultamos menús de la web) */
+body.zen-mode .nav, 
+body.zen-mode .tabs-nav,
+body.zen-mode header {
+    display: none !important;
+}
+
+#lv-panel.zen-mode-panel {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100vw !important; height: 100vh !important;
+    z-index: 999990 !important;
+    background: #f8fafc !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* 2. HACERLO MÁS PEQUEÑO DE ANCHO (Para el iPad Pro 4:3) */
+#lv-panel.zen-mode-panel > div {
+    max-width: 940px !important; /* <-- LA CLAVE: Limita el ancho para que no se estire */
+    width: 100% !important;
+    margin-left: auto !important; /* Centrado perfecto */
+    margin-right: auto !important;
+    flex-shrink: 0 !important;
+}
+
+/* Quitar el hueco 'top: 48px' del marcador para pegarlo arriba del todo */
+#lv-panel.zen-mode-panel > div:first-child {
+    top: 0 !important;
+    margin-bottom: 12px !important;
+}
+
+/* 3. AJUSTAR LA PISTA AL NUEVO ANCHO */
+#lv-panel.zen-mode-panel .tac-layout {
+    flex: 1 !important;
+    flex-shrink: 1 !important;
+    min-height: 0 !important; 
+    display: flex !important;
+    align-items: center !important;
+}
+
+#lv-panel.zen-mode-panel .tac-board {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    aspect-ratio: 16/9 !important;
+    margin: 0 auto !important;
+}
+
+/* Historial hiper-compacto abajo del todo */
+#lv-panel.zen-mode-panel .card:last-child {
+    padding: 6px 12px !important;
+    margin-bottom: 0 !important;
+}
+#lv-panel.zen-mode-panel #lv-log {
+    max-height: 38px !important; /* Solo se ven las últimas 2 acciones */
+}
 </style>
 </head>
 <body>
@@ -1372,10 +1440,15 @@ select {
           </div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;justify-content:center;margin-top:10px">
-        <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:10px">📊 Stats Directo</button>
-        <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:10px">✏️ Editar Equipos</button>
-        <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:10px">🏁 Finalizar Partido</button>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+        <!-- BOTÓN MODO CONCENTRACIÓN -->
+        <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2)">
+          🔲 Pantalla Completa
+        </button>
+        
+        <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">📊 Stats</button>
+        <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">✏️ Equipos</button>
+        <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px">🏁 Finalizar</button>
       </div>
     </div>
 
@@ -1397,10 +1470,10 @@ select {
          <div id="tac-slots-layer"></div>
 
          <!-- Fichas de Acción (Arrastrables) Arriba -->
-         <div class="d-token action red" data-type="action" data-action="foul" style="left: 28%; top: 12%;">FALTA</div>
-         <div class="d-token action" data-type="action" data-action="stl" style="left: 43%; top: 12%;">ROBO</div>
-         <div class="d-token action" data-type="action" data-action="blk" style="left: 57%; top: 12%;">TAPÓN</div>
-         <div class="d-token action" data-type="action" data-action="to" style="left: 72%; top: 12%;">PÉRDIDA</div>
+         <div class="d-token action red" data-type="action" data-action="foul" style="left: 25%; top: 8%;">FALTA</div>
+         <div class="d-token action" data-type="action" data-action="stl" style="left: 42%; top: 8%;">ROBO</div>
+         <div class="d-token action" data-type="action" data-action="blk" style="left: 58%; top: 8%;">TAPÓN</div>
+         <div class="d-token action" data-type="action" data-action="to" style="left: 75%; top: 8%;">PÉRDIDA</div>
 
          <!-- Fichas de Acción Abajo (Anti Fusionada y Técnicas) -->
          <div class="d-token action red" data-type="action" data-action="anti" style="left: 30%; top: 88%;">ANTIDEPORTIVA</div>
@@ -2883,6 +2956,58 @@ function tlClick(idx,made){
   }
 }
 
+// ── MODO CONCENTRACIÓN (PANTALLA COMPLETA A PRUEBA DE ERRORES) ──
+window.toggleZenMode = function() {
+    const panel = document.getElementById('lv-panel');
+    const btn = document.getElementById('zen-btn');
+    if (!panel || !btn) return;
+    
+    // Alternamos la clase en el body y en el panel
+    const isZen = document.body.classList.toggle('zen-mode');
+    panel.classList.toggle('zen-mode-panel', isZen);
+    
+    if (isZen) {
+        // Entrando en pantalla completa
+        btn.innerHTML = "🔳 Salir Pantalla Completa";
+        btn.style.background = "#fff";
+        btn.style.color = "#0f172a";
+        btn.style.border = "2px solid #0f172a";
+        
+        // Intentar forzar pantalla completa nativa del navegador (opcional)
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen().catch(()=>{});
+    } else {
+        // Saliendo de pantalla completa
+        btn.innerHTML = "🔲 Pantalla Completa";
+        btn.style.background = "#0f172a";
+        btn.style.color = "#fff";
+        btn.style.border = "none";
+        
+        // Salir de pantalla completa nativa
+        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+        else if (document.webkitFullscreenElement) document.webkitExitFullscreen().catch(()=>{});
+    }
+    
+    // Si tienes gráficos dibujados (los canvas del marcador), les damos un toque para que se redimensionen
+    setTimeout(() => {
+        renderTacticalBoard();
+    }, 100);
+};
+
+// ── PARCHE: BLOQUEAR DESLIZAMIENTO DE PESTAÑAS EN MODO ZEN ──
+// Busca donde tengas tu "document.addEventListener('touchstart'" del deslizamiento de pestañas
+// y asegúrate de que el código aborta si el body tiene la clase 'zen-mode'.
+// Si no quieres buscarlo, simplemente pega esto, que sobreescribirá el comportamiento táctil para proteger el modo zen:
+document.addEventListener('touchstart', function(e) {
+    if (document.body.classList.contains('zen-mode')) {
+        // En modo concentración, evitamos que los toques de más de 1 dedo hagan zoom o locuras
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }
+}, {passive: false});
+
 // ═══════════════════════════════════════════
 // TEAMS MANAGEMENT
 // ═══════════════════════════════════════════
@@ -3650,16 +3775,17 @@ function bindLvCourt(){
 
 // Estado del tablero (qué jugador está en qué posición exacta de la pista)
 window._tacBoard = {
-    slots: {
+    tts: {
         home: [null, null, null, null, null], // 5 Posiciones (0 a 4)
         away: [null, null, null, null, null]  // 5 Posiciones (0 a 4)
     }
 };
 
-// Coordenadas relativas (%) para los 5 huecos de cada equipo en la pista (Base al dibujo a mano)
+// Coordenadas relativas (%) para los 5 huecos de cada equipo en la pista (Formación 5-abiertos)
 const SLOT_POS = {
-    home: [ {x:22, y:50}, {x:37, y:20}, {x:37, y:80}, {x:44, y:36}, {x:44, y:64} ], // Base, Aleros, Pívots
-    away: [ {x:78, y:50}, {x:63, y:20}, {x:63, y:80}, {x:56, y:36}, {x:56, y:64} ]
+    // Orden: Base, Alero Arriba, Alero Abajo, Esquina Arriba, Esquina Abajo
+    home: [ {x: 38, y: 50}, {x: 26, y: 22}, {x: 26, y: 78}, {x: 10, y: 36}, {x: 10, y: 64} ], 
+    away: [ {x: 62, y: 50}, {x: 74, y: 22}, {x: 74, y: 78}, {x: 90, y: 36}, {x: 90, y: 64} ]
 };
 
 function startLive(){

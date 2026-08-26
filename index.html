@@ -1117,6 +1117,18 @@ body.zen-mode header {
 #lv-panel.zen-mode-panel #lv-log {
     max-height: 38px !important; /* Solo se ven las últimas 2 acciones */
 }
+
+/* ═══════════════════════════════════════════
+   🛡️ PROTECCIÓN DE POPUPS EN PANTALLA COMPLETA
+   ═══════════════════════════════════════════ */
+#shot-popup, 
+#tac-shot-modal, 
+#tac-side-modal, 
+#live-stats-modal, 
+#lvedit-modal, 
+#sub-modal {
+    z-index: 2147483647 !important; /* Es el número máximo absoluto de capas en un navegador */
+}
 </style>
 </head>
 <body>

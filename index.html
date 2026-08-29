@@ -1432,105 +1432,124 @@ body.zen-mode {
 </div></div>
 
 <!-- ═══ TAB: IMPORTAR ═══ -->
-<div id="t-imp" class="tab"><div class="main">
-  <div class="card">
-    <div class="ct">Importar Cronologia de Partit</div>
-    <div class="fr">
-      <div class="fc">
-        <label>Equipo LOCAL</label>
-        <div style="display:flex;gap:5px">
-          <select id="i-home-sel" onchange="teamSelChange('home')" style="flex:1"><option value="">— base de datos —</option></select>
-          <input type="text" id="i-home-txt" placeholder="o escribe el nombre" style="flex:1">
-        </div>
-      </div>
-      <div class="fc">
-        <label>Equipo VISITANTE</label>
-        <div style="display:flex;gap:5px">
-          <select id="i-away-sel" onchange="teamSelChange('away')" style="flex:1"><option value="">— base de datos —</option></select>
-          <input type="text" id="i-away-txt" placeholder="o escribe el nombre" style="flex:1">
-        </div>
-      </div>
-      <div class="fc" style="flex:0;min-width:100px"><label>Fecha</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
-      <div class="fc" style="flex:0;min-width:150px"><label>Liga</label>
-        <select id="i-comp" style="width:100%" onchange="onImpLeagueChange()">
-          <option value="">— selecciona liga —</option>
-          <option>🤝 Amistoso</option>
-          <option>Liga Acb</option>
-          <option>Segona Feb</option>
-          <option>Tercera Feb</option>
-          <option>Super Copa Masculina</option>
-          <option>Copa Catalunya Masculina</option>
-          <option>C.c. Primera Categoria Masculina</option>
-          <option>C.c. Segona Categoria Masculina</option>
-          <option>1a. Territorial Sènior Masculí</option>
-          <option>C.c. Sots-25 Masculí Nivell A</option>
-          <option>Liga U</option>
-          <option>C.c. U20 - Sots-20 Masculí Preferent</option>
-          <option>C.c. Sots-20 Masculí Nivell A-1</option>
-          <option>C.c. Júnior Masculí Preferent</option>
-          <option>C.c. Júnior Masculí Interterritorial</option>
-          <option>C.c. Júnior Masculí Nivell A</option>
-        </select>
-      </div>
-      <div class="fc" style="flex:0;min-width:90px"><label>Grupo</label>
-        <select id="i-group" style="width:100%" onchange="onImpGroupChange()">
-          <option value="1">Grupo 1</option>
-          <option value="2">Grupo 2</option>
-          <option value="__new__">➕ Nuevo grupo…</option>
-        </select>
-      </div>
-      <div class="fc" style="flex:0;min-width:110px"><label>Año/Temporada</label>
-        <select id="i-season" style="width:100%">
-          <option value="">— auto (del link) —</option>
-        </select>
-      </div>
-    </div>
-    <!-- Stats: OPTIONAL if teams in DB + crono provided -->
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
-      <b>💡 Ràpid:</b> Si els equips estan a la BD + enganxes la cronologia → els stats es calculen <b>automàticament</b>. Rebots i assistències no apareixen en la crono, però tots els tirs, TL, faltes, +/- i minuts sí.
-      <span style="margin-left:6px;cursor:pointer;color:#3b82f6" onclick="document.getElementById('i-stats-section').style.display=document.getElementById('i-stats-section').style.display==='none'?'block':'none'">▼ Stats manuales (opcional)</span>
-    </div>
-    <div id="i-stats-section" style="display:block;margin-bottom:8px">
-      <div class="g2" style="gap:8px;margin-bottom:4px" id="i-stats-manual">
-        <div id="i-hs-wrap"><label>Stats equipo LOCAL (opcional — afegeix rebots/assistències)</label><textarea id="i-hs" rows="5" placeholder="Jugador/a&#10;#4&#10;PAU DÍAZ JIMÉNEZ&#10;...&#10;Pts&#10;Min&#10;TL&#10;T2&#10;T3&#10;Fc&#10;11&#10;31&#10;1/1&#10;100%..."></textarea></div></div>
-        <div id="i-as-wrap"><label>Stats equipo VISITANTE (opcional)</label><textarea id="i-as" rows="5" placeholder="Jugador/a&#10;#1&#10;MARCEL PARÉS VILASECA&#10;..."></textarea></div></div>
-      </div>
-      <div style="font-size:11px;color:var(--t3);margin-top:4px">Si se pegan stats manuals + crono, la crono té prioritat per a tirs/TL/faltes, i les stats manuals aporten rebots/assistències/minuts.</div>
-    </div>
-    <!-- Importar desde link de la FCBQ -->
-    <div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #86efac;border-radius:10px;padding:12px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:800;color:#15803d;margin-bottom:3px">⚡ Importar automáticamente desde la web de la FCBQ</div>
-      <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Pega el link de la página de estadísticas del partido y se rellenan equipos, fecha y cronología solos.</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <textarea id="i-fcbq-url" rows="4" placeholder="Pega aquí todos tus enlaces de la FCBQ (uno por línea)..." style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--b2);border-radius:6px;resize:vertical;font-family:monospace;"></textarea>
-        <button onclick="importFromFCBQ()" id="i-fcbq-btn" class="btn bp" style="font-size:12px;white-space:nowrap">⬇ Cargar del link</button>
-      </div>
-      <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
-    </div>
-
-    <label>Cronologia completa del partit</label>
-    <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronología del partido&#10;#7 GONZALO GIMENEZ IGUZQUIZA&#10;Salt guanyat&#10;Min: &#10;0&#10; Período: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
-    <div class="brow">
-      <button class="btn bp" onclick="parseMatch()">⚡ Procesar</button>
-      <button class="btn bo bsm" onclick="clrImp()">✕ Limpiar</button>
-    </div>
-    <div id="i-st" class="st-msg"></div>
-  </div>
-
-  <!-- Preview -->
-  <div id="i-prev" style="display:none">
+<div id="t-imp" class="tab">
+  <div class="main">
+    
     <div class="card">
-      <div class="ct"><span id="i-title">Resultat</span><button class="btn bg bsm" onclick="confImp()">✓ Desar</button></div>
-      <div class="g2" style="margin-bottom:10px">
-        <div class="kpi"><div class="kv" id="p-sh">-</div><div class="kl" id="p-th">Local</div></div>
-        <div class="kpi"><div class="kv" id="p-sa">-</div><div class="kl" id="p-ta">Visitant</div></div>
+      <div class="ct">Importar Cronologia de Partit</div>
+      <div class="fr">
+        <div class="fc">
+          <label>Equipo LOCAL</label>
+          <div style="display:flex;gap:5px">
+            <select id="i-home-sel" onchange="teamSelChange('home')" style="flex:1"><option value="">— base de datos —</option></select>
+            <input type="text" id="i-home-txt" placeholder="o escribe el nombre" style="flex:1">
+          </div>
+        </div>
+        <div class="fc">
+          <label>Equipo VISITANTE</label>
+          <div style="display:flex;gap:5px">
+            <select id="i-away-sel" onchange="teamSelChange('away')" style="flex:1"><option value="">— base de datos —</option></select>
+            <input type="text" id="i-away-txt" placeholder="o escribe el nombre" style="flex:1">
+          </div>
+        </div>
+        <div class="fc" style="flex:0;min-width:100px"><label>Fecha</label><input type="text" id="i-date" placeholder="dd/mm/aaaa"></div>
+        <div class="fc" style="flex:0;min-width:150px"><label>Liga</label>
+          <select id="i-comp" style="width:100%" onchange="onImpLeagueChange()">
+            <option value="">— selecciona liga —</option>
+            <option>🤝 Amistoso</option>
+            <option>Liga Acb</option>
+            <option>Segona Feb</option>
+            <option>Tercera Feb</option>
+            <option>Super Copa Masculina</option>
+            <option>Copa Catalunya Masculina</option>
+            <option>C.c. Primera Categoria Masculina</option>
+            <option>C.c. Segona Categoria Masculina</option>
+            <option>1a. Territorial Sènior Masculí</option>
+            <option>C.c. Sots-25 Masculí Nivell A</option>
+            <option>Liga U</option>
+            <option>C.c. U20 - Sots-20 Masculí Preferent</option>
+            <option>C.c. Sots-20 Masculí Nivell A-1</option>
+            <option>C.c. Júnior Masculí Preferent</option>
+            <option>C.c. Júnior Masculí Interterritorial</option>
+            <option>C.c. Júnior Masculí Nivell A</option>
+          </select>
+        </div>
+        <div class="fc" style="flex:0;min-width:90px"><label>Grupo</label>
+          <select id="i-group" style="width:100%" onchange="onImpGroupChange()">
+            <option value="1">Grupo 1</option>
+            <option value="2">Grupo 2</option>
+            <option value="__new__">➕ Nuevo grupo…</option>
+          </select>
+        </div>
+        <div class="fc" style="flex:0;min-width:110px"><label>Año/Temporada</label>
+          <select id="i-season" style="width:100%">
+            <option value="">— auto (del link) —</option>
+          </select>
+        </div>
       </div>
-      <div class="g4" id="p-kpis" style="margin-bottom:10px"></div>
-      <div class="sh">Jugadors</div>
-      <div class="tw"><table><thead id="p-th2"></thead><tbody id="p-tb"></tbody></table></div>
+      
+      <!-- Stats: OPTIONAL if teams in DB + crono provided -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
+        <b>💡 Ràpid:</b> Si els equips estan a la BD + enganxes la cronologia → els stats es calculen <b>automàticament</b>. Rebots i assistències no apareixen en la crono, però tots els tirs, TL, faltes, +/- i minuts sí.
+        <span style="margin-left:6px;cursor:pointer;color:#3b82f6" onclick="document.getElementById('i-stats-section').style.display=document.getElementById('i-stats-section').style.display==='none'?'block':'none'">▼ Stats manuales (opcional)</span>
+      </div>
+      <div id="i-stats-section" style="display:block;margin-bottom:8px">
+        <div class="g2" style="gap:8px;margin-bottom:4px" id="i-stats-manual">
+          <div id="i-hs-wrap"><label>Stats equipo LOCAL (opcional — afegeix rebots/assistències)</label><textarea id="i-hs" rows="5" placeholder="Jugador/a&#10;#4&#10;PAU DÍAZ JIMÉNEZ&#10;...&#10;Pts&#10;Min&#10;TL&#10;T2&#10;T3&#10;Fc&#10;11&#10;31&#10;1/1&#10;100%..."></textarea></div>
+          <div id="i-as-wrap"><label>Stats equipo VISITANTE (opcional)</label><textarea id="i-as" rows="5" placeholder="Jugador/a&#10;#1&#10;MARCEL PARÉS VILASECA&#10;..."></textarea></div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Si se pegan stats manuals + crono, la crono té prioritat per a tirs/TL/faltes, i les stats manuals aporten rebots/assistències/minuts.</div>
+      </div>
+      
+      <!-- Importar desde link de la FCBQ -->
+      <div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #86efac;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:#15803d;margin-bottom:3px">⚡ Importar automáticamente desde la web de la FCBQ</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Pega el link de la página de estadísticas del partido y se rellenan equipos, fecha y cronología solos.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <textarea id="i-fcbq-url" rows="4" placeholder="Pega aquí todos tus enlaces de la FCBQ (uno por línea)..." style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--b2);border-radius:6px;resize:vertical;font-family:monospace;"></textarea>
+          <button onclick="importFromFCBQ()" id="i-fcbq-btn" class="btn bp" style="font-size:12px;white-space:nowrap">⬇ Cargar del link</button>
+        </div>
+        <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
+      </div>
+
+      <label>Cronologia completa del partit</label>
+      <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronología del partido&#10;#7 GONZALO GIMENEZ IGUZQUIZA&#10;Salt guanyat&#10;Min: &#10;0&#10; Período: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
+      <div class="brow">
+        <button class="btn bp" onclick="parseMatch()">⚡ Procesar</button>
+        <button class="btn bo bsm" onclick="clrImp()">✕ Limpiar</button>
+      </div>
+      <div id="i-st" class="st-msg"></div>
+    </div> <!-- FIN CARD IMPORTAR FCBQ -->
+
+    <!-- ========================================== -->
+    <!-- 📊 NUEVA TARJETA DE ACUMULADOS (PERFECTA)  -->
+    <!-- ========================================== -->
+    <div class="card" style="margin-top:20px; border-left:4px solid #f59e0b;">
+        <h3 style="margin-top:0; color:var(--nv);">📊 Importar Acumulados (Copa Catalunya / 1ª Categoria)</h3>
+        <p style="font-size:12px; color:var(--t3); margin-bottom:15px;">Sube el archivo JSON con las medias de la temporada. Se crearán los equipos y jugadores con su historial unificado para el Scouting.</p>
+        
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input type="file" id="json-primera-upload" accept=".json" style="flex:1; padding:8px; border:1px solid var(--bd); border-radius:8px; font-size:12px;">
+            <button onclick="importarPrimeraJSON()" style="background:#f59e0b; color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">Cargar JSON</button>
+        </div>
     </div>
-  </div>
-</div></div>
+
+    <!-- Preview -->
+    <div id="i-prev" style="display:none">
+      <div class="card">
+        <div class="ct"><span id="i-title">Resultat</span><button class="btn bg bsm" onclick="confImp()">✓ Desar</button></div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="kpi"><div class="kv" id="p-sh">-</div><div class="kl" id="p-th">Local</div></div>
+          <div class="kpi"><div class="kv" id="p-sa">-</div><div class="kl" id="p-ta">Visitant</div></div>
+        </div>
+        <div class="g4" id="p-kpis" style="margin-bottom:10px"></div>
+        <div class="sh">Jugadors</div>
+        <div class="tw"><table><thead id="p-th2"></thead><tbody id="p-tb"></tbody></table></div>
+      </div>
+    </div>
+
+  </div> <!-- Cierra div main -->
+</div> <!-- Cierra div tab-imp -->
 
 <!-- ═══ TAB: DIRECTO ═══ -->
 <div id="t-live" class="tab"><div class="main">
@@ -13194,15 +13213,167 @@ setTimeout(() => {
     if (importados > 0) {
         if(typeof svL === 'function') svL(); 
         if(typeof renderFisio === 'function') renderFisio();
-        console.log(`✅ ¡Se han inyectado ${importados} registros con los dos Adriàs perfectamente separados!`);
     }
   } catch (error) {
     console.error("Error en el inyector:", error);
   }
 }, 2500);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 📥 IMPORTADOR DE ACUMULADOS (PRIMERA / COPA CATALUNYA) - SIN RECARGA
+// ═══════════════════════════════════════════════════════════════════════════
 
+window.importarPrimeraJSON = function() {
+    const fileInput = document.getElementById('json-primera-upload');
+    const file = fileInput.files[0];
+    if (!file) { alert('⚠️ Por favor, selecciona el archivo JSON primero.'); return; }
 
+    // Diccionario con Victorias, Derrotas y GRUPO asignado
+    const standings = {
+        // GRUPO 1
+        "CB MORELL A": {w:23, l:3, g:"Grupo 1"}, "DAVIMA CB CANTAIRES TORTOSA": {w:18, l:8, g:"Grupo 1"}, "INVOGA CBT": {w:18, l:8, g:"Grupo 1"}, "BÀSQUET SANT BOI A": {w:17, l:9, g:"Grupo 1"}, "VILABÀSQUET VILADECANS SMA": {w:16, l:10, g:"Grupo 1"}, "CB VALLS BNA": {w:16, l:10, g:"Grupo 1"}, "VALLCUERBA REUS PLOMS SALLE": {w:13, l:12, g:"Grupo 1"}, "REMM GUITART - BÀSQUET RIBES": {w:11, l:15, g:"Grupo 1"}, "CB VILADECANS A": {w:11, l:15, g:"Grupo 1"}, "NOU BÀSQUET OLESA A": {w:9, l:17, g:"Grupo 1"}, "CB ABRERA": {w:9, l:17, g:"Grupo 1"}, "CONTENIDORS PENEDÈS SE CASAL VILAFRANCA": {w:9, l:17, g:"Grupo 1"}, "ELS MONJOS BC - PANSALUD": {w:6, l:20, g:"Grupo 1"}, "CB VILA-SECA": {w:6, l:20, g:"Grupo 1"},
+        // GRUPO 2
+        "CB ADEPAF TXOTS": {w:23, l:3, g:"Grupo 2"}, "CE PALAMOS": {w:21, l:5, g:"Grupo 2"}, "CB CABRERA A": {w:19, l:7, g:"Grupo 2"}, "CB VILASSAR DE DALT A": {w:17, l:9, g:"Grupo 2"}, "C.B. FARNERS": {w:16, l:10, g:"Grupo 2"}, "MURALLA ÒPTICA CB BLANES A": {w:13, l:13, g:"Grupo 2"}, "RIO LOGISTIC CB LLIÇA D’AMUNT": {w:11, l:15, g:"Grupo 2"}, "CESET": {w:11, l:15, g:"Grupo 2"}, "C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ": {w:11, l:15, g:"Grupo 2"}, "CN CALDES A": {w:10, l:16, g:"Grupo 2"}, "MARBRES BERTRAN BÀSQUET ARBÚCIES A": {w:10, l:16, g:"Grupo 2"}, "CB GUÍXOLS": {w:7, l:19, g:"Grupo 2"}, "CB LA GARRIGA A": {w:7, l:19, g:"Grupo 2"}, "HOMS U.E. MATARÓ -B": {w:6, l:20, g:"Grupo 2"},
+        // GRUPO 3
+        "BC MORABANC ANDORRA B": {w:24, l:2, g:"Grupo 3"}, "EL MASNOU BASQUETBOL A": {w:20, l:6, g:"Grupo 3"}, "SESE B": {w:17, l:9, g:"Grupo 3"}, "MOTOROLA CB SANT JOSEP BADALONA - SAM": {w:16, l:10, g:"Grupo 3"}, "A.E. SANT ANDREU NATZARET-A": {w:16, l:10, g:"Grupo 3"}, "FORMULA SR -LLUÏSOS DE GRACIA A ": {w:15, l:11, g:"Grupo 3"}, "CE SANT NICOLAU": {w:14, l:12, g:"Grupo 3"}, "U. B. LLEFIÀ A - JJ FINQUES BADALONA": {w:13, l:13, g:"Grupo 3"}, "UB SANT ADRIA B": {w:13, l:13, g:"Grupo 3"}, "IDÓNIA - BASQUE SANT PERE": {w:11, l:15, g:"Grupo 3"}, "CLUB NATACIÓ TERRASSA A": {w:9, l:17, g:"Grupo 3"}, "PUJOL MOLLERUSSA": {w:5, l:21, g:"Grupo 3"}, "CB IPSI B": {w:5, l:21, g:"Grupo 3"}, "CENG FIWITEL": {w:4, l:22, g:"Grupo 3"},
+        // GRUPO 4
+        "TENEA*TALENT - C.B. ESPARREGUERA B": {w:22, l:4, g:"Grupo 4"}, "CB CASTELLET - CASA ARIMANY": {w:20, l:6, g:"Grupo 4"}, "UE SANT CUGAT - OCCIDENT B": {w:20, l:6, g:"Grupo 4"}, "TEMPLE UE HORTA": {w:19, l:7, g:"Grupo 4"}, "AE MINGUELLA B - PURE CUISINE": {w:15, l:11, g:"Grupo 4"}, "FC MARTINENC BÀSQUET B": {w:14, l:12, g:"Grupo 4"}, "LA SALLE MANRESA SGOL": {w:11, l:15, g:"Grupo 4"}, "BÀSQUET SAFA CLAROR A": {w:11, l:15, g:"Grupo 4"}, "CENTRE CATÒLIC L'H A": {w:10, l:16, g:"Grupo 4"}, "GAMMA MONTAÑO C.B. VILATORRADA A": {w:10, l:16, g:"Grupo 4"}, "SFERIC GERFINCAS": {w:9, l:17, g:"Grupo 4"}, "C.B. CIC A": {w:7, l:19, g:"Grupo 4"}, "EL CÍRCOL B": {w:7, l:19, g:"Grupo 4"}, "VEDRUNA GRÀCIA A": {w:7, l:19, g:"Grupo 4"}
+    };
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let jsonText = e.target.result;
+            
+            const keyword = '"allRows"';
+            const index = jsonText.indexOf(keyword);
+            
+            if (index === -1) throw new Error("No se encontró 'allRows' en el archivo.");
+
+            let startOfJson = jsonText.lastIndexOf('{', index);
+            if (startOfJson === -1) startOfJson = 0;
+            jsonText = jsonText.substring(startOfJson);
+
+            const lastBrace = jsonText.lastIndexOf('}');
+            if (lastBrace !== -1) jsonText = jsonText.substring(0, lastBrace + 1);
+
+            const json = JSON.parse(jsonText);
+            const rows = json.allRows || json;
+
+            let teamsAdded = 0;
+            let playersUpdated = 0;
+
+            if (typeof S === 'undefined' || !S) { alert("⚠️ La base de datos no está lista."); return; }
+            if (!S.teams) S.teams = [];
+
+            rows.forEach(row => {
+                const d = row.data;
+                if (!d || !d.Liga) return;
+
+                if (!d.Liga.toLowerCase().includes("copa catalunya") && !d.Liga.toLowerCase().includes("primera")) return;
+
+                const tName = d.Equip.trim();
+
+                let team = S.teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
+                if (!team) {
+                    team = { 
+                        id: 't_acc_' + Date.now() + Math.random(), 
+                        name: tName, 
+                        players: [], 
+                        wins: 0, 
+                        losses: 0,
+                        // 🎯 FORZAMOS LA TEMPORADA, LIGA Y GRUPO
+                        season: "2025/2026",
+                        comp: "C.c. Primera Categoria Masculina",
+                        league: "C.c. Primera Categoria Masculina",
+                        group: "Grupo 1" // Por defecto, luego lo actualizamos abajo
+                    };
+                    
+                    const cleanName = tName.toUpperCase();
+                    if (standings[cleanName]) {
+                        team.wins = standings[cleanName].w;
+                        team.losses = standings[cleanName].l;
+                        team.group = standings[cleanName].g;
+                    } else {
+                        const match = Object.keys(standings).find(k => cleanName.includes(k) || k.includes(cleanName));
+                        if(match) {
+                            team.wins = standings[match].w;
+                            team.losses = standings[match].l;
+                            team.group = standings[match].g;
+                        }
+                    }
+                    S.teams.push(team);
+                    teamsAdded++;
+                }
+
+                if (row.type === 'player') {
+                    const pName = d.Nom.trim();
+                    let player = team.players.find(p => p.name.toLowerCase() === pName.toLowerCase());
+                    
+                    if (!player) {
+                        // 🎲 Generador de dorsal aleatorio (0-99)
+                        const randomDorsal = Math.floor(Math.random() * 100).toString();
+                        player = { id: 'p_acc_' + Date.now() + Math.random(), name: pName, dorsal: randomDorsal, stats: [] };
+                        team.players.push(player);
+                    }
+
+                    if (!player.stats) player.stats = [];
+
+                    const hasAcc = player.stats.find(s => s.isAccumulated);
+                    if (!hasAcc) {
+                        const pj = d.PJ || 1;
+                        
+                        const parseShots = (str) => {
+                            if(!str || !str.includes('/')) return {m:0, a:0};
+                            const parts = str.split('/');
+                            return { m: parseInt(parts[0])||0, a: parseInt(parts[1])||0 };
+                        };
+
+                        const t2 = parseShots(d['T2 intentos']);
+                        const t3 = parseShots(d['T3 intentos']);
+                        const tl = parseShots(d['TL intentos']);
+
+                        player.stats.push({
+                            id: 'match_acc_' + Date.now() + Math.random(),
+                            match: 'Acumulado 25/26',
+                            date: new Date().toISOString().split('T')[0],
+                            isAccumulated: true, 
+                            
+                            min: d.MIN || 0,
+                            pts: d.PTS || 0,
+                            t2_m: t2.m, t2_a: t2.a,
+                            t3_m: t3.m, t3_a: t3.a,
+                            tl_m: tl.m, tl_a: tl.a,
+
+                            ast: Math.round((d['AS/P'] || 0) * pj),
+                            reb: Math.round((d['RT/P'] || 0) * pj),
+                            val: Math.round((d['VAL/P'] || 0) * pj),
+                            fc: Math.round((d['FC/P'] || 0) * pj),
+                            fr: Math.round((d['FR/P'] || 0) * pj),
+                            
+                            stl: 0, blk: 0, tov: 0
+                        });
+                        playersUpdated++;
+                    }
+                }
+            });
+
+            window.svL(); // Guardamos en local storage
+            alert(`✅ Acumulados importados con éxito.\n\nEquipos de Primera procesados: ${teamsAdded}\nJugadores actualizados: ${playersUpdated}`);
+            
+            // Actualizamos la vista de equipos de fondo (sin recargar)
+            if (typeof renderTeams === 'function') renderTeams();
+
+            // Opcional: si los menús desplegables de importar no se actualizan solos al instante en local, 
+            // basta con que cambies de pestaña y vuelvas, o refresques a mano cuando te venga bien.
+
+        } catch (err) {
+            console.error("Detalle del error JSON:", err);
+            alert('❌ Error al procesar el archivo. Sigue habiendo un problema de formato. Revisa la consola para más detalles.');
+        }
+    };
+    reader.readAsText(file);
+};
 </script>
 </body>
 </html>

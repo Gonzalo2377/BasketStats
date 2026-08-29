@@ -2658,46 +2658,61 @@ function renderFisio() {
     const el = document.getElementById('fisio-main');
     if (!el) return;
 
-    // Blindaje de datos: inicializar SIEMPRE
     if (!S.fisio) S.fisio = {};
 
-    const myTeam = S.teams.find(t => isOurTeam(t.name));
-    if (!myTeam) {
-        el.innerHTML = '<div class="empty card">Necesitas tener un equipo llamado "Claret" en tu base de datos (pestaña Equipos) para usar el Área de Fisio.</div>';
-        return;
-    }
-
-    const players = [...myTeam.players].sort((a, b) => a.name.localeCompare(b.name));
+    // Filtramos SOLO los jugadores que tienen al menos un registro médico o de salto guardado
+    const activePlayers = Object.keys(S.fisio).filter(name => {
+        const d = S.fisio[name];
+        if (!d) return false;
+        // Comprobamos si tiene datos en alguna de las métricas
+        const hasWeight = d.weight && d.weight.length > 0;
+        const hasSJ = d.jump_sj && d.jump_sj.length > 0;
+        const hasCMJ = d.jump_cmj && d.jump_cmj.length > 0;
+        const hasFree = d.jump_free && d.jump_free.length > 0;
+        return hasWeight || hasSJ || hasCMJ || hasFree;
+    }).sort();
 
     el.innerHTML = `
         <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff; border:none; padding:24px;">
             <div style="font-size:24px; font-weight:900; margin-bottom:4px">🩹 Área Médica y Fisio</div>
-            <div style="font-size:12px; opacity:0.85">Control de peso, grasa, carga física y métricas de ${myTeam.name}.</div>
+            <div style="font-size:12px; opacity:0.85">Control de peso y métricas de salto exclusivas de jugadores con seguimiento activo. (${activePlayers.length} jugadores)</div>
         </div>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
-            ${players.map(p => {
-                // Blindaje individual por jugador
-                if (!S.fisio[p.name]) S.fisio[p.name] = { weight: [], fat: [], load: [], jump: [] };
-                const data = S.fisio[p.name];
-                
-                const getLast = (arr) => arr && arr.length ? arr.slice().sort((a,b) => new Date(a.date) - new Date(b.date)).pop().val : '—';
-                const lastWeight = getLast(data.weight);
-                const lastLoad = getLast(data.load);
-                
-                return `
-                <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:14px; cursor:pointer; display:flex; align-items:center; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02)" onclick="openFisioProfile('${_esc(p.name)}')">
-                    <div style="width:44px; height:44px; border-radius:50%; background:#f0f9ff; border:2px solid #bae6fd; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; flex-shrink:0">#${p.dorsal}</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:900; font-size:14px; color:var(--nv); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${_esc(p.name)}</div>
-                        <div style="font-size:10.5px; color:var(--t3); margin-top:3px; display:flex; gap:10px;">
-                            <span>Peso: <b style="color:var(--t2)">${lastWeight !== '—' ? lastWeight + 'kg' : '—'}</b></span>
-                            <span>Fatiga: <b style="color:${lastLoad > 7 ? '#dc2626' : 'var(--t2)'}">${lastLoad !== '—' ? lastLoad + '/10' : '—'}</b></span>
+        
+        ${activePlayers.length === 0 ? `
+            <div class="empty card" style="text-align:center; padding:40px;">
+                No hay ningún jugador con registros médicos activos todavía.<br>
+                <span style="font-size:12px; color:var(--t3);">Usa el inyector del histórico o añade medidas desde sus perfiles.</span>
+            </div>
+        ` : `
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+                ${activePlayers.map(name => {
+                    const data = S.fisio[name];
+                    const getLast = (arr) => arr && arr.length ? arr.slice().sort((a,b) => new Date(a.date) - new Date(b.date)).pop().val : '—';
+                    const lastWeight = getLast(data.weight);
+                    const lastCMJ = getLast(data.jump_cmj);
+                    
+                    // Intentamos buscar su dorsal en la plantilla del Claret si existe
+                    let dorsal = '';
+                    for(const t of (S.teams || [])) {
+                        const found = (t.players || []).find(p => p.name.toLowerCase() === name.toLowerCase());
+                        if(found) { dorsal = '#' + found.dorsal; break; }
+                    }
+
+                    return `
+                    <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:14px; cursor:pointer; display:flex; align-items:center; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02)" onclick="openFisioProfile('${_esc(name)}')">
+                        <div style="width:44px; height:44px; border-radius:50%; background:#f0f9ff; border:2px solid #bae6fd; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900; flex-shrink:0">${dorsal || '🏃‍♂️'}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:900; font-size:14px; color:var(--nv); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${_esc(name)}</div>
+                            <div style="font-size:10.5px; color:var(--t3); margin-top:3px; display:flex; gap:10px;">
+                                <span>Peso: <b style="color:var(--t2)">${lastWeight !== '—' ? lastWeight + 'kg' : '—'}</b></span>
+                                <span>CMJ: <b style="color:var(--t2)">${lastCMJ !== '—' ? lastCMJ + 'cm' : '—'}</b></span>
+                            </div>
                         </div>
-                    </div>
-                    <div style="font-size:18px; opacity:0.5">📈</div>
-                </div>`;
-            }).join('')}
-        </div>
+                        <div style="font-size:18px; opacity:0.5">📈</div>
+                    </div>`;
+                }).join('')}
+            </div>
+        `}
     `;
 }
 
@@ -2710,8 +2725,15 @@ window.openFisioProfile = function(name) {
         document.body.appendChild(modal);
     }
 
-    // En openFisioProfile()
-    if (!S.fisio[name]) S.fisio[name] = { weight: [], fat: [], load: [], jump_sj: [], jump_cmj: [], jump_free: [] };
+    if (!S.fisio) S.fisio = {};
+    if (!S.fisio[name]) {
+        S.fisio[name] = { weight: [], jump_sj: [], jump_cmj: [], jump_free: [] };
+    }
+    
+    ['weight', 'jump_sj', 'jump_cmj', 'jump_free'].forEach(k => {
+        if (!S.fisio[name][k]) S.fisio[name][k] = [];
+    });
+
     window._fisioCtx = { name, data: S.fisio[name] };
 
     renderFisioModalContent();
@@ -2722,14 +2744,12 @@ function renderFisioModalContent() {
     const modal = document.getElementById('fisio-modal');
     const { name, data } = window._fisioCtx;
 
-    // Reemplaza esto en renderFisioModalContent()
+    // ELIMINADAS GRASA Y CARGA, SOLO QUEDAN PESO Y SALTOS
     const metrics = [
-          { id: 'weight', label: 'Peso (kg)', color: '#3b82f6', step: '0.1' },
-          { id: 'fat', label: 'Grasa Corporal (%)', color: '#f59e0b', step: '0.1' },
-          { id: 'load', label: 'Carga/Fatiga (1-10)', color: '#ef4444', step: '1' },
-          { id: 'jump_sj', label: 'Salto: Squat Jump (cm)', color: '#8b5cf6', step: '0.1' },
-          { id: 'jump_cmj', label: 'Salto: CMJ Cintura (cm)', color: '#10b981', step: '0.1' },
-          { id: 'jump_free', label: 'Salto: CMJ Libre (cm)', color: '#06b6d4', step: '0.1' }
+        { id: 'weight', label: 'Peso Corporal (kg)', color: '#3b82f6', step: '0.1' },
+        { id: 'jump_sj', label: 'Salto: Squat Jump (cm)', color: '#8b5cf6', step: '0.1' },
+        { id: 'jump_cmj', label: 'Salto: CMJ Cintura (cm)', color: '#10b981', step: '0.1' },
+        { id: 'jump_free', label: 'Salto: CMJ Libre (cm)', color: '#06b6d4', step: '0.1' }
     ];
 
     let html = `
@@ -2746,12 +2766,12 @@ function renderFisioModalContent() {
                     </select>
                 </div>
                 <div style="flex:1; min-width:120px;">
-                    <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Fecha de medida</label>
+                    <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Fecha</label>
                     <input type="date" id="fisio-date" value="${new Date().toISOString().split('T')[0]}" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:13px; margin-top:4px; font-family:monospace">
                 </div>
                 <div style="flex:1; min-width:100px;">
                     <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Valor</label>
-                    <input type="number" id="fisio-val" step="0.1" placeholder="Ej: 82.5" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:14px; margin-top:4px; font-weight:900; color:var(--nv)">
+                    <input type="number" id="fisio-val" step="0.1" placeholder="Ej: 42.5" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:14px; margin-top:4px; font-weight:900; color:var(--nv)">
                 </div>
                 <button onclick="saveFisioData()" style="background:#0ea5e9; color:#fff; font-weight:800; font-size:13px; border:none; border-radius:8px; padding:12px 24px; cursor:pointer;">➕ Guardar</button>
             </div>
@@ -2787,6 +2807,9 @@ function renderFisioModalContent() {
     `;
     modal.innerHTML = html;
 }
+// ═══════════════════════════════════════════
+// INYECTOR AUTOMÁTICO DE HISTORIAL DE SALTOS
+// ═══════════════════════════════════════════
 
 function generateFisioChart(arr, color) {
     if(arr.length === 1) return `<div style="font-size:32px; font-weight:900; color:${color}; text-align:center; margin:30px 0">${arr[0].val}</div>`;
@@ -13030,6 +13053,163 @@ window.lvActAntiInteligente = function() {
     });
 };
 
+// ═══════════════════════════════════════════
+// INYECTOR CORREGIDO (LOS DOS ADRIÀS BIEN ASIGNADOS)
+// ═══════════════════════════════════════════
+setTimeout(() => {
+  try {
+    const jumpData = {
+      "Armak": [
+        {"date": "2023-09-01", "type": "CMJ", "val": 47.33},
+        {"date": "2023-12-04", "type": "CMJ", "val": 43.66},
+        {"date": "2023-12-04", "type": "CMJFree", "val": 56.63},
+        {"date": "2023-09-04", "type": "CMJFree", "val": 50.55},
+        {"date": "2026-08-25", "type": "SJ", "val": 40.02},
+        {"date": "2026-08-26", "type": "CMJ", "val": 44.21},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 49.25}
+      ],
+      "Albert": [
+        {"date": "2026-08-25", "type": "SJ", "val": 37.71},
+        {"date": "2026-08-26", "type": "CMJ", "val": 42.99},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 51.88}
+      ],
+      "Carrasco": [
+        {"date": "2026-08-25", "type": "SJ", "val": 37.71}
+      ],
+      "Gonzalo": [
+        {"date": "2026-08-25", "type": "SJ", "val": 37.13},
+        {"date": "2026-08-26", "type": "CMJ", "val": 43.59},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 50.55}
+      ],
+      "Hector": [
+        {"date": "2026-08-25", "type": "SJ", "val": 30.63},
+        {"date": "2026-08-26", "type": "CMJ", "val": 30.63},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 33.15}
+      ],
+      "JAVI": [
+        {"date": "2023-09-01", "type": "CMJ", "val": 37.09},
+        {"date": "2024-04-10", "type": "CMJ", "val": 42.99},
+        {"date": "2024-04-10", "type": "CMJFree", "val": 51.88},
+        {"date": "2023-12-04", "type": "CMJ", "val": 41.79},
+        {"date": "2023-12-04", "type": "CMJFree", "val": 51.21},
+        {"date": "2023-09-04", "type": "CMJFree", "val": 46.69}
+      ],
+      "Marti": [
+        {"date": "2026-08-25", "type": "SJ", "val": 34.61},
+        {"date": "2026-08-26", "type": "CMJ", "val": 36.57},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 39.54}
+      ],
+      "Ordo": [
+        {"date": "2026-08-25", "type": "SJ", "val": 35.10},
+        {"date": "2026-08-26", "type": "CMJ", "val": 39.06},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 43.66}
+      ],
+      "Oriol": [
+        {"date": "2026-08-25", "type": "SJ", "val": 40.60},
+        {"date": "2026-08-26", "type": "CMJ", "val": 43.66},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 50.55}
+      ],
+      "POCH": [
+        {"date": "2026-08-25", "type": "SJ", "val": 38.86},
+        {"date": "2026-08-26", "type": "CMJ", "val": 42.40},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 51.88}
+      ],
+      "Sowkin": [
+        {"date": "2026-08-25", "type": "SJ", "val": 29.81},
+        {"date": "2026-08-26", "type": "CMJ", "val": 31.46},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 39.54}
+      ],
+      "Turru": [
+        {"date": "2026-08-25", "type": "SJ", "val": 31.46},
+        {"date": "2026-08-26", "type": "CMJ", "val": 38.29},
+        {"date": "2026-08-26", "type": "CMJFree", "val": 45.44}
+      ]
+    };
+
+    const weightData = {
+      "Armak": [ {"date": "2023-09-01", "val": 80.0}, {"date": "2023-09-04", "val": 80.0}, {"date": "2023-12-04", "val": 80.0}, {"date": "2026-08-25", "val": 82.0}, {"date": "2026-08-26", "val": 82.0} ],
+      "Albert": [ {"date": "2026-08-25", "val": 72.0}, {"date": "2026-08-26", "val": 72.0} ],
+      "Carrasco": [ {"date": "2026-08-25", "val": 77.0} ],
+      "Gonzalo": [ {"date": "2026-08-25", "val": 99.0}, {"date": "2026-08-26", "val": 99.0} ],
+      "Hector": [ {"date": "2026-08-25", "val": 76.0}, {"date": "2026-08-26", "val": 76.0} ],
+      "JAVI": [ {"date": "2023-09-01", "val": 67.0}, {"date": "2023-09-04", "val": 67.0}, {"date": "2023-12-04", "val": 67.0}, {"date": "2024-04-10", "val": 67.0} ],
+      "Marti": [ {"date": "2026-08-25", "val": 118.0}, {"date": "2026-08-26", "val": 118.0} ],
+      "Ordo": [ {"date": "2026-08-25", "val": 83.0}, {"date": "2026-08-26", "val": 83.0} ],
+      "Oriol": [ {"date": "2026-08-25", "val": 86.0}, {"date": "2026-08-26", "val": 86.0} ],
+      "POCH": [ {"date": "2026-08-25", "val": 95.0}, {"date": "2026-08-26", "val": 95.0} ],
+      "Sowkin": [ {"date": "2026-08-25", "val": 100.0}, {"date": "2026-08-26", "val": 100.0} ],
+      "Turru": [ {"date": "2026-08-25", "val": 80.0}, {"date": "2026-08-26", "val": 80.0} ]
+    };
+
+    // 🎯 MAPEO CORREGIDO: Ordo ➔ Ordobàs | Turru ➔ Torroja
+    const nameMapping = {
+      "Armak": "armak",
+      "Albert": "sitjes",
+      "Carrasco": "sergi carrasco",
+      "Gonzalo": "gonzalo fernando",
+      "Hector": "hector gimenez",
+      "JAVI": "javier vicente",
+      "Marti": "marti gomez",
+      "Ordo": "ordobàs",    // 👈 Corregido
+      "Oriol": "oriol",
+      "POCH": "jordi poch",
+      "Sowkin": "sowkin",
+      "Turru": "torroja"    // 👈 Corregido
+    };
+
+    if (!S) return;
+    if (!S.fisio) S.fisio = {};
+    const typeMap = { 'SJ': 'jump_sj', 'CMJ': 'jump_cmj', 'CMJFree': 'jump_free' };
+    let importados = 0;
+
+    const allPlayers = (S.teams || []).flatMap(t => t.players || []);
+
+    const injectMetric = (excelName, metricId, dataArray) => {
+        const searchKey = nameMapping[excelName];
+        if (!searchKey) return;
+        
+        // Búsqueda insensible a tildes (por si acaso Ordobàs lleva acento o no en el roster)
+        const norm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        const matchedPlayer = allPlayers.find(p => norm(p.name).includes(norm(searchKey)));
+        
+        if (!matchedPlayer) return;
+
+        const targetName = matchedPlayer.name;
+        if (!S.fisio[targetName]) S.fisio[targetName] = { weight: [], jump_sj: [], jump_cmj: [], jump_free: [] };
+        if (!S.fisio[targetName][metricId]) S.fisio[targetName][metricId] = [];
+
+        dataArray.forEach(item => {
+            const exists = S.fisio[targetName][metricId].some(d => d.date === item.date);
+            if (!exists) {
+                S.fisio[targetName][metricId].push({
+                    id: 'hist_' + Date.now().toString() + Math.floor(Math.random() * 1000),
+                    date: item.date,
+                    val: item.val
+                });
+                importados++;
+            }
+        });
+    };
+
+    Object.keys(jumpData).forEach(excelName => {
+        jumpData[excelName].forEach(jump => {
+            if (typeMap[jump.type]) injectMetric(excelName, typeMap[jump.type], [jump]);
+        });
+    });
+
+    Object.keys(weightData).forEach(excelName => {
+        injectMetric(excelName, 'weight', weightData[excelName]);
+    });
+
+    if (importados > 0) {
+        if(typeof svL === 'function') svL(); 
+        if(typeof renderFisio === 'function') renderFisio();
+        console.log(`✅ ¡Se han inyectado ${importados} registros con los dos Adriàs perfectamente separados!`);
+    }
+  } catch (error) {
+    console.error("Error en el inyector:", error);
+  }
+}, 2500);
 
 
 

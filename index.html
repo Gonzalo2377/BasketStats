@@ -1732,7 +1732,7 @@ body.zen-mode {
           
       </div>
   </div>
-</div>
+</div></div>
 <!-- Editor de equipos de un grupo de seguimiento -->
 <div id="wg-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:775;align-items:center;justify-content:center;padding:12px">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)">
@@ -2513,6 +2513,7 @@ async function ldLS() {
     
     // Sincronización en tiempo real del próximo rival entre dispositivos
     S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
+    S.fisio = snap.exists() ? (snap.data().fisio || {}) : {};
 
     _refreshAfterSync();
     if (typeof renderCompare === 'function') {
@@ -2579,46 +2580,275 @@ function toast(msg,type='ok'){
 // TABS
 // ═══════════════════════════════════════════
 // Lista actualizada sin el dashboard
-const ts=['t-eq','t-imp','t-live','t-shots','t-standings','t-stats','t-club','t-scout','t-compare','t-video'];
+const ts=['t-eq','t-imp','t-live','t-shots','t-standings','t-stats','t-club','t-scout','t-compare','t-video','t-fisio'];
 
 function ST(id){
-  // Si es jugador, está terminantemente atrapado en t-compare
-  if(_playerMode && id !== 't-compare') {
-      window._originalST ? window._originalST('t-compare') : null;
-      return;
-  }
-  
-  // MODO STAFF: Navegación libre absoluta
-  const tabEl = document.getElementById(id);
-  if(!tabEl) return;
+    if(_playerMode && id !== 't-compare') {
+        window._originalST ? window._originalST('t-compare') : null;
+        return;
+    }
+    
+    const tabEl = document.getElementById(id);
+    if(!tabEl) return;
 
-  try {
-      const _i = ts.indexOf(id);
-      if(_i >= 0) document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
-  } catch(e){}
-  
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
-  
-  tabEl.classList.add('active');
-  
-  const navBtn = document.querySelectorAll('.nb')[ts.indexOf(id)];
-  if(navBtn) navBtn.classList.add('active');
+    try {
+        const _i = ts.indexOf(id);
+        if(_i >= 0) document.querySelectorAll('.nb')[_i]?.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    } catch(e){}
+    
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+    
+    tabEl.classList.add('active');
+    
+    const navBtn = document.querySelectorAll('.nb')[ts.indexOf(id)];
+    if(navBtn) navBtn.classList.add('active');
 
-  if(id==='t-eq'){renderTeams();renderWatchGroups();}
-  if(id==='t-imp'){populateTeamSelects();_rebuildImpGroups();_populateSeasonSelect();}
-  if(id==='t-live'){populateLvTeamSelects();checkLiveResume();_populateLvSeason();}
-  if(id==='t-video')renderVideoLib();
-  if(id==='t-club')renderClub();
-  if(id==='t-shots'){popShotSel();drawCourtOnCanvas('sh-cv');renderShotMap();renderShotsTodo();}
-  if(id==='t-standings')renderStandings();
-  if(id==='t-compare')renderCompare();
-  if(id==='t-stats'){renderMatchHistory();renderStats();}
-  if(id==='t-scout'){populateRivalSelect();renderScouting();}
+    try {
+        if(id==='t-eq'){ if(typeof renderTeams==='function')renderTeams(); if(typeof renderWatchGroups==='function')renderWatchGroups(); }
+        if(id==='t-imp'){ if(typeof populateTeamSelects==='function')populateTeamSelects(); if(typeof _rebuildImpGroups==='function')_rebuildImpGroups(); if(typeof _populateSeasonSelect==='function')_populateSeasonSelect(); }
+        if(id==='t-live'){ if(typeof populateLvTeamSelects==='function')populateLvTeamSelects(); if(typeof checkLiveResume==='function')checkLiveResume(); if(typeof _populateLvSeason==='function')_populateLvSeason(); }
+        if(id==='t-video') { if(typeof renderVideoLib==='function')renderVideoLib(); }
+        if(id==='t-club') { if(typeof renderClub==='function')renderClub(); }
+        if(id==='t-shots') { if(typeof popShotSel==='function')popShotSel(); if(typeof drawCourtOnCanvas==='function')drawCourtOnCanvas('sh-cv'); if(typeof renderShotMap==='function')renderShotMap(); if(typeof renderShotsTodo==='function')renderShotsTodo(); }
+        if(id==='t-standings') { if(typeof renderStandings==='function')renderStandings(); }
+        if(id==='t-compare') { if(typeof renderCompare==='function')renderCompare(); }
+        if(id==='t-stats') { if(typeof renderMatchHistory==='function')renderMatchHistory(); if(typeof renderStats==='function')renderStats(); }
+        if(id==='t-scout') { if(typeof populateRivalSelect==='function')populateRivalSelect(); if(typeof renderScouting==='function')renderScouting(); }
+        if(id==='t-fisio') { if(typeof renderFisio==='function')renderFisio(); }
+    } catch(err) {
+        console.error("Error renderizando pestaña " + id + ":", err);
+    }
 }
 function pf(m,a){return a>0?Math.round(m/a*100)+'%':'—';}
 function setSt(id,msg,tp='ok'){const e=document.getElementById(id);e.textContent=msg;e.className='st-msg '+tp;}
 
+// ═══════════════════════════════════════════
+// 🩹 MÓDULO FISIO / RENDIMIENTO FÍSICO
+// ═══════════════════════════════════════════
+(function injectFisioHTML() {
+    // 1. Inyectar botón en la navbar si no existe
+    const nav = document.querySelector('.nav') || document.querySelector('.tabs-nav');
+    if (nav && !document.querySelector('button[onclick="ST(\'t-fisio\')"]')) {
+        nav.insertAdjacentHTML('beforeend', `<button class="nb tab-btn" onclick="ST('t-fisio')" style="font-weight:800;color:#0284c7">🩹 Fisio</button>`);
+    }
+
+    // 2. Inyectar pestaña de la manera más segura posible
+    if (!document.getElementById('t-fisio')) {
+        // Encontramos el contenedor padre donde viven todas las pestañas
+        // Normalmente es el padre directo de 't-eq' o 't-stats'
+        const tabReference = document.getElementById('t-stats');
+        if (tabReference && tabReference.parentNode) {
+            const newTab = document.createElement('div');
+            newTab.id = 't-fisio';
+            newTab.className = 'tab'; // Importantísimo que no lleve display:none
+            
+            const wrapDiv = document.createElement('div');
+            wrapDiv.className = 'wrap';
+            wrapDiv.id = 'fisio-main';
+            wrapDiv.style.padding = '15px 5px';
+            
+            newTab.appendChild(wrapDiv);
+            tabReference.parentNode.appendChild(newTab);
+        }
+    }
+})();
+
+function renderFisio() {
+    const el = document.getElementById('fisio-main');
+    if (!el) return;
+
+    // Blindaje de datos: inicializar SIEMPRE
+    if (!S.fisio) S.fisio = {};
+
+    const myTeam = S.teams.find(t => isOurTeam(t.name));
+    if (!myTeam) {
+        el.innerHTML = '<div class="empty card">Necesitas tener un equipo llamado "Claret" en tu base de datos (pestaña Equipos) para usar el Área de Fisio.</div>';
+        return;
+    }
+
+    const players = [...myTeam.players].sort((a, b) => a.name.localeCompare(b.name));
+
+    el.innerHTML = `
+        <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff; border:none; padding:24px;">
+            <div style="font-size:24px; font-weight:900; margin-bottom:4px">🩹 Área Médica y Fisio</div>
+            <div style="font-size:12px; opacity:0.85">Control de peso, grasa, carga física y métricas de ${myTeam.name}.</div>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+            ${players.map(p => {
+                // Blindaje individual por jugador
+                if (!S.fisio[p.name]) S.fisio[p.name] = { weight: [], fat: [], load: [], jump: [] };
+                const data = S.fisio[p.name];
+                
+                const getLast = (arr) => arr && arr.length ? arr.slice().sort((a,b) => new Date(a.date) - new Date(b.date)).pop().val : '—';
+                const lastWeight = getLast(data.weight);
+                const lastLoad = getLast(data.load);
+                
+                return `
+                <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:14px; cursor:pointer; display:flex; align-items:center; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02)" onclick="openFisioProfile('${_esc(p.name)}')">
+                    <div style="width:44px; height:44px; border-radius:50%; background:#f0f9ff; border:2px solid #bae6fd; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; flex-shrink:0">#${p.dorsal}</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:900; font-size:14px; color:var(--nv); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${_esc(p.name)}</div>
+                        <div style="font-size:10.5px; color:var(--t3); margin-top:3px; display:flex; gap:10px;">
+                            <span>Peso: <b style="color:var(--t2)">${lastWeight !== '—' ? lastWeight + 'kg' : '—'}</b></span>
+                            <span>Fatiga: <b style="color:${lastLoad > 7 ? '#dc2626' : 'var(--t2)'}">${lastLoad !== '—' ? lastLoad + '/10' : '—'}</b></span>
+                        </div>
+                    </div>
+                    <div style="font-size:18px; opacity:0.5">📈</div>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+window.openFisioProfile = function(name) {
+    let modal = document.getElementById('fisio-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fisio-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:15px;';
+        document.body.appendChild(modal);
+    }
+
+    // En openFisioProfile()
+    if (!S.fisio[name]) S.fisio[name] = { weight: [], fat: [], load: [], jump_sj: [], jump_cmj: [], jump_free: [] };
+    window._fisioCtx = { name, data: S.fisio[name] };
+
+    renderFisioModalContent();
+    modal.style.display = 'flex';
+};
+
+function renderFisioModalContent() {
+    const modal = document.getElementById('fisio-modal');
+    const { name, data } = window._fisioCtx;
+
+    // Reemplaza esto en renderFisioModalContent()
+    const metrics = [
+          { id: 'weight', label: 'Peso (kg)', color: '#3b82f6', step: '0.1' },
+          { id: 'fat', label: 'Grasa Corporal (%)', color: '#f59e0b', step: '0.1' },
+          { id: 'load', label: 'Carga/Fatiga (1-10)', color: '#ef4444', step: '1' },
+          { id: 'jump_sj', label: 'Salto: Squat Jump (cm)', color: '#8b5cf6', step: '0.1' },
+          { id: 'jump_cmj', label: 'Salto: CMJ Cintura (cm)', color: '#10b981', step: '0.1' },
+          { id: 'jump_free', label: 'Salto: CMJ Libre (cm)', color: '#06b6d4', step: '0.1' }
+    ];
+
+    let html = `
+        <div style="background:#f8fafc;border-radius:16px;width:100%;max-width:850px;padding:25px;position:relative;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
+            <button onclick="document.getElementById('fisio-modal').style.display='none'" style="position:absolute;top:20px;right:20px;background:#fef2f2;color:#dc2626;border:2px solid #fecaca;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+            
+            <h3 style="margin:0 0 20px 0;color:var(--nv);font-size:24px;font-weight:900;">📈 Evolución: ${_esc(name)}</h3>
+            
+            <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:18px; margin-bottom:24px; display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap">
+                <div style="flex:1; min-width:140px;">
+                    <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Métrica</label>
+                    <select id="fisio-metric" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:13px; margin-top:4px; font-weight:700">
+                        ${metrics.map(m => `<option value="${m.id}">${m.label}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="flex:1; min-width:120px;">
+                    <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Fecha de medida</label>
+                    <input type="date" id="fisio-date" value="${new Date().toISOString().split('T')[0]}" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:13px; margin-top:4px; font-family:monospace">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <label style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase">Valor</label>
+                    <input type="number" id="fisio-val" step="0.1" placeholder="Ej: 82.5" style="width:100%; padding:10px; border:1px solid var(--bd); border-radius:8px; font-size:14px; margin-top:4px; font-weight:900; color:var(--nv)">
+                </div>
+                <button onclick="saveFisioData()" style="background:#0ea5e9; color:#fff; font-weight:800; font-size:13px; border:none; border-radius:8px; padding:12px 24px; cursor:pointer;">➕ Guardar</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+                ${metrics.map(m => {
+                    if (!data[m.id]) data[m.id] = [];
+                    const arr = data[m.id];
+                    arr.sort((a,b) => new Date(a.date) - new Date(b.date)); 
+                    
+                    let chartHtml = '<div class="empty" style="padding:30px; font-size:11px">Añade datos para ver la gráfica de evolución.</div>';
+                    if (arr.length > 0) chartHtml = generateFisioChart(arr, m.color);
+
+                    return `
+                    <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:18px;">
+                        <div style="font-size:13px; font-weight:900; color:var(--nv); margin-bottom:14px; text-transform:uppercase; border-bottom:3px solid ${m.color}; display:inline-block; padding-bottom:2px">${m.label}</div>
+                        <div style="overflow-x:auto;">${chartHtml}</div>
+                        ${arr.length ? `
+                        <div style="margin-top:14px; max-height:120px; overflow-y:auto; border-top:1px solid #f1f5f9; padding-top:10px;">
+                            ${[...arr].reverse().map(d => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:6px 4px; border-bottom:1px solid #f8fafc">
+                                    <span style="color:var(--t3); font-weight:600">${d.date.split('-').reverse().join('/')}</span>
+                                    <b style="font-size:14px; color:var(--nv)">${d.val}</b>
+                                    <button onclick="deleteFisioData('${m.id}', '${d.id}')" style="background:#fef2f2; border:none; color:#dc2626; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:11px; font-weight:700">Eliminar</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    modal.innerHTML = html;
+}
+
+function generateFisioChart(arr, color) {
+    if(arr.length === 1) return `<div style="font-size:32px; font-weight:900; color:${color}; text-align:center; margin:30px 0">${arr[0].val}</div>`;
+
+    const W = 380, H = 140;
+    const vals = arr.map(d => d.val);
+    const minV = Math.min(...vals) * 0.90;
+    const maxV = Math.max(...vals) * 1.05;
+    const range = maxV - minV || 1;
+
+    const X = i => 30 + (i / (arr.length - 1)) * (W - 60);
+    const Y = v => H - 30 - ((v - minV) / range) * (H - 60);
+
+    let path = '';
+    arr.forEach((d, i) => { path += (i === 0 ? 'M' : 'L') + `${X(i)},${Y(d.val)} `; });
+
+    let points = '';
+    arr.forEach((d, i) => {
+        const x = X(i), y = Y(d.val);
+        points += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+        points += `<text x="${x}" y="${y - 12}" font-size="11" font-weight="900" fill="var(--nv)" text-anchor="middle">${d.val}</text>`;
+        
+        const [yStr, mStr, dStr] = d.date.split('-');
+        points += `<text x="${x}" y="${H - 5}" font-size="9" font-weight="700" fill="var(--t3)" text-anchor="middle">${dStr}/${mStr}</text>`;
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; overflow:visible; display:block">
+        <path d="${path}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points}
+    </svg>`;
+}
+
+window.saveFisioData = function() {
+    const metric = document.getElementById('fisio-metric').value;
+    const date = document.getElementById('fisio-date').value;
+    const valStr = document.getElementById('fisio-val').value;
+    
+    if(!date || !valStr) { toast('Rellena fecha y valor', 'err'); return; }
+    
+    const val = parseFloat(valStr);
+    const name = window._fisioCtx.name;
+    
+    if (!S.fisio[name][metric]) S.fisio[name][metric] = [];
+    
+    S.fisio[name][metric] = S.fisio[name][metric].filter(d => d.date !== date);
+    S.fisio[name][metric].push({ id: Date.now().toString(), date, val });
+    
+    svL();
+    renderFisioModalContent();
+    renderFisio(); 
+    toast('✅ Dato físico guardado con éxito');
+};
+
+window.deleteFisioData = function(metric, id) {
+    if(!confirm('¿Seguro que quieres borrar este registro?')) return;
+    const name = window._fisioCtx.name;
+    S.fisio[name][metric] = S.fisio[name][metric].filter(d => d.id !== id);
+    svL();
+    renderFisioModalContent();
+    renderFisio();
+    toast('🗑 Registro eliminado');
+};
 // ═══════════════════════════════════════════
 // COURT CANVAS
 // ═══════════════════════════════════════════
@@ -4509,18 +4739,23 @@ window.tacSideModal = function(type, team) {
                             <td style="text-align:center;padding:14px 12px;">${(p.reb/p.games).toFixed(1)}</td>
                             <td style="text-align:center;padding:14px 12px;">${(p.ast/p.games).toFixed(1)}</td>
                         </tr>
-                        <div id="tac-indiv-${idx}" style="display:none;padding:20px;border-top:1px solid var(--bd)">
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%;">
-                                <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
-                                    <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Mapa de Calor</div>
-                                    <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-heat-${idx}"></canvas></div>
+                        <!-- 🔥 AHORA SÍ: Lo metemos dentro de un TR y un TD con colspan=9 -->
+                        <tr id="tac-indiv-${idx}" style="display:none;background:#f8fafc">
+                            <td colspan="9" style="padding:0">
+                                <div style="padding:20px;border-top:1px solid var(--bd)">
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%;">
+                                        <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
+                                            <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Mapa de Calor</div>
+                                            <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-heat-${idx}"></canvas></div>
+                                        </div>
+                                        <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
+                                            <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Acierto por Zonas (%)</div>
+                                            <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-zone-${idx}"></canvas></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style="background:#fff;padding:16px;border-radius:12px;border:1px solid var(--bd);width:100%;box-sizing:border-box;">
-                                    <div style="font-size:14px;font-weight:900;text-align:center;color:var(--nv);margin-bottom:12px;text-transform:uppercase">Acierto por Zonas (%)</div>
-                                    <div class="cw" style="width:100% !important; max-width:100% !important; aspect-ratio:420/400;"><canvas id="tac-i-zone-${idx}"></canvas></div>
-                                </div>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
                     `).join('')}
                     </tbody>
                 </table>
@@ -4563,7 +4798,7 @@ window.toggleTacIndivPl = function(idx, name, team, isAcc) {
     if(!r) return;
     
     if(r.style.display === 'none') {
-        r.style.display = 'block';
+        r.style.display = 'table-row';
         
         // Recopilamos los tiros exactos
         let tShots = [];
@@ -11641,7 +11876,7 @@ Object.assign(window,{
   renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
-  _generateHomeAwayHTML,_installAdvancedUI
+  _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
 });
 
 // Autenticación anónima

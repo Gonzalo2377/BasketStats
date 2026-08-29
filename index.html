@@ -986,7 +986,15 @@ select {
 
 .d-token.dragging { z-index: 99999; transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; cursor: grabbing; pointer-events: none; }
 
-.bench-zone { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background: rgba(0,0,0,0.04); border-radius: 10px; border: 1.5px dashed var(--bd); min-height: 68px; flex: 1; }
+.bench-zone {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    min-height: 90px !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding-bottom: 10px !important;
+}
 .bench-zone .d-token { position: relative; transform: none; box-shadow: none; flex-shrink: 0; }
 
 .tac-layout { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
@@ -1050,14 +1058,14 @@ select {
 }
 
 /* ═══════════════════════════════════════════
-   🧘 MODO CONCENTRACIÓN: CERO SCROLL (IPAD PRO V2)
+   🧘 MODO CONCENTRACIÓN: CERO SCROLL (IPAD PRO DEFINITIVO)
    ═══════════════════════════════════════════ */
 body.zen-mode {
     overflow: hidden !important;
     touch-action: none !important;
 }
 
-/* 1. QUITAR BARRAS DE ARRIBA (Ocultamos menús de la web) */
+/* Ocultamos menús de la web */
 body.zen-mode .nav, 
 body.zen-mode .tabs-nav,
 body.zen-mode header {
@@ -1070,52 +1078,52 @@ body.zen-mode header {
     width: 100vw !important; height: 100vh !important;
     z-index: 999990 !important;
     background: #f8fafc !important;
-    padding: 12px !important;
+    padding: 8px !important; /* Menos margen exterior para ganar espacio */
     box-sizing: border-box !important;
-    margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-}
-
-/* 2. HACERLO MÁS PEQUEÑO DE ANCHO (Para el iPad Pro 4:3) */
-#lv-panel.zen-mode-panel > div {
-    max-width: 940px !important; /* <-- LA CLAVE: Limita el ancho para que no se estire */
-    width: 100% !important;
-    margin-left: auto !important; /* Centrado perfecto */
-    margin-right: auto !important;
-    flex-shrink: 0 !important;
-}
-
-/* Quitar el hueco 'top: 48px' del marcador para pegarlo arriba del todo */
-#lv-panel.zen-mode-panel > div:first-child {
-    top: 0 !important;
-    margin-bottom: 12px !important;
-}
-
-/* 3. AJUSTAR LA PISTA AL NUEVO ANCHO */
-#lv-panel.zen-mode-panel .tac-layout {
-    flex: 1 !important;
-    flex-shrink: 1 !important;
-    min-height: 0 !important; 
-    display: flex !important;
     align-items: center !important;
 }
 
-#lv-panel.zen-mode-panel .tac-board {
+/* Permitimos que todas las filas ocupen el 100% de la pantalla */
+#lv-panel.zen-mode-panel > div {
     width: 100% !important;
-    height: auto !important;
-    max-height: 100% !important;
-    aspect-ratio: 16/9 !important;
-    margin: 0 auto !important;
+    max-width: 1366px !important; /* Límite exacto del iPad Pro */
+    flex-shrink: 0 !important;
 }
 
-/* Historial hiper-compacto abajo del todo */
+/* Pegamos la botonera arriba del todo */
+#lv-panel.zen-mode-panel > div:first-child { 
+    margin-bottom: 4px !important;
+    padding-top: 4px !important;
+}
+
+/* 🚀 LA MAGIA DE LA PISTA: Absorbe todo el alto sobrante */
+#lv-panel.zen-mode-panel .tac-layout {
+    flex: 1 1 auto !important;
+    min-height: 0 !important; 
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+/* 🚀 LA PISTA CRECE: Se ajusta al 100% del alto manteniendo el 16:9 */
+#lv-panel.zen-mode-panel .tac-board {
+    height: 100% !important; 
+    width: auto !important; 
+    aspect-ratio: 16/9 !important;
+    max-width: 85vw !important; /* Evita pisar los botones laterales de mapas */
+    margin: 0 10px !important;
+}
+
+/* Historial ultra compacto abajo del todo */
 #lv-panel.zen-mode-panel .card:last-child {
-    padding: 6px 12px !important;
+    padding: 4px 10px !important;
     margin-bottom: 0 !important;
 }
 #lv-panel.zen-mode-panel #lv-log {
-    max-height: 38px !important; /* Solo se ven las últimas 2 acciones */
+    max-height: 28px !important; /* Casi invisible, solo la última línea */
 }
 
 /* ═══════════════════════════════════════════
@@ -1128,6 +1136,203 @@ body.zen-mode header {
 #lvedit-modal, 
 #sub-modal {
     z-index: 2147483647 !important; /* Es el número máximo absoluto de capas en un navegador */
+}
+
+/* ═══════════════════════════════════════════
+   🛡️ PROTECCIÓN ABSOLUTA PARA *CUALQUIER* POPUP
+   ═══════════════════════════════════════════ */
+div[id*="modal"], 
+div[id*="Modal"], 
+div[class*="modal"], 
+.swal2-container {
+    z-index: 2147483647 !important; 
+}
+
+
+#tac-shot-modal, 
+#lvedit-modal, 
+#sub-modal, 
+#live-stats-modal, 
+#wg-edit-modal, 
+#medit-modal {
+    z-index: 2147483647 !important; /* Capa máxima absoluta del navegador */
+    position: fixed !important;
+    inset: 0 !important;
+}
+
+/* --- 1. HACER EL MARCADOR MÁS PEQUEÑO --- */
+/* Usamos scale para encoger todo el bloque superior un 15% y ganar espacio */
+#lv-panel.zen-mode-panel > div:first-child { 
+    transform: scale(0.85); 
+    transform-origin: top center; 
+    margin-bottom: -10px !important; 
+}
+
+/* --- 2. LOGO CENTRAL MÁS GRANDE --- */
+.tac-play-btn { 
+    width: 140px !important; 
+    height: 140px !important; 
+    background-size: 100% !important; 
+}
+
+/* --- 3. JUGADORES GIGANTES SOLO EN PISTA --- */
+.d-token.player-token[data-loc="court"] { 
+    width: 70px !important; 
+    height: 100px !important; 
+}
+.d-token.player-token[data-loc="court"] svg { 
+    width: 65px !important; 
+    height: 80px !important; 
+}
+/* Letra del dorsal más grande */
+.d-token.player-token[data-loc="court"] .tk-d { 
+    font-size: 24px !important; 
+    margin-top: 22px !important; 
+}
+/* Cartel del nombre más grande */
+.d-token.player-token[data-loc="court"] .tk-name-plate { 
+    font-size: 13px !important; 
+    max-width: 90px !important; 
+    bottom: -12px !important; 
+    padding: 4px 10px !important;
+}
+/* Círculo de faltas ajustado al nuevo tamaño */
+.d-token.player-token[data-loc="court"] .foul-circle { 
+    width: 28px !important; 
+    height: 28px !important; 
+    font-size: 14px !important; 
+    bottom: 16px !important; 
+    left: -10px !important; 
+}
+
+/* ═══════════════════════════════════════════
+   📺 MARCADOR INTEGRADO Y MODAL DE TIRO GIGANTE
+   ═══════════════════════════════════════════ */
+/* MARCADOR FLOTANTE */
+.marcador-integrado {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85); /* Azul muy oscuro translúcido */
+    backdrop-filter: blur(4px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    display: flex; gap: 30px;
+    padding: 12px 30px 18px 30px;
+    z-index: 20; /* Por encima de la pista, pero debajo de los popups */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    align-items: center; color: white;
+}
+
+/* ═══════════════════════════════════════════
+   DIETA ESTRICTA PARA EL MARCADOR FLOTANTE
+   ═══════════════════════════════════════════ */
+.marcador-integrado {
+    /* Mantiene el centrado pero encoge TODO el bloque al 65% de su tamaño */
+    transform: translateX(-50%) scale(0.65) !important;
+    transform-origin: top center !important;
+    padding: 10px 20px 14px 20px !important;
+}
+
+/* Evitamos que los nombres largos de equipo rompan el marcador hacia abajo */
+.marcador-integrado .team-name {
+    max-width: 180px !important;
+    white-space: nowrap !important; /* Prohíbe los saltos de línea */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important; /* Si el nombre es larguísimo, pone "..." al final */
+    font-size: 14px !important;
+}
+
+/* Ajustamos el reloj un pelín más para que respire */
+.marcador-integrado .timer-display {
+    padding: 2px 14px !important;
+}
+
+/* EQUIPOS */
+.team-block { text-align: center; min-width: 110px; }
+.team-name { font-size: 13px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+.team-score { font-size: 56px; font-weight: 900; line-height: 1; margin: 4px 0; }
+.home-block .team-score { color: #60a5fa; } /* Azul clarito */
+.away-block .team-score { color: #f87171; } /* Rojo clarito */
+
+.team-fouls-box { background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; color: #cbd5e1; }
+.team-fouls-box span { font-size: 16px; color: #ef4444; margin-left: 6px; }
+
+/* RELOJ CENTRAL */
+.center-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.timer-controls { display: flex; align-items: center; gap: 16px; }
+.timer-display { font-size: 48px; font-weight: 900; font-family: monospace; background: #000; color: #fff; padding: 4px 20px; border-radius: 12px; border: 2px solid #334155; user-select: none; cursor: pointer; letter-spacing: 2px; }
+.timer-col { display: flex; flex-direction: column; gap: 6px; }
+.timer-arr-int { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 14px; padding: 6px 14px; cursor: pointer; }
+.timer-arr-int:active { background: rgba(255,255,255,0.3); }
+
+/* PERIODOS */
+.period-controls { display: flex; gap: 6px; }
+.period-controls .per-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 14px; font-size: 11px; font-weight: 800; border-radius: 8px; cursor: pointer;}
+.period-controls .per-btn.active-per { background: #3b82f6; color: #fff; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+
+/* POPUP DE TIRO ENORME */
+#tac-shot-modal {
+    background: rgba(15,23,42,0.95) !important;
+}
+#tac-shot-modal > div {
+    width: 60vw !important; 
+    max-width: 550px !important; 
+    padding: 20px !important;
+}
+#tac-shot-name {
+    font-size: 26px !important; /* Letra más grande para el nombre */
+}
+#tac-shot-cv {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* 1. ELIMINAR EL DOBLE LOGO */
+/* Hacemos que el botón invisible del reloj sea 100% transparente */
+.tac-play-btn {
+    background-image: none !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* 2. ARREGLAR LOS BANQUILLOS CORTADOS */
+.bench-zone {
+    display: flex !important;
+    flex-wrap: wrap !important; /* Si hay muchos, bajan a la siguiente fila */
+    gap: 8px !important;
+    min-height: 90px !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding-bottom: 10px !important;
+}
+/* Permitimos un mini-scroll en modo zen si la pantalla es enana, para no cortar cabezas */
+#lv-panel.zen-mode-panel { overflow-y: auto !important; }
+
+/* 3. ACHICAR EL POPUP DE TIRO */
+#tac-shot-modal > div {
+    width: 60vw !important; /* Pasa de 95vw a 60vw (más estrecho) */
+    max-width: 550px !important; /* Tope máximo */
+    padding: 20px !important;
+}
+
+/* 🛑 BLOQUEO ABSOLUTO DE PANTALLA EN DIRECTO */
+body.zen-mode {
+    overflow: hidden !important; 
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+}
+#lv-panel.zen-mode-panel, 
+#lv-panel.zen-mode-panel * {
+    touch-action: none !important;
+}
+/* Excepción: permitimos scroll vertical solo en el historial pequeñito */
+#lv-log, #lv-log * {
+    touch-action: pan-y !important;
 }
 </style>
 </head>
@@ -1393,75 +1598,14 @@ body.zen-mode header {
   <!-- Live panel (REDISEÑO PIZARRA TÁCTICA) -->
   <div id="lv-panel" style="display:none">
     
-    <!-- MARCADOR SUPERIOR (Sticky) -->
-    <div style="position: sticky; top: 48px; z-index: 100; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);">
-      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px">
-        <div style="display:flex; justify-content:center; align-items:center; gap:16px">
-          <div style="text-align:center">
-            <div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase" id="lv-hl">Local</div>
-            <div style="font-size:44px;font-weight:900;line-height:1;color:var(--ac)" id="lv-score-h">0</div>
-            <div style="font-size:9px;color:var(--t3)" id="lv-h-pp">P1: 0pts</div>
-          </div>
-          <div style="text-align:center; background:#fef2f2; border:2px solid #fca5a5; border-radius:8px; padding:6px 10px; min-width:50px">
-            <div style="font-size:9px;font-weight:800;color:#dc2626">FALTAS</div>
-            <div style="font-size:22px;font-weight:900;color:#991b1b" id="lv-fouls-h">0</div>
-          </div>
-        </div>
-        
-        <!-- RELOJ Y MINUTOS -->
-        <div style="text-align:center; min-width:160px">
-          <div style="font-size:10px;font-weight:800;color:var(--t3);margin-bottom:4px" id="lv-pd">P1</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:10px">
-            
-            <!-- BOTONES DE MINUTOS (Forzados para funcionar siempre) -->
-            <div style="display:flex; flex-direction:column; gap:4px; z-index:100">
-              <button class="timer-arr" type="button" onmousedown="adjustTimer(60); event.preventDefault();" ontouchstart="adjustTimer(60); event.preventDefault();">▲</button>
-              <button class="timer-arr" type="button" onmousedown="adjustTimer(-60); event.preventDefault();" ontouchstart="adjustTimer(-60); event.preventDefault();">▼</button>
-            </div>
-            
-            <div id="lv-timer" onclick="toggleTimer()" style="font-size:32px;font-weight:900;font-family:monospace;cursor:pointer;background:#0f172a;color:#fff;border-radius:10px;padding:6px 16px;text-align:center;min-width:100px;user-select:none">10:00</div>
-            
-            <!-- BOTONES DE SEGUNDOS (Forzados para funcionar siempre) -->
-            <div style="display:flex; flex-direction:column; gap:4px; z-index:100">
-              <button class="timer-arr" type="button" onmousedown="adjustTimer(1); event.preventDefault();" ontouchstart="adjustTimer(1); event.preventDefault();">▲</button>
-              <button class="timer-arr" type="button" onmousedown="adjustTimer(-1); event.preventDefault();" ontouchstart="adjustTimer(-1); event.preventDefault();">▼</button>
-            </div>
-
-          </div>
-          <div style="display:flex;gap:4px;margin-top:10px;justify-content:center">
-            <button onclick="setPer(1)" id="pb1" class="per-btn active-per">P1</button>
-            <button onclick="setPer(2)" id="pb2" class="per-btn">P2</button>
-            <button onclick="setPer(3)" id="pb3" class="per-btn">P3</button>
-            <button onclick="setPer(4)" id="pb4" class="per-btn">P4</button>
-            <button onclick="setPer(5)" id="pb5" class="per-btn">PT1</button>
-            <button onclick="setPer(6)" id="pb5" class="per-btn">PT2</button>
-
-          </div>
-          <input type="hidden" id="lv-min" value="0">
-        </div>
-        
-        <div style="display:flex; justify-content:center; align-items:center; gap:16px; flex-direction:row-reverse">
-          <div style="text-align:center">
-            <div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase" id="lv-al">Rival</div>
-            <div style="font-size:44px;font-weight:900;line-height:1;color:#ef4444" id="lv-score-a">0</div>
-            <div style="font-size:9px;color:var(--t3)" id="lv-a-pp">P1: 0pts</div>
-          </div>
-          <div style="text-align:center; background:#fef2f2; border:2px solid #fca5a5; border-radius:8px; padding:6px 10px; min-width:50px">
-            <div style="font-size:9px;font-weight:800;color:#dc2626">FALTAS</div>
-            <div style="font-size:22px;font-weight:900;color:#991b1b" id="lv-fouls-a">0</div>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
-        <!-- BOTÓN MODO CONCENTRACIÓN -->
-        <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2)">
-          🔲 Pantalla Completa
-        </button>
-        
-        <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">📊 Stats</button>
-        <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">✏️ Equipos</button>
-        <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px">🏁 Finalizar</button>
-      </div>
+    <!-- FILA DE BOTONES DE CONTROL -->
+    <div style="display:flex; gap:8px; justify-content:center; margin-bottom:14px; padding-top:10px;">
+      <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2)">
+        🔲 Pantalla Completa
+      </button>
+      <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">📊 Stats</button>
+      <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">✏️ Equipos</button>
+      <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px">🏁 Finalizar</button>
     </div>
 
     <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
@@ -1476,25 +1620,67 @@ body.zen-mode header {
         <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'home')">⛹️<br><small style="font-size:9px;font-weight:900;color:var(--ac)">HOY</small></button>
       </div>
 
-      <!-- TABLERO TÁCTICO CENTRAL -->
+      <!-- TABLERO TÁCTICO CENTRAL (UNIFICADO) -->
       <div class="tac-board" id="tac-board">
+         <!-- 🔴 MARCADOR INTEGRADO EN LA PISTA 🔴 -->
+         <div class="marcador-integrado">
+            <div class="team-block home-block">
+               <div id="lv-hl" class="team-name">LOCAL</div>
+               <div id="lv-score-h" class="team-score">0</div>
+               <div class="team-fouls-box">FALTAS <span id="lv-fouls-h">0</span></div>
+               <div id="lv-h-pp" style="display:none"></div>
+            </div>
+            
+            <div class="center-block">
+               <div class="timer-controls">
+                  <div class="timer-col">
+                     <button class="timer-arr-int" type="button" onmousedown="adjustTimer(60); event.preventDefault();" ontouchstart="adjustTimer(60); event.preventDefault();">▲</button>
+                     <button class="timer-arr-int" type="button" onmousedown="adjustTimer(-60); event.preventDefault();" ontouchstart="adjustTimer(-60); event.preventDefault();">▼</button>
+                  </div>
+                  <div id="lv-timer" onclick="toggleTimer()" class="timer-display">10:00</div>
+                  <div class="timer-col">
+                     <button class="timer-arr-int" type="button" onmousedown="adjustTimer(1); event.preventDefault();" ontouchstart="adjustTimer(1); event.preventDefault();">▲</button>
+                     <button class="timer-arr-int" type="button" onmousedown="adjustTimer(-1); event.preventDefault();" ontouchstart="adjustTimer(-1); event.preventDefault();">▼</button>
+                  </div>
+               </div>
+               <div class="period-controls">
+                  <button onclick="setPer(1)" id="pb1" class="per-btn active-per">P1</button>
+                  <button onclick="setPer(2)" id="pb2" class="per-btn">P2</button>
+                  <button onclick="setPer(3)" id="pb3" class="per-btn">P3</button>
+                  <button onclick="setPer(4)" id="pb4" class="per-btn">P4</button>
+                  <button onclick="setPer(5)" id="pb5" class="per-btn">PT1</button>
+                  <button onclick="setPer(6)" id="pb6" class="per-btn">PT2</button>
+
+                  <input type="hidden" id="lv-min" value="0">
+                  <div id="lv-pd" style="display:none">P1</div>
+               </div>
+            </div>
+
+            <div class="team-block away-block">
+               <div id="lv-al" class="team-name">RIVAL</div>
+               <div id="lv-score-a" class="team-score">0</div>
+               <div class="team-fouls-box">FALTAS <span id="lv-fouls-a">0</span></div>
+               <div id="lv-a-pp" style="display:none"></div>
+            </div>
+         </div>
+         
          <div class="tac-play-btn" id="tac-play-btn" onclick="toggleTimer()"></div>
          <div id="tac-slots-layer"></div>
 
-         <!-- Fichas de Acción (Arrastrables) Arriba -->
-         <div class="d-token action red" data-type="action" data-action="foul" style="left: 25%; top: 8%;">FALTA</div>
-         <div class="d-token action" data-type="action" data-action="stl" style="left: 42%; top: 8%;">ROBO</div>
-         <div class="d-token action" data-type="action" data-action="blk" style="left: 58%; top: 8%;">TAPÓN</div>
-         <div class="d-token action" data-type="action" data-action="to" style="left: 75%; top: 8%;">PÉRDIDA</div>
+         <!-- ⬆️ GRUPO SUPERIOR (Sobre el círculo central) -->
+         <div class="d-token action" data-type="action" data-action="stl" style="left: 36%; top: 22%;">ROBO</div>
+         <div class="d-token action" data-type="action" data-action="blk" style="left: 50%; top: 22%;">TAPÓN</div>
+         <div class="d-token action" data-type="action" data-action="to" style="left: 64%; top: 22%;">PÉRDIDA</div>
+         
+         <div class="d-token action red" data-type="action" data-action="foul" style="left: 50%; top: 32%;">FALTA</div>
 
-         <!-- Fichas de Acción Abajo (Anti Fusionada y Técnicas) -->
-         <div class="d-token action red" data-type="action" data-action="anti" style="left: 30%; top: 88%;">ANTIDEPORTIVA</div>
+
+         <!-- ⬇️ GRUPO INFERIOR (Bajo el círculo central) -->
+         <div class="d-token action" data-type="action_click" data-action="tech_staff" style="left: 50%; top: 74%; background:#fefce8; color:#854d0e; border:2px solid #fde047; cursor:pointer; z-index:15;">TÉCNICA E/B</div>
          
-         <!-- TÉCNICA A JUGADOR (Arrastrable) -->
-         <div class="d-token action" data-type="action" data-action="tech" style="left: 50%; top: 88%; background:#fefce8; color:#854d0e; border-color:#fde047;">TÉCNICA JUG.</div>
-         
-         <!-- TÉCNICA E/B (¡IMPORTANTE! Ahora es un <button> para que el drag lo ignore) -->
-        <div class="d-token action" data-type="action_click" data-action="tech_staff" style="left: 70%; top: 88%; background:#fefce8; color:#854d0e; border:2px solid #fde047; cursor:pointer; z-index:15;">TÉCNICA E/B</div>      </div>
+         <div class="d-token action red" data-type="action" data-action="anti" style="left: 39%; top: 88%;">ANTIDEPORTIVA</div>
+         <div class="d-token action" data-type="action" data-action="tech" style="left: 61%; top: 88%; background:#fefce8; color:#854d0e; border-color:#fde047;">TÉCNICA JUG.</div>
+      </div>
 
       <!-- SIDEBAR RIVAL -->
       <div class="tac-sidebar">
@@ -1504,7 +1690,6 @@ body.zen-mode header {
         <button class="tac-sb-btn" title="Mapas Eq. Partido" onclick="tacSideModal('heatt_match', 'away')">📍<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
         <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'away')">⛹️<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
       </div>
-
     </div>
 
     <!-- BANQUILLOS INFERIORES -->
@@ -1530,18 +1715,24 @@ body.zen-mode header {
 
   </div> <!-- FIN LV-PANEL -->
 
-  <!-- MODAL DE TIRO DESDE PIZARRA (Oculto por defecto) -->
-  <div id="tac-shot-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:99999;align-items:center;justify-content:center;padding:15px">
-      <div style="background:#fff;border-radius:14px;width:100%;max-width:460px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,0.5)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <div style="font-size:14px;font-weight:900;color:var(--nv)">🎯 ¿Desde dónde tiró <span id="tac-shot-name" style="color:var(--ac)"></span>?</div>
-              <button onclick="document.getElementById('tac-shot-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>
+  <!-- MODAL DE TIRO DESDE PIZARRA (ARREGLADO Y BLINDADO) -->
+  <div id="tac-shot-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.95); z-index:2147483647 !important; align-items:center; justify-content:center; padding:15px;">
+      <div style="background:#fff; border-radius:14px; width:100%; max-width:550px; padding:20px; box-shadow:0 20px 40px rgba(0,0,0,0.8); display:flex; flex-direction:column; gap:12px;">
+          
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:18px; font-weight:900; color:var(--nv)">🎯 Tiro de <span id="tac-shot-name" style="color:var(--ac)"></span></div>
+              <button onclick="document.getElementById('tac-shot-modal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#ef4444; font-weight:bold;">✕</button>
           </div>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Toca en el punto exacto de la cancha para registrar el tiro.</div>
-          <div class="cw"><canvas id="tac-shot-cv"></canvas></div>
+          
+          <div style="font-size:13px; color:var(--t3); text-align:center; font-weight:bold;">1️⃣ Toca en el punto de la cancha desde donde tiró:</div>
+          
+          <div class="cw" style="position:relative; width:100%;">
+              <canvas id="tac-shot-cv" style="width:100%; border-radius:8px; border:2px solid var(--bd); cursor:crosshair;"></canvas>
+          </div>
+          
       </div>
   </div>
-</div></div>
+</div>
 <!-- Editor de equipos de un grupo de seguimiento -->
 <div id="wg-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:775;align-items:center;justify-content:center;padding:12px">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:480px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)">
@@ -2675,32 +2866,49 @@ let _outsideHandler=null;
 function _removeOutside(){
   if(_outsideHandler){document.removeEventListener('click',_outsideHandler,true);_outsideHandler=null;}
 }
+
 function showShotPopup(canvasId,cx,cy,type,cb){
   _removeOutside();
   _popupCb=cb;
   const cv=document.getElementById(canvasId);
+  if(!cv) return;
   const rect=cv.getBoundingClientRect();
-  const sx=rect.left+(cx/CW)*rect.width;
-  const sy=rect.top+(cy/CH)*rect.height;
+  
+  // Si estamos en la pizarra de directo (tac-shot-cv), ajustamos las coordenadas de forma fluida
+  let sx, sy;
+  if (canvasId === 'tac-shot-cv') {
+    sx = rect.left + (cx / CW) * rect.width;
+    sy = rect.top + (cy / CH) * rect.height;
+  } else {
+    sx=rect.left+(cx/CW)*rect.width;
+    sy=rect.top+(cy/CH)*rect.height;
+  }
+
   const popup=document.getElementById('shot-popup');
   const inner=document.getElementById('shot-popup-inner');
   const label=type==='T3'?'🎯 Triple':'🏀 Tir de 2';
+  
   inner.innerHTML=`
-    <div style="font-size:11px;font-weight:700;color:var(--t2);text-align:center">${label}</div>
-    <div style="display:flex;gap:7px">
-      <button onclick="closeSP(true)" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">✅ Anotado</button>
-      <button onclick="closeSP(false)" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:8px;padding:10px;font-size:14px;font-weight:800;cursor:pointer">❌ Fallado</button>
+    <div style="font-size:12px;font-weight:800;color:var(--nv);text-align:center;margin-bottom:6px">${label}</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeSP(true)" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer">✅ Anotado</button>
+      <button onclick="closeSP(false)" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer">❌ Fallado</button>
     </div>
-    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cancelar</button>`;
-  let left=sx-90,top=sy-110;
-  left=Math.max(8,Math.min(left,window.innerWidth-200));
-  top=Math.max(60,Math.min(top,window.innerHeight-160));
-  popup.style.cssText=`position:fixed;left:${left}px;top:${top}px;z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:10px;border:2px solid var(--bd);display:block;min-width:180px`;
+    <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:6px;width:100%;font-size:11px;cursor:pointer;margin-top:4px">✕ Cancelar</button>`;
+    
+  let left=sx-110, top=sy-120;
+  left=Math.max(10,Math.min(left,window.innerWidth-240));
+  top=Math.max(10,Math.min(top,window.innerHeight-180));
+  
+  // Z-index máximo absoluto para que rompa cualquier contenedor y se superponga siempre
+  popup.style.cssText=`position:fixed;left:${left}px;top:${top}px;z-index:2147483647 !important;background:#fff;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,0.4);padding:16px;border:2px solid var(--bd);display:block;min-width:240px`;
+  
   setTimeout(()=>{
     _outsideHandler=ev=>{if(!popup.contains(ev.target)){_removeOutside();closeSP(null);}};
     document.addEventListener('click',_outsideHandler,true);
   },180);
 }
+
 function closeSP(made){
   _removeOutside(); // always kill outside listener before doing anything else
   document.getElementById('shot-popup').style.display='none';
@@ -2731,7 +2939,7 @@ function showFoulPopup(fouledBy,fouledByTeam){
       </button>`).join('')}
     </div>
     <button onclick="foulVictimSel(-1)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:9px;font-size:12px;font-weight:600;cursor:pointer">Sin especificar / falta en ataque</button>`;
-  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:15px;border:2px solid var(--bd);display:block;min-width:270px;max-width:350px;max-height:88vh;overflow-y:auto';
+  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:15px;border:2px solid var(--bd);display:block;min-width:270px;max-width:350px;max-height:88vh;overflow-y:auto';
   window._foulOpciones=opciones;
 }
 
@@ -2818,7 +3026,7 @@ function askAssist(cb){
     </div>
     <button onclick="pickAssist(-1)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer">✕ Sin asistencia</button>`;
   
-  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;min-width:270px;max-width:340px';
+  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;min-width:270px;max-width:340px';
   _popupCb=cb;
 }
 
@@ -2867,6 +3075,8 @@ function pickPlayContext(contextType) {
   }
 }
 
+
+
 function lvAstFor(name,scorer,team){
   team=team||lv.actTeam;
   const s=lv.st[team]?.[name];
@@ -2904,7 +3114,7 @@ function askRebound(shooterTeam){
     ${rival.length?`<div style="font-size:9.5px;font-weight:800;color:#1e40af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">🛡️ Defensivo · ${tName(opp)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">${grid(rival,'rival','#3b82f6','#eff6ff')}</div>`:''}
     <button onclick="closeSP(null)" style="width:100%;margin-top:9px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer">✕ Sin rebote / fuera</button>`;
-  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;min-width:280px;max-width:360px;max-height:88vh;overflow-y:auto';
+  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;min-width:280px;max-width:360px;max-height:88vh;overflow-y:auto';
   _popupCb=null;
 }
 function pickRebound(side,i){
@@ -2940,7 +3150,7 @@ function askTL(fouledName,nTL){
     <div style="font-size:11px;font-weight:700;color:var(--t2)">Tiros libres — ${fouledName.split(' ')[0]}</div>
     ${rows}
     <button onclick="closeSP(null)" style="background:#f1f5f9;border:none;color:var(--t3);border-radius:6px;padding:4px;width:100%;font-size:11px;cursor:pointer">✕ Cerrar</button>`;
-  popup.style.cssText=`position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px;border:2px solid var(--bd);display:block;min-width:200px`;
+  popup.style.cssText=`position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px;border:2px solid var(--bd);display:block;min-width:200px`;
   window._tlState={player:fouledName,total:nTL,done:0,team:window._foulCtx?.shooterTeam||(lv.actTeam==='home'?'away':'home')};
 }
 function tlClick(idx,made){
@@ -3897,51 +4107,295 @@ function applyActionToPlayer(action, name, team) {
     }
 } 
 
+// ═══════════════════════════════════════════
+// 🎯 CONTROLADOR DEFINITIVO DE TIROS EN DIRECTO (PIZARRA)
+// ═══════════════════════════════════════════
+let _boardDrag = false, _bStartX = 0, _bStartY = 0;
+
+document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.tac-board')) {
+        _boardDrag = false;
+        _bStartX = e.clientX;
+        _bStartY = e.clientY;
+    }
+}, { passive: true });
+
+document.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - _bStartX) > 10 || Math.abs(e.clientY - _bStartY) > 10) {
+        _boardDrag = true;
+    }
+}, { passive: true });
+
+document.addEventListener('click', function(e) {
+  const board = e.target.closest('.tac-board');
+  
+  // 🛑 LA MAGIA: Si no es la pizarra, o si fue un arrastre de ficha, bloqueamos el clic
+  if (!board || _boardDrag) return;
+
+  if (!lv.selPl || e.target.closest('.d-token') || e.target.closest('.tac-play-btn') || e.target.closest('.marcador-integrado')) {
+    if(!lv.selPl && !e.target.closest('.d-token')) toast('¡Selecciona un jugador en pista primero!', 'err');
+    return;
+  }
+
+  const r = board.getBoundingClientRect();
+  const rawX = e.clientX - r.left;
+  const rawY = e.clientY - r.top;
+  
+  const cw = r.width, ch = r.height;
+  let px = rawX / cw, py = rawY / ch;
+  
+  if (lv.actTeam === 'away') { px = 1 - px; py = 1 - py; }
+  
+  const courtW = CW - 2 * PAD; 
+  const courtH = CH - 2 * PAD; 
+  const mapX = Math.round(PAD + px * courtW);
+  const mapY = Math.round(PAD + py * courtH);
+  
+  const type = isThree(mapX, mapY) ? 'T3' : 'T2';
+  
+  const popup = document.getElementById('shot-popup');
+  const inner = document.getElementById('shot-popup-inner');
+  if (!popup || !inner) return;
+
+  const label = type === 'T3' ? '🎯 Triple' : '🏀 Tiro de 2';
+  
+  inner.innerHTML = `
+    <div style="font-size:13px;font-weight:900;color:var(--nv);text-align:center;text-transform:uppercase;margin-bottom:8px">${label} · ${lv.selPl.split(' ')[0]}</div>
+    <div style="display:flex;gap:10px">
+      <button id="btn-live-make" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:10px;padding:14px;font-size:14px;font-weight:900;cursor:pointer">✅ Anotado</button>
+      <button id="btn-live-miss" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:10px;padding:14px;font-size:14px;font-weight:900;cursor:pointer">❌ Fallado</button>
+    </div>
+    <button id="btn-live-cancel" style="background:#f8fafc;border:1px solid var(--bd);color:var(--t3);border-radius:8px;padding:8px;width:100%;font-size:12px;cursor:pointer;margin-top:8px;font-weight:800">✕ Cancelar</button>`;
+  
+  let left = e.clientX - 120;
+  let top = e.clientY - 140;
+  left = Math.max(10, Math.min(left, window.innerWidth - 260));
+  top = Math.max(10, Math.min(top, window.innerHeight - 200));
+  
+  popup.style.cssText = `position:fixed; left:${left}px; top:${top}px; z-index:2147483647 !important; background:#fff; border-radius:16px; box-shadow:0 15px 50px rgba(0,0,0,0.5); padding:18px; border:2px solid var(--bd); display:block; min-width:260px;`;
+  
+  const resolveShot = (made) => {
+    popup.style.display = 'none';
+    if (made === null) return;
+    
+    lv.shots.push({ x: mapX, y: mapY, made, player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, type });
+    const s = lv.st[lv.actTeam][lv.selPl];
+    if (!s) return;
+    
+    const pmAll = (pts) => {
+      const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam === 'home' ? 'away' : 'home'];
+      my.forEach(n => { if (lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts; });
+      op.forEach(n => { if (lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n]) lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n].pm -= pts; });
+    };
+    
+    const pts = type === 'T3' ? 3 : 2;
+    if (made) {
+      if (type === 'T3') { s.t3Made++; s.t3Att++; s.pts += 3; lv.score[lv.actTeam] += 3; pmAll(3); }
+      else { s.t2Made++; s.t2Att++; s.pts += 2; lv.score[lv.actTeam] += 2; pmAll(2); }
+      
+      lv.log.unshift({ team: lv.actTeam, msg: `✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period, min: lv.curMin });
+      lv.events.push({ type: type === 'T3' ? 'pts3' : 'pts2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score }, oc: _lvOC() });
+      
+      setTimeout(() => { if (typeof askAssist === 'function') askAssist(() => {}); }, 150);
+    } else {
+      if (type === 'T3') { s.t3Att++; } else { s.t2Att++; }
+      
+      lv.log.unshift({ team: lv.actTeam, msg: `❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period });
+      lv.events.push({ type: type === 'T3' ? 'miss3' : 'miss2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score } });
+      
+      const _st = lv.actTeam; 
+      setTimeout(() => { if (typeof askRebound === 'function') askRebound(_st); }, 120);
+    }
+    rLvAll(); 
+    if (typeof svL === 'function') svL();
+  };
+
+  document.getElementById('btn-live-make').onclick = () => resolveShot(true);
+  document.getElementById('btn-live-miss').onclick = () => resolveShot(false);
+  document.getElementById('btn-live-cancel').onclick = () => resolveShot(null);
+});
+
+(function() {
+  const board = document.getElementById('tac-board');
+  if (!board) return;
+
+  // 🛡️ ESCUDO ANTI-CLICS FANTASMAS AL ARRASTRAR
+  let isDrag = false;
+  let startX = 0, startY = 0;
+
+  board.addEventListener('pointerdown', (e) => {
+      isDrag = false;
+      startX = e.clientX;
+      startY = e.clientY;
+  });
+
+  board.addEventListener('pointermove', (e) => {
+      // Si el dedo se mueve más de 10 píxeles, sabemos que es un arrastre y no un toque
+      if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) {
+          isDrag = true;
+      }
+  });
+
+  board.onclick = function(e) {
+    // 🛑 LA MAGIA: Si fue un arrastre de ficha, bloqueamos el clic y no sale el popup de tiro
+    if (isDrag) return;
+
+    // Si no hay jugador seleccionado, avisar y cortar
+    if (!lv.selPl) {
+      if (typeof toast === 'function') toast('¡Selecciona un jugador en pista primero!', 'err');
+      return;
+    }
+
+    // Ignorar si se hace clic en fichas, botones o elementos del marcador integrado
+    if (e.target.closest('.d-token') || e.target.closest('.tac-play-btn') || e.target.closest('.marcador-integrado')) {
+      return;
+    }
+
+    const r = board.getBoundingClientRect();
+    const rawX = e.clientX - r.left;
+    const rawY = e.clientY - r.top;
+    
+    const cw = r.width, ch = r.height;
+    let px = rawX / cw, py = rawY / ch;
+    
+    // Si ataca el rival, invertimos las coordenadas en el mapa lógico
+    if (lv.actTeam === 'away') { 
+      px = 1 - px; 
+      py = 1 - py; 
+    }
+    
+    const courtW = CW - 2 * PAD; 
+    const courtH = CH - 2 * PAD; 
+    const mapX = Math.round(PAD + px * courtW);
+    const mapY = Math.round(PAD + py * courtH);
+    
+    const type = isThree(mapX, mapY) ? 'T3' : 'T2';
+    
+    // Referencia al pop-up nativo flotante
+    const popup = document.getElementById('shot-popup');
+    const inner = document.getElementById('shot-popup-inner');
+    if (!popup || !inner) return;
+
+    const label = type === 'T3' ? '🎯 Triple' : '🏀 Tiro de 2';
+    
+    inner.innerHTML = `
+      <div style="font-size:13px;font-weight:900;color:var(--nv);text-align:center;text-transform:uppercase;margin-bottom:8px">${label} · ${lv.selPl.split(' ')[0]}</div>
+      <div style="display:flex;gap:10px">
+        <button id="btn-live-make" style="flex:1;background:#dcfce7;border:2px solid #16a34a;color:#166534;border-radius:10px;padding:14px;font-size:14px;font-weight:900;cursor:pointer">✅ Anotado</button>
+        <button id="btn-live-miss" style="flex:1;background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:10px;padding:14px;font-size:14px;font-weight:900;cursor:pointer">❌ Fallado</button>
+      </div>
+      <button id="btn-live-cancel" style="background:#f8fafc;border:1px solid var(--bd);color:var(--t3);border-radius:8px;padding:8px;width:100%;font-size:12px;cursor:pointer;margin-top:8px;font-weight:800">✕ Cancelar</button>`;
+    
+    let left = e.clientX - 120;
+    let top = e.clientY - 140;
+    left = Math.max(10, Math.min(left, window.innerWidth - 260));
+    top = Math.max(10, Math.min(top, window.innerHeight - 200));
+    
+    // Forzamos la capa más alta absoluta para que se superponga sin fallos
+    popup.style.cssText = `position:fixed; left:${left}px; top:${top}px; z-index:2147483647 !important; background:#fff; border-radius:16px; box-shadow:0 15px 50px rgba(0,0,0,0.5); padding:18px; border:2px solid var(--bd); display:block; min-width:260px;`;
+    
+    const resolveShot = (made) => {
+      popup.style.display = 'none';
+      if (made === null) return;
+      
+      lv.shots.push({ x: mapX, y: mapY, made, player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, type });
+      const s = lv.st[lv.actTeam][lv.selPl];
+      if (!s) return;
+      
+      const pmAll = (pts) => {
+        const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam === 'home' ? 'away' : 'home'];
+        my.forEach(n => { if (lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts; });
+        op.forEach(n => { if (lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n]) lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n].pm -= pts; });
+      };
+      
+      const pts = type === 'T3' ? 3 : 2;
+      if (made) {
+        if (type === 'T3') { s.t3Made++; s.t3Att++; s.pts += 3; lv.score[lv.actTeam] += 3; pmAll(3); }
+        else { s.t2Made++; s.t2Att++; s.pts += 2; lv.score[lv.actTeam] += 2; pmAll(2); }
+        
+        lv.log.unshift({ team: lv.actTeam, msg: `✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period, min: lv.curMin });
+        lv.events.push({ type: type === 'T3' ? 'pts3' : 'pts2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score }, oc: _lvOC() });
+        
+        setTimeout(() => { if (typeof askAssist === 'function') askAssist(() => {}); }, 150);
+      } else {
+        if (type === 'T3') { s.t3Att++; } else { s.t2Att++; }
+        
+        lv.log.unshift({ team: lv.actTeam, msg: `❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period });
+        lv.events.push({ type: type === 'T3' ? 'miss3' : 'miss2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score } });
+        
+        const _st = lv.actTeam; 
+        setTimeout(() => { if (typeof askRebound === 'function') askRebound(_st); }, 120);
+      }
+      rLvAll(); 
+      if (typeof svL === 'function') svL();
+    };
+
+    document.getElementById('btn-live-make').onclick = () => resolveShot(true);
+    document.getElementById('btn-live-miss').onclick = () => resolveShot(false);
+    document.getElementById('btn-live-cancel').onclick = () => resolveShot(null);
+  };
+})();
+
 function openTacticalShotModal(name, team) {
-    lv.selPl = name; lv.actTeam = team;
+    lv.selPl = name; 
+    lv.actTeam = team;
+    
     const modal = document.getElementById('tac-shot-modal');
     const nameEl = document.getElementById('tac-shot-name');
     const cv = document.getElementById('tac-shot-cv');
     if(!modal || !cv) return;
     
+    // 🔥 EL SECRETO: Forzamos la bajada de capa con !important para vencer al CSS
+    modal.style.setProperty('z-index', '2147483640', 'important'); 
+    
     nameEl.textContent = name.split(' ')[0];
     modal.style.display = 'flex';
     
-    cv.width = CW; cv.height = CH;
+    cv.width = CW; 
+    cv.height = CH;
     drawCourt(cv.getContext('2d'));
     
     cv.onclick = e => {
         const r = cv.getBoundingClientRect();
         const x = Math.round((e.clientX - r.left) / r.width * CW);
         const y = Math.round((e.clientY - r.top) / r.height * CH);
-        const type = isThree(x,y) ? 'T3' : 'T2';
+        const type = isThree(x, y) ? 'T3' : 'T2';
         
-        // ¡LA CLAVE! NO CERRAMOS EL MODAL AQUÍ. LO CERRAMOS EN EL CALLBACK.
         showShotPopup('tac-shot-cv', x, y, type, (made) => {
-            modal.style.display = 'none'; // AHORA SÍ, DESAPARECE EL MODAL DE TIRO
+            modal.style.display = 'none'; 
             
-            if(made===null) return;
-            lv.shots.push({x,y,made,player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,type});
+            if(made === null) return;
+            
+            lv.shots.push({x, y, made, player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, type});
             const s = lv.st[lv.actTeam][lv.selPl];
+            if(!s) return;
+            
             const pmAll = (pts) => {
                 const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam==='home'?'away':'home'];
                 my.forEach(n => {if(lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts;});
                 op.forEach(n => {if(lv.st[lv.actTeam==='home'?'away':'home'][n]) lv.st[lv.actTeam==='home'?'away':'home'][n].pm -= pts;});
             };
-            const pts = type==='T3'?3:2;
+            
+            const pts = type === 'T3' ? 3 : 2;
             if(made) {
-                if(type==='T3'){s.t3Made++;s.t3Att++;s.pts+=3;lv.score[lv.actTeam]+=3;pmAll(3);}
-                else{s.t2Made++;s.t2Att++;s.pts+=2;lv.score[lv.actTeam]+=2;pmAll(2);}
-                lv.log.unshift({team:lv.actTeam,msg:`✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`,period:lv.period,min:lv.curMin});
-                lv.events.push({type:type==='T3'?'pts3':'pts2',player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
-                askAssist(()=>{});
+                if(type === 'T3') { s.t3Made++; s.t3Att++; s.pts += 3; lv.score[lv.actTeam] += 3; pmAll(3); }
+                else { s.t2Made++; s.t2Att++; s.pts += 2; lv.score[lv.actTeam] += 2; pmAll(2); }
+                
+                lv.log.unshift({team: lv.actTeam, msg: `✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period, min: lv.curMin});
+                lv.events.push({type: type==='T3'?'pts3':'pts2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: {...lv.score}, oc: _lvOC()});
+                
+                setTimeout(() => { if(typeof askAssist === 'function') askAssist(()=>{}); }, 150);
             } else {
-                if(type==='T3'){s.t3Att++;}else{s.t2Att++;}
-                lv.log.unshift({team:lv.actTeam,msg:`❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`,period:lv.period});
-                lv.events.push({type:type==='T3'?'miss3':'miss2',player:lv.selPl,team:lv.actTeam,period:lv.period,min:lv.curMin,score:{...lv.score}});
-                const _st = lv.actTeam; setTimeout(() => askRebound(_st), 120);
+                if(type === 'T3') { s.t3Att++; } else { s.t2Att++; }
+                
+                lv.log.unshift({team: lv.actTeam, msg: `❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period});
+                lv.events.push({type: type==='T3'?'miss3':'miss2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: {...lv.score}});
+                
+                const _st = lv.actTeam; 
+                setTimeout(() => { if(typeof askRebound === 'function') askRebound(_st); }, 120);
             }
-            rLvAll(); svL();
+            rLvAll(); 
+            if (typeof svL === 'function') svL();
         });
     };
 }
@@ -4145,15 +4599,19 @@ window.toggleTacIndivPl = function(idx, name, team, isAcc) {
     }
 };
 
-// ── EL MOTOR TÁCTIL (MÓVIL Y RATÓN) CON SOPORTE DE SCROLL ──
-let dState = { active: false, isDragging: false, el: null, clone: null, type: '', data: {}, sx: 0, sy: 0, startX: 0, startY: 0 };
+let dState = { active: false, isDragging: false, el: null, clone: null, type: '', data: {}, startX: 0, startY: 0 };
 
 function initDragEngine() {
     const board = document.getElementById('lv-panel');
     if(!board) return;
-    board.addEventListener('pointerdown', onPtrDown);
-    // Passive: false permite hacer preventDefault solo cuando arrastramos
-    document.addEventListener('pointermove', onPtrMove, {passive: false}); 
+    
+    // Matamos listeners viejos si los hubiera y ponemos los nuevos blindados
+    board.removeEventListener('pointerdown', onPtrDown);
+    document.removeEventListener('pointermove', onPtrMove);
+    document.removeEventListener('pointerup', onPtrUp);
+    
+    board.addEventListener('pointerdown', onPtrDown, {passive: false});
+    document.addEventListener('pointermove', onPtrMove, {passive: false});
     document.addEventListener('pointerup', onPtrUp);
 }
 
@@ -4163,24 +4621,21 @@ function onPtrDown(e) {
     const token = e.target.closest('.d-token');
     if (!token) return;
 
-    // Detectar clic directo en "TÉCNICA E/B"
     if (token.dataset.type === 'action_click' && token.dataset.action === 'tech_staff') {
         promptTechStaff();
         return;
     }
 
+    e.preventDefault(); // Bloquea comportamientos raros del móvil al instante
+    token.setPointerCapture(e.pointerId); // El móvil ancla el seguimiento a esta ficha
+
     dState.active = true;
-    dState.isDragging = false; // Aún no arrastramos
+    dState.isDragging = false; 
     dState.el = token;
     dState.type = token.dataset.type;
     dState.data = token.dataset;
     dState.startX = e.clientX;
     dState.startY = e.clientY;
-    
-    const rect = token.getBoundingClientRect();
-    dState.sx = e.clientX - rect.left;
-    dState.sy = e.clientY - rect.top;
-    // NO HACEMOS e.preventDefault() AQUÍ PARA PERMITIR SCROLL NATIVO
 }
 
 function onPtrMove(e) {
@@ -4191,30 +4646,23 @@ function onPtrMove(e) {
         const dy = Math.abs(e.clientY - dState.startY);
         
         if (dx > 5 || dy > 5) {
-            // Si movemos más en horizontal y estamos en el banquillo, ¡es un Scroll! Cancelamos Drag.
-            if (dx > dy && dState.data.loc === 'bench') {
-                dState.active = false;
-                return;
-            }
-            
-            // Si movemos vertical, activamos el Drag y creamos el clon
             dState.isDragging = true;
             const clone = dState.el.cloneNode(true);
             clone.style.position = 'fixed';
             clone.style.left = e.clientX + 'px';
             clone.style.top = e.clientY + 'px';
-            clone.style.zIndex = 999999;
-            clone.style.pointerEvents = 'none';
-            clone.classList.add('dragging');
+            clone.style.zIndex = 2147483647; // Máximo poder para que rompa cualquier contenedor
+            clone.style.pointerEvents = 'none'; // Vital para que detecte dónde lo sueltas
+            clone.style.transform = 'translate(-50%, -50%) scale(1.3)';
+            clone.style.opacity = '0.9';
+            
             document.body.appendChild(clone);
             dState.clone = clone;
-        } else {
-            return; // No se ha movido lo suficiente para decidir
         }
     }
     
     if (dState.isDragging) {
-        e.preventDefault(); // Ahora sí evitamos que la pantalla salte
+        try { e.preventDefault(); } catch(err) {} 
         dState.clone.style.left = e.clientX + 'px';
         dState.clone.style.top = e.clientY + 'px';
     }
@@ -4223,6 +4671,11 @@ function onPtrMove(e) {
 function onPtrUp(e) {
     if (!dState.active) return;
     
+    // Soltamos el anclaje del dedo
+    if (dState.el) {
+        try { dState.el.releasePointerCapture(e.pointerId); } catch(err){}
+    }
+
     const wasDragging = dState.isDragging;
     dState.active = false;
     dState.isDragging = false;
@@ -4234,15 +4687,15 @@ function onPtrUp(e) {
 
     const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
 
-    // 1. CLIC RÁPIDO EN UN JUGADOR EN PISTA = ¡TIRO!
+    // 1. CLIC RÁPIDO EN PISTA = TIRO
     if (!wasDragging && dState.type === 'player' && dState.data.loc === 'court') {
         openTacticalShotModal(dState.data.name, dState.data.team);
         return;
     }
 
-    if (!wasDragging) return; // Si no fue tiro ni drag, no hacemos nada
+    if (!wasDragging) return; 
 
-    // 2. SOLTAR ACCIÓN SOBRE JUGADOR
+    // 2. SOLTAR ACCIÓN (ROBOS, FALTAS...)
     if (dState.type === 'action' && dropTarget) {
         const pToken = dropTarget.closest('.d-token[data-type="player"]');
         if (pToken && pToken.dataset.loc === 'court') {
@@ -4251,7 +4704,7 @@ function onPtrUp(e) {
         return;
     }
 
-    // 3. MOVER JUGADOR (CAMBIOS Y POSICIONES)
+    // 3. MOVER JUGADORES (BANQUILLO <-> PISTA)
     if (dState.type === 'player' && dropTarget) {
         const slot = dropTarget.closest('.drop-zone.tac-slot');
         const bench = dropTarget.closest('.drop-zone.bench-zone');
@@ -4260,7 +4713,6 @@ function onPtrUp(e) {
         const pName = dState.data.name;
         const pTeam = dState.data.team;
 
-        // A. Soltar Jugador sobre Jugador = INTERCAMBIO
         if (targetToken && targetToken.dataset.team === pTeam) {
             const tName = targetToken.dataset.name;
             const sourceLoc = dState.data.loc;
@@ -4275,7 +4727,6 @@ function onPtrUp(e) {
             return;
         }
 
-        // B. Soltar Jugador en un Hueco Vacío de la Pista
         if (slot && slot.dataset.team === pTeam) {
             const slotIdx = parseInt(slot.dataset.slot);
             if (dState.data.loc === 'bench') {
@@ -4289,7 +4740,6 @@ function onPtrUp(e) {
             return;
         }
 
-        // C. Soltar Jugador en el Banquillo (Forzar salida dejando hueco)
         if (bench && bench.dataset.bench === pTeam && dState.data.loc === 'court') {
             subTapPlayer(pName, pTeam);
             renderTacticalBoard();
@@ -4298,73 +4748,33 @@ function onPtrUp(e) {
     }
 }
 
-
+// ═══════════════════════════════════════════
+// 🔇 ALERTA DE BONUS DESACTIVADA
+// ═══════════════════════════════════════════
 window.lvCheckAlerts = function() {
-    const container = document.getElementById('lv-alerts-container');
-    if (!container) return;
-    
-    let alerts = [];
-    const currentQ = lv.period; 
-
-    const checkTeam = (team) => {
-        const sideName = team === 'home' ? 'LOCAL' : 'RIVAL';
-        
-        // Técnica a Entrenador/Banquillo (Aplica al equipo entero, se queda igual)
-        if (lv.teamTechs && lv.teamTechs[team]) {
-            if (lv.teamTechs[team].coach >= 1 && lv.teamTechs[team].bench >= 1) {
-                alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px">
-                    <span style="font-size:16px">🚨</span> EQUIPO ${sideName}: Tienen Técnica de Entrenador Y Banquillo.
-                </div>`);
-            }
-        }
-
-        const players = lv.pl[team] || [];
-        const st = lv.st[team] || {};
-        const oc = lv.onCourt[team] || new Set();
-
-        players.forEach(p => {
-            const s = st[p.name] || {};
-            const totalFouls = s.fc || 0; 
-            const comboDesc = (s.tech || 0) + (s.antiFlagrant || 0);
-
-            const isExpulsado = totalFouls >= 5;
-            const isDescalificado = comboDesc >= 2;
-            
-            const inCourt = oc.has(p.name);
-            
-            // ¡NUEVO! Todo el bloque de alertas SOLO salta si el jugador ESTÁ EN PISTA
-            if (inCourt) {
-                if (isExpulsado) {
-                    alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
-                        🛑 EXPULSADO (5 Faltas): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
-                    </div>`);
-                } else if (isDescalificado) {
-                    alerts.push(`<div style="background:#7f1d1d;border:1.5px solid #450a0a;color:#fecaca;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:800">
-                        🛑 DESCALIFICADO (Técnicas/Antis): #${p.dorsal} ${p.name.split(' ')[0]} (${sideName})
-                    </div>`);
-                } else if (currentQ === 1 && totalFouls === 2) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q1 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 2 faltas.</div>`);
-                } else if (currentQ === 2 && totalFouls === 3) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q2 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 3 faltas.</div>`);
-                } else if (currentQ === 3 && totalFouls === 4) {
-                    alerts.push(`<div style="background:#fef2f2;border:1.5px solid #ef4444;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:800">🔥 Q3 - #${p.dorsal} ${p.name.split(' ')[0]} tiene 4 faltas.</div>`);
-                } else if (currentQ === 4 && totalFouls === 4) {
-                    alerts.push(`<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Q4 - #${p.dorsal} ${p.name.split(' ')[0]} al borde de la expulsión (4).</div>`);
-                }
-            }
-        });
-    };
-
-    checkTeam('home');
-    checkTeam('away');
-    container.innerHTML = alerts.join('');
-    
-    if (!window._isRenderingStrips) {
-        window._isRenderingStrips = true;
-        renderTacticalBoard(); 
-        window._isRenderingStrips = false;
+    const cont = document.getElementById('lv-alerts-container');
+    if (cont) {
+        cont.innerHTML = ''; 
+        cont.style.display = 'none'; // Lo ocultamos para que no genere márgenes
     }
-}
+};
+
+window._isEjected = function(team, name) {
+    const s = lv.st[team][name];
+    if(!s) return false;
+    
+    const fc = s.fc || 0;
+    const tech = s.tech || 0;
+    const antiFlag = s.antiFlagrant || 0;
+    const antiNorm = s.antiNormal || 0;
+    
+    if (fc >= 5) return true; // 5 faltas totales
+    if (tech >= 1 && antiFlag >= 1) return true; // 1 Técnica + 1 Anti Flagrante
+    if (tech >= 2) return true; // 2 Técnicas
+    if (antiFlag + antiNorm >= 2) return true; // 2 Antideportivas
+    
+    return false;
+};
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas de Expulsión)
 function renderTacticalBoard() {
     const layer = document.getElementById('tac-slots-layer');
@@ -4723,22 +5133,35 @@ function rLvAll(){
   const sh=document.getElementById('lv-score-h');if(sh)sh.textContent=lv.score.home;
   const sa=document.getElementById('lv-score-a');if(sa)sa.textContent=lv.score.away;
   renderTimer();
-  const byPer={};lv.events.forEach(e=>{if(!byPer[e.period])byPer[e.period]={home:0,away:0};const pts={'pts2':2,'pts3':3,'tl_in':1}[e.type]||0;if(pts&&e.team==='home')byPer[e.period].home+=pts;if(pts&&e.team==='away')byPer[e.period].away+=pts;});
+  const byPer={};
+  lv.events.forEach(e=>{
+      if(!byPer[e.period])byPer[e.period]={home:0,away:0};
+      const pts={'pts2':2,'pts3':3,'tl_in':1}[e.type]||0;
+      if(pts&&e.team==='home')byPer[e.period].home+=pts;
+      if(pts&&e.team==='away')byPer[e.period].away+=pts;
+  });
   const cp=byPer[lv.period]||{home:0,away:0};
   const hpp=document.getElementById('lv-h-pp');if(hpp)hpp.textContent=`P${lv.period}: ${cp.home}pts`;
   const app=document.getElementById('lv-a-pp');if(app)app.textContent=`P${lv.period}: ${cp.away}pts`;
-  const hb=document.getElementById('lv-h-bonus');
-  const ab=document.getElementById('lv-a-bonus');
+  
   const fc_h=lv.events.filter(e=>e.team==='home'&&e.period===lv.period&&e.type==='foul').length;
   const fc_a=lv.events.filter(e=>e.team==='away'&&e.period===lv.period&&e.type==='foul').length;
-  if(hb)hb.style.display=fc_a>=5?'block':'none';
-  if(ab)ab.style.display=fc_h>=5?'block':'none';
-  renderLvStrips();rLvLog();
+  
+  // Eliminada la llamada obsoleta a renderLvStrips()
+  rLvLog();
+  
   if(document.getElementById('live-stats-modal')?.style.display==='flex')renderLiveStatsModal();
+  
   const hot=document.getElementById('lv-hot');
-  if(hot&&lv.selPl){const last3=lv.events.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).slice(-3);hot.style.display=last3.length>=2&&last3.every(e=>e.player===lv.selPl)?'inline-block':'none';}
+  if(hot&&lv.selPl){
+      const last3=lv.events.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).slice(-3);
+      hot.style.display=last3.length>=2&&last3.every(e=>e.player===lv.selPl)?'inline-block':'none';
+  }
 
-  _lvPersist();}
+  // Guardado de seguridad
+  if(typeof _lvPersist === 'function') _lvPersist();
+}
+
 function rLvLog(){
   const el=document.getElementById('lv-log');if(!el)return;
   if(!lv.events.length){el.innerHTML='<div class="empty">Sin acciones</div>';return;}
@@ -5325,8 +5748,7 @@ function _renderStBox(m){
     <div style="font-size:10px;color:var(--t3)">Toca en el título de la columna para ordenar. Toca a cualquier jugador para ver su ficha.</div>`;
 }
 
-// ── Inyección Robusta del Origen de los Puntos (Directo y Acumulado) ──
-// ── Inyección Robusta del Origen de los Puntos (Directo y Acumulado) ──
+
 // Función universal para inyectar los orígenes
 function injectOriginData(containerClass, eventsArray, matchFn){
   const cards = document.querySelectorAll('.card, #live-stats-modal > div > div > div');
@@ -6398,6 +6820,91 @@ function undoDeleteMatch(){
     toast(`↩ Restaurado: ${match.homeTeam} vs ${match.awayTeam}`);
   }catch(e){toast('Error restaurando: '+e.message,'err');}
 }
+
+// ── Motor Predictivo de Ritmo en Directo ──
+function _getLivePaceInsights(side) {
+  // Necesitamos al menos 4 minutos para que la proyección sea matemáticamente estable
+  if (lv.curMin < 4) return '<div class="empty" style="font-size:10px; padding:10px">Se necesitan al menos 4 minutos de juego para calcular el ritmo y las proyecciones.</div>';
+
+  const teamName = side === 'home' ? lv.hn : lv.an;
+  const oppSide = side === 'home' ? 'away' : 'home';
+  const pace = 40 / lv.curMin; // Multiplicador para extrapolar a 40 minutos
+
+  const getTeamTotal = (teamKey, statKey) => lv.pl[teamKey].reduce((s, p) => s + (lv.st[teamKey][p.name]?.[statKey] || 0), 0);
+
+  const projPts = lv.score[side] * pace;
+  const projT3 = getTeamTotal(side, 't3Made') * pace;
+  const projTo = getTeamTotal(side, 'to') * pace;
+
+  // Filtrar el histórico del equipo seleccionado
+  const matches = S.matches.filter(m => m.homeTeam === teamName || m.awayTeam === teamName);
+  const wins = matches.filter(m => (m.homeTeam === teamName && m.scoreHome > m.scoreAway) || (m.awayTeam === teamName && m.scoreAway > m.scoreHome));
+  const losses = matches.filter(m => (m.homeTeam === teamName && m.scoreHome < m.scoreAway) || (m.awayTeam === teamName && m.scoreAway < m.scoreHome));
+
+  let insights = [];
+
+  // Si tenemos datos suficientes de victorias y derrotas, cruzamos los datos
+  if (wins.length > 0 && losses.length > 0) {
+    const getAvg = (matchArr, statFn) => matchArr.reduce((sum, m) => {
+        const isHome = m.homeTeam === teamName;
+        return sum + statFn(isHome ? m.homePlayers : m.awayPlayers, isHome ? m.scoreHome : m.scoreAway);
+    }, 0) / matchArr.length;
+
+    const winT3 = getAvg(wins, (pl) => pl.reduce((s, p) => s + (p.t3Made || 0), 0));
+    const lossT3 = getAvg(losses, (pl) => pl.reduce((s, p) => s + (p.t3Made || 0), 0));
+    const winTo = getAvg(wins, (pl) => pl.reduce((s, p) => s + (p.to || 0), 0));
+    const lossTo = getAvg(losses, (pl) => pl.reduce((s, p) => s + (p.to || 0), 0));
+    const winPts = getAvg(wins, (pl, pts) => pts);
+    const lossPts = getAvg(losses, (pl, pts) => pts);
+
+    // Insight de Triples
+    if (winT3 > lossT3 + 1.5) {
+        if (projT3 <= lossT3 + 0.5) insights.push({ type: 'bad', text: `<b>Triples:</b> Pierden cuando meten pocos triples (media en derrotas: ${lossT3.toFixed(1)}). Van a ritmo de <b>${projT3.toFixed(1)}</b>. ¡Tienen que tirar más!`});
+        else if (projT3 >= winT3 - 0.5) insights.push({ type: 'good', text: `<b>Triples:</b> Ganan cuando meten ${winT3.toFixed(1)} triples. Están a ritmo de <b>${projT3.toFixed(1)}</b>. ¡SIGUE ASÍ!`});
+    }
+
+    // Insight de Pérdidas
+    if (lossTo > winTo + 2) {
+        if (projTo >= lossTo - 1) insights.push({ type: 'bad', text: `<b>Pérdidas:</b> Media en derrotas es ${lossTo.toFixed(1)}. Van a ritmo de <b>${projTo.toFixed(1)}</b>. ¡VIGILA!`});
+        else if (projTo <= winTo + 1 && projTo > 0) insights.push({ type: 'good', text: `<b>Pérdidas:</b> Muy bien cuidando el balón (proyectan <b>${projTo.toFixed(1)}</b>), por debajo de su media en victorias (${winTo.toFixed(1)}).`});
+    }
+
+    // Insight de Puntos
+    if (winPts > lossPts + 5) {
+        if (projPts >= winPts - 3) insights.push({ type: 'good', text: `<b>Anotación:</b> Ritmo alto (proyectan <b>${projPts.toFixed(0)}</b>). Suelen ganar al llegar a ${winPts.toFixed(0)}.`});
+        else if (projPts <= lossPts + 3) insights.push({ type: 'bad', text: `<b>Anotación:</b> Atascados (proyectan <b>${projPts.toFixed(0)}</b>). En sus derrotas promedian ${lossPts.toFixed(0)} puntos.`});
+    }
+  }
+
+  // Reglas universales si no hay histórico que dispare alarmas
+  if (insights.length < 2) {
+    if (projTo > 18) insights.push({ type: 'bad', text: `<b>Pérdidas:</b> Vais a ritmo de <b>${projTo.toFixed(1)}</b> pérdidas. Demasiados regalos en este partido.`});
+    else if (projTo < 12 && lv.curMin > 10) insights.push({ type: 'good', text: `<b>Pérdidas:</b> Ritmo excelente, solo proyectan <b>${projTo.toFixed(1)}</b> pérdidas.`});
+
+    const curT2A = getTeamTotal(side, 't2Att');
+    const curT3A = getTeamTotal(side, 't3Att');
+    if (curT2A + curT3A >= 10) {
+        const t3Ratio = curT3A / (curT2A + curT3A);
+        if (t3Ratio > 0.5) insights.push({ type: 'neutral', text: `<b>Ataque:</b> El ${Math.round(t3Ratio*100)}% de sus tiros son triples. Mucho volumen exterior.`});
+        else if (t3Ratio < 0.25) insights.push({ type: 'neutral', text: `<b>Ataque:</b> El ${Math.round((1-t3Ratio)*100)}% de sus tiros son de 2. Buscan mucho la pintura.`});
+    }
+  }
+
+  if (!insights.length) insights.push({ type: 'neutral', text: `Desarrollo estable. Sin variaciones críticas detectadas.`});
+
+  // Renderizar las tarjetas
+  return insights.slice(0, 3).map(i => {
+    let bg = '#f8fafc', bd = 'var(--bd)', col = 'var(--nv)', icon = 'ℹ️';
+    if (i.type === 'good') { bg = '#f0fdf4'; bd = '#bbf7d0'; col = '#15803d'; icon = '🔥'; }
+    else if (i.type === 'bad') { bg = '#fef2f2'; bd = '#fecaca'; col = '#b91c1c'; icon = '⚠️'; }
+
+    return `<div style="background:${bg}; border:1px solid ${bd}; color:${col}; border-radius:8px; padding:10px; margin-bottom:8px; font-size:11px; display:flex; gap:8px; align-items:center;">
+        <span style="font-size:16px; flex-shrink:0">${icon}</span>
+        <span style="line-height:1.35">${i.text}</span>
+    </div>`;
+  }).join('');
+}
+
 
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD: per-match breakdown
@@ -7909,60 +8416,6 @@ function exportBackup(){
   toast('📦 Copia de seguridad descargada');
 }
 
-// ── LIVE MATCH CRASH RECOVERY ──────────────────────────────────────────────
-// Persists the in-progress live match to localStorage on every render so a
-// browser crash / reload / dead battery never loses the game.
-function _lvPersist(){
-  if(!lv||!lv.st||!document.getElementById('lv-panel')||document.getElementById('lv-panel').style.display==='none')return;
-  try{
-    const snap={...lv,timer:{running:false,seconds:lv.timer?.seconds??600,interval:null},
-      onCourt:{home:[...(lv.onCourt?.home||[])],away:[...(lv.onCourt?.away||[])]},
-      _active:true,_savedAt:Date.now()};
-    localStorage.setItem('bascatLive',JSON.stringify(snap));
-  }catch(e){}
-}
-function _lvClearPersist(){try{localStorage.removeItem('bascatLive');}catch(e){}}
-function checkLiveResume(){
-  let saved=null;
-  try{saved=JSON.parse(localStorage.getItem('bascatLive')||'null');}catch(e){}
-  const el=document.getElementById('lv-resume-banner');
-  if(!el)return;
-  if(saved&&saved._active&&saved.hn){
-    const mins=Math.round((Date.now()-(saved._savedAt||0))/60000);
-    el.style.display='block';
-    el.innerHTML=`<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:22px">⚠️</span>
-      <div style="flex:1;min-width:180px">
-        <div style="font-weight:800;font-size:13px">Partido en curso encontrado</div>
-        <div style="font-size:11px;color:var(--t3)">${saved.hn} ${saved.score?.home??0} — ${saved.score?.away??0} ${saved.an} · P${saved.period||1} · guardado hace ${mins} min</div>
-      </div>
-      <button onclick="resumeLive()" class="btn bp" style="font-size:12px">▶️ Continuar</button>
-      <button onclick="discardLive()" style="background:#fee2e2;border:none;color:#dc2626;border-radius:7px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">🗑 Descartar</button>
-    </div>`;
-  } else el.style.display='none';
-}
-function resumeLive(){
-  let saved=null;
-  try{saved=JSON.parse(localStorage.getItem('bascatLive')||'null');}catch(e){}
-  if(!saved){toast('No hay partido guardado','err');return;}
-  lv=saved;
-  lv.onCourt={home:new Set(saved.onCourt?.home||[]),away:new Set(saved.onCourt?.away||[])};
-  lv.timer={running:false,seconds:saved.timer?.seconds??600,interval:null};
-  document.getElementById('lv-setup').style.display='none';
-  document.getElementById('lv-panel').style.display='block';
-  document.getElementById('lv-hl').textContent=lv.hn;
-  document.getElementById('lv-al').textContent=lv.an;
-  bindLvCourt();
-  setLvCourtView('live');
-  renderTimer();
-  rLvAll();
-  toast('▶️ Partido recuperado — el reloj está en pausa');
-}
-function discardLive(){
-  if(!confirm('¿Descartar el partido guardado? Se perderán sus datos.'))return;
-  _lvClearPersist();
-  checkLiveResume();
-}
 
 
 // ═══════════════════════════════════════════
@@ -8213,9 +8666,13 @@ function renderLiveStatsModal() {
     </div>`).join('') : '<div class="empty" style="font-size:10px">Se calculan al anotar canastas</div>';
 
   // 1. Rediseñamos el botón para que flote en la esquina de LA PANTALLA (no de la caja)
+  // Generamos los insights proyectados para el equipo seleccionado
+  const paceInsightsHtml = _getLivePaceInsights(aTeam);
+  const htmlPaceCard = `<div class="card" style="margin:0; flex-shrink:0"><div class="ct">🔮 Proyecciones y Ritmo</div>${paceInsightsHtml}</div>`;
+
+  // Rediseñamos el botón para que flote en la esquina de LA PANTALLA
   const closeBtn = `<button onclick="closeLiveStatsModal()" style="position:absolute; top:25px; right:30px; background:#ef4444; color:#fff; border:3px solid #fff; border-radius:50%; width:44px; height:44px; font-weight:900; font-size:22px; cursor:pointer; z-index:100000; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(0,0,0,0.5); padding:0; line-height:1; transition: transform 0.1s;">✕</button>`;
 
-  // 2. Insertamos la caja blanca. Fíjate que el closeBtn está FUERA de la caja blanca
   modalWrapper.innerHTML = `
     ${closeBtn}
     <div style="background:#EEF2F7; border-radius:14px; width:100%; max-width:1200px; height:90vh; position:relative; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
@@ -8227,6 +8684,7 @@ function renderLiveStatsModal() {
         <div style="flex: 1.4; min-width:320px; display:flex; flex-direction:column; gap:16px; height:100%; overflow-y:auto; padding-right:8px; padding-bottom:20px;">
           ${htmlMain}
           <div class="card" style="margin:0; flex-shrink:0"><div class="ct">📈 Mejores parejas (+/-)</div>${pairsHtml}</div>
+          ${htmlPaceCard} <!-- 👈 Aquí hemos inyectado tu nueva herramienta predictiva -->
         </div>
         
         <!-- Columna Derecha (Scroll propio) -->
@@ -10758,6 +11216,7 @@ window.vToggleNewFolder = function() {
 };
 
 window.vSaveClip = function() {
+    if (!_vMatchKey) { alert("⚠️ Primero debes indicar de qué equipo es el vídeo escribiendo los nombres y pulsando Confirmar."); return; }
     if (!window._vState.side) { alert("⚠️ Selecciona LOCAL o VISITANTE"); return; }
     if (!window._vState.cat) { alert("⚠️ Selecciona ATAQUE o DEFENSA"); return; }
     
@@ -10767,9 +11226,17 @@ window.vSaveClip = function() {
     
     const label = document.getElementById('v-clip-label').value.trim();
     
+    // Blindaje robusto: forzamos la creación de toda la estructura de objetos si no existe
+    if (!S.clips2) S.clips2 = {};
+    if (!S.clips2[_vMatchKey]) {
+        const parts = _vMatchKey.split(' vs ');
+        S.clips2[_vMatchKey] = { local: parts[0] || 'Local', away: parts[1] || 'Visitante', created: Date.now(), teams: {} };
+    }
+    
     const tName = window._vState.side === 'local' ? S.clips2[_vMatchKey].local : S.clips2[_vMatchKey].away;
     const cat = window._vState.cat;
     
+    // Inicialización profunda en cascada
     if (!S.clips2[_vMatchKey].teams) S.clips2[_vMatchKey].teams = {};
     if (!S.clips2[_vMatchKey].teams[tName]) S.clips2[_vMatchKey].teams[tName] = {};
     if (!S.clips2[_vMatchKey].teams[tName][cat]) S.clips2[_vMatchKey].teams[tName][cat] = {};
@@ -11060,6 +11527,95 @@ function openRadarProfile(name) {
 window.linkFCBQ = linkFCBQ;
 window.openRadarProfile = openRadarProfile;
 window.importFromFCBQ = importFromFCBQ;
+
+// ═══════════════════════════════════════════
+// 🛡️ LIVE MATCH CRASH RECOVERY (ARREGLADO)
+// ═══════════════════════════════════════════
+
+window._lvPersist = function() {
+  if(!lv || !lv.st || !document.getElementById('lv-panel') || document.getElementById('lv-panel').style.display==='none') return;
+  try {
+    const snap = {
+      ...lv,
+      timer: { running: false, seconds: lv.timer?.seconds ?? 600, interval: null },
+      onCourt: { home: [...(lv.onCourt?.home || [])], away: [...(lv.onCourt?.away || [])] },
+      _active: true,
+      _savedAt: Date.now()
+    };
+    localStorage.setItem('bascatLive', JSON.stringify(snap));
+  } catch(e) {}
+};
+
+window._lvClearPersist = function() {
+  try { localStorage.removeItem('bascatLive'); } catch(e) {}
+};
+
+window.checkLiveResume = function() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('bascatLive') || 'null'); } catch(e) {}
+  const el = document.getElementById('lv-resume-banner');
+  if(!el) return;
+  
+  if(saved && saved._active && saved.hn) {
+    const mins = Math.round((Date.now() - (saved._savedAt || 0)) / 60000);
+    el.style.display = 'block';
+    el.innerHTML = `<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:22px">⚠️</span>
+      <div style="flex:1;min-width:180px">
+        <div style="font-weight:800;font-size:13px">Partido en curso encontrado</div>
+        <div style="font-size:11px;color:var(--t3)">${saved.hn} ${saved.score?.home??0} — ${saved.score?.away??0} ${saved.an} · P${saved.period||1} · guardado hace ${mins} min</div>
+      </div>
+      <button onclick="resumeLive()" class="btn bp" style="font-size:12px">▶️ Continuar</button>
+      <button onclick="discardLive()" style="background:#fee2e2;border:none;color:#dc2626;border-radius:7px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">🗑 Descartar</button>
+    </div>`;
+  } else {
+    el.style.display = 'none';
+  }
+};
+
+window.resumeLive = function() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('bascatLive') || 'null'); } catch(e) {}
+  if(!saved) { toast('No hay partido guardado', 'err'); return; }
+  
+  lv = saved;
+  
+  // Reconstruir los Sets
+  lv.onCourt = {
+    home: new Set(saved.onCourt?.home || []),
+    away: new Set(saved.onCourt?.away || [])
+  };
+  
+  lv.timer = { running: false, seconds: saved.timer?.seconds ?? 600, interval: null };
+  
+  // 🔥 LA CLAVE DEL FIX: Asignar a los jugadores a sus huecos de la pizarra táctica para que se vean
+  window._tacBoard.slots = { home: [null,null,null,null,null], away: [null,null,null,null,null] };
+  let hi=0, ai=0;
+  lv.onCourt.home.forEach(pName => { if(hi<5) window._tacBoard.slots.home[hi++] = pName; });
+  lv.onCourt.away.forEach(pName => { if(ai<5) window._tacBoard.slots.away[ai++] = pName; });
+  
+  document.getElementById('lv-setup').style.display = 'none';
+  document.getElementById('lv-panel').style.display = 'block';
+  
+  const hl = document.getElementById('lv-hl');
+  const al = document.getElementById('lv-al');
+  if(hl) hl.textContent = lv.hn;
+  if(al) al.textContent = lv.an;
+  
+  redrawLvCourt();
+  renderTimer();
+  rLvAll();
+  
+  toast('▶️ Partido recuperado — el reloj está en pausa');
+};
+
+window.discardLive = function() {
+  if(!confirm('¿Descartar el partido guardado? Se perderán sus datos.')) return;
+  _lvClearPersist();
+  checkLiveResume();
+};
+
+
 
 Object.assign(window,{
   searchSelect,sbToggle,sbFilter,sbPick,stPmPick,
@@ -11496,6 +12052,19 @@ function _installAdvancedUI(){
   const club=document.querySelector('#t-club .tw');
   if(club&&!document.getElementById('cl-advanced-toggle'))club.insertAdjacentHTML('beforebegin','<button id="cl-advanced-toggle" onclick="toggleAdvancedColumns(\'cl\')" style="margin:0 0 8px;padding:5px 14px;border-radius:6px;border:2px solid var(--b2);background:#fff;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer">Toggle avanzadas</button>');
 }
+
+window.adjustTimer = function(secOffset) {
+    if (!lv || !lv.timer) return;
+    
+    // 1. Tocamos directamente el "cerebro" real del reloj
+    lv.timer.seconds = Math.max(0, lv.timer.seconds + secOffset);
+    
+    // 2. Le decimos al sistema que redibuje TODO (pantalla, minutos jugados para las stats, etc.)
+    if (typeof renderTimer === 'function') renderTimer();
+    
+    // 3. Guardamos por si se recarga la página
+    if (typeof _lvPersist === 'function') _lvPersist();
+};
 
 function setStSub(v){
   _stSub=v;
@@ -12140,9 +12709,12 @@ function _analyzeAdvancedFCBQ(matches, rivalTeam) {
    ========================================================= */
 
 // 1. Creador de Ventana Táctil (Sustituye al feo "prompt" del navegador)
+// 1. Creador de Ventana Táctil (Sustituye al feo "prompt" del navegador)
 window._showLvPrompt = function(title, options, callback) {
     const bg = document.createElement('div');
-    bg.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);";
+    // 👇 AQUÍ ESTÁ LA MAGIA: Le damos el ID "modal" para que el CSS lo blinde y lo ponga por encima de todo
+    bg.id = 'prompt-modal'; 
+    bg.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:2147483647 !important;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);";
     
     const box = document.createElement('div');
     box.style.cssText = "background:#fff;border-radius:14px;width:100%;max-width:320px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.4);";

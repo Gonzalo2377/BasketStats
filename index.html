@@ -13220,7 +13220,7 @@ setTimeout(() => {
 }, 2500);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📥 IMPORTADOR DE 1ª CATEGORIA: STATS ACUMULADAS + PARTIDOS REALES
+// 📥 IMPORTADOR DE 1ª CATEGORIA: STATS ACUMULADAS + PARTIDOS REALES (BLINDADO)
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.importarPrimeraJSON = function() {
@@ -13228,7 +13228,7 @@ window.importarPrimeraJSON = function() {
     const file = fileInput.files[0];
     if (!file) { alert('⚠️ Por favor, selecciona el archivo JSON primero.'); return; }
 
-    // 1. EL CALENDARIO REAL COMPLETO (Los 4 grupos extraídos de la federación)
+    // El calendario completo que me pasaste
     const rawCalendarText = `
 ELS MONJOS BC - PANSALUD\n27-09-2025 19:45\nNOU BÀSQUET OLESA A\n81\nActa\n67
 CB MORELL A\n28-09-2025 17:00\nVILABÀSQUET VILADECANS SMA\n68\nActa\n53
@@ -13965,36 +13965,42 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
         try {
             let jsonText = e.target.result;
             
-            // 2. Extraer limpiamente el JSON
+            // 1. Limpieza extrema del archivo JSON subido
             const keyword = '"allRows"';
             const index = jsonText.indexOf(keyword);
             if (index === -1) throw new Error("No se encontró 'allRows' en el archivo.");
+
             let startOfJson = jsonText.lastIndexOf('{', index);
             if (startOfJson === -1) startOfJson = 0;
             jsonText = jsonText.substring(startOfJson);
+
             const lastBrace = jsonText.lastIndexOf('}');
             if (lastBrace !== -1) jsonText = jsonText.substring(0, lastBrace + 1);
 
             const json = JSON.parse(jsonText);
             const rows = json.allRows || json;
 
-            // Inicializar Base de Datos de la web
+            // 2. Comprobar que la Base de Datos está lista
             if (typeof S === 'undefined' || !S) { alert("⚠️ La base de datos no está lista."); return; }
             if (!S.teams) S.teams = [];
             if (!S.matches) S.matches = [];
 
-            // 3. Procesar el calendario de texto con Expresión Regular
-            // Busca: Equipo Local \n Fecha Hora \n Equipo Visitante \n Puntos Local \n Acta \n Puntos Visitante
+            // 3. Procesar el calendario de la federación con RegEx
+            // Formato esperado: Equipo Local \n DD-MM-YYYY HH:MM \n Equipo Visitante \n PuntosLocal \n Acta \n PuntosVisitante
             const rx = /([^\n]+)\n(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})\n([^\n]+)\n(\d+)\nActa[^\n]*\n(\d+)/g;
             let realMatches = [];
             let m;
             while(m = rx.exec(rawCalendarText)) {
-                let dParts = m[2].split('-'); // DD-MM-YYYY
+                let dParts = m[2].split('-'); // dParts = [DD, MM, YYYY]
+                
                 realMatches.push({
                     homeName: m[1].trim().toUpperCase(),
-                    date: `${dParts[2]}-${dParts[1]}-${dParts[0]}`, // Convertir a YYYY-MM-DD
-                    time: m[3],
                     awayName: m[4].trim().toUpperCase(),
+                    // Formato exacto que usa tu app para leer las fechas: DD/MM/YYYY
+                    dateStr: `${dParts[0]}/${dParts[1]}/${dParts[2]}`, 
+                    timeStr: m[3],
+                    // Generamos un timestamp real para que el Histórico pueda ordenarlos de más reciente a más antiguo
+                    timestamp: new Date(`${dParts[2]}-${dParts[1]}-${dParts[0]}T${m[3]}:00`).getTime(),
                     homeScore: parseInt(m[5]),
                     awayScore: parseInt(m[6])
                 });
@@ -14005,88 +14011,96 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
             const targetSeason = "2025/2026";
             const targetComp = "C.c. Primera Categoria Masculina";
 
-            // Filtramos a los equipos que pone Primera o Copa Catalunya en el JSON
-            const teamRows = rows.filter(r => r.type === 'team' && (r.data.Liga.toLowerCase().includes("copa catalunya") || r.data.Liga.toLowerCase().includes("primera")));
+            // Función de ayuda para comparar nombres de equipos sin que un espacio nos fastidie
+            const isSameTeam = (t1, t2) => {
+                let a = t1.toUpperCase(); let b = t2.toUpperCase();
+                return a === b || a.includes(b) || b.includes(a);
+            };
 
-            // Diccionario para que las comparaciones entre JSON y Calendario no fallen por espacios
-            const isSameTeam = (t1, t2) => t1 === t2 || t1.includes(t2) || t2.includes(t1);
-
-            teamRows.forEach(tRow => {
-                const d = tRow.data;
-                const tName = d.Equip.trim();
-                const cleanName = tName.toUpperCase();
-
-                // Sacar los partidos reales de este equipo
-                let teamGames = realMatches.filter(mx => isSameTeam(mx.homeName, cleanName) || isSameTeam(mx.awayName, cleanName));
-                
-                // Calcular W y L
-                let W = 0, L = 0;
-                teamGames.forEach(mx => {
-                    if (isSameTeam(mx.homeName, cleanName)) {
-                        if (mx.homeScore > mx.awayScore) W++; else L++;
-                    } else {
-                        if (mx.awayScore > mx.homeScore) W++; else L++;
-                    }
-                });
-
-                // Añadir el equipo a la web
-                let teamObj = S.teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
+            // 4. CREAR EQUIPOS: Asegurarnos de que todos los equipos del calendario existen en S.teams
+            const uniqueTeams = [...new Set([...realMatches.map(mx => mx.homeName), ...realMatches.map(mx => mx.awayName)])];
+            
+            uniqueTeams.forEach(tName => {
+                let teamObj = S.teams.find(t => isSameTeam(t.name.toUpperCase(), tName));
                 if (!teamObj) {
                     teamObj = { 
                         id: 't_acc_' + Date.now() + Math.random(), 
                         name: tName, 
                         players: [], 
-                        wins: W, 
-                        losses: L,
+                        wins: 0, 
+                        losses: 0,
                         season: targetSeason,
                         comp: targetComp,
-                        group: "Primera" // El grupo ya no importa tanto al tener los partidos exactos
+                        group: "Primera" 
                     };
                     S.teams.push(teamObj);
                     teamsAdded++;
                 }
+            });
 
-                // Asegurar que los partidos reales se guardan en S.matches
-                teamGames.forEach(mx => {
-                    let matchId = 'm_1a_' + mx.date + '_' + mx.homeName.replace(/\s+/g,'') + '_' + mx.awayName.replace(/\s+/g,'');
-                    if (!S.matches.find(sm => sm.id === matchId)) {
-                        S.matches.push({
-                            id: matchId,
-                            date: mx.date,
-                            time: mx.time,
-                            season: targetSeason,
-                            comp: targetComp,
-                            group: "Primera",
-                            home: { id: "t_"+mx.homeName, name: mx.homeName, score: mx.homeScore, players: {} },
-                            away: { id: "t_"+mx.awayName, name: mx.awayName, score: mx.awayScore, players: {} }
-                        });
-                    }
-                });
+            // 5. CREAR PARTIDOS: Volcar los partidos reales en S.matches con los nombres limpios
+            realMatches.forEach(mx => {
+                let matchId = 'm_1a_' + mx.timestamp + '_' + mx.homeName.replace(/\s+/g,'').substring(0,5);
+                
+                let existingMatch = S.matches.find(sm => sm.id === matchId);
+                if (!existingMatch) {
+                    let newMatch = {
+                        id: matchId,
+                        date: mx.dateStr,
+                        time: mx.timeStr,
+                        timestamp: mx.timestamp,
+                        season: targetSeason,
+                        comp: targetComp,
+                        group: "Primera",
+                        // 🎯 CORREGIDO: Asignamos el nombre limpio directamente aquí para que no salga 'undefined'
+                        home: { id: 't_h_' + mx.homeName.replace(/\s+/g,''), name: mx.homeName, score: mx.homeScore, players: {} },
+                        away: { id: 't_a_' + mx.awayName.replace(/\s+/g,''), name: mx.awayName, score: mx.awayScore, players: {} }
+                    };
+                    S.matches.push(newMatch);
+                }
+            });
 
-                // Procesar jugadores
-                let playerRows = rows.filter(r => r.type === 'player' && r.data.Equip.trim() === tName);
-                playerRows.forEach(pRow => {
-                    let p = pRow.data;
-                    let pName = p.Nom.trim();
-                    let playCount = Math.min(p.PJ || 1, teamGames.length);
-                    
-                    if (playCount === 0) return; // Si no jugó o no hay partidos, ignorar
+            // 6. INYECTAR JUGADORES: Coger las medias del JSON y repartirlas en los partidos recién creados
+            let playerRows = rows.filter(r => r.type === 'player');
+            
+            playerRows.forEach(pRow => {
+                let p = pRow.data;
+                if(!p.Equip || !p.Nom) return;
 
-                    let player = teamObj.players.find(x => x.name.toLowerCase() === pName.toLowerCase());
-                    if (!player) {
-                        player = { id: 'p_acc_' + Date.now() + Math.random(), name: pName, dorsal: Math.floor(Math.random() * 99).toString(), stats: [] };
-                        teamObj.players.push(player);
-                    }
+                let tName = p.Equip.trim().toUpperCase();
+                let teamObj = S.teams.find(t => isSameTeam(t.name.toUpperCase(), tName));
+                if (!teamObj) return; // Si no hay equipo, saltamos el jugador
 
-                    // Prevenir duplicidad comprobando si el jugador ya está inyectado en esos partidos
-                    let alreadyInjected = false;
-                    
+                let pName = p.Nom.trim();
+                let player = teamObj.players.find(x => x.name.toLowerCase() === pName.toLowerCase());
+                if (!player) {
+                    player = { id: 'p_acc_' + Date.now() + Math.random(), name: pName, dorsal: Math.floor(Math.random() * 99).toString(), stats: [] };
+                    teamObj.players.push(player);
+                }
+
+                // Rescatar todos los partidos que jugó SU equipo en el calendario (BLINDADO CON optional chaining)
+                let myMatches = S.matches.filter(sm => (sm.home && sm.home.id === teamObj.id) || (sm.away && sm.away.id === teamObj.id));
+                myMatches.sort((a,b) => a.timestamp - b.timestamp); // Ordenarlos por fecha real
+
+                let originalPJ = p.PJ || 1;
+                let playCount = Math.min(originalPJ, myMatches.length);
+                if (playCount === 0) return;
+
+                // Comprobar que no hayamos inyectado ya a este jugador si le das al botón dos veces
+                let alreadyInjected = false;
+                for(let m of myMatches) {
+                    let side = (m.home && m.home.id === teamObj.id) ? m.home : m.away;
+                    if(side && side.players && side.players[pName]) alreadyInjected = true;
+                }
+
+                if (!alreadyInjected) {
+                    // Calculadora mágica para repartir N puntos en X partidos
                     const distributeStats = (total, count) => {
                         let base = Math.floor(total / count);
                         let rem = total % count;
                         let arr = Array(count).fill(base);
                         for(let i=0; i<rem; i++) arr[i]++;
-                        return arr;
+                        return arr; // Devuelve un array tipo [12, 12, 11, 11...]
                     };
 
                     const parseShots = (str) => {
@@ -14099,7 +14113,6 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
                     let t3 = parseShots(p['T3 intentos']);
                     let tl = parseShots(p['TL intentos']);
 
-                    let originalPJ = p.PJ || 1;
                     let arr_min = distributeStats(p.MIN || 0, playCount);
                     let arr_pts = distributeStats(p.PTS || 0, playCount);
                     let arr_ast = distributeStats(Math.round((p['AS/P'] || 0) * originalPJ), playCount);
@@ -14114,40 +14127,61 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
                     let arr_tlm = distributeStats(tl.m, playCount);
                     let arr_tlmiss = distributeStats(tl.a - tl.m, playCount);
 
-                    // Ordenamos los partidos del equipo por fecha para que la distribución sea en orden cronológico
-                    teamGames.sort((a,b) => new Date(a.date) - new Date(b.date));
-
+                    // Reparto final jugador por jugador en los partidos reales
                     for(let i = 0; i < playCount; i++) {
-                        let mx = teamGames[i];
-                        let matchId = 'm_1a_' + mx.date + '_' + mx.homeName.replace(/\s+/g,'') + '_' + mx.awayName.replace(/\s+/g,'');
+                        let mObj = myMatches[i];
+                        let side = (mObj.home && mObj.home.id === teamObj.id) ? mObj.home : mObj.away;
                         
-                        let targetMatch = S.matches.find(sm => sm.id === matchId);
-                        if(targetMatch) {
-                            let side = isSameTeam(mx.homeName, cleanName) ? 'home' : 'away';
-                            if(!targetMatch[side].players[pName]) {
-                                targetMatch[side].players[pName] = {
-                                    name: pName, dorsal: player.dorsal,
-                                    min: arr_min[i], pts: arr_pts[i],
-                                    t2_m: arr_t2m[i], t2_a: arr_t2m[i] + arr_t2miss[i],
-                                    t3_m: arr_t3m[i], t3_a: arr_t3m[i] + arr_t3miss[i],
-                                    tl_m: arr_tlm[i], tl_a: arr_tlm[i] + arr_tlmiss[i],
-                                    ast: arr_ast[i], reb: arr_reb[i], val: arr_val[i],
-                                    fc: arr_fc[i], fr: arr_fr[i],
-                                    blk: 0, stl: 0, tov: 0
-                                };
-                            } else {
-                                alreadyInjected = true;
-                            }
+                        if (side) {
+                            if (!side.players) side.players = {};
+                            side.players[pName] = {
+                                name: pName, dorsal: player.dorsal,
+                                min: arr_min[i], pts: arr_pts[i],
+                                t2_m: arr_t2m[i], t2_a: arr_t2m[i] + arr_t2miss[i],
+                                t3_m: arr_t3m[i], t3_a: arr_t3m[i] + arr_t3miss[i],
+                                tl_m: arr_tlm[i], tl_a: arr_tlm[i] + arr_tlmiss[i],
+                                ast: arr_ast[i], reb: arr_reb[i], val: arr_val[i],
+                                fc: arr_fc[i], fr: arr_fr[i],
+                                blk: 0, stl: 0, tov: 0
+                            };
                         }
                     }
-
-                    if (!alreadyInjected) playersUpdated++;
-                });
+                    playersUpdated++;
+                }
             });
 
-            window.svL();
-            alert(`✅ Calendario y Estadísticas importados con éxito.\n\nEquipos de Primera procesados: ${teamsAdded}\nJugadores actualizados: ${playersUpdated}`);
+            // 7. CALCULAR CLASIFICACIONES
+            S.teams.forEach(t => {
+                if (t.comp === targetComp) {
+                    let w = 0, l = 0;
+                    S.matches.forEach(m => {
+                        if (m.comp === targetComp) {
+                            if (m.home && m.home.id === t.id) { if (m.home.score > m.away.score) w++; else l++; }
+                            else if (m.away && m.away.id === t.id) { if (m.away.score > m.home.score) w++; else l++; }
+                        }
+                    });
+                    t.wins = w;
+                    t.losses = l;
+                }
+            });
+
+            window.svL(); // Guardado local
             
+            // 🔥 FORZAR SINCRONIZACIÓN CON FIREBASE SI EXISTE LA FUNCIÓN EN TU APP
+            if (typeof saveToFirebase === 'function') {
+                saveToFirebase();
+            } else if (typeof syncFirebase === 'function') {
+                syncFirebase();
+            } else if (typeof pushToFirebase === 'function') {
+                pushToFirebase();
+            } else {
+                console.warn("⚠️ No se encontró una función directa de Firebase. Comprueba cómo guarda tu app en la nube.");
+            }
+
+            alert(`✅ ¡Importación completada!\n\nPartidos oficiales creados: ${realMatches.length}\nJugadores actualizados: ${playersUpdated}`);
+            
+            if (typeof renderTeams === 'function') renderTeams();
+            if (typeof renderMatches === 'function') renderMatches(); 
 
         } catch (err) {
             console.error("Detalle del error:", err);

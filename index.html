@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -10598,87 +10598,59 @@ function initAccess(){
 }
 
 
-// ═══════════════════════════════════════════
-// 📱 Deslizar para cambiar de pestaña (solo táctil)
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// 📱 DESLIZAR PARA CAMBIAR DE PESTAÑA (UNIFICADO Y BLINDADO TOTAL)
+// ═══════════════════════════════════════════════════════════════════════════
 (function(){
-  let x0=null,y0=null,ignore=false;
-  const BLOCK='.tw, .cw, #v-container, #player-modal, #sub-modal, #sc-clip-modal, input[type=range], select, textarea, canvas, video';
-  document.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1){ignore=true;return;}
-    // No robar el gesto a tablas, pistas, vídeo o modales abiertos
-    ignore=!!e.target.closest?.(BLOCK)||document.getElementById('player-modal')?.style.display==='flex';
-    x0=e.touches[0].clientX;y0=e.touches[0].clientY;
-  },{passive:true});
-  document.addEventListener('touchend',e=>{
-    if(ignore||x0===null){x0=y0=null;return;}
-    const t=e.changedTouches[0];
-    const dx=t.clientX-x0,dy=t.clientY-y0;
-    x0=y0=null;
-    if(Math.abs(dx)<65||Math.abs(dy)>50)return;      // gesto claro y horizontal
-    if(_playerMode)return;                            // los jugadores solo tienen Stats
-    const cur=ts.findIndex(id=>document.getElementById(id)?.classList.contains('active'));
-    if(cur<0)return;
-    const next=dx<0?cur+1:cur-1;
-    if(next<0||next>=ts.length)return;
-    ST(ts[next]);
-    // dejar visible la pestaña activa en el menú deslizable
-    document.querySelectorAll('.nb')[next]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  },{passive:true});
-})();
+  let x0 = null, y0 = null, t0 = 0, ignore = false;
+  const BLOCK = '.tw, .cw, #v-container, #player-modal, #sub-modal, #sc-clip-modal, #t-live, #lv-panel, canvas, video, select, input, textarea, button';
 
-
-// ═══════════════════════════════════════════
-// 📱 MÓVIL: deslizar para cambiar de pestaña
-// ═══════════════════════════════════════════
-(function(){
-  let x0=null,y0=null,t0=0,lock=false;
-  const hint=document.createElement('div');
-  hint.className='swipe-hint';
-  document.body.appendChild(hint);
-
-  const showHint=(txt)=>{hint.textContent=txt;hint.classList.add('on');
-    clearTimeout(hint._t);hint._t=setTimeout(()=>hint.classList.remove('on'),900);};
-
-  // No interceptar gestos sobre elementos que ya se deslizan solos
-  const inScrollable=(el)=>{
-    while(el&&el!==document.body){
-      if(el.classList&&(el.classList.contains('tw')||el.classList.contains('nav')))return true;
-      if(el.tagName==='VIDEO'||el.tagName==='CANVAS'||el.tagName==='SELECT'||el.tagName==='INPUT')return true;
-      if(el.id==='player-modal'||el.id==='sc-clip-modal'||el.id==='v-container')return true;
-      el=el.parentElement;
+  document.addEventListener('touchstart', e => {
+    // Si estás en la pestaña de Directo, DESACTIVAMOS el gesto por completo
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && activeTab.id === 't-live') {
+      ignore = true;
+      return;
     }
-    return false;
-  };
 
-  document.addEventListener('touchstart',e=>{
-    if(window.innerWidth>820)return;
-    if(e.touches.length!==1){lock=true;return;}
-    lock=inScrollable(e.target);
-    x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now();
-  },{passive:true});
+    if (e.touches.length !== 1) { ignore = true; return; }
 
-  document.addEventListener('touchend',e=>{
-    if(lock||x0===null||window.innerWidth>820){x0=null;return;}
-    if(_playerMode){x0=null;return;} // los jugadores solo tienen Stats
-    const dx=e.changedTouches[0].clientX-x0;
-    const dy=e.changedTouches[0].clientY-y0;
-    const dt=Date.now()-t0;
-    x0=null;
-    if(dt>700)return;                       // gesto demasiado lento
-    if(Math.abs(dx)<70)return;              // recorrido insuficiente
-    if(Math.abs(dy)>Math.abs(dx)*0.6)return;// era scroll vertical
-    const cur=ts.findIndex(id=>document.getElementById(id)?.classList.contains('active'));
-    if(cur<0)return;
-    const next=dx<0?cur+1:cur-1;
-    if(next<0||next>=ts.length)return;
+    const target = e.target;
+    if (target.closest(BLOCK) || target.closest('#t-live') || target.closest('#lv-panel') || document.getElementById('player-modal')?.style.display === 'flex') {
+      ignore = true;
+      return;
+    }
+
+    ignore = false;
+    x0 = e.touches[0].clientX;
+    y0 = e.touches[0].clientY;
+    t0 = Date.now();
+  }, {passive: true});
+
+  document.addEventListener('touchend', e => {
+    if (ignore || x0 === null) { x0 = y0 = null; return; }
+    if (typeof _playerMode !== 'undefined' && _playerMode) { x0 = null; return; }
+
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    const dt = Date.now() - t0;
+    x0 = y0 = null;
+
+    // Filtros de velocidad y ángulo horizontal
+    if (dt > 600 || Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx) * 0.5) return;
+
+    const cur = ts.findIndex(id => document.getElementById(id)?.classList.contains('active'));
+    if (cur < 0) return;
+
+    const next = dx < 0 ? cur + 1 : cur - 1;
+    if (next < 0 || next >= ts.length) return;
+
     ST(ts[next]);
-    const label=document.querySelectorAll('.nb')[next]?.textContent.trim()||'';
-    showHint(label);
-    window.scrollTo({top:0,behavior:'smooth'});
-  },{passive:true});
+    const navBtn = document.querySelectorAll('.nb')[next];
+    if (navBtn) navBtn.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }, {passive: true});
 })();
-
 
 // ═══════════════════════════════════════════
 // 📄 PDF DE PARTIDO — informe para compartir tras el partido
@@ -11474,27 +11446,31 @@ window.vToggleNewFolder = function() {
 };
 
 window.vSaveClip = function() {
-    if (!_vMatchKey) { alert("⚠️ Primero debes indicar de qué equipo es el vídeo escribiendo los nombres y pulsando Confirmar."); return; }
+    // Si no se han fijado equipos, asignamos uno genérico para no perder el corte
+    if (!_vMatchKey) {
+        const l = document.getElementById('v-local')?.value.trim() || 'Local';
+        const a = document.getElementById('v-away')?.value.trim() || 'Visitante';
+        _vMatchKey = `${l} vs ${a}`;
+    }
+
     if (!window._vState.side) { alert("⚠️ Selecciona LOCAL o VISITANTE"); return; }
     if (!window._vState.cat) { alert("⚠️ Selecciona ATAQUE o DEFENSA"); return; }
     
-    const isNew = document.getElementById('v-new-folder').style.display === 'block';
-    const folder = isNew ? document.getElementById('v-new-folder').value.trim() : document.getElementById('v-folder-sel').value;
+    const isNew = document.getElementById('v-new-folder')?.style.display === 'block';
+    const folder = isNew ? document.getElementById('v-new-folder')?.value.trim() : document.getElementById('v-folder-sel')?.value;
     if (!folder) { alert("⚠️ Selecciona o escribe el nombre de la carpeta"); return; }
     
-    const label = document.getElementById('v-clip-label').value.trim();
+    const label = document.getElementById('v-clip-label')?.value.trim() || '';
     
-    // Blindaje robusto: forzamos la creación de toda la estructura de objetos si no existe
     if (!S.clips2) S.clips2 = {};
     if (!S.clips2[_vMatchKey]) {
         const parts = _vMatchKey.split(' vs ');
         S.clips2[_vMatchKey] = { local: parts[0] || 'Local', away: parts[1] || 'Visitante', created: Date.now(), teams: {} };
     }
     
-    const tName = window._vState.side === 'local' ? S.clips2[_vMatchKey].local : S.clips2[_vMatchKey].away;
+    const tName = window._vState.side === 'local' ? (S.clips2[_vMatchKey].local || 'Local') : (S.clips2[_vMatchKey].away || 'Visitante');
     const cat = window._vState.cat;
     
-    // Inicialización profunda en cascada
     if (!S.clips2[_vMatchKey].teams) S.clips2[_vMatchKey].teams = {};
     if (!S.clips2[_vMatchKey].teams[tName]) S.clips2[_vMatchKey].teams[tName] = {};
     if (!S.clips2[_vMatchKey].teams[tName][cat]) S.clips2[_vMatchKey].teams[tName][cat] = {};
@@ -11503,23 +11479,37 @@ window.vSaveClip = function() {
     const _fmtTLocal = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
     const id = Date.now().toString();
 
+    // 1. Guardar la marca de tiempo de inmediato en memoria local
     S.clips2[_vMatchKey].teams[tName][cat][folder].push({
-        id: id, time: _fmtTLocal(window._vState.start), timeSecs: window._vState.start,
-        timeEnd: window._vState.end, timeEndFmt: _fmtTLocal(window._vState.end), label: label, note: ''
+        id: id, 
+        time: _fmtTLocal(window._vState.start), 
+        timeSecs: window._vState.start,
+        timeEnd: window._vState.end, 
+        timeEndFmt: _fmtTLocal(window._vState.end), 
+        dur: Math.round(window._vState.end - window._vState.start),
+        label: label, 
+        note: ''
     });
     
-    if(typeof _vEnqueue === 'function') {
-        _vEnqueue({
-            mkKey: _vMatchKey, tName, cat, folder, clipId: id,
-            name: label || `${folder} min ${_fmtTLocal(window._vState.start)}`,
-            inT: window._vState.start, outT: window._vState.end
-        });
+    // 2. Persistir en localStorage
+    svL();
+
+    // 3. Lanzar la grabación de fondo si las funciones existen
+    if (typeof _vEnqueue === 'function' && typeof _recordSegment === 'function' && typeof uploadClipToCloud === 'function') {
+        try {
+            _vEnqueue({
+                mkKey: _vMatchKey, tName, cat, folder, clipId: id,
+                name: label || `${folder} min ${_fmtTLocal(window._vState.start)}`,
+                inT: window._vState.start, outT: window._vState.end
+            });
+        } catch(e) {
+            console.warn("No se pudo iniciar la subida en segundo plano:", e);
+        }
     }
 
-    svL();
     if (typeof renderVideoLib === 'function') renderVideoLib(); 
     window.vCancelClip();
-    if (typeof toast === 'function') toast("✅ Clip guardado", 'ok');
+    if (typeof toast === 'function') toast("✅ Clip guardado en la biblioteca", 'ok');
 };
 
 window.vCancelClip = function() {

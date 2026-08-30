@@ -11344,7 +11344,10 @@ async function importFromFCBQ(){
             _parsed.fcbqMoves = moves; 
             _parsed.localId = stats.localId; 
             _parsed.visitId = stats.visitId; 
-            _parsed.fcbqId = id; // 🔥 SELLA EL PARTIDO CON SU ID PARA EVITAR DUPLICADOS
+            _parsed.fcbqId = id;
+            
+            _parsed.type = "imported"; // 🔥 AÑADE ESTA LÍNEA PARA NO SATURAR EL DISCO DURO
+            
             if(typeof _fcbqApplyMinutes === 'function') _fcbqApplyMinutes(_parsed, stats);
             svL(); 
             if(typeof rAll === 'function') rAll();

@@ -7523,13 +7523,77 @@ var _SPLIT_METRICS = [
 ];
 
 function _calcTeamAggr(matches, team) {
-    const a = _advancedTeam(matches, team);
-    if (!a.n) return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0 };
+    // Si no hay partidos, devolvemos todo a cero por seguridad
+    if (!matches || !matches.length) {
+        return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0 };
+    }
+
+    let pj = 0, pts = 0, opp = 0;
+    let t2m = 0, t2a = 0, t3m = 0, t3a = 0, ftm = 0, fta = 0;
+    let ast = 0, to = 0, blk = 0, stl = 0;
+    let poss = 0; 
+
+    matches.forEach(m => {
+        pj++;
+        const isHome = m.homeTeam === team;
+        
+        // Puntos totales a favor y en contra (del marcador global)
+        const mPts = isHome ? Number(m.scoreHome || 0) : Number(m.scoreAway || 0);
+        const mOpp = isHome ? Number(m.scoreAway || 0) : Number(m.scoreHome || 0);
+        pts += mPts;
+        opp += mOpp;
+
+        // Extraemos las estadísticas sumando los datos de los jugadores 
+        // (Esto funciona tanto para partidos en directo como para los importados de FCBQ)
+        const players = isHome ? (m.homePlayers || []) : (m.awayPlayers || []);
+        let mFga = 0, mFta = 0, mTo = 0;
+        
+        players.forEach(p => {
+            t2m += (p.t2Made || 0); t2a += (p.t2Att || 0);
+            t3m += (p.t3Made || 0); t3a += (p.t3Att || 0);
+            ftm += (p.tlMade || p.ftm || 0); fta += (p.tlAtt || p.fta || 0);
+            ast += (p.ast || 0);
+            
+            // Las pérdidas, tapones y robos pueden llamarse diferente según cómo se importaron
+            const pTo = (p.to || p.per || p.turnovers || 0);
+            to += pTo;
+            blk += (p.blk || p.tap || 0);
+            stl += (p.stl || p.rob || 0);
+
+            // Variables locales para estimar las posesiones de este partido
+            mFga += (p.t2Att || 0) + (p.t3Att || 0);
+            mFta += (p.tlAtt || p.fta || 0);
+            mTo += pTo;
+        });
+
+        // Estimación de Posesiones (Fórmula analítica simplificada: Tiros de Campo + 0.44*Tiros Libres + Pérdidas)
+        let mPoss = mFga + (0.44 * mFta) + mTo;
+        if (mPoss === 0) mPoss = 75; // Valor estándar por si un partido no tiene estadísticas detalladas
+        poss += mPoss;
+    });
+
+    // Cálculos finales (Porcentajes y Ratios)
+    const fga = t2a + t3a;
+    const pace = pj ? (poss / pj) : 0;
+    const ortg = poss ? (pts / poss) * 100 : 0;
+    const drtg = poss ? (opp / poss) * 100 : 0;
+
     return {
-        pj: a.n, pf: a.pts / a.n, pc: a.opp / a.n, dif: (a.pts - a.opp) / a.n,
-        t2: a.t2a ? 100 * a.t2m / a.t2a : 0, t3: a.t3a ? 100 * a.t3m / a.t3a : 0, tl: a.fta ? 100 * a.ftm / a.fta : 0,
-        t3Rate: a.fga ? 100 * a.t3a / a.fga : 0, ast: a.ast / a.n, to: a.to / a.n, blk: a.blk / a.n, stl: a.stl / a.n,
-        pace: a.pace, ortg: a.ortg, drtg: a.drtg
+        pj: pj,
+        pf: pj ? (pts / pj) : 0,
+        pc: pj ? (opp / pj) : 0,
+        dif: pj ? ((pts - opp) / pj) : 0,
+        t2: t2a ? (100 * t2m / t2a) : 0,
+        t3: t3a ? (100 * t3m / t3a) : 0,
+        tl: fta ? (100 * ftm / fta) : 0,
+        t3Rate: fga ? (100 * t3a / fga) : 0,
+        ast: pj ? (ast / pj) : 0,
+        to: pj ? (to / pj) : 0,
+        blk: pj ? (blk / pj) : 0,
+        stl: pj ? (stl / pj) : 0,
+        pace: pace,
+        ortg: ortg,
+        drtg: drtg
     };
 }
 

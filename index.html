@@ -2449,27 +2449,83 @@ function _cleanFirestorePayload(obj){
 
 let _firebaseSyncTimer = null;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + FIREBASE AUTOMÁTICO FRAGMENTADO
+// ═══════════════════════════════════════════════════════════════════════════
+
 function svL() {
-    // 1. GUARDADO INSTANTÁNEO EN EL IPAD (0 ms de retraso, seguridad total)
+    // 1. GUARDADO LOCAL INTELIGENTE (Excluimos los partidos masivos para no petar los 5MB)
     try {
-        localStorage.setItem('bascatapp_data', JSON.stringify(S));
+        let lightS = {
+            teams: S.teams || [],
+            // Filtramos para NO guardar en disco duro los partidos de prueba o JSON
+            matches: (S.matches || []).filter(m => m.type !== "imported" && !m.shotsSkipped),
+            shots: S.shots || [],
+            clips: S.clips || {},
+            playerNotes: S.playerNotes || {},
+            watchGroups: S.watchGroups || [],
+            nextMatch: S.nextMatch || null,
+            fisio: S.fisio || {}
+        };
+        localStorage.setItem('bascatapp_data', JSON.stringify(lightS));
     } catch(e) {
         console.warn('Error guardando en local:', e);
     }
 
-    // 2. GUARDADO EN LA NUBE EN SEGUNDO PLANO (Debounce)
-    // Si pulsas 5 botones rápido, cancela los envíos anteriores y solo envía el último
+    // 2. SINCRONIZACIÓN REAL CON FIREBASE (Subida fragmentada)
     if (_firebaseSyncTimer) clearTimeout(_firebaseSyncTimer);
     
-    _firebaseSyncTimer = setTimeout(() => {
+    setSyncStatus('saving');
+
+    _firebaseSyncTimer = setTimeout(async () => {
         try {
-            // 🔥 AQUÍ METES TU CÓDIGO DE FIREBASE ORIGINAL 🔥
-            // setDoc(doc(db, 'bascatapp', 'data'), S).catch(e => console.log(e));
-            console.log("☁️ Nube sincronizada (Background)");
+            // A. Sincronizar metadatos globales (Equipos, notas, fisio)
+            const metaPayload = _cleanFirestorePayload({
+                teams: S.teams || [],
+                access: S.access || null,
+                playerNotes: S.playerNotes || {},
+                watchGroups: S.watchGroups || [],
+                nextMatch: S.nextMatch || null,
+                fisio: S.fisio || {}
+            });
+            await setDoc(META_DOC, metaPayload, { merge: true });
+
+            // B. Sincronizar partidos de forma individual (Así superamos el límite de tamaño de Firebase)
+            if (S.matches && Array.isArray(S.matches)) {
+                for (const m of S.matches) {
+                    const mIdStr = String(m.id);
+                    const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
+                    const matchPayload = _cleanFirestorePayload({ ...m, placedShots });
+                    
+                    // Comprobamos el hash para no reescribir si el partido no ha cambiado
+                    const currentHash = _hash(JSON.stringify(matchPayload));
+                    if (_matchHashes[mIdStr] !== currentHash) {
+                        await setDoc(doc(MATCHES_COL, mIdStr), matchPayload);
+                        _matchHashes[mIdStr] = currentHash;
+                    }
+                }
+            }
+
+            // C. Sincronizar clips de vídeo
+            if (S.clips2 && typeof S.clips2 === 'object') {
+                for (const [mkKey, mk] of Object.entries(S.clips2)) {
+                    const docId = String(Math.abs(_hash(mkKey)));
+                    const clipPayload = _cleanFirestorePayload({ key: mkKey, ...mk });
+                    const currentHash = _hash(JSON.stringify(clipPayload));
+                    if (_clipHashes[docId] !== currentHash) {
+                        await setDoc(doc(CLIPS_COL, docId), clipPayload);
+                        _clipHashes[docId] = currentHash;
+                    }
+                }
+            }
+
+            console.log("☁️ Nube sincronizada correctamente (Background)");
+            setSyncStatus('ok');
         } catch(e) {
             console.error('Error subiendo a Firebase:', e);
+            setSyncStatus('error');
         }
-    }, 4000); // 4000 ms = Sube a la nube 4 segundos después de que dejes de pulsar botones
+    }, 3000); 
 }
 
 function _refreshAfterSync(){

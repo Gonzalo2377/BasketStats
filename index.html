@@ -12254,30 +12254,49 @@ function previewMerge() {
 }
 
 function applyMerge() {
-    const targetId = document.getElementById('merge-target').value;
+    const targetSelect = document.getElementById('merge-target');
+    const targetId = targetSelect.value;
     const oldId = window._currentMergeOldId;
+    
     if(!targetId || !oldId) return;
     
-    const oldT = S.teams.find(t => t.id === oldId);
-    const targetT = S.teams.find(t => t.id == targetId);
+    // Aseguramos que los IDs se comparen bien sean texto o número
+    const oldT = S.teams.find(t => String(t.id) === String(oldId));
+    const targetT = S.teams.find(t => String(t.id) === String(targetId));
     
-    oldT.players.forEach(p => {
+    if(!oldT || !targetT) return;
+
+    // 1. Fusionar jugadores
+    targetT.players = targetT.players || [];
+    (oldT.players || []).forEach(p => {
         if(!targetT.players.some(tp => tp.name.toLowerCase() === p.name.toLowerCase())) {
             targetT.players.push(p);
         }
     });
 
-    // Renombrar en los partidos históricos
+    // 2. Renombrar en TODOS los partidos históricos (Esto activa el hash de Firebase)
     S.matches.forEach(m => {
         if(m.homeTeam === oldT.name) m.homeTeam = targetT.name;
         if(m.awayTeam === oldT.name) m.awayTeam = targetT.name;
     });
     
-    S.teams = S.teams.filter(t => t.id !== oldId);
+    // 3. Por seguridad, si ese equipo era el próximo rival, lo actualizamos también
+    if (S.nextMatch && S.nextMatch.rival === oldT.name) {
+        S.nextMatch.rival = targetT.name;
+    }
+
+    // 4. Borramos el equipo antiguo
+    S.teams = S.teams.filter(t => String(t.id) !== String(oldId));
     
     document.getElementById('merge-modal').style.display = 'none';
-    svL(); renderTeams(); populateTeamSelects();
-    toast('✅ Equipos fusionados correctamente');
+    
+    // 5. Refrescamos la pantalla
+    if(typeof renderTeams === 'function') renderTeams(); 
+    if(typeof populateTeamSelects === 'function') populateTeamSelects();
+    
+    // 6. Lanzamos el guardado y avisamos
+    svL(); 
+    if(typeof toast === 'function') toast('✅ Fusionado. Espera a que ponga sincronitzat...');
 }
 
 function populateTeamSelects(){

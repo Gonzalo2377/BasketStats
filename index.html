@@ -9750,17 +9750,24 @@ function vLoadVideo(evt){
 }
 
 function vSetTeams(){
-  const l=document.getElementById('v-local')?.value.trim();
-  const a=document.getElementById('v-away')?.value.trim();
-  if(!l||!a){toast('Escribe ambos equipos','err');return;}
-  _vMatchKey=`${l} vs ${a}`;
-  if(!S.clips2)S.clips2={};
-  if(!S.clips2[_vMatchKey])S.clips2[_vMatchKey]={local:l,away:a,created:Date.now(),teams:{}};
-  document.getElementById('v-teams-form').style.display='none';
-  document.getElementById('v-wrap').style.display='block';
-  document.getElementById('v-match-label').textContent=`🏀 ${l} vs ${a}`;
-  renderVideoLib();
-  toast('⌨ Atajos activos: ESPACIO, J, K, L, ← →');
+    const l=document.getElementById('v-local')?.value.trim();
+    const a=document.getElementById('v-away')?.value.trim();
+    if(!l||!a){toast('Escribe ambos equipos','err');return;}
+    _vMatchKey=`${l} vs ${a}`;
+    
+    // 🎯 NUEVO: Lo vinculamos a tu BD real en vez de a S.clips2
+    let matchObj = S.matches.find(m => m.name === _vMatchKey);
+    if (!matchObj) {
+        matchObj = { id: Date.now(), name: _vMatchKey, date: new Date().toLocaleDateString(), homeTeam: l, awayTeam: a, homePlayers: [], awayPlayers: [], events: [], shots: [], type: "video_only" };
+        S.matches.push(matchObj);
+    }
+    if (!matchObj.videoClips) matchObj.videoClips = { created: Date.now(), teams: {} };
+
+    document.getElementById('v-teams-form').style.display='none';
+    document.getElementById('v-wrap').style.display='block';
+    document.getElementById('v-match-label').textContent=`🏀 ${l} vs ${a}`;
+    renderVideoLib();
+    toast('⌨ Atajos activos: ESPACIO, J, K, L, ← →');
 }
 
 function vFullscreen(){
@@ -9784,39 +9791,42 @@ async function _vProcess(){
   while(_vJobs.length){await _vRunJob(_vJobs.shift());}
   _vBusy=false;
 }
+
 async function _vRunJob(job){
-  const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
-  _vUploads[clipId]={name,pct:0,phase:'⏺ Grabando'};_vRenderUploads();
-  let hv=null;
-  try{
-    // Hidden secondary player: replays ONLY the clip range at x1 —
-    // your main video is untouched, keep clipping at any speed
-    hv=document.createElement('video');
-    hv.src=_vSrcUrl;hv.muted=true;hv.preload='auto';
-    hv.style.cssText='position:fixed;bottom:0;right:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1';
-    document.body.appendChild(hv);
-    await new Promise((res,rej)=>{
-      hv.onloadedmetadata=res;
-      hv.onerror=()=>rej(new Error('No se pudo abrir el vídeo en 2º plano'));
-      setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
-    });
-    const blob=await _recordSegment(hv,inT,outT,p=>{
-      _vUploads[clipId].pct=p;_vUploads[clipId].phase='⏺ Grabando';_vRenderUploads();
-    });
-    _vUploads[clipId].phase='☁️ Subiendo';_vUploads[clipId].pct=0;_vRenderUploads();
-    const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
-    const arr=S.clips2?.[mkKey]?.teams?.[tName]?.[cat]?.[folder];
-    const cl=arr?.find(x=>x.id===clipId);
-    if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
-    delete _vUploads[clipId];_vRenderUploads();
-  }catch(e){
-    console.error('clip job failed:',e);
-    _vUploads[clipId]={name,err:e.message.slice(0,40)};_vRenderUploads();
-    setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
-    toast(`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
-  }finally{
-    if(hv){try{hv.pause();hv.removeAttribute('src');hv.load();hv.remove();}catch(e){}}
-  }
+    const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
+    _vUploads[clipId]={name,pct:0,phase:'⏺ Grabando'};_vRenderUploads();
+    let hv=null;
+    try{
+        hv=document.createElement('video');
+        hv.src=_vSrcUrl;hv.muted=true;hv.preload='auto';
+        hv.style.cssText='position:fixed;bottom:0;right:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1';
+        document.body.appendChild(hv);
+        await new Promise((res,rej)=>{
+            hv.onloadedmetadata=res;
+            hv.onerror=()=>rej(new Error('No se pudo abrir el vídeo en 2º plano'));
+            setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
+        });
+        const blob=await _recordSegment(hv,inT,outT,p=>{
+            _vUploads[clipId].pct=p;_vUploads[clipId].phase='⏺ Grabando';_vRenderUploads();
+        });
+        _vUploads[clipId].phase='☁️ Subiendo';_vUploads[clipId].pct=0;_vRenderUploads();
+        const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
+        
+        // 🎯 Buscar en la BD real y actualizar el enlace de Firebase
+        let matchObj = S.matches.find(m => m.name === mkKey);
+        const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder];
+        const cl = arr?.find(x=>x.id===clipId);
+        if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
+        
+        delete _vUploads[clipId];_vRenderUploads();
+    }catch(e){
+        console.error('clip job failed:',e);
+        _vUploads[clipId]={name,err:e.message.slice(0,40)};_vRenderUploads();
+        setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
+        toast(`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
+    }finally{
+        if(hv){try{hv.pause();hv.removeAttribute('src');hv.load();hv.remove();}catch(e){}}
+    }
 }
 
 const _vUploads={};
@@ -9832,104 +9842,108 @@ function _vRenderUploads(){
 
 // ── Download match folder as ZIP ────────────────────────────────────────────
 async function vDownloadMatch(mkKey){
-  const mk=S.clips2?.[mkKey];if(!mk)return;
-  const clips=[];
-  Object.entries(mk.teams||{}).forEach(([tName,cats])=>Object.entries(cats).forEach(([cat,folders])=>
-    Object.entries(folders).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{
-      if(cl.videoUrl)clips.push({tName,cat,folder,cl});
-    }))));
-  if(!clips.length){toast('Este partido no tiene clips con vídeo subido','err');return;}
-  toast(`📦 Preparando ZIP con ${clips.length} clips…`);
-  // lazy-load JSZip
-  if(!window.JSZip){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar JSZip'));
-      document.head.appendChild(s);
-    }).catch(e=>{toast(e.message,'err');});
-    if(!window.JSZip)return;
-  }
-  const zip=new JSZip();
-  const root=zip.folder(mkKey.replace(/[\\/:*?"<>|]/g,'-'));
-  let done=0;
-  const _usedNames={}; // evita sobrescribir clips con la misma descripción
-  for(const {tName,cat,folder,cl} of clips){
-    try{
-      const r=await fetch(cl.videoUrl);
-      const b=await r.blob();
-      const safe=s=>s.replace(/[\\/:*?"<>|]/g,'-').trim();
-      // Nombre = descripción (título) literal; si no hay, el minuto del vídeo.
-      let base=(cl.label&&cl.label.trim())?safe(cl.label):`min_${safe(cl.time)}`;
-      const path=`${safe(tName)}/${cat}/${safe(folder)}`;
-      const key=`${path}/${base}`;
-      if(_usedNames[key]!=null){_usedNames[key]++;base=`${base} (${_usedNames[key]})`;}
-      else _usedNames[key]=0;
-      const fname=`${base}.webm`;
-      root.folder(safe(tName)).folder(cat).folder(safe(folder)).file(fname,b);
-      done++;
-      toast(`📦 ${done}/${clips.length} clips añadidos…`);
-    }catch(e){console.warn('skip clip',e);}
-  }
-  toast('📦 Comprimiendo…');
-  const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`${mkKey.replace(/[\\/:*?"<>|]/g,'-')}_clips.zip`;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  toast('✅ ZIP descargado');
+    let matchObj = S.matches.find(m => m.name === mkKey);
+    const mk = matchObj?.videoClips; if(!mk) return;
+    const clips=[];
+    Object.entries(mk.teams||{}).forEach(([tName,cats])=>Object.entries(cats).forEach(([cat,folders])=>
+        Object.entries(folders).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{
+            if(cl.videoUrl)clips.push({tName,cat,folder,cl});
+        }))));
+    if(!clips.length){toast('Este partido no tiene clips con vídeo subido','err');return;}
+    toast(`📦 Preparando ZIP con ${clips.length} clips…`);
+    
+    if(!window.JSZip){
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar JSZip'));
+            document.head.appendChild(s);
+        }).catch(e=>{toast(e.message,'err');});
+        if(!window.JSZip) return;
+    }
+    const zip=new JSZip();
+    const root=zip.folder(mkKey.replace(/[\\/:*?"<>|]/g,'-'));
+    let done=0;
+    const _usedNames={}; 
+    for(const {tName,cat,folder,cl} of clips){
+        try{
+            const r=await fetch(cl.videoUrl);
+            const b=await r.blob();
+            const safe=s=>s.replace(/[\\/:*?"<>|]/g,'-').trim();
+            let base=(cl.label&&cl.label.trim())?safe(cl.label):`min_${safe(cl.time)}`;
+            const path=`${safe(tName)}/${cat}/${safe(folder)}`;
+            const key=`${path}/${base}`;
+            if(_usedNames[key]!=null){_usedNames[key]++;base=`${base} (${_usedNames[key]})`;}
+            else _usedNames[key]=0;
+            const fname=`${base}.webm`;
+            root.folder(safe(tName)).folder(cat).folder(safe(folder)).file(fname,b);
+            done++;
+            toast(`📦 ${done}/${clips.length} clips añadidos…`);
+        }catch(e){console.warn('skip clip',e);}
+    }
+    toast('📦 Comprimiendo…');
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`${mkKey.replace(/[\\/:*?"<>|]/g,'-')}_clips.zip`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast('✅ ZIP descargado');
 }
 
 // ── Library: main folders = matches ─────────────────────────────────────────
 function renderVideoLib(){
-  const el=document.getElementById('v-library');if(!el)return;
-  const entries=Object.entries(S.clips2||{}).sort((a,b)=>(b[1].created||0)-(a[1].created||0));
-  if(!entries.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa <b>B</b> para marcar inicio y fin del primero.</div>';return;}
-  el.innerHTML=entries.map(([mkKey,mk])=>{
-    let total=0;
-    Object.values(mk.teams||{}).forEach(t=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
-    const mid=`vlib-${_hash(mkKey)}`;
-    return `<div style="border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden">
-      <div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="vToggleFolder('${mid}')">
-        <span style="font-weight:800;font-size:13px">📂 ${mk.local} vs ${mk.away}</span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:10px;opacity:.7">${total} clips</span>
-          <button onclick="event.stopPropagation();vDownloadMatch('${mkKey.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
-          <button onclick="event.stopPropagation();vDeleteMatch('${mkKey.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
-          <span id="arr-${mid}">▼</span>
-        </div>
-      </div>
-      <div id="${mid}" style="display:none;padding:10px 12px">
-        ${Object.entries(mk.teams||{}).map(([tName,cats])=>`
-          <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
-          ${['ataque','defensa'].map(cat=>{
-            const folders=cats[cat]||{};const names=Object.keys(folders).sort();
-            if(!names.length)return'';
-            const col=cat==='ataque'?'#15803d':'#1e40af',bg=cat==='ataque'?'#f0fdf4':'#eff6ff',bd=cat==='ataque'?'#16a34a':'#3b82f6';
-            return `<div style="background:${bg};border-left:3px solid ${bd};border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px">
-              <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;margin-bottom:4px">${cat==='ataque'?'⚔️ Ataque':'🛡️ Defensa'}</div>
-              ${names.map(f=>{
-                const clips=(folders[f]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
-                return `<div style="margin-bottom:5px">
-                  <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">📁 ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>
-                    <button onclick="vDeleteFolder('${mkKey.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
-                  </div>
-                  ${clips.map(cl=>`
-                  <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
-                    <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.local+" vs "+mk.away)},"")'
-                      style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
-                      ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
-                    </button>
-                    <span style="flex:1;font-size:11px">${cl.label||'<i style="color:var(--t3)">sin descripción</i>'}</span>
-                    <span style="font-size:9px;color:var(--t3);font-family:monospace">${cl.time}→${cl.timeEndFmt}</span>
-                    <button onclick="vDeleteClip('${mkKey.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>
-                  </div>`).join('')}
-                </div>`;}).join('')}
-            </div>`;}).join('')}
-        `).join('')}
-      </div>
-    </div>`;}).join('');
+    const el=document.getElementById('v-library');if(!el)return;
+    // 🎯 Filtramos y pintamos leyendo de la base de datos de verdad
+    const matchesWithClips = S.matches.filter(m => m.videoClips && Object.keys(m.videoClips.teams || {}).length > 0);
+    matchesWithClips.sort((a,b)=>(b.videoClips.created||0)-(a.videoClips.created||0));
+    
+    if(!matchesWithClips.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa <b>B</b> para marcar inicio y fin del primero.</div>';return;}
+    
+    el.innerHTML=matchesWithClips.map(mk=>{
+        let total=0;
+        Object.values(mk.videoClips.teams||{}).forEach(t=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
+        const mid=`vlib-${mk.id}`;
+        return `<div style="border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden">
+            <div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="vToggleFolder('${mid}')">
+                <span style="font-weight:800;font-size:13px">📂 ${mk.homeTeam} vs ${mk.awayTeam}</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <span style="font-size:10px;opacity:.7">${total} clips</span>
+                    <button onclick="event.stopPropagation();vDownloadMatch('${mk.name.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
+                    <button onclick="event.stopPropagation();vDeleteMatch('${mk.name.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
+                    <span id="arr-${mid}">▼</span>
+                </div>
+            </div>
+            <div id="${mid}" style="display:none;padding:10px 12px">
+                ${Object.entries(mk.videoClips.teams||{}).map(([tName,cats])=>`
+                    <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
+                    ${['ataque','defensa'].map(cat=>{
+                        const folders=cats[cat]||{};const names=Object.keys(folders).sort();
+                        if(!names.length)return'';
+                        const col=cat==='ataque'?'#15803d':'#1e40af',bg=cat==='ataque'?'#f0fdf4':'#eff6ff',bd=cat==='ataque'?'#16a34a':'#3b82f6';
+                        return `<div style="background:${bg};border-left:3px solid ${bd};border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px">
+                            <div style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;margin-bottom:4px">${cat==='ataque'?'⚔️ Ataque':'🛡️ Defensa'}</div>
+                            ${names.map(f=>{
+                                const clips=(folders[f]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
+                                return `<div style="margin-bottom:5px">
+                                    <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">📁 ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>
+                                        <button onclick="vDeleteFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
+                                    </div>
+                                    ${clips.map(cl=>`
+                                    <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
+                                        <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.homeTeam+" vs "+mk.awayTeam)},"")'
+                                            style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
+                                            ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
+                                        </button>
+                                        <span style="flex:1;font-size:11px">${cl.label||'<i style="color:var(--t3)">sin descripción</i>'}</span>
+                                        <span style="font-size:9px;color:var(--t3);font-family:monospace">${cl.time}→${cl.timeEndFmt}</span>
+                                        <button onclick="vDeleteClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>
+                                    </div>`).join('')}
+                                </div>`;}).join('')}
+                        </div>`;}).join('')}
+                `).join('')}
+            </div>
+        </div>`;}).join('');
 }
 function vToggleFolder(id){
   const el=document.getElementById(id);const a=document.getElementById('arr-'+id);
@@ -9937,20 +9951,23 @@ function vToggleFolder(id){
   el.style.display=open?'none':'block';if(a)a.textContent=open?'▼':'▲';
 }
 function vDeleteClip(mkKey,tName,cat,folder,id){
-  const arr=S.clips2?.[mkKey]?.teams?.[tName]?.[cat]?.[folder];if(!arr)return;
-  S.clips2[mkKey].teams[tName][cat][folder]=arr.filter(c=>c.id!==id);
-  if(!S.clips2[mkKey].teams[tName][cat][folder].length)delete S.clips2[mkKey].teams[tName][cat][folder];
-  svL();renderVideoLib();
+    let matchObj = S.matches.find(m => m.name === mkKey);
+    const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder]; if(!arr) return;
+    matchObj.videoClips.teams[tName][cat][folder] = arr.filter(c => c.id != id);
+    if(!matchObj.videoClips.teams[tName][cat][folder].length) delete matchObj.videoClips.teams[tName][cat][folder];
+    svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 function vDeleteFolder(mkKey,tName,cat,folder){
-  if(!confirm(`¿Eliminar la carpeta "${folder}" y sus clips?`))return;
-  if(S.clips2?.[mkKey]?.teams?.[tName]?.[cat])delete S.clips2[mkKey].teams[tName][cat][folder];
-  svL();renderVideoLib();
+    if(!confirm(`¿Eliminar la carpeta "${folder}" y sus clips?`)) return;
+    let matchObj = S.matches.find(m => m.name === mkKey);
+    if(matchObj?.videoClips?.teams?.[tName]?.[cat]) delete matchObj.videoClips.teams[tName][cat][folder];
+    svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 function vDeleteMatch(mkKey){
-  if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`))return;
-  delete S.clips2[mkKey];
-  svL();renderVideoLib();
+    if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`)) return;
+    let matchObj = S.matches.find(m => m.name === mkKey);
+    if (matchObj) delete matchObj.videoClips;
+    svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 
 
@@ -11437,10 +11454,11 @@ window.vSetCat = function(cat) {
         sel.innerHTML = '<option value="">— Selecciona Carpeta —</option>';
         (window._vFolders[cat] || []).forEach(f => { sel.innerHTML += `<option value="${f}">${f}</option>`; });
         
-        // LA CLAVE ESTABA AQUÍ: Usar "S" directamente en lugar de "window.S"
-        if (window._vState.side && S && S.clips2 && S.clips2[_vMatchKey]) {
-            const tName = window._vState.side === 'local' ? S.clips2[_vMatchKey].local : S.clips2[_vMatchKey].away;
-            const existing = S.clips2[_vMatchKey].teams?.[tName]?.[cat] || {};
+        // 🎯 Buscar carpetas creadas en la base de datos real
+        let matchObj = S.matches.find(m => m.name === _vMatchKey);
+        if (window._vState.side && matchObj && matchObj.videoClips) {
+            const tName = window._vState.side === 'local' ? matchObj.homeTeam : matchObj.awayTeam;
+            const existing = matchObj.videoClips.teams?.[tName]?.[cat] || {};
             const custom = Object.keys(existing).filter(f => !(window._vFolders[cat]||[]).includes(f));
             if (custom.length) {
                 sel.innerHTML += '<optgroup label="Tus carpetas creadas">';
@@ -11465,7 +11483,6 @@ window.vToggleNewFolder = function() {
 };
 
 window.vSaveClip = function() {
-    // Si no se han fijado equipos, asignamos uno genérico para no perder el corte
     if (!_vMatchKey) {
         const l = document.getElementById('v-local')?.value.trim() || 'Local';
         const a = document.getElementById('v-away')?.value.trim() || 'Visitante';
@@ -11481,25 +11498,27 @@ window.vSaveClip = function() {
     
     const label = document.getElementById('v-clip-label')?.value.trim() || '';
     
-    if (!S.clips2) S.clips2 = {};
-    if (!S.clips2[_vMatchKey]) {
+    // 🎯 Crear o buscar el partido y guardar en la BD real
+    let matchObj = S.matches.find(m => m.name === _vMatchKey);
+    if (!matchObj) {
         const parts = _vMatchKey.split(' vs ');
-        S.clips2[_vMatchKey] = { local: parts[0] || 'Local', away: parts[1] || 'Visitante', created: Date.now(), teams: {} };
+        matchObj = { id: Date.now(), name: _vMatchKey, date: new Date().toLocaleDateString(), homeTeam: parts[0] || 'Local', awayTeam: parts[1] || 'Visitante', homePlayers: [], awayPlayers: [], events: [], shots: [], type: "video_only" };
+        S.matches.push(matchObj);
     }
+    if (!matchObj.videoClips) matchObj.videoClips = { created: Date.now(), teams: {} };
     
-    const tName = window._vState.side === 'local' ? (S.clips2[_vMatchKey].local || 'Local') : (S.clips2[_vMatchKey].away || 'Visitante');
+    const tName = window._vState.side === 'local' ? matchObj.homeTeam : matchObj.awayTeam;
     const cat = window._vState.cat;
     
-    if (!S.clips2[_vMatchKey].teams) S.clips2[_vMatchKey].teams = {};
-    if (!S.clips2[_vMatchKey].teams[tName]) S.clips2[_vMatchKey].teams[tName] = {};
-    if (!S.clips2[_vMatchKey].teams[tName][cat]) S.clips2[_vMatchKey].teams[tName][cat] = {};
-    if (!S.clips2[_vMatchKey].teams[tName][cat][folder]) S.clips2[_vMatchKey].teams[tName][cat][folder] = [];
+    if (!matchObj.videoClips.teams) matchObj.videoClips.teams = {};
+    if (!matchObj.videoClips.teams[tName]) matchObj.videoClips.teams[tName] = {};
+    if (!matchObj.videoClips.teams[tName][cat]) matchObj.videoClips.teams[tName][cat] = {};
+    if (!matchObj.videoClips.teams[tName][cat][folder]) matchObj.videoClips.teams[tName][cat][folder] = [];
 
     const _fmtTLocal = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
     const id = Date.now().toString();
 
-    // 1. Guardar la marca de tiempo de inmediato en memoria local
-    S.clips2[_vMatchKey].teams[tName][cat][folder].push({
+    matchObj.videoClips.teams[tName][cat][folder].push({
         id: id, 
         time: _fmtTLocal(window._vState.start), 
         timeSecs: window._vState.start,
@@ -11510,20 +11529,17 @@ window.vSaveClip = function() {
         note: ''
     });
     
-    // 2. Persistir en localStorage
-    svL();
+    svL(); // 🎯 Al guardar aquí, ¡tu S.matches (y los clips dentro) se persisten!
+    if (typeof syncFirebase === 'function') syncFirebase();
 
-    // 3. Lanzar la grabación de fondo si las funciones existen
-    if (typeof _vEnqueue === 'function' && typeof _recordSegment === 'function' && typeof uploadClipToCloud === 'function') {
+    if (typeof _vEnqueue === 'function' && typeof _recordSegment === 'function') {
         try {
             _vEnqueue({
                 mkKey: _vMatchKey, tName, cat, folder, clipId: id,
                 name: label || `${folder} min ${_fmtTLocal(window._vState.start)}`,
                 inT: window._vState.start, outT: window._vState.end
             });
-        } catch(e) {
-            console.warn("No se pudo iniciar la subida en segundo plano:", e);
-        }
+        } catch(e) { console.warn(e); }
     }
 
     if (typeof renderVideoLib === 'function') renderVideoLib(); 
@@ -13219,8 +13235,9 @@ setTimeout(() => {
   }
 }, 2500);
 
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 📥 IMPORTADOR DE 1ª CATEGORIA: STATS ACUMULADAS + PARTIDOS REALES (BLINDADO)
+// 📥 IMPORTADOR DEFINITIVO: PARTIDOS REALES + REPARTO DE ENTEROS SIN DECIMALES
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.importarPrimeraJSON = function() {
@@ -13228,736 +13245,4800 @@ window.importarPrimeraJSON = function() {
     const file = fileInput.files[0];
     if (!file) { alert('⚠️ Por favor, selecciona el archivo JSON primero.'); return; }
 
-    // El calendario completo que me pasaste
+    // 1. PEGA AQUÍ TODO EL TEXTO DE LOS RESULTADOS DE LOS GRUPOS
     const rawCalendarText = `
-ELS MONJOS BC - PANSALUD\n27-09-2025 19:45\nNOU BÀSQUET OLESA A\n81\nActa\n67
-CB MORELL A\n28-09-2025 17:00\nVILABÀSQUET VILADECANS SMA\n68\nActa\n53
-INVOGA CBT\n27-09-2025 17:45\nCB VILA-SECA\n85\nActa Canvis\n43
-CB VILADECANS A\n27-09-2025 19:30\nBÀSQUET SANT BOI A\n53\nActa\n68
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n27-09-2025 17:45\nVALLCUERBA REUS PLOMS SALLE\n60\nActa Canvis\n79
-CB ABRERA\n04-10-2025 17:15\nDAVIMA CB CANTAIRES TORTOSA\n77\nActa Canvis\n76
-CB VALLS BNA\n27-09-2025 19:45\nREMM GUITART - BÀSQUET RIBES\n91\nActa Canvis\n85
-CB ABRERA\n05-10-2025 17:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n94\nActa Canvis\n82
-BÀSQUET SANT BOI A\n05-10-2025 17:45\nDAVIMA CB CANTAIRES TORTOSA\n69\nActa\n62
-CB VILA-SECA\n04-10-2025 17:45\nCB VILADECANS A\n72\nActa\n75
-VILABÀSQUET VILADECANS SMA\n04-10-2025 18:00\nINVOGA CBT\n69\nActa\n67
-CB VALLS BNA\n04-10-2025 15:30\nCB MORELL A\n53\nActa Canvis\n68
-NOU BÀSQUET OLESA A\n05-10-2025 17:00\nREMM GUITART - BÀSQUET RIBES\n73\nActa\n60
-VALLCUERBA REUS PLOMS SALLE\n04-10-2025 17:45\nELS MONJOS BC - PANSALUD\n78\nActa\n55
-DAVIMA CB CANTAIRES TORTOSA\n21-12-2025 18:15\nCB VILA-SECA\n81\nActa Canvis\n64
-CB ABRERA\n12-10-2025 17:45\nBÀSQUET SANT BOI A\n67\nActa Canvis\n71
-REMM GUITART - BÀSQUET RIBES\n11-10-2025 19:30\nVALLCUERBA REUS PLOMS SALLE\n95\nActa Canvis\n100
-CB MORELL A\n11-10-2025 19:30\nNOU BÀSQUET OLESA A\n82\nActa Canvis\n56
-INVOGA CBT\n11-10-2025 15:45\nCB VALLS BNA\n77\nActa Canvis\n80
-CB VILADECANS A\n11-10-2025 19:30\nVILABÀSQUET VILADECANS SMA\n55\nActa\n50
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n12-10-2025 17:45\nELS MONJOS BC - PANSALUD\n73\nActa Canvis\n62
-BÀSQUET SANT BOI A\n19-10-2025 19:30\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n88\nActa Canvis\n79
-CB VILA-SECA\n18-10-2025 17:45\nCB ABRERA\n86\nActa\n72
-VILABÀSQUET VILADECANS SMA\n18-10-2025 18:00\nDAVIMA CB CANTAIRES TORTOSA\n74\nActa\n72
-CB VALLS BNA\n19-10-2025 16:00\nCB VILADECANS A\n64\nActa Canvis\n69
-NOU BÀSQUET OLESA A\n18-10-2025 17:45\nINVOGA CBT\n49\nActa Canvis\n86
-VALLCUERBA REUS PLOMS SALLE\n18-10-2025 17:45\nCB MORELL A\n72\nActa\n103
-ELS MONJOS BC - PANSALUD\n18-10-2025 18:45\nREMM GUITART - BÀSQUET RIBES\n48\nActa Canvis\n53
-DAVIMA CB CANTAIRES TORTOSA\n25-10-2025 18:00\nCB VALLS BNA\n85\nActa\n66
-CB ABRERA\n25-10-2025 17:30\nVILABÀSQUET VILADECANS SMA\n67\nActa Canvis\n62
-BÀSQUET SANT BOI A\n26-10-2025 12:15\nCB VILA-SECA\n92\nActa Canvis\n63
-CB MORELL A\n26-10-2025 17:15\nELS MONJOS BC - PANSALUD\n77\nActa Canvis\n58
-INVOGA CBT\n26-10-2025 19:30\nVALLCUERBA REUS PLOMS SALLE\n106\nActa Canvis\n63
-CB VILADECANS A\n25-10-2025 19:30\nNOU BÀSQUET OLESA A\n71\nActa\n66
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n25-10-2025 17:45\nREMM GUITART - BÀSQUET RIBES\n96\nActa Canvis\n87
-CB VILA-SECA\n09-11-2025 19:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n71\nActa Canvis\n86
-VILABÀSQUET VILADECANS SMA\n08-11-2025 18:00\nBÀSQUET SANT BOI A\n72\nActa\n51
-CB VALLS BNA\n08-11-2025 20:00\nCB ABRERA\n71\nActa Canvis\n74
-NOU BÀSQUET OLESA A\n09-11-2025 17:00\nDAVIMA CB CANTAIRES TORTOSA\n68\nActa\n73
-VALLCUERBA REUS PLOMS SALLE\n09-11-2025 12:15\nCB VILADECANS A\n70\nActa Canvis\n51
-ELS MONJOS BC - PANSALUD\n03-12-2025 20:15\nINVOGA CBT\n66\nActa Canvis\n74
-REMM GUITART - BÀSQUET RIBES\n09-11-2025 16:30\nCB MORELL A\n66\nActa Canvis\n82
-DAVIMA CB CANTAIRES TORTOSA\n15-11-2025 18:00\nVALLCUERBA REUS PLOMS SALLE\n82\nActa\n53
-CB ABRERA\n16-11-2025 17:45\nNOU BÀSQUET OLESA A\n71\nActa Canvis\n67
-BÀSQUET SANT BOI A\n16-11-2025 17:45\nCB VALLS BNA\n65\nActa\n66
-CB VILA-SECA\n16-11-2025 18:00\nVILABÀSQUET VILADECANS SMA\n63\nActa Canvis\n94
-INVOGA CBT\n15-11-2025 20:45\nREMM GUITART - BÀSQUET RIBES\n111\nActa Canvis\n71
-CB VILADECANS A\n15-11-2025 19:30\nELS MONJOS BC - PANSALUD\n77\nActa\n70
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n15-11-2025 17:45\nCB MORELL A\n78\nActa Canvis\n80
-VILABÀSQUET VILADECANS SMA\n22-11-2025 18:00\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n75\nActa\n81
-CB VALLS BNA\n23-11-2025 18:45\nCB VILA-SECA\n73\nActa Canvis\n63
-NOU BÀSQUET OLESA A\n23-11-2025 17:00\nBÀSQUET SANT BOI A\n74\nActa\n81
-VALLCUERBA REUS PLOMS SALLE\n23-11-2025 12:30\nCB ABRERA\n89\nActa Canvis\n76
-ELS MONJOS BC - PANSALUD\n23-11-2025 17:45\nDAVIMA CB CANTAIRES TORTOSA\n80\nActa Canvis\n67
-REMM GUITART - BÀSQUET RIBES\n23-11-2025 19:30\nCB VILADECANS A\n75\nActa Canvis\n64
-CB MORELL A\n23-11-2025 18:00\nINVOGA CBT\n77\nActa Canvis\n81
-DAVIMA CB CANTAIRES TORTOSA\n29-11-2025 19:30\nREMM GUITART - BÀSQUET RIBES\n82\nActa Canvis\n76
-CB ABRERA\n29-11-2025 17:15\nELS MONJOS BC - PANSALUD\n81\nActa\n70
-BÀSQUET SANT BOI A\n30-11-2025 17:45\nVALLCUERBA REUS PLOMS SALLE\n86\nActa\n61
-CB VILA-SECA\n29-11-2025 19:45\nNOU BÀSQUET OLESA A\n60\nActa Canvis\n61
-VILABÀSQUET VILADECANS SMA\n29-11-2025 19:00\nCB VALLS BNA\n88\nActa Canvis\n60
-CB VILADECANS A\n29-11-2025 19:30\nCB MORELL A\n77\nActa\n87
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n30-11-2025 18:00\nINVOGA CBT\n78\nActa Canvis\n72
-CB VALLS BNA\n13-12-2025 19:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n80\nActa\n76
-NOU BÀSQUET OLESA A\n14-12-2025 16:00\nVILABÀSQUET VILADECANS SMA\n63\nActa Canvis\n81
-VALLCUERBA REUS PLOMS SALLE\n13-12-2025 20:00\nCB VILA-SECA\n79\nActa Canvis\n72
-ELS MONJOS BC - PANSALUD\n14-12-2025 17:45\nBÀSQUET SANT BOI A\n72\nActa Canvis\n74
-REMM GUITART - BÀSQUET RIBES\n14-12-2025 19:45\nCB ABRERA\n90\nActa Canvis\n89
-CB MORELL A\n13-12-2025 19:30\nDAVIMA CB CANTAIRES TORTOSA\n59\nActa Canvis\n58
-INVOGA CBT\n13-12-2025 19:00\nCB VILADECANS A\n99\nActa Canvis\n59
-DAVIMA CB CANTAIRES TORTOSA\n20-12-2025 18:00\nINVOGA CBT\n75\nActa\n68
-CB ABRERA\n20-12-2025 17:30\nCB MORELL A\n57\nActa Canvis\n96
-BÀSQUET SANT BOI A\n21-12-2025 12:15\nREMM GUITART - BÀSQUET RIBES\n92\nActa Canvis\n65
-CB VILA-SECA\n20-12-2025 16:30\nELS MONJOS BC - PANSALUD\n58\nActa Canvis\n69
-VILABÀSQUET VILADECANS SMA\n08-02-2026 17:45\nVALLCUERBA REUS PLOMS SALLE\n2\nActa Canvis\n0
-CB VALLS BNA\n20-12-2025 19:45\nNOU BÀSQUET OLESA A\n79\nActa\n64
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n20-12-2025 17:30\nCB VILADECANS A\n85\nActa Canvis\n79
-VALLCUERBA REUS PLOMS SALLE\n10-01-2026 20:00\nCB VALLS BNA\n82\nActa Canvis\n67
-ELS MONJOS BC - PANSALUD\n11-01-2026 17:45\nVILABÀSQUET VILADECANS SMA\n72\nActa Canvis\n80
-REMM GUITART - BÀSQUET RIBES\n10-01-2026 18:15\nCB VILA-SECA\n81\nActa Canvis\n51
-CB MORELL A\n11-01-2026 18:15\nBÀSQUET SANT BOI A\n73\nActa Canvis\n68
-INVOGA CBT\n10-01-2026 16:00\nCB ABRERA\n81\nActa\n70
-CB VILADECANS A\n10-01-2026 19:30\nDAVIMA CB CANTAIRES TORTOSA\n72\nActa\n57
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n10-01-2026 17:45\nNOU BÀSQUET OLESA A\n84\nActa Canvis\n85
-DAVIMA CB CANTAIRES TORTOSA\n17-01-2026 18:00\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n87\nActa\n52
-CB ABRERA\n17-01-2026 17:15\nCB VILADECANS A\n68\nActa\n73
-BÀSQUET SANT BOI A\n18-01-2026 19:30\nINVOGA CBT\n71\nActa Canvis\n77
-CB VILA-SECA\n17-01-2026 16:00\nCB MORELL A\n53\nActa Canvis\n94
-CB VALLS BNA\n17-01-2026 18:00\nELS MONJOS BC - PANSALUD\n70\nActa Canvis\n64
-NOU BÀSQUET OLESA A\n18-01-2026 17:30\nVALLCUERBA REUS PLOMS SALLE\n79\nActa Canvis\n73
-REMM GUITART - BÀSQUET RIBES\n17-01-2026 18:15\nVILABÀSQUET VILADECANS SMA\n80\nActa Canvis\n88
-NOU BÀSQUET OLESA A\n25-01-2026 17:45\nELS MONJOS BC - PANSALUD\n67\nActa Canvis\n58
-VILABÀSQUET VILADECANS SMA\n24-01-2026 18:00\nCB MORELL A\n50\nActa\n61
-CB VILA-SECA\n25-01-2026 18:00\nINVOGA CBT\n64\nActa Canvis\n74
-BÀSQUET SANT BOI A\n25-01-2026 17:45\nCB VILADECANS A\n58\nActa Canvis\n82
-VALLCUERBA REUS PLOMS SALLE\n24-01-2026 17:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n59\nActa\n74
-DAVIMA CB CANTAIRES TORTOSA\n24-01-2026 18:00\nCB ABRERA\n92\nActa Canvis\n54
-REMM GUITART - BÀSQUET RIBES\n24-01-2026 19:15\nCB VALLS BNA\n87\nActa Canvis\n82
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n31-01-2026 16:00\nCB ABRERA\n102\nActa Canvis\n94
-DAVIMA CB CANTAIRES TORTOSA\n31-01-2026 18:00\nBÀSQUET SANT BOI A\n75\nActa\n53
-CB VILADECANS A\n01-02-2026 16:30\nCB VILA-SECA\n68\nActa Canvis\n55
-INVOGA CBT\n31-01-2026 19:00\nVILABÀSQUET VILADECANS SMA\n87\nActa Canvis\n66
-CB MORELL A\n01-02-2026 17:45\nCB VALLS BNA\n85\nActa Canvis\n76
-REMM GUITART - BÀSQUET RIBES\n31-01-2026 17:45\nNOU BÀSQUET OLESA A\n68\nActa Canvis\n63
-ELS MONJOS BC - PANSALUD\n31-01-2026 17:45\nVALLCUERBA REUS PLOMS SALLE\n46\nActa Canvis\n63
-CB VILA-SECA\n07-02-2026 17:45\nDAVIMA CB CANTAIRES TORTOSA\n61\nActa\n71
-BÀSQUET SANT BOI A\n08-02-2026 12:30\nCB ABRERA\n70\nActa Canvis\n81
-VALLCUERBA REUS PLOMS SALLE\n07-02-2026 16:00\nREMM GUITART - BÀSQUET RIBES\n82\nActa Canvis\n62
-NOU BÀSQUET OLESA A\n08-02-2026 17:45\nCB MORELL A\n53\nActa Canvis\n69
-CB VALLS BNA\n07-02-2026 19:45\nINVOGA CBT\n78\nActa\n76
-VILABÀSQUET VILADECANS SMA\n07-02-2026 18:00\nCB VILADECANS A\n66\nActa\n60
-ELS MONJOS BC - PANSALUD\n07-02-2026 19:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n75\nActa\n76
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n14-02-2026 19:30\nBÀSQUET SANT BOI A\n61\nActa Canvis\n69
-CB ABRERA\n14-02-2026 18:15\nCB VILA-SECA\n70\nActa Canvis\n84
-DAVIMA CB CANTAIRES TORTOSA\n22-03-2026 11:45\nVILABÀSQUET VILADECANS SMA\n76\nActa Canvis\n62
-CB VILADECANS A\n14-02-2026 19:30\nCB VALLS BNA\n59\nActa\n61
-INVOGA CBT\n14-02-2026 15:45\nNOU BÀSQUET OLESA A\n84\nActa Canvis\n56
-CB MORELL A\n11-02-2026 20:45\nVALLCUERBA REUS PLOMS SALLE\n75\nActa Canvis\n77
-REMM GUITART - BÀSQUET RIBES\n11-02-2026 21:15\nELS MONJOS BC - PANSALUD\n95\nActa Canvis\n50
-CB VALLS BNA\n28-02-2026 19:45\nDAVIMA CB CANTAIRES TORTOSA\n82\nActa\n51
-VILABÀSQUET VILADECANS SMA\n28-02-2026 20:30\nCB ABRERA\n92\nActa Canvis\n43
-CB VILA-SECA\n28-02-2026 17:45\nBÀSQUET SANT BOI A\n76\nActa\n86
-ELS MONJOS BC - PANSALUD\n28-02-2026 19:45\nCB MORELL A\n56\nActa\n74
-VALLCUERBA REUS PLOMS SALLE\n28-02-2026 17:45\nINVOGA CBT\n60\nActa\n79
-NOU BÀSQUET OLESA A\n01-03-2026 17:45\nCB VILADECANS A\n83\nActa Canvis\n73
-REMM GUITART - BÀSQUET RIBES\n28-02-2026 19:30\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n92\nActa Canvis\n91
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n07-03-2026 17:15\nCB VILA-SECA\n66\nActa Canvis\n76
-BÀSQUET SANT BOI A\n08-03-2026 12:00\nVILABÀSQUET VILADECANS SMA\n81\nActa Canvis\n76
-CB ABRERA\n07-03-2026 17:30\nCB VALLS BNA\n60\nActa Canvis\n67
-DAVIMA CB CANTAIRES TORTOSA\n08-03-2026 12:00\nNOU BÀSQUET OLESA A\n69\nActa Canvis\n58
-CB VILADECANS A\n07-03-2026 19:30\nVALLCUERBA REUS PLOMS SALLE\n77\nActa\n75
-INVOGA CBT\n08-03-2026 19:00\nELS MONJOS BC - PANSALUD\n92\nActa Canvis\n56
-CB MORELL A\n08-03-2026 19:30\nREMM GUITART - BÀSQUET RIBES\n99\nActa Canvis\n91
-VALLCUERBA REUS PLOMS SALLE\n14-03-2026 16:45\nDAVIMA CB CANTAIRES TORTOSA\n64\nActa Canvis\n66
-NOU BÀSQUET OLESA A\n15-03-2026 17:45\nCB ABRERA\n73\nActa Canvis\n61
-CB VALLS BNA\n15-03-2026 18:00\nBÀSQUET SANT BOI A\n73\nActa Canvis\n82
-VILABÀSQUET VILADECANS SMA\n14-03-2026 16:00\nCB VILA-SECA\n98\nActa Canvis\n48
-REMM GUITART - BÀSQUET RIBES\n14-03-2026 19:30\nINVOGA CBT\n92\nActa Canvis\n84
-ELS MONJOS BC - PANSALUD\n14-03-2026 16:00\nCB VILADECANS A\n66\nActa Canvis\n63
-CB MORELL A\n15-03-2026 19:30\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n85\nActa Canvis\n72
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n21-03-2026 17:45\nVILABÀSQUET VILADECANS SMA\n66\nActa Canvis\n76
-CB VILA-SECA\n21-03-2026 20:00\nCB VALLS BNA\n84\nActa Canvis\n92
-BÀSQUET SANT BOI A\n22-03-2026 12:30\nNOU BÀSQUET OLESA A\n68\nActa Canvis\n63
-CB ABRERA\n21-03-2026 18:15\nVALLCUERBA REUS PLOMS SALLE\n71\nActa Canvis\n72
-DAVIMA CB CANTAIRES TORTOSA\n21-03-2026 16:00\nELS MONJOS BC - PANSALUD\n86\nActa Canvis\n82
-CB VILADECANS A\n22-03-2026 18:30\nREMM GUITART - BÀSQUET RIBES\n71\nActa Canvis\n72
-INVOGA CBT\n21-03-2026 16:00\nCB MORELL A\n74\nActa\n78
-REMM GUITART - BÀSQUET RIBES\n11-04-2026 17:30\nDAVIMA CB CANTAIRES TORTOSA\n71\nActa Canvis\n82
-ELS MONJOS BC - PANSALUD\n11-04-2026 16:00\nCB ABRERA\n84\nActa Canvis\n69
-VALLCUERBA REUS PLOMS SALLE\n12-04-2026 12:30\nBÀSQUET SANT BOI A\n63\nActa Canvis\n72
-NOU BÀSQUET OLESA A\n12-04-2026 17:00\nCB VILA-SECA\n72\nActa\n103
-CB VALLS BNA\n12-04-2026 18:00\nVILABÀSQUET VILADECANS SMA\n73\nActa Canvis\n67
-CB MORELL A\n12-04-2026 13:00\nCB VILADECANS A\n79\nActa Canvis\n59
-INVOGA CBT\n11-04-2026 20:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n102\nActa Canvis\n63
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n18-04-2026 17:45\nCB VALLS BNA\n77\nActa Canvis\n80
-VILABÀSQUET VILADECANS SMA\n19-04-2026 18:00\nNOU BÀSQUET OLESA A\n81\nActa Canvis\n72
-CB VILA-SECA\n19-04-2026 17:45\nVALLCUERBA REUS PLOMS SALLE\n68\nActa Canvis\n53
-BÀSQUET SANT BOI A\n19-04-2026 17:45\nELS MONJOS BC - PANSALUD\n61\nActa\n53
-CB ABRERA\n18-04-2026 17:30\nREMM GUITART - BÀSQUET RIBES\n83\nActa Canvis\n65
-DAVIMA CB CANTAIRES TORTOSA\n18-04-2026 18:00\nCB MORELL A\n71\nActa\n72
-CB VILADECANS A\n18-04-2026 19:30\nINVOGA CBT\n78\nActa\n92
-INVOGA CBT\n25-04-2026 19:00\nDAVIMA CB CANTAIRES TORTOSA\n60\nActa Canvis\n73
-CB MORELL A\n26-04-2026 16:00\nCB ABRERA\n94\nActa Canvis\n88
-REMM GUITART - BÀSQUET RIBES\n25-04-2026 17:45\nBÀSQUET SANT BOI A\n85\nActa Canvis\n75
-ELS MONJOS BC - PANSALUD\n25-04-2026 19:45\nCB VILA-SECA\n77\nActa\n73
-VALLCUERBA REUS PLOMS SALLE\n25-04-2026 17:45\nVILABÀSQUET VILADECANS SMA\n81\nActa\n70
-NOU BÀSQUET OLESA A\n26-04-2026 17:00\nCB VALLS BNA\n79\nActa\n66
-CB VILADECANS A\n25-04-2026 19:30\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n79\nActa\n75
-CB VALLS BNA\n09-05-2026 18:00\nVALLCUERBA REUS PLOMS SALLE\n88\nActa Canvis\n69
-VILABÀSQUET VILADECANS SMA\n09-05-2026 19:45\nELS MONJOS BC - PANSALUD\n74\nActa Canvis\n60
-CB VILA-SECA\n10-05-2026 18:00\nREMM GUITART - BÀSQUET RIBES\n87\nActa Canvis\n74
-BÀSQUET SANT BOI A\n10-05-2026 12:15\nCB MORELL A\n86\nActa Canvis\n79
-CB ABRERA\n09-05-2026 17:30\nINVOGA CBT\n98\nActa Canvis\n106
-DAVIMA CB CANTAIRES TORTOSA\n09-05-2026 18:00\nCB VILADECANS A\n86\nActa\n56
-NOU BÀSQUET OLESA A\n10-05-2026 17:45\nCONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n69\nActa Canvis\n68
-CONTENIDORS PENEDÈS SE CASAL VILAFRANCA\n16-05-2026 17:45\nDAVIMA CB CANTAIRES TORTOSA\n62\nActa Canvis\n72
-CB VILADECANS A\n16-05-2026 19:30\nCB ABRERA\n60\nActa\n81
-INVOGA CBT\n17-05-2026 17:45\nBÀSQUET SANT BOI A\n97\nActa Canvis\n86
-CB MORELL A\n13-05-2026 20:45\nCB VILA-SECA\n67\nActa Canvis\n55
-ELS MONJOS BC - PANSALUD\n16-05-2026 19:45\nCB VALLS BNA\n61\nActa\n64
-VALLCUERBA REUS PLOMS SALLE\n17-05-2026 13:45\nNOU BÀSQUET OLESA A\n68\nActa Canvis\n50
-VILABÀSQUET VILADECANS SMA\n16-05-2026 19:00\nREMM GUITART - BÀSQUET RIBES\n68\nActa Canvis\n53
-CN CALDES A\n28-09-2025 19:15\nCB CABRERA A\n68\nActa Canvis\n83
-CB VILASSAR DE DALT A\n27-09-2025 17:15\nMURALLA ÒPTICA CB BLANES A\n64\nActa Canvis\n77
-RIO LOGISTIC CB LLIÇA D’AMUNT\n28-09-2025 18:00\nCB LA GARRIGA A\n84\nActa Canvis\n74
-C.B. FARNERS\n27-09-2025 17:45\nCB ADEPAF TXOTS\n66\nActa\n71
-CE PALAMOS\n01-11-2025 18:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n74\nActa Canvis\n70
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n13-01-2026 21:00\nHOMS U.E. MATARÓ -B\n76\nActa Canvis\n60
-CB GUÍXOLS\n27-09-2025 18:15\nCESET\n69\nActa\n53
-CB CABRERA A\n05-10-2025 19:15\nCB GUÍXOLS\n114\nActa\n48
-HOMS U.E. MATARÓ -B\n05-10-2025 17:45\nCN CALDES A\n67\nActa\n61
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n05-12-2025 20:45\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n62\nActa Canvis\n61
-CB ADEPAF TXOTS\n05-10-2025 17:45\nCE PALAMOS\n69\nActa\n73
-CB LA GARRIGA A\n05-10-2025 18:00\nC.B. FARNERS\n77\nActa\n82
-MURALLA ÒPTICA CB BLANES A\n04-10-2025 17:45\nRIO LOGISTIC CB LLIÇA D’AMUNT\n60\nActa\n49
-CESET\n04-10-2025 17:45\nCB VILASSAR DE DALT A\n47\nActa\n59
-CN CALDES A\n12-10-2025 19:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n67\nActa\n76
-CB CABRERA A\n12-10-2025 19:15\nHOMS U.E. MATARÓ -B\n90\nActa\n63
-RIO LOGISTIC CB LLIÇA D’AMUNT\n11-10-2025 18:00\nCESET\n78\nActa\n72
-C.B. FARNERS\n11-10-2025 17:45\nMURALLA ÒPTICA CB BLANES A\n66\nActa\n76
-CE PALAMOS\n11-10-2025 18:00\nCB LA GARRIGA A\n101\nActa\n92
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n11-10-2025 17:45\nCB ADEPAF TXOTS\n64\nActa\n85
-CB GUÍXOLS\n11-10-2025 18:15\nCB VILASSAR DE DALT A\n61\nActa\n78
-HOMS U.E. MATARÓ -B\n18-10-2025 19:00\nCB GUÍXOLS\n67\nActa Canvis\n56
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n18-10-2025 18:00\nCB CABRERA A\n67\nActa\n81
-CB ADEPAF TXOTS\n19-10-2025 17:45\nCN CALDES A\n67\nActa\n55
-CB LA GARRIGA A\n19-10-2025 18:00\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n87\nActa\n81
-MURALLA ÒPTICA CB BLANES A\n18-10-2025 17:45\nCE PALAMOS\n70\nActa\n77
-CESET\n18-10-2025 17:45\nC.B. FARNERS\n72\nActa\n57
-CB VILASSAR DE DALT A\n18-10-2025 18:30\nRIO LOGISTIC CB LLIÇA D’AMUNT\n66\nActa Canvis\n55
-CN CALDES A\n26-10-2025 19:00\nCB LA GARRIGA A\n73\nActa\n76
-CB CABRERA A\n26-10-2025 19:15\nCB ADEPAF TXOTS\n49\nActa\n84
-C.B. FARNERS\n25-10-2025 18:15\nCB VILASSAR DE DALT A\n77\nActa Canvis\n72
-CE PALAMOS\n25-10-2025 18:00\nCESET\n84\nActa\n76
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n25-10-2025 17:45\nMURALLA ÒPTICA CB BLANES A\n60\nActa\n87
-CB GUÍXOLS\n26-10-2025 18:15\nRIO LOGISTIC CB LLIÇA D’AMUNT\n56\nActa Canvis\n79
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n26-10-2025 18:00\nHOMS U.E. MATARÓ -B\n81\nActa Canvis\n84
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n08-11-2025 18:00\nCB GUÍXOLS\n108\nActa\n77
-CB ADEPAF TXOTS\n09-11-2025 19:45\nHOMS U.E. MATARÓ -B\n74\nActa Canvis\n52
-CB LA GARRIGA A\n09-11-2025 18:00\nCB CABRERA A\n62\nActa\n82
-MURALLA ÒPTICA CB BLANES A\n08-11-2025 17:45\nCN CALDES A\n74\nActa\n60
-CESET\n08-11-2025 17:45\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n82\nActa\n59
-CB VILASSAR DE DALT A\n08-11-2025 17:00\nCE PALAMOS\n75\nActa\n71
-RIO LOGISTIC CB LLIÇA D’AMUNT\n08-11-2025 18:00\nC.B. FARNERS\n59\nActa\n62
-CN CALDES A\n16-11-2025 19:30\nCESET\n77\nActa Canvis\n74
-CB CABRERA A\n16-11-2025 19:00\nMURALLA ÒPTICA CB BLANES A\n86\nActa Canvis\n56
-HOMS U.E. MATARÓ -B\n16-11-2025 17:45\nCB LA GARRIGA A\n79\nActa Canvis\n63
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n16-11-2025 18:00\nCB ADEPAF TXOTS\n57\nActa Canvis\n79
-CE PALAMOS\n15-11-2025 16:00\nRIO LOGISTIC CB LLIÇA D’AMUNT\n84\nActa Canvis\n69
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n15-11-2025 17:45\nCB VILASSAR DE DALT A\n76\nActa\n84
-CB GUÍXOLS\n15-11-2025 18:15\nC.B. FARNERS\n70\nActa\n88
-CB ADEPAF TXOTS\n23-11-2025 17:45\nCB GUÍXOLS\n83\nActa\n59
-CB LA GARRIGA A\n23-11-2025 18:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n71\nActa\n55
-MURALLA ÒPTICA CB BLANES A\n22-11-2025 17:45\nHOMS U.E. MATARÓ -B\n81\nActa\n61
-CESET\n22-11-2025 16:00\nCB CABRERA A\n78\nActa Canvis\n87
-CB VILASSAR DE DALT A\n22-11-2025 17:15\nCN CALDES A\n76\nActa Canvis\n66
-RIO LOGISTIC CB LLIÇA D’AMUNT\n22-11-2025 20:30\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n69\nActa Canvis\n56
-C.B. FARNERS\n22-11-2025 17:45\nCE PALAMOS\n78\nActa\n57
-CN CALDES A\n30-11-2025 19:15\nRIO LOGISTIC CB LLIÇA D’AMUNT\n67\nActa Canvis\n65
-CB CABRERA A\n30-11-2025 19:15\nCB VILASSAR DE DALT A\n77\nActa\n84
-HOMS U.E. MATARÓ -B\n30-11-2025 17:45\nCESET\n49\nActa\n80
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n29-11-2025 18:00\nMURALLA ÒPTICA CB BLANES A\n67\nActa\n57
-CB ADEPAF TXOTS\n30-11-2025 17:45\nCB LA GARRIGA A\n99\nActa\n56
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n30-11-2025 16:45\nC.B. FARNERS\n74\nActa Canvis\n83
-CB GUÍXOLS\n29-11-2025 17:00\nCE PALAMOS\n77\nActa Canvis\n89
-CB LA GARRIGA A\n14-12-2025 18:00\nCB GUÍXOLS\n59\nActa\n76
-CESET\n13-12-2025 17:45\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n75\nActa\n83
-CB VILASSAR DE DALT A\n13-12-2025 17:00\nHOMS U.E. MATARÓ -B\n86\nActa\n70
-RIO LOGISTIC CB LLIÇA D’AMUNT\n14-12-2025 18:00\nCB CABRERA A\n56\nActa Canvis\n62
-C.B. FARNERS\n13-12-2025 17:45\nCN CALDES A\n72\nActa\n52
-CE PALAMOS\n13-12-2025 18:00\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n76\nActa\n66
-CB ADEPAF TXOTS\n14-12-2025 20:00\nMURALLA ÒPTICA CB BLANES A\n66\nActa Canvis\n61
-CB CABRERA A\n21-12-2025 19:15\nC.B. FARNERS\n77\nActa\n73
-HOMS U.E. MATARÓ -B\n20-12-2025 17:45\nRIO LOGISTIC CB LLIÇA D’AMUNT\n68\nActa Canvis\n59
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n20-12-2025 18:00\nCB VILASSAR DE DALT A\n89\nActa\n81
-CB ADEPAF TXOTS\n21-12-2025 17:45\nCESET\n83\nActa\n59
-CB LA GARRIGA A\n21-12-2025 18:00\nMURALLA ÒPTICA CB BLANES A\n65\nActa\n68
-CB GUÍXOLS\n20-12-2025 18:15\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n63\nActa\n72
-CE PALAMOS\n18-02-2026 20:30\nCN CALDES A\n75\nActa Canvis\n79
-CESET\n11-01-2026 17:30\nCB LA GARRIGA A\n78\nActa Canvis\n79
-CB VILASSAR DE DALT A\n10-01-2026 17:15\nCB ADEPAF TXOTS\n64\nActa Canvis\n81
-RIO LOGISTIC CB LLIÇA D’AMUNT\n11-01-2026 18:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n64\nActa Canvis\n70
-C.B. FARNERS\n10-01-2026 17:45\nHOMS U.E. MATARÓ -B\n82\nActa\n73
-CE PALAMOS\n10-01-2026 18:00\nCB CABRERA A\n92\nActa\n73
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n11-01-2026 17:45\nCN CALDES A\n64\nActa\n56
-CB GUÍXOLS\n11-01-2026 17:45\nMURALLA ÒPTICA CB BLANES A\n72\nActa Canvis\n67
-CN CALDES A\n18-01-2026 19:15\nCB GUÍXOLS\n79\nActa Canvis\n55
-CB CABRERA A\n18-01-2026 19:15\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n81\nActa\n61
-HOMS U.E. MATARÓ -B\n18-01-2026 19:30\nCE PALAMOS\n59\nActa Canvis\n79
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n17-01-2026 18:00\nC.B. FARNERS\n64\nActa\n94
-CB ADEPAF TXOTS\n18-01-2026 17:45\nRIO LOGISTIC CB LLIÇA D’AMUNT\n75\nActa\n61
-CB LA GARRIGA A\n18-01-2026 18:00\nCB VILASSAR DE DALT A\n76\nActa\n74
-MURALLA ÒPTICA CB BLANES A\n17-01-2026 17:45\nCESET\n65\nActa\n81
-CB CABRERA A\n25-01-2026 19:15\nCN CALDES A\n86\nActa\n63
-MURALLA ÒPTICA CB BLANES A\n18-03-2026 21:00\nCB VILASSAR DE DALT A\n76\nActa Canvis\n84
-CB LA GARRIGA A\n24-01-2026 18:00\nRIO LOGISTIC CB LLIÇA D’AMUNT\n76\nActa Canvis\n81
-CB ADEPAF TXOTS\n25-01-2026 17:45\nC.B. FARNERS\n85\nActa\n75
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n24-01-2026 18:00\nCE PALAMOS\n77\nActa\n74
-HOMS U.E. MATARÓ -B\n25-01-2026 19:30\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n64\nActa Canvis\n56
-CESET\n24-01-2026 17:45\nCB GUÍXOLS\n71\nActa\n52
-CB GUÍXOLS\n31-01-2026 18:15\nCB CABRERA A\n65\nActa\n78
-CN CALDES A\n31-01-2026 17:45\nHOMS U.E. MATARÓ -B\n79\nActa Canvis\n71
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n01-02-2026 17:15\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n75\nActa Canvis\n72
-CE PALAMOS\n31-01-2026 18:00\nCB ADEPAF TXOTS\n59\nActa\n84
-C.B. FARNERS\n31-01-2026 17:15\nCB LA GARRIGA A\n101\nActa Canvis\n63
-RIO LOGISTIC CB LLIÇA D’AMUNT\n31-01-2026 18:00\nMURALLA ÒPTICA CB BLANES A\n56\nActa\n73
-CB VILASSAR DE DALT A\n31-01-2026 17:00\nCESET\n63\nActa\n60
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n07-02-2026 18:00\nCN CALDES A\n51\nActa\n63
-HOMS U.E. MATARÓ -B\n07-02-2026 17:00\nCB CABRERA A\n57\nActa Canvis\n73
-CESET\n07-02-2026 17:45\nRIO LOGISTIC CB LLIÇA D’AMUNT\n67\nActa\n53
-MURALLA ÒPTICA CB BLANES A\n07-02-2026 17:45\nC.B. FARNERS\n70\nActa\n60
-CB LA GARRIGA A\n08-02-2026 18:00\nCE PALAMOS\n81\nActa\n88
-CB ADEPAF TXOTS\n08-02-2026 17:45\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n70\nActa\n49
-CB VILASSAR DE DALT A\n07-02-2026 17:00\nCB GUÍXOLS\n84\nActa\n63
-CB GUÍXOLS\n08-04-2026 21:00\nHOMS U.E. MATARÓ -B\n86\nActa Canvis\n81
-CB CABRERA A\n15-02-2026 19:15\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n97\nActa\n63
-CN CALDES A\n14-02-2026 17:45\nCB ADEPAF TXOTS\n55\nActa Canvis\n64
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n19-02-2026 21:00\nCB LA GARRIGA A\n66\nActa Canvis\n45
-CE PALAMOS\n25-03-2026 20:30\nMURALLA ÒPTICA CB BLANES A\n78\nActa Canvis\n75
-C.B. FARNERS\n14-02-2026 20:30\nCESET\n100\nActa Canvis\n90
-RIO LOGISTIC CB LLIÇA D’AMUNT\n15-02-2026 18:00\nCB VILASSAR DE DALT A\n84\nActa Canvis\n79
-CB LA GARRIGA A\n01-03-2026 18:00\nCN CALDES A\n69\nActa\n75
-CB ADEPAF TXOTS\n01-03-2026 17:45\nCB CABRERA A\n62\nActa\n66
-CB VILASSAR DE DALT A\n28-02-2026 17:00\nC.B. FARNERS\n70\nActa\n60
-CESET\n28-02-2026 17:45\nCE PALAMOS\n61\nActa\n66
-MURALLA ÒPTICA CB BLANES A\n28-02-2026 17:45\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n68\nActa\n90
-RIO LOGISTIC CB LLIÇA D’AMUNT\n27-02-2026 21:30\nCB GUÍXOLS\n69\nActa Canvis\n58
-HOMS U.E. MATARÓ -B\n28-02-2026 16:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n68\nActa Canvis\n75
-CB GUÍXOLS\n07-03-2026 18:15\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n84\nActa\n68
-HOMS U.E. MATARÓ -B\n08-03-2026 17:45\nCB ADEPAF TXOTS\n31\nActa\n75
-CB CABRERA A\n08-03-2026 19:15\nCB LA GARRIGA A\n86\nActa\n60
-CN CALDES A\n08-03-2026 19:30\nMURALLA ÒPTICA CB BLANES A\n75\nActa Canvis\n63
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n08-03-2026 17:45\nCESET\n74\nActa\n65
-CE PALAMOS\n07-03-2026 18:00\nCB VILASSAR DE DALT A\n84\nActa\n66
-C.B. FARNERS\n07-03-2026 19:00\nRIO LOGISTIC CB LLIÇA D’AMUNT\n83\nActa Canvis\n73
-CESET\n24-04-2026 22:00\nCN CALDES A\n75\nActa Canvis\n63
-MURALLA ÒPTICA CB BLANES A\n14-03-2026 17:45\nCB CABRERA A\n68\nActa\n81
-CB LA GARRIGA A\n15-03-2026 18:00\nHOMS U.E. MATARÓ -B\n79\nActa\n72
-CB ADEPAF TXOTS\n15-03-2026 17:45\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n78\nActa\n58
-RIO LOGISTIC CB LLIÇA D’AMUNT\n15-03-2026 12:00\nCE PALAMOS\n74\nActa Canvis\n85
-CB VILASSAR DE DALT A\n14-03-2026 17:15\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n76\nActa Canvis\n63
-C.B. FARNERS\n14-03-2026 19:00\nCB GUÍXOLS\n72\nActa Canvis\n70
-CB GUÍXOLS\n21-03-2026 18:15\nCB ADEPAF TXOTS\n65\nActa\n75
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n22-03-2026 19:00\nCB LA GARRIGA A\n79\nActa Canvis\n65
-HOMS U.E. MATARÓ -B\n22-03-2026 19:30\nMURALLA ÒPTICA CB BLANES A\n54\nActa Canvis\n63
-CB CABRERA A\n22-03-2026 19:15\nCESET\n79\nActa\n59
-CN CALDES A\n22-03-2026 19:30\nCB VILASSAR DE DALT A\n97\nActa Canvis\n99
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n24-02-2026 21:30\nRIO LOGISTIC CB LLIÇA D’AMUNT\n86\nActa Canvis\n97
-CE PALAMOS\n21-03-2026 18:45\nC.B. FARNERS\n95\nActa Canvis\n82
-RIO LOGISTIC CB LLIÇA D’AMUNT\n12-04-2026 12:00\nCN CALDES A\n73\nActa Canvis\n79
-CB VILASSAR DE DALT A\n11-04-2026 17:15\nCB CABRERA A\n62\nActa Canvis\n75
-CESET\n11-04-2026 17:45\nHOMS U.E. MATARÓ -B\n87\nActa\n86
-MURALLA ÒPTICA CB BLANES A\n11-04-2026 17:45\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n80\nActa\n63
-CB LA GARRIGA A\n12-04-2026 18:00\nCB ADEPAF TXOTS\n54\nActa\n80
-C.B. FARNERS\n11-04-2026 17:15\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n66\nActa Canvis\n76
-CE PALAMOS\n11-04-2026 18:00\nCB GUÍXOLS\n90\nActa\n70
-CB GUÍXOLS\n18-04-2026 19:15\nCB LA GARRIGA A\n66\nActa Canvis\n75
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n18-04-2026 20:00\nCESET\n71\nActa Canvis\n74
-HOMS U.E. MATARÓ -B\n19-04-2026 17:45\nCB VILASSAR DE DALT A\n64\nActa Canvis\n80
-CB CABRERA A\n19-04-2026 19:45\nRIO LOGISTIC CB LLIÇA D’AMUNT\n78\nActa Canvis\n87
-CN CALDES A\n19-04-2026 19:30\nC.B. FARNERS\n79\nActa Canvis\n73
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n19-04-2026 17:45\nCE PALAMOS\n70\nActa\n98
-MURALLA ÒPTICA CB BLANES A\n18-04-2026 19:30\nCB ADEPAF TXOTS\n76\nActa Canvis\n66
-C.B. FARNERS\n25-04-2026 19:00\nCB CABRERA A\n78\nActa Canvis\n56
-RIO LOGISTIC CB LLIÇA D’AMUNT\n25-04-2026 18:00\nHOMS U.E. MATARÓ -B\n81\nActa Canvis\n69
-CB VILASSAR DE DALT A\n25-04-2026 16:00\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n83\nActa Canvis\n78
-CESET\n25-04-2026 17:45\nCB ADEPAF TXOTS\n48\nActa\n79
-MURALLA ÒPTICA CB BLANES A\n25-04-2026 17:45\nCB LA GARRIGA A\n56\nActa\n46
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n26-04-2026 17:45\nCB GUÍXOLS\n69\nActa\n53
-CN CALDES A\n26-04-2026 19:00\nCE PALAMOS\n62\nActa Canvis\n81
-CB LA GARRIGA A\n10-05-2026 17:45\nCESET\n70\nActa Canvis\n73
-CB ADEPAF TXOTS\n10-05-2026 16:30\nCB VILASSAR DE DALT A\n74\nActa Canvis\n62
-MARBRES BERTRAN BÀSQUET ARBÚCIES A\n09-05-2026 18:00\nRIO LOGISTIC CB LLIÇA D’AMUNT\n77\nActa\n79
-HOMS U.E. MATARÓ -B\n09-05-2026 16:00\nC.B. FARNERS\n53\nActa Canvis\n111
-CB CABRERA A\n10-05-2026 19:15\nCE PALAMOS\n55\nActa\n74
-CN CALDES A\n09-05-2026 19:00\nC.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n62\nActa Canvis\n72
-MURALLA ÒPTICA CB BLANES A\n09-05-2026 17:45\nCB GUÍXOLS\n74\nActa\n80
-CB GUÍXOLS\n16-05-2026 18:15\nCN CALDES A\n72\nActa\n52
-C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ\n17-05-2026 19:45\nCB CABRERA A\n76\nActa Canvis\n63
-CE PALAMOS\n16-05-2026 18:00\nHOMS U.E. MATARÓ -B\n95\nActa\n61
-C.B. FARNERS\n16-05-2026 17:45\nMARBRES BERTRAN BÀSQUET ARBÚCIES A\n78\nActa\n77
-RIO LOGISTIC CB LLIÇA D’AMUNT\n17-05-2026 18:00\nCB ADEPAF TXOTS\n70\nActa Canvis\n87
-CB VILASSAR DE DALT A\n16-05-2026 18:45\nCB LA GARRIGA A\n85\nActa Canvis\n71
-CESET\n17-05-2026 19:30\nMURALLA ÒPTICA CB BLANES A\n82\nActa Canvis\n70
-CB IPSI B\n28-09-2025 12:15\nCLUB NATACIÓ TERRASSA A\n41\nActa Canvis\n55
-BC MORABANC ANDORRA B\n28-09-2025 19:00\nA.E. SANT ANDREU NATZARET-A\n75\nActa\n63
-FORMULA SR -LLUÏSOS DE GRACIA A \n28-09-2025 19:15\nSESE B\n69\nActa Canvis\n67
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n27-09-2025 17:45\nPUJOL MOLLERUSSA\n75\nActa\n64
-CENG FIWITEL\n27-09-2025 19:30\nEL MASNOU BASQUETBOL A\n71\nActa Canvis\n70
-CE SANT NICOLAU\n28-09-2025 19:15\nUB SANT ADRIA B\n50\nActa Canvis\n36
-IDÓNIA - BASQUE SANT PERE\n28-09-2025 12:15\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n75\nActa Canvis\n69
-CLUB NATACIÓ TERRASSA A\n05-10-2025 18:30\nIDÓNIA - BASQUE SANT PERE\n54\nActa\n67
-UB SANT ADRIA B\n04-10-2025 16:00\nCB IPSI B\n67\nActa\n64
-EL MASNOU BASQUETBOL A\n04-10-2025 19:00\nCE SANT NICOLAU\n74\nActa\n69
-PUJOL MOLLERUSSA\n05-10-2025 19:30\nCENG FIWITEL\n64\nActa Canvis\n52
-SESE B\n04-10-2025 19:30\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n77\nActa\n52
-A.E. SANT ANDREU NATZARET-A\n04-10-2025 17:45\nFORMULA SR -LLUÏSOS DE GRACIA A \n75\nActa\n70
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n05-10-2025 19:00\nBC MORABANC ANDORRA B\n80\nActa Canvis\n95
-CB IPSI B\n11-10-2025 19:15\nEL MASNOU BASQUETBOL A\n81\nActa\n85
-CLUB NATACIÓ TERRASSA A\n12-10-2025 18:30\nUB SANT ADRIA B\n43\nActa\n64
-FORMULA SR -LLUÏSOS DE GRACIA A \n12-10-2025 17:30\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n84\nActa\n62
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n11-10-2025 17:45\nA.E. SANT ANDREU NATZARET-A\n87\nActa\n74
-CENG FIWITEL\n12-10-2025 18:00\nSESE B\n53\nActa Canvis\n90
-CE SANT NICOLAU\n11-10-2025 17:45\nPUJOL MOLLERUSSA\n70\nActa Canvis\n72
-IDÓNIA - BASQUE SANT PERE\n12-10-2025 19:00\nBC MORABANC ANDORRA B\n74\nActa Canvis\n92
-UB SANT ADRIA B\n16-10-2025 21:15\nIDÓNIA - BASQUE SANT PERE\n44\nActa Canvis\n59
-EL MASNOU BASQUETBOL A\n18-10-2025 17:15\nCLUB NATACIÓ TERRASSA A\n74\nActa Canvis\n65
-PUJOL MOLLERUSSA\n18-10-2025 17:00\nCB IPSI B\n79\nActa Canvis\n60
-SESE B\n19-10-2025 19:30\nCE SANT NICOLAU\n70\nActa Canvis\n80
-A.E. SANT ANDREU NATZARET-A\n18-10-2025 17:45\nCENG FIWITEL\n82\nActa\n44
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n19-10-2025 19:30\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n82\nActa Canvis\n91
-BC MORABANC ANDORRA B\n18-10-2025 16:45\nFORMULA SR -LLUÏSOS DE GRACIA A \n85\nActa Canvis\n62
-CB IPSI B\n25-10-2025 19:15\nSESE B\n74\nActa\n78
-CLUB NATACIÓ TERRASSA A\n26-10-2025 18:30\nPUJOL MOLLERUSSA\n76\nActa\n67
-UB SANT ADRIA B\n25-10-2025 18:00\nEL MASNOU BASQUETBOL A\n49\nActa Canvis\n69
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n26-10-2025 16:00\nBC MORABANC ANDORRA B\n99\nActa Canvis\n95
-CENG FIWITEL\n25-10-2025 17:45\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n60\nActa Canvis\n81
-CE SANT NICOLAU\n25-10-2025 17:45\nA.E. SANT ANDREU NATZARET-A\n65\nActa\n74
-IDÓNIA - BASQUE SANT PERE\n26-10-2025 12:00\nFORMULA SR -LLUÏSOS DE GRACIA A \n84\nActa Canvis\n81
-EL MASNOU BASQUETBOL A\n08-11-2025 19:00\nIDÓNIA - BASQUE SANT PERE\n67\nActa\n75
-PUJOL MOLLERUSSA\n09-11-2025 18:45\nUB SANT ADRIA B\n59\nActa Canvis\n65
-SESE B\n09-11-2025 19:30\nCLUB NATACIÓ TERRASSA A\n69\nActa Canvis\n66
-A.E. SANT ANDREU NATZARET-A\n09-11-2025 18:00\nCB IPSI B\n88\nActa Canvis\n74
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n09-11-2025 19:30\nCE SANT NICOLAU\n70\nActa Canvis\n58
-BC MORABANC ANDORRA B\n09-11-2025 17:30\nCENG FIWITEL\n98\nActa Canvis\n59
-FORMULA SR -LLUÏSOS DE GRACIA A \n09-11-2025 17:30\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n51\nActa\n58
-CB IPSI B\n15-11-2025 19:15\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n85\nActa\n76
-CLUB NATACIÓ TERRASSA A\n16-11-2025 18:30\nA.E. SANT ANDREU NATZARET-A\n72\nActa\n70
-UB SANT ADRIA B\n16-11-2025 19:30\nSESE B\n59\nActa Canvis\n49
-EL MASNOU BASQUETBOL A\n15-11-2025 19:00\nPUJOL MOLLERUSSA\n109\nActa\n59
-CENG FIWITEL\n15-11-2025 18:00\nFORMULA SR -LLUÏSOS DE GRACIA A \n49\nActa Canvis\n102
-CE SANT NICOLAU\n15-11-2025 19:30\nBC MORABANC ANDORRA B\n79\nActa Canvis\n84
-IDÓNIA - BASQUE SANT PERE\n16-11-2025 12:00\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n57\nActa Canvis\n85
-PUJOL MOLLERUSSA\n22-11-2025 16:00\nIDÓNIA - BASQUE SANT PERE\n68\nActa\n80
-SESE B\n22-11-2025 19:30\nEL MASNOU BASQUETBOL A\n79\nActa\n67
-A.E. SANT ANDREU NATZARET-A\n22-11-2025 17:45\nUB SANT ADRIA B\n70\nActa\n78
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n22-11-2025 17:45\nCLUB NATACIÓ TERRASSA A\n68\nActa\n60
-BC MORABANC ANDORRA B\n23-11-2025 18:30\nCB IPSI B\n119\nActa Canvis\n71
-FORMULA SR -LLUÏSOS DE GRACIA A \n23-11-2025 17:30\nCE SANT NICOLAU\n72\nActa\n68
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n23-11-2025 12:30\nCENG FIWITEL\n78\nActa Canvis\n54
-CB IPSI B\n29-11-2025 19:15\nFORMULA SR -LLUÏSOS DE GRACIA A \n78\nActa\n87
-CLUB NATACIÓ TERRASSA A\n30-11-2025 17:45\nBC MORABANC ANDORRA B\n65\nActa Canvis\n73
-UB SANT ADRIA B\n29-11-2025 16:00\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n70\nActa\n68
-EL MASNOU BASQUETBOL A\n29-11-2025 19:00\nA.E. SANT ANDREU NATZARET-A\n99\nActa\n86
-PUJOL MOLLERUSSA\n30-11-2025 16:00\nSESE B\n61\nActa Canvis\n75
-CE SANT NICOLAU\n29-11-2025 19:30\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n79\nActa Canvis\n64
-IDÓNIA - BASQUE SANT PERE\n30-11-2025 12:00\nCENG FIWITEL\n56\nActa Canvis\n62
-SESE B\n13-12-2025 19:00\nIDÓNIA - BASQUE SANT PERE\n65\nActa Canvis\n52
-A.E. SANT ANDREU NATZARET-A\n25-01-2026 17:45\nPUJOL MOLLERUSSA\n87\nActa Canvis\n53
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n13-12-2025 17:45\nEL MASNOU BASQUETBOL A\n64\nActa\n75
-BC MORABANC ANDORRA B\n14-12-2025 19:00\nUB SANT ADRIA B\n83\nActa Canvis\n65
-FORMULA SR -LLUÏSOS DE GRACIA A \n14-12-2025 17:30\nCLUB NATACIÓ TERRASSA A\n57\nActa\n53
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n13-12-2025 17:45\nCB IPSI B\n92\nActa\n58
-CENG FIWITEL\n14-12-2025 18:00\nCE SANT NICOLAU\n49\nActa Canvis\n63
-CB IPSI B\n20-12-2025 19:15\nCENG FIWITEL\n60\nActa\n56
-CLUB NATACIÓ TERRASSA A\n21-12-2025 18:30\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n62\nActa\n76
-UB SANT ADRIA B\n16-12-2025 21:10\nFORMULA SR -LLUÏSOS DE GRACIA A \n56\nActa Canvis\n60
-EL MASNOU BASQUETBOL A\n20-12-2025 19:00\nBC MORABANC ANDORRA B\n73\nActa\n94
-PUJOL MOLLERUSSA\n20-12-2025 16:00\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n60\nActa\n76
-SESE B\n01-11-2025 18:45\nA.E. SANT ANDREU NATZARET-A\n97\nActa Canvis\n69
-IDÓNIA - BASQUE SANT PERE\n20-12-2025 19:30\nCE SANT NICOLAU\n78\nActa Canvis\n80
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n10-01-2026 17:45\nSESE B\n69\nActa\n48
-BC MORABANC ANDORRA B\n10-01-2026 19:00\nPUJOL MOLLERUSSA\n89\nActa Canvis\n81
-FORMULA SR -LLUÏSOS DE GRACIA A \n11-01-2026 17:30\nEL MASNOU BASQUETBOL A\n56\nActa\n65
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n10-01-2026 17:45\nUB SANT ADRIA B\n84\nActa\n62
-CENG FIWITEL\n11-01-2026 19:00\nCLUB NATACIÓ TERRASSA A\n63\nActa\n55
-CE SANT NICOLAU\n10-01-2026 17:45\nCB IPSI B\n79\nActa\n51
-IDÓNIA - BASQUE SANT PERE\n10-01-2026 19:00\nA.E. SANT ANDREU NATZARET-A\n77\nActa Canvis\n79
-CB IPSI B\n17-01-2026 19:15\nIDÓNIA - BASQUE SANT PERE\n74\nActa\n57
-CLUB NATACIÓ TERRASSA A\n26-03-2026 20:30\nCE SANT NICOLAU\n50\nActa Canvis\n69
-UB SANT ADRIA B\n17-01-2026 16:00\nCENG FIWITEL\n65\nActa\n48
-EL MASNOU BASQUETBOL A\n17-01-2026 19:00\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n98\nActa\n85
-PUJOL MOLLERUSSA\n17-01-2026 16:00\nFORMULA SR -LLUÏSOS DE GRACIA A \n41\nActa\n60
-SESE B\n08-02-2026 17:45\nBC MORABANC ANDORRA B\n72\nActa Canvis\n78
-A.E. SANT ANDREU NATZARET-A\n17-01-2026 17:45\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n78\nActa\n65
-CLUB NATACIÓ TERRASSA A\n25-01-2026 18:30\nCB IPSI B\n75\nActa\n65
-A.E. SANT ANDREU NATZARET-A\n24-01-2026 17:45\nBC MORABANC ANDORRA B\n73\nActa\n85
-SESE B\n24-01-2026 19:30\nFORMULA SR -LLUÏSOS DE GRACIA A \n58\nActa\n68
-PUJOL MOLLERUSSA\n24-01-2026 19:15\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n70\nActa Canvis\n89
-EL MASNOU BASQUETBOL A\n24-01-2026 19:00\nCENG FIWITEL\n86\nActa\n41
-UB SANT ADRIA B\n24-01-2026 16:00\nCE SANT NICOLAU\n62\nActa\n63
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n24-01-2026 17:45\nIDÓNIA - BASQUE SANT PERE\n65\nActa\n54
-IDÓNIA - BASQUE SANT PERE\n31-01-2026 17:15\nCLUB NATACIÓ TERRASSA A\n54\nActa Canvis\n62
-CB IPSI B\n01-02-2026 18:45\nUB SANT ADRIA B\n70\nActa Canvis\n76
-CE SANT NICOLAU\n31-01-2026 17:45\nEL MASNOU BASQUETBOL A\n59\nActa\n68
-CENG FIWITEL\n01-02-2026 18:00\nPUJOL MOLLERUSSA\n53\nActa Canvis\n68
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n31-01-2026 17:45\nSESE B\n59\nActa\n57
-FORMULA SR -LLUÏSOS DE GRACIA A \n01-02-2026 17:30\nA.E. SANT ANDREU NATZARET-A\n47\nActa\n56
-BC MORABANC ANDORRA B\n01-02-2026 19:00\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n90\nActa\n69
-EL MASNOU BASQUETBOL A\n07-02-2026 19:00\nCB IPSI B\n102\nActa\n62
-UB SANT ADRIA B\n07-02-2026 16:00\nCLUB NATACIÓ TERRASSA A\n65\nActa\n57
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n07-02-2026 17:45\nFORMULA SR -LLUÏSOS DE GRACIA A \n81\nActa\n77
-A.E. SANT ANDREU NATZARET-A\n07-02-2026 17:45\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n71\nActa\n65
-SESE B\n07-02-2026 19:30\nCENG FIWITEL\n87\nActa\n45
-PUJOL MOLLERUSSA\n07-02-2026 16:00\nCE SANT NICOLAU\n48\nActa\n70
-BC MORABANC ANDORRA B\n07-02-2026 13:15\nIDÓNIA - BASQUE SANT PERE\n84\nActa Canvis\n61
-IDÓNIA - BASQUE SANT PERE\n14-02-2026 17:00\nUB SANT ADRIA B\n62\nActa Canvis\n53
-CLUB NATACIÓ TERRASSA A\n15-02-2026 18:30\nEL MASNOU BASQUETBOL A\n63\nActa\n64
-CB IPSI B\n14-02-2026 16:00\nPUJOL MOLLERUSSA\n72\nActa Canvis\n76
-CE SANT NICOLAU\n14-02-2026 17:45\nSESE B\n74\nActa\n64
-CENG FIWITEL\n15-02-2026 18:30\nA.E. SANT ANDREU NATZARET-A\n58\nActa Canvis\n67
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n15-02-2026 12:30\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n72\nActa Canvis\n87
-FORMULA SR -LLUÏSOS DE GRACIA A \n15-02-2026 17:30\nBC MORABANC ANDORRA B\n61\nActa\n71
-SESE B\n28-02-2026 19:30\nCB IPSI B\n68\nActa\n53
-PUJOL MOLLERUSSA\n28-02-2026 16:00\nCLUB NATACIÓ TERRASSA A\n63\nActa\n83
-EL MASNOU BASQUETBOL A\n28-02-2026 17:15\nUB SANT ADRIA B\n70\nActa Canvis\n57
-BC MORABANC ANDORRA B\n01-03-2026 17:45\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n66\nActa Canvis\n55
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n28-02-2026 17:45\nCENG FIWITEL\n78\nActa\n58
-A.E. SANT ANDREU NATZARET-A\n28-02-2026 16:00\nCE SANT NICOLAU\n62\nActa Canvis\n58
-FORMULA SR -LLUÏSOS DE GRACIA A \n01-03-2026 19:15\nIDÓNIA - BASQUE SANT PERE\n71\nActa Canvis\n69
-IDÓNIA - BASQUE SANT PERE\n08-03-2026 16:15\nEL MASNOU BASQUETBOL A\n89\nActa Canvis\n100
-UB SANT ADRIA B\n07-03-2026 18:00\nPUJOL MOLLERUSSA\n78\nActa Canvis\n59
-CLUB NATACIÓ TERRASSA A\n08-03-2026 18:30\nSESE B\n55\nActa\n86
-CB IPSI B\n08-03-2026 18:00\nA.E. SANT ANDREU NATZARET-A\n70\nActa Canvis\n77
-CE SANT NICOLAU\n07-03-2026 19:45\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n64\nActa Canvis\n62
-CENG FIWITEL\n08-03-2026 18:30\nBC MORABANC ANDORRA B\n57\nActa Canvis\n77
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n07-03-2026 17:45\nFORMULA SR -LLUÏSOS DE GRACIA A \n84\nActa\n76
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n14-03-2026 17:45\nCB IPSI B\n84\nActa\n67
-A.E. SANT ANDREU NATZARET-A\n14-03-2026 17:45\nCLUB NATACIÓ TERRASSA A\n79\nActa\n78
-SESE B\n14-03-2026 19:30\nUB SANT ADRIA B\n79\nActa\n68
-PUJOL MOLLERUSSA\n15-03-2026 19:00\nEL MASNOU BASQUETBOL A\n61\nActa Canvis\n84
-FORMULA SR -LLUÏSOS DE GRACIA A \n15-03-2026 17:30\nCENG FIWITEL\n70\nActa\n56
-BC MORABANC ANDORRA B\n14-03-2026 18:45\nCE SANT NICOLAU\n61\nActa Canvis\n58
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n14-03-2026 17:45\nIDÓNIA - BASQUE SANT PERE\n53\nActa\n65
-IDÓNIA - BASQUE SANT PERE\n21-03-2026 17:00\nPUJOL MOLLERUSSA\n92\nActa Canvis\n67
-EL MASNOU BASQUETBOL A\n21-03-2026 19:00\nSESE B\n70\nActa\n81
-UB SANT ADRIA B\n21-03-2026 20:00\nA.E. SANT ANDREU NATZARET-A\n63\nActa Canvis\n46
-CLUB NATACIÓ TERRASSA A\n22-03-2026 18:30\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n75\nActa\n61
-CB IPSI B\n21-03-2026 19:30\nBC MORABANC ANDORRA B\n76\nActa Canvis\n110
-CE SANT NICOLAU\n22-03-2026 17:45\nFORMULA SR -LLUÏSOS DE GRACIA A \n56\nActa Canvis\n64
-CENG FIWITEL\n22-03-2026 18:00\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n68\nActa Canvis\n59
-FORMULA SR -LLUÏSOS DE GRACIA A \n12-04-2026 17:30\nCB IPSI B\n82\nActa\n59
-BC MORABANC ANDORRA B\n12-04-2026 19:00\nCLUB NATACIÓ TERRASSA A\n80\nActa\n59
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n12-04-2026 17:45\nUB SANT ADRIA B\n72\nActa Canvis\n62
-A.E. SANT ANDREU NATZARET-A\n11-04-2026 17:45\nEL MASNOU BASQUETBOL A\n58\nActa\n74
-SESE B\n12-04-2026 16:00\nPUJOL MOLLERUSSA\n72\nActa Canvis\n58
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n11-04-2026 17:45\nCE SANT NICOLAU\n78\nActa\n54
-CENG FIWITEL\n11-04-2026 18:00\nIDÓNIA - BASQUE SANT PERE\n61\nActa Canvis\n90
-IDÓNIA - BASQUE SANT PERE\n18-04-2026 17:45\nSESE B\n46\nActa\n87
-PUJOL MOLLERUSSA\n18-04-2026 16:00\nA.E. SANT ANDREU NATZARET-A\n73\nActa\n79
-EL MASNOU BASQUETBOL A\n18-04-2026 19:00\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n85\nActa\n79
-UB SANT ADRIA B\n18-04-2026 16:00\nBC MORABANC ANDORRA B\n61\nActa\n74
-CLUB NATACIÓ TERRASSA A\n19-04-2026 18:30\nFORMULA SR -LLUÏSOS DE GRACIA A \n82\nActa\n79
-CB IPSI B\n18-04-2026 19:15\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n72\nActa\n77
-CE SANT NICOLAU\n18-04-2026 17:45\nCENG FIWITEL\n67\nActa\n48
-CENG FIWITEL\n26-04-2026 18:00\nCB IPSI B\n71\nActa Canvis\n77
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n25-04-2026 17:45\nCLUB NATACIÓ TERRASSA A\n77\nActa\n68
-FORMULA SR -LLUÏSOS DE GRACIA A \n26-04-2026 17:30\nUB SANT ADRIA B\n82\nActa\n60
-BC MORABANC ANDORRA B\n26-04-2026 17:30\nEL MASNOU BASQUETBOL A\n80\nActa Canvis\n71
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n25-04-2026 17:45\nPUJOL MOLLERUSSA\n90\nActa\n56
-A.E. SANT ANDREU NATZARET-A\n25-04-2026 19:30\nSESE B\n70\nActa Canvis\n67
-CE SANT NICOLAU\n26-04-2026 17:45\nIDÓNIA - BASQUE SANT PERE\n79\nActa Canvis\n52
-SESE B\n10-05-2026 16:00\nU. B. LLEFIÀ A - JJ FINQUES BADALONA\n80\nActa Canvis\n76
-PUJOL MOLLERUSSA\n09-05-2026 12:30\nBC MORABANC ANDORRA B\n77\nActa Canvis\n109
-EL MASNOU BASQUETBOL A\n09-05-2026 19:00\nFORMULA SR -LLUÏSOS DE GRACIA A \n77\nActa\n70
-UB SANT ADRIA B\n09-05-2026 16:00\nMOTOROLA CB SANT JOSEP BADALONA - SAM\n78\nActa\n70
-CLUB NATACIÓ TERRASSA A\n10-05-2026 18:30\nCENG FIWITEL\n84\nActa\n40
-CB IPSI B\n09-05-2026 19:15\nCE SANT NICOLAU\n65\nActa\n59
-A.E. SANT ANDREU NATZARET-A\n09-05-2026 19:30\nIDÓNIA - BASQUE SANT PERE\n76\nActa Canvis\n45
-IDÓNIA - BASQUE SANT PERE\n17-05-2026 12:00\nCB IPSI B\n74\nActa Canvis\n67
-CE SANT NICOLAU\n16-05-2026 17:45\nCLUB NATACIÓ TERRASSA A\n70\nActa\n62
-CENG FIWITEL\n17-05-2026 19:00\nUB SANT ADRIA B\n86\nActa\n87
-MOTOROLA CB SANT JOSEP BADALONA - SAM\n16-05-2026 17:45\nEL MASNOU BASQUETBOL A\n70\nActa\n90
-FORMULA SR -LLUÏSOS DE GRACIA A \n17-05-2026 17:30\nPUJOL MOLLERUSSA\n84\nActa\n53
-BC MORABANC ANDORRA B\n16-05-2026 18:45\nSESE B\n74\nActa Canvis\n81
-U. B. LLEFIÀ A - JJ FINQUES BADALONA\n17-05-2026 17:45\nA.E. SANT ANDREU NATZARET-A\n85\nActa Canvis\n80
-TEMPLE UE HORTA\n27-09-2025 16:00\nCB CASTELLET - CASA ARIMANY\n67\nActa Canvis\n63
-VEDRUNA GRÀCIA A\n27-09-2025 19:30\nEL CÍRCOL B\n59\nActa Canvis\n63
-AE MINGUELLA B - PURE CUISINE\n27-09-2025 20:00\nSFERIC GERFINCAS\n73\nActa\n55
-TENEA*TALENT - C.B. ESPARREGUERA B\n28-09-2025 17:45\nBÀSQUET SAFA CLAROR A\n74\nActa Canvis\n62
-LA SALLE MANRESA SGOL\n27-09-2025 17:45\nUE SANT CUGAT - OCCIDENT B\n67\nActa\n73
-FC MARTINENC BÀSQUET B\n27-09-2025 19:15\nCENTRE CATÒLIC L'H A\n68\nActa\n55
-GAMMA MONTAÑO C.B. VILATORRADA A\n27-09-2025 20:15\nC.B. CIC A\n85\nActa\n69
-CB CASTELLET - CASA ARIMANY\n04-10-2025 18:00\nFC MARTINENC BÀSQUET B\n76\nActa Canvis\n63
-UE SANT CUGAT - OCCIDENT B\n05-10-2025 19:30\nTEMPLE UE HORTA\n78\nActa Canvis\n72
-BÀSQUET SAFA CLAROR A\n04-10-2025 18:00\nLA SALLE MANRESA SGOL\n61\nActa\n71
-EL CÍRCOL B\n05-10-2025 16:00\nAE MINGUELLA B - PURE CUISINE\n56\nActa\n65
-CENTRE CATÒLIC L'H A\n05-10-2025 17:45\nVEDRUNA GRÀCIA A\n81\nActa\n78
-C.B. CIC A\n05-10-2025 19:30\nTENEA*TALENT - C.B. ESPARREGUERA B\n73\nActa\n80
-SFERIC GERFINCAS\n05-10-2025 19:30\nGAMMA MONTAÑO C.B. VILATORRADA A\n75\nActa\n65
-TEMPLE UE HORTA\n11-10-2025 17:45\nBÀSQUET SAFA CLAROR A\n80\nActa\n73
-CB CASTELLET - CASA ARIMANY\n12-10-2025 19:00\nUE SANT CUGAT - OCCIDENT B\n80\nActa Canvis\n68
-AE MINGUELLA B - PURE CUISINE\n11-10-2025 20:00\nCENTRE CATÒLIC L'H A\n62\nActa\n60
-TENEA*TALENT - C.B. ESPARREGUERA B\n11-10-2025 16:00\nSFERIC GERFINCAS\n84\nActa\n49
-FC MARTINENC BÀSQUET B\n11-10-2025 15:45\nVEDRUNA GRÀCIA A\n57\nActa Canvis\n65
-GAMMA MONTAÑO C.B. VILATORRADA A\n11-10-2025 20:15\nEL CÍRCOL B\n60\nActa\n63
-LA SALLE MANRESA SGOL\n11-10-2025 17:45\nC.B. CIC A\n79\nActa\n57
-UE SANT CUGAT - OCCIDENT B\n19-10-2025 17:45\nFC MARTINENC BÀSQUET B\n79\nActa Canvis\n83
-BÀSQUET SAFA CLAROR A\n18-10-2025 18:00\nCB CASTELLET - CASA ARIMANY\n63\nActa\n65
-SFERIC GERFINCAS\n19-10-2025 19:30\nLA SALLE MANRESA SGOL\n59\nActa\n57
-EL CÍRCOL B\n19-10-2025 16:00\nTENEA*TALENT - C.B. ESPARREGUERA B\n46\nActa\n80
-VEDRUNA GRÀCIA A\n18-10-2025 16:00\nAE MINGUELLA B - PURE CUISINE\n76\nActa Canvis\n77
-C.B. CIC A\n19-10-2025 19:30\nTEMPLE UE HORTA\n93\nActa\n99
-CENTRE CATÒLIC L'H A\n19-10-2025 17:45\nGAMMA MONTAÑO C.B. VILATORRADA A\n84\nActa\n63
-TEMPLE UE HORTA\n25-10-2025 17:45\nSFERIC GERFINCAS\n63\nActa\n54
-UE SANT CUGAT - OCCIDENT B\n25-10-2025 19:30\nBÀSQUET SAFA CLAROR A\n82\nActa Canvis\n66
-TENEA*TALENT - C.B. ESPARREGUERA B\n25-10-2025 16:00\nCENTRE CATÒLIC L'H A\n60\nActa\n46
-LA SALLE MANRESA SGOL\n25-10-2025 17:45\nEL CÍRCOL B\n58\nActa\n76
-FC MARTINENC BÀSQUET B\n25-10-2025 15:45\nAE MINGUELLA B - PURE CUISINE\n73\nActa Canvis\n57
-CB CASTELLET - CASA ARIMANY\n25-10-2025 18:30\nC.B. CIC A\n87\nActa\n59
-GAMMA MONTAÑO C.B. VILATORRADA A\n25-10-2025 20:15\nVEDRUNA GRÀCIA A\n80\nActa\n66
-BÀSQUET SAFA CLAROR A\n08-11-2025 18:00\nFC MARTINENC BÀSQUET B\n76\nActa\n68
-SFERIC GERFINCAS\n09-11-2025 19:30\nCB CASTELLET - CASA ARIMANY\n52\nActa\n56
-EL CÍRCOL B\n09-11-2025 16:00\nTEMPLE UE HORTA\n51\nActa\n71
-CENTRE CATÒLIC L'H A\n09-11-2025 19:45\nLA SALLE MANRESA SGOL\n55\nActa Canvis\n57
-VEDRUNA GRÀCIA A\n08-11-2025 19:30\nTENEA*TALENT - C.B. ESPARREGUERA B\n75\nActa Canvis\n80
-C.B. CIC A\n25-11-2025 22:15\nUE SANT CUGAT - OCCIDENT B\n71\nActa Canvis\n96
-AE MINGUELLA B - PURE CUISINE\n08-11-2025 20:00\nGAMMA MONTAÑO C.B. VILATORRADA A\n76\nActa\n65
-TEMPLE UE HORTA\n16-11-2025 17:45\nCENTRE CATÒLIC L'H A\n74\nActa Canvis\n66
-CB CASTELLET - CASA ARIMANY\n15-11-2025 19:00\nEL CÍRCOL B\n74\nActa Canvis\n58
-UE SANT CUGAT - OCCIDENT B\n16-11-2025 19:30\nSFERIC GERFINCAS\n88\nActa Canvis\n49
-TENEA*TALENT - C.B. ESPARREGUERA B\n15-11-2025 16:00\nAE MINGUELLA B - PURE CUISINE\n70\nActa\n60
-LA SALLE MANRESA SGOL\n15-11-2025 17:45\nVEDRUNA GRÀCIA A\n86\nActa\n61
-BÀSQUET SAFA CLAROR A\n15-11-2025 16:30\nC.B. CIC A\n77\nActa Canvis\n71
-FC MARTINENC BÀSQUET B\n15-11-2025 21:00\nGAMMA MONTAÑO C.B. VILATORRADA A\n76\nActa Canvis\n89
-SFERIC GERFINCAS\n23-11-2025 19:30\nBÀSQUET SAFA CLAROR A\n50\nActa\n70
-EL CÍRCOL B\n23-11-2025 19:30\nUE SANT CUGAT - OCCIDENT B\n60\nActa Canvis\n87
-CENTRE CATÒLIC L'H A\n23-11-2025 19:45\nCB CASTELLET - CASA ARIMANY\n62\nActa Canvis\n71
-VEDRUNA GRÀCIA A\n22-11-2025 17:45\nTEMPLE UE HORTA\n72\nActa\n100
-AE MINGUELLA B - PURE CUISINE\n22-11-2025 20:00\nLA SALLE MANRESA SGOL\n82\nActa\n44
-C.B. CIC A\n23-11-2025 19:30\nFC MARTINENC BÀSQUET B\n69\nActa\n83
-GAMMA MONTAÑO C.B. VILATORRADA A\n21-11-2025 21:15\nTENEA*TALENT - C.B. ESPARREGUERA B\n69\nActa Canvis\n84
-TEMPLE UE HORTA\n29-11-2025 17:45\nAE MINGUELLA B - PURE CUISINE\n73\nActa\n70
-CB CASTELLET - CASA ARIMANY\n29-11-2025 18:30\nVEDRUNA GRÀCIA A\n69\nActa\n84
-UE SANT CUGAT - OCCIDENT B\n30-11-2025 19:30\nCENTRE CATÒLIC L'H A\n72\nActa Canvis\n59
-BÀSQUET SAFA CLAROR A\n29-11-2025 18:00\nEL CÍRCOL B\n65\nActa\n61
-C.B. CIC A\n30-11-2025 19:30\nSFERIC GERFINCAS\n78\nActa\n63
-LA SALLE MANRESA SGOL\n29-11-2025 17:45\nGAMMA MONTAÑO C.B. VILATORRADA A\n84\nActa\n78
-TENEA*TALENT - C.B. ESPARREGUERA B\n29-11-2025 20:15\nFC MARTINENC BÀSQUET B\n88\nActa Canvis\n53
-SFERIC GERFINCAS\n14-12-2025 19:30\nFC MARTINENC BÀSQUET B\n51\nActa\n55
-CENTRE CATÒLIC L'H A\n14-12-2025 17:45\nBÀSQUET SAFA CLAROR A\n33\nActa\n60
-VEDRUNA GRÀCIA A\n14-12-2025 19:30\nUE SANT CUGAT - OCCIDENT B\n59\nActa Canvis\n98
-AE MINGUELLA B - PURE CUISINE\n13-12-2025 20:00\nCB CASTELLET - CASA ARIMANY\n68\nActa\n71
-TENEA*TALENT - C.B. ESPARREGUERA B\n13-12-2025 18:00\nLA SALLE MANRESA SGOL\n77\nActa Canvis\n64
-EL CÍRCOL B\n14-12-2025 16:00\nC.B. CIC A\n59\nActa\n62
-GAMMA MONTAÑO C.B. VILATORRADA A\n13-12-2025 20:45\nTEMPLE UE HORTA\n67\nActa Canvis\n79
-TEMPLE UE HORTA\n20-12-2025 16:00\nTENEA*TALENT - C.B. ESPARREGUERA B\n61\nActa Canvis\n54
-UE SANT CUGAT - OCCIDENT B\n20-12-2025 17:45\nAE MINGUELLA B - PURE CUISINE\n67\nActa Canvis\n69
-BÀSQUET SAFA CLAROR A\n20-12-2025 18:00\nVEDRUNA GRÀCIA A\n60\nActa\n56
-SFERIC GERFINCAS\n21-12-2025 19:30\nEL CÍRCOL B\n71\nActa\n57
-FC MARTINENC BÀSQUET B\n20-12-2025 19:15\nLA SALLE MANRESA SGOL\n79\nActa\n60
-CB CASTELLET - CASA ARIMANY\n20-12-2025 18:30\nGAMMA MONTAÑO C.B. VILATORRADA A\n84\nActa\n82
-C.B. CIC A\n20-12-2025 20:30\nCENTRE CATÒLIC L'H A\n54\nActa Canvis\n78
-CENTRE CATÒLIC L'H A\n11-01-2026 17:45\nSFERIC GERFINCAS\n64\nActa\n68
-AE MINGUELLA B - PURE CUISINE\n10-01-2026 20:00\nBÀSQUET SAFA CLAROR A\n62\nActa\n49
-TENEA*TALENT - C.B. ESPARREGUERA B\n10-01-2026 16:00\nCB CASTELLET - CASA ARIMANY\n82\nActa\n61
-LA SALLE MANRESA SGOL\n10-01-2026 17:45\nTEMPLE UE HORTA\n67\nActa\n82
-FC MARTINENC BÀSQUET B\n10-01-2026 15:45\nEL CÍRCOL B\n57\nActa Canvis\n47
-VEDRUNA GRÀCIA A\n10-01-2026 17:45\nC.B. CIC A\n65\nActa\n72
-GAMMA MONTAÑO C.B. VILATORRADA A\n10-01-2026 20:15\nUE SANT CUGAT - OCCIDENT B\n85\nActa\n79
-TEMPLE UE HORTA\n17-01-2026 17:45\nFC MARTINENC BÀSQUET B\n68\nActa\n50
-CB CASTELLET - CASA ARIMANY\n27-02-2026 20:30\nLA SALLE MANRESA SGOL\n63\nActa Canvis\n55
-UE SANT CUGAT - OCCIDENT B\n02-02-2026 21:30\nTENEA*TALENT - C.B. ESPARREGUERA B\n63\nActa Canvis\n86
-SFERIC GERFINCAS\n18-01-2026 19:30\nVEDRUNA GRÀCIA A\n61\nActa\n41
-EL CÍRCOL B\n18-01-2026 16:00\nCENTRE CATÒLIC L'H A\n61\nActa\n68
-BÀSQUET SAFA CLAROR A\n17-01-2026 18:00\nGAMMA MONTAÑO C.B. VILATORRADA A\n68\nActa\n72
-C.B. CIC A\n18-01-2026 19:30\nAE MINGUELLA B - PURE CUISINE\n63\nActa\n64
-CB CASTELLET - CASA ARIMANY\n11-03-2026 21:00\nTEMPLE UE HORTA\n74\nActa Canvis\n63
-EL CÍRCOL B\n25-01-2026 16:00\nVEDRUNA GRÀCIA A\n70\nActa\n65
-SFERIC GERFINCAS\n25-01-2026 19:30\nAE MINGUELLA B - PURE CUISINE\n52\nActa\n43
-BÀSQUET SAFA CLAROR A\n24-01-2026 16:00\nTENEA*TALENT - C.B. ESPARREGUERA B\n80\nActa Canvis\n90
-UE SANT CUGAT - OCCIDENT B\n25-01-2026 16:00\nLA SALLE MANRESA SGOL\n72\nActa Canvis\n67
-CENTRE CATÒLIC L'H A\n25-01-2026 17:45\nFC MARTINENC BÀSQUET B\n73\nActa\n52
-C.B. CIC A\n25-01-2026 19:30\nGAMMA MONTAÑO C.B. VILATORRADA A\n70\nActa\n57
-FC MARTINENC BÀSQUET B\n31-01-2026 19:15\nCB CASTELLET - CASA ARIMANY\n67\nActa\n66
-TEMPLE UE HORTA\n31-01-2026 17:45\nUE SANT CUGAT - OCCIDENT B\n55\nActa\n69
-LA SALLE MANRESA SGOL\n01-02-2026 17:45\nBÀSQUET SAFA CLAROR A\n80\nActa Canvis\n70
-AE MINGUELLA B - PURE CUISINE\n31-01-2026 20:00\nEL CÍRCOL B\n83\nActa\n66
-VEDRUNA GRÀCIA A\n31-01-2026 17:45\nCENTRE CATÒLIC L'H A\n72\nActa\n86
-TENEA*TALENT - C.B. ESPARREGUERA B\n31-01-2026 16:00\nC.B. CIC A\n82\nActa\n52
-GAMMA MONTAÑO C.B. VILATORRADA A\n01-02-2026 19:45\nSFERIC GERFINCAS\n57\nActa Canvis\n67
-BÀSQUET SAFA CLAROR A\n07-02-2026 16:30\nTEMPLE UE HORTA\n92\nActa Canvis\n87
-UE SANT CUGAT - OCCIDENT B\n07-02-2026 17:45\nCB CASTELLET - CASA ARIMANY\n78\nActa\n74
-CENTRE CATÒLIC L'H A\n08-02-2026 17:45\nAE MINGUELLA B - PURE CUISINE\n61\nActa\n73
-SFERIC GERFINCAS\n08-02-2026 19:30\nTENEA*TALENT - C.B. ESPARREGUERA B\n54\nActa\n61
-VEDRUNA GRÀCIA A\n07-02-2026 17:45\nFC MARTINENC BÀSQUET B\n75\nActa\n99
-EL CÍRCOL B\n08-02-2026 16:00\nGAMMA MONTAÑO C.B. VILATORRADA A\n71\nActa\n72
-C.B. CIC A\n08-02-2026 19:30\nLA SALLE MANRESA SGOL\n61\nActa\n69
-FC MARTINENC BÀSQUET B\n14-02-2026 19:15\nUE SANT CUGAT - OCCIDENT B\n76\nActa\n81
-CB CASTELLET - CASA ARIMANY\n14-02-2026 18:30\nBÀSQUET SAFA CLAROR A\n68\nActa\n64
-LA SALLE MANRESA SGOL\n14-02-2026 17:45\nSFERIC GERFINCAS\n80\nActa\n64
-TENEA*TALENT - C.B. ESPARREGUERA B\n14-02-2026 16:00\nEL CÍRCOL B\n81\nActa\n88
-AE MINGUELLA B - PURE CUISINE\n14-02-2026 20:00\nVEDRUNA GRÀCIA A\n67\nActa\n74
-TEMPLE UE HORTA\n14-02-2026 17:45\nC.B. CIC A\n76\nActa\n72
-GAMMA MONTAÑO C.B. VILATORRADA A\n14-02-2026 20:15\nCENTRE CATÒLIC L'H A\n73\nActa\n58
-SFERIC GERFINCAS\n01-03-2026 19:30\nTEMPLE UE HORTA\n49\nActa\n60
-BÀSQUET SAFA CLAROR A\n28-02-2026 18:00\nUE SANT CUGAT - OCCIDENT B\n61\nActa\n62
-CENTRE CATÒLIC L'H A\n28-02-2026 19:15\nTENEA*TALENT - C.B. ESPARREGUERA B\n38\nActa Canvis\n62
-EL CÍRCOL B\n01-03-2026 16:00\nLA SALLE MANRESA SGOL\n54\nActa\n66
-AE MINGUELLA B - PURE CUISINE\n01-03-2026 19:30\nFC MARTINENC BÀSQUET B\n56\nActa Canvis\n50
-C.B. CIC A\n01-03-2026 19:30\nCB CASTELLET - CASA ARIMANY\n70\nActa\n89
-VEDRUNA GRÀCIA A\n28-02-2026 17:45\nGAMMA MONTAÑO C.B. VILATORRADA A\n74\nActa\n71
-FC MARTINENC BÀSQUET B\n07-03-2026 15:45\nBÀSQUET SAFA CLAROR A\n58\nActa Canvis\n68
-CB CASTELLET - CASA ARIMANY\n07-03-2026 18:30\nSFERIC GERFINCAS\n69\nActa\n66
-TEMPLE UE HORTA\n07-03-2026 19:30\nEL CÍRCOL B\n81\nActa Canvis\n47
-LA SALLE MANRESA SGOL\n07-03-2026 17:45\nCENTRE CATÒLIC L'H A\n49\nActa\n73
-TENEA*TALENT - C.B. ESPARREGUERA B\n07-03-2026 17:45\nVEDRUNA GRÀCIA A\n85\nActa Canvis\n62
-UE SANT CUGAT - OCCIDENT B\n08-03-2026 19:30\nC.B. CIC A\n75\nActa Canvis\n51
-GAMMA MONTAÑO C.B. VILATORRADA A\n08-03-2026 19:45\nAE MINGUELLA B - PURE CUISINE\n69\nActa Canvis\n78
-CENTRE CATÒLIC L'H A\n14-03-2026 19:15\nTEMPLE UE HORTA\n61\nActa Canvis\n77
-EL CÍRCOL B\n15-03-2026 17:45\nCB CASTELLET - CASA ARIMANY\n55\nActa Canvis\n65
-SFERIC GERFINCAS\n15-03-2026 19:30\nUE SANT CUGAT - OCCIDENT B\n55\nActa\n74
-AE MINGUELLA B - PURE CUISINE\n15-03-2026 19:30\nTENEA*TALENT - C.B. ESPARREGUERA B\n66\nActa Canvis\n71
-VEDRUNA GRÀCIA A\n14-03-2026 17:45\nLA SALLE MANRESA SGOL\n78\nActa\n75
-C.B. CIC A\n15-03-2026 19:30\nBÀSQUET SAFA CLAROR A\n75\nActa\n78
-GAMMA MONTAÑO C.B. VILATORRADA A\n14-03-2026 20:15\nFC MARTINENC BÀSQUET B\n79\nActa\n83
-BÀSQUET SAFA CLAROR A\n21-03-2026 18:00\nSFERIC GERFINCAS\n78\nActa\n60
-UE SANT CUGAT - OCCIDENT B\n21-03-2026 17:45\nEL CÍRCOL B\n94\nActa\n59
-CB CASTELLET - CASA ARIMANY\n21-03-2026 19:00\nCENTRE CATÒLIC L'H A\n62\nActa Canvis\n70
-TEMPLE UE HORTA\n21-03-2026 17:45\nVEDRUNA GRÀCIA A\n74\nActa\n67
-LA SALLE MANRESA SGOL\n21-03-2026 17:45\nAE MINGUELLA B - PURE CUISINE\n74\nActa\n69
-FC MARTINENC BÀSQUET B\n21-03-2026 19:15\nC.B. CIC A\n76\nActa\n67
-TENEA*TALENT - C.B. ESPARREGUERA B\n21-03-2026 20:15\nGAMMA MONTAÑO C.B. VILATORRADA A\n93\nActa Canvis\n51
-AE MINGUELLA B - PURE CUISINE\n12-04-2026 19:30\nTEMPLE UE HORTA\n65\nActa Canvis\n50
-VEDRUNA GRÀCIA A\n11-04-2026 19:30\nCB CASTELLET - CASA ARIMANY\n88\nActa Canvis\n91
-CENTRE CATÒLIC L'H A\n12-04-2026 17:45\nUE SANT CUGAT - OCCIDENT B\n55\nActa\n69
-EL CÍRCOL B\n12-04-2026 16:00\nBÀSQUET SAFA CLAROR A\n69\nActa\n64
-SFERIC GERFINCAS\n12-04-2026 19:30\nC.B. CIC A\n61\nActa\n55
-GAMMA MONTAÑO C.B. VILATORRADA A\n12-04-2026 19:45\nLA SALLE MANRESA SGOL\n68\nActa Canvis\n63
-FC MARTINENC BÀSQUET B\n11-04-2026 15:45\nTENEA*TALENT - C.B. ESPARREGUERA B\n75\nActa Canvis\n69
-FC MARTINENC BÀSQUET B\n18-04-2026 15:45\nSFERIC GERFINCAS\n79\nActa Canvis\n60
-BÀSQUET SAFA CLAROR A\n18-04-2026 18:00\nCENTRE CATÒLIC L'H A\n72\nActa\n66
-UE SANT CUGAT - OCCIDENT B\n19-04-2026 12:00\nVEDRUNA GRÀCIA A\n94\nActa Canvis\n71
-CB CASTELLET - CASA ARIMANY\n18-04-2026 18:30\nAE MINGUELLA B - PURE CUISINE\n76\nActa\n68
-LA SALLE MANRESA SGOL\n18-04-2026 17:45\nTENEA*TALENT - C.B. ESPARREGUERA B\n58\nActa\n72
-C.B. CIC A\n19-04-2026 19:30\nEL CÍRCOL B\n76\nActa\n72
-TEMPLE UE HORTA\n18-04-2026 17:45\nGAMMA MONTAÑO C.B. VILATORRADA A\n80\nActa\n82
-TENEA*TALENT - C.B. ESPARREGUERA B\n26-04-2026 17:45\nTEMPLE UE HORTA\n82\nActa Canvis\n66
-AE MINGUELLA B - PURE CUISINE\n26-04-2026 19:30\nUE SANT CUGAT - OCCIDENT B\n58\nActa Canvis\n72
-VEDRUNA GRÀCIA A\n25-04-2026 17:45\nBÀSQUET SAFA CLAROR A\n90\nActa\n77
-EL CÍRCOL B\n26-04-2026 16:00\nSFERIC GERFINCAS\n73\nActa\n59
-LA SALLE MANRESA SGOL\n25-04-2026 17:45\nFC MARTINENC BÀSQUET B\n65\nActa\n57
-GAMMA MONTAÑO C.B. VILATORRADA A\n25-04-2026 20:15\nCB CASTELLET - CASA ARIMANY\n59\nActa\n73
-CENTRE CATÒLIC L'H A\n26-04-2026 17:45\nC.B. CIC A\n64\nActa\n59
-SFERIC GERFINCAS\n10-05-2026 17:45\nCENTRE CATÒLIC L'H A\n62\nActa Canvis\n54
-BÀSQUET SAFA CLAROR A\n09-05-2026 18:00\nAE MINGUELLA B - PURE CUISINE\n69\nActa\n87
-CB CASTELLET - CASA ARIMANY\n10-05-2026 19:15\nTENEA*TALENT - C.B. ESPARREGUERA B\n73\nActa Canvis\n68
-TEMPLE UE HORTA\n09-05-2026 17:45\nLA SALLE MANRESA SGOL\n76\nActa\n62
-EL CÍRCOL B\n10-05-2026 16:00\nFC MARTINENC BÀSQUET B\n61\nActa\n67
-C.B. CIC A\n10-05-2026 19:30\nVEDRUNA GRÀCIA A\n85\nActa\n71
-UE SANT CUGAT - OCCIDENT B\n09-05-2026 19:30\nGAMMA MONTAÑO C.B. VILATORRADA A\n93\nActa Canvis\n86
-FC MARTINENC BÀSQUET B\n16-05-2026 15:45\nTEMPLE UE HORTA\n76\nActa Canvis\n88
-LA SALLE MANRESA SGOL\n16-05-2026 17:45\nCB CASTELLET - CASA ARIMANY\n57\nActa\n63
-TENEA*TALENT - C.B. ESPARREGUERA B\n16-05-2026 17:45\nUE SANT CUGAT - OCCIDENT B\n62\nActa Canvis\n55
-VEDRUNA GRÀCIA A\n16-05-2026 19:00\nSFERIC GERFINCAS\n76\nActa Canvis\n59
-CENTRE CATÒLIC L'H A\n17-05-2026 17:45\nEL CÍRCOL B\n73\nActa\n49
-GAMMA MONTAÑO C.B. VILATORRADA A\n16-05-2026 20:15\nBÀSQUET SAFA CLAROR A\n76\nActa\n70
-AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
+GRUPO 1:
+Jornada 1
+Equip local
+Data i Hora
+Equip visitant
+ELS MONJOS BC - PANSALUD
+27-09-2025 19:45
+NOU BÀSQUET OLESA A
+81
+Acta
+67
+CB MORELL A
+28-09-2025 17:00
+VILABÀSQUET VILADECANS SMA
+68
+Acta
+53
+INVOGA CBT
+27-09-2025 17:45
+CB VILA-SECA
+85
+Acta Canvis
+43
+CB VILADECANS A
+27-09-2025 19:30
+BÀSQUET SANT BOI A
+53
+Acta
+68
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+27-09-2025 17:45
+VALLCUERBA REUS PLOMS SALLE
+60
+Acta Canvis
+79
+CB ABRERA
+04-10-2025 17:15
+DAVIMA CB CANTAIRES TORTOSA
+77
+Acta Canvis
+76
+CB VALLS BNA
+27-09-2025 19:45
+REMM GUITART - BÀSQUET RIBES
+91
+Acta Canvis
+85
+Jornada 2
+Equip local
+Data i Hora
+Equip visitant
+CB ABRERA
+05-10-2025 17:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+94
+Acta Canvis
+82
+BÀSQUET SANT BOI A
+05-10-2025 17:45
+DAVIMA CB CANTAIRES TORTOSA
+69
+Acta
+62
+CB VILA-SECA
+04-10-2025 17:45
+CB VILADECANS A
+72
+Acta
+75
+VILABÀSQUET VILADECANS SMA
+04-10-2025 18:00
+INVOGA CBT
+69
+Acta
+67
+CB VALLS BNA
+04-10-2025 15:30
+CB MORELL A
+53
+Acta Canvis
+68
+NOU BÀSQUET OLESA A
+05-10-2025 17:00
+REMM GUITART - BÀSQUET RIBES
+73
+Acta
+60
+VALLCUERBA REUS PLOMS SALLE
+04-10-2025 17:45
+ELS MONJOS BC - PANSALUD
+78
+Acta
+55
+Jornada 3
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+21-12-2025 18:15
+CB VILA-SECA
+81
+Acta Canvis
+64
+CB ABRERA
+12-10-2025 17:45
+BÀSQUET SANT BOI A
+67
+Acta Canvis
+71
+REMM GUITART - BÀSQUET RIBES
+11-10-2025 19:30
+VALLCUERBA REUS PLOMS SALLE
+95
+Acta Canvis
+100
+CB MORELL A
+11-10-2025 19:30
+NOU BÀSQUET OLESA A
+82
+Acta Canvis
+56
+INVOGA CBT
+11-10-2025 15:45
+CB VALLS BNA
+77
+Acta Canvis
+80
+CB VILADECANS A
+11-10-2025 19:30
+VILABÀSQUET VILADECANS SMA
+55
+Acta
+50
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+12-10-2025 17:45
+ELS MONJOS BC - PANSALUD
+73
+Acta Canvis
+62
+Jornada 4
+Equip local
+Data i Hora
+Equip visitant
+BÀSQUET SANT BOI A
+19-10-2025 19:30
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+88
+Acta Canvis
+79
+CB VILA-SECA
+18-10-2025 17:45
+CB ABRERA
+86
+Acta
+72
+VILABÀSQUET VILADECANS SMA
+18-10-2025 18:00
+DAVIMA CB CANTAIRES TORTOSA
+74
+Acta
+72
+CB VALLS BNA
+19-10-2025 16:00
+CB VILADECANS A
+64
+Acta Canvis
+69
+NOU BÀSQUET OLESA A
+18-10-2025 17:45
+INVOGA CBT
+49
+Acta Canvis
+86
+VALLCUERBA REUS PLOMS SALLE
+18-10-2025 17:45
+CB MORELL A
+72
+Acta
+103
+ELS MONJOS BC - PANSALUD
+18-10-2025 18:45
+REMM GUITART - BÀSQUET RIBES
+48
+Acta Canvis
+53
+Jornada 5
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+25-10-2025 18:00
+CB VALLS BNA
+85
+Acta
+66
+CB ABRERA
+25-10-2025 17:30
+VILABÀSQUET VILADECANS SMA
+67
+Acta Canvis
+62
+BÀSQUET SANT BOI A
+26-10-2025 12:15
+CB VILA-SECA
+92
+Acta Canvis
+63
+CB MORELL A
+26-10-2025 17:15
+ELS MONJOS BC - PANSALUD
+77
+Acta Canvis
+58
+INVOGA CBT
+26-10-2025 19:30
+VALLCUERBA REUS PLOMS SALLE
+106
+Acta Canvis
+63
+CB VILADECANS A
+25-10-2025 19:30
+NOU BÀSQUET OLESA A
+71
+Acta
+66
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+25-10-2025 17:45
+REMM GUITART - BÀSQUET RIBES
+96
+Acta Canvis
+87
+Jornada 6
+Equip local
+Data i Hora
+Equip visitant
+CB VILA-SECA
+09-11-2025 19:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+71
+Acta Canvis
+86
+VILABÀSQUET VILADECANS SMA
+08-11-2025 18:00
+BÀSQUET SANT BOI A
+72
+Acta
+51
+CB VALLS BNA
+08-11-2025 20:00
+CB ABRERA
+71
+Acta Canvis
+74
+NOU BÀSQUET OLESA A
+09-11-2025 17:00
+DAVIMA CB CANTAIRES TORTOSA
+68
+Acta
+73
+VALLCUERBA REUS PLOMS SALLE
+09-11-2025 12:15
+CB VILADECANS A
+70
+Acta Canvis
+51
+ELS MONJOS BC - PANSALUD
+03-12-2025 20:15
+INVOGA CBT
+66
+Acta Canvis
+74
+REMM GUITART - BÀSQUET RIBES
+09-11-2025 16:30
+CB MORELL A
+66
+Acta Canvis
+82
+Jornada 7
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+15-11-2025 18:00
+VALLCUERBA REUS PLOMS SALLE
+82
+Acta
+53
+CB ABRERA
+16-11-2025 17:45
+NOU BÀSQUET OLESA A
+71
+Acta Canvis
+67
+BÀSQUET SANT BOI A
+16-11-2025 17:45
+CB VALLS BNA
+65
+Acta
+66
+CB VILA-SECA
+16-11-2025 18:00
+VILABÀSQUET VILADECANS SMA
+63
+Acta Canvis
+94
+INVOGA CBT
+15-11-2025 20:45
+REMM GUITART - BÀSQUET RIBES
+111
+Acta Canvis
+71
+CB VILADECANS A
+15-11-2025 19:30
+ELS MONJOS BC - PANSALUD
+77
+Acta
+70
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+15-11-2025 17:45
+CB MORELL A
+78
+Acta Canvis
+80
+Jornada 8
+Equip local
+Data i Hora
+Equip visitant
+VILABÀSQUET VILADECANS SMA
+22-11-2025 18:00
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+75
+Acta
+81
+CB VALLS BNA
+23-11-2025 18:45
+CB VILA-SECA
+73
+Acta Canvis
+63
+NOU BÀSQUET OLESA A
+23-11-2025 17:00
+BÀSQUET SANT BOI A
+74
+Acta
+81
+VALLCUERBA REUS PLOMS SALLE
+23-11-2025 12:30
+CB ABRERA
+89
+Acta Canvis
+76
+ELS MONJOS BC - PANSALUD
+23-11-2025 17:45
+DAVIMA CB CANTAIRES TORTOSA
+80
+Acta Canvis
+67
+REMM GUITART - BÀSQUET RIBES
+23-11-2025 19:30
+CB VILADECANS A
+75
+Acta Canvis
+64
+CB MORELL A
+23-11-2025 18:00
+INVOGA CBT
+77
+Acta Canvis
+81
+Jornada 9
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+29-11-2025 19:30
+REMM GUITART - BÀSQUET RIBES
+82
+Acta Canvis
+76
+CB ABRERA
+29-11-2025 17:15
+ELS MONJOS BC - PANSALUD
+81
+Acta
+70
+BÀSQUET SANT BOI A
+30-11-2025 17:45
+VALLCUERBA REUS PLOMS SALLE
+86
+Acta
+61
+CB VILA-SECA
+29-11-2025 19:45
+NOU BÀSQUET OLESA A
+60
+Acta Canvis
+61
+VILABÀSQUET VILADECANS SMA
+29-11-2025 19:00
+CB VALLS BNA
+88
+Acta Canvis
+60
+CB VILADECANS A
+29-11-2025 19:30
+CB MORELL A
+77
+Acta
+87
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+30-11-2025 18:00
+INVOGA CBT
+78
+Acta Canvis
+72
+Jornada 10
+Equip local
+Data i Hora
+Equip visitant
+CB VALLS BNA
+13-12-2025 19:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+80
+Acta
+76
+NOU BÀSQUET OLESA A
+14-12-2025 16:00
+VILABÀSQUET VILADECANS SMA
+63
+Acta Canvis
+81
+VALLCUERBA REUS PLOMS SALLE
+13-12-2025 20:00
+CB VILA-SECA
+79
+Acta Canvis
+72
+ELS MONJOS BC - PANSALUD
+14-12-2025 17:45
+BÀSQUET SANT BOI A
+72
+Acta Canvis
+74
+REMM GUITART - BÀSQUET RIBES
+14-12-2025 19:45
+CB ABRERA
+90
+Acta Canvis
+89
+CB MORELL A
+13-12-2025 19:30
+DAVIMA CB CANTAIRES TORTOSA
+59
+Acta Canvis
+58
+INVOGA CBT
+13-12-2025 19:00
+CB VILADECANS A
+99
+Acta Canvis
+59
+Jornada 11
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+20-12-2025 18:00
+INVOGA CBT
+75
+Acta
+68
+CB ABRERA
+20-12-2025 17:30
+CB MORELL A
+57
+Acta Canvis
+96
+BÀSQUET SANT BOI A
+21-12-2025 12:15
+REMM GUITART - BÀSQUET RIBES
+92
+Acta Canvis
+65
+CB VILA-SECA
+20-12-2025 16:30
+ELS MONJOS BC - PANSALUD
+58
+Acta Canvis
+69
+VILABÀSQUET VILADECANS SMA
+08-02-2026 17:45
+VALLCUERBA REUS PLOMS SALLE
+2
+Acta Canvis
+0
+CB VALLS BNA
+20-12-2025 19:45
+NOU BÀSQUET OLESA A
+79
+Acta
+64
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+20-12-2025 17:30
+CB VILADECANS A
+85
+Acta Canvis
+79
+Jornada 12
+Equip local
+Data i Hora
+Equip visitant
+VALLCUERBA REUS PLOMS SALLE
+10-01-2026 20:00
+CB VALLS BNA
+82
+Acta Canvis
+67
+ELS MONJOS BC - PANSALUD
+11-01-2026 17:45
+VILABÀSQUET VILADECANS SMA
+72
+Acta Canvis
+80
+REMM GUITART - BÀSQUET RIBES
+10-01-2026 18:15
+CB VILA-SECA
+81
+Acta Canvis
+51
+CB MORELL A
+11-01-2026 18:15
+BÀSQUET SANT BOI A
+73
+Acta Canvis
+68
+INVOGA CBT
+10-01-2026 16:00
+CB ABRERA
+81
+Acta
+70
+CB VILADECANS A
+10-01-2026 19:30
+DAVIMA CB CANTAIRES TORTOSA
+72
+Acta
+57
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+10-01-2026 17:45
+NOU BÀSQUET OLESA A
+84
+Acta Canvis
+85
+Jornada 13
+Equip local
+Data i Hora
+Equip visitant
+DAVIMA CB CANTAIRES TORTOSA
+17-01-2026 18:00
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+87
+Acta
+52
+CB ABRERA
+17-01-2026 17:15
+CB VILADECANS A
+68
+Acta
+73
+BÀSQUET SANT BOI A
+18-01-2026 19:30
+INVOGA CBT
+71
+Acta Canvis
+77
+CB VILA-SECA
+17-01-2026 16:00
+CB MORELL A
+53
+Acta Canvis
+94
+CB VALLS BNA
+17-01-2026 18:00
+ELS MONJOS BC - PANSALUD
+70
+Acta Canvis
+64
+NOU BÀSQUET OLESA A
+18-01-2026 17:30
+VALLCUERBA REUS PLOMS SALLE
+79
+Acta Canvis
+73
+REMM GUITART - BÀSQUET RIBES
+17-01-2026 18:15
+VILABÀSQUET VILADECANS SMA
+80
+Acta Canvis
+88
+Jornada 14
+Equip local
+Data i Hora
+Equip visitant
+NOU BÀSQUET OLESA A
+25-01-2026 17:45
+ELS MONJOS BC - PANSALUD
+67
+Acta Canvis
+58
+VILABÀSQUET VILADECANS SMA
+24-01-2026 18:00
+CB MORELL A
+50
+Acta
+61
+CB VILA-SECA
+25-01-2026 18:00
+INVOGA CBT
+64
+Acta Canvis
+74
+BÀSQUET SANT BOI A
+25-01-2026 17:45
+CB VILADECANS A
+58
+Acta Canvis
+82
+VALLCUERBA REUS PLOMS SALLE
+24-01-2026 17:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+59
+Acta
+74
+DAVIMA CB CANTAIRES TORTOSA
+24-01-2026 18:00
+CB ABRERA
+92
+Acta Canvis
+54
+REMM GUITART - BÀSQUET RIBES
+24-01-2026 19:15
+CB VALLS BNA
+87
+Acta Canvis
+82
+Jornada 15
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+31-01-2026 16:00
+CB ABRERA
+102
+Acta Canvis
+94
+DAVIMA CB CANTAIRES TORTOSA
+31-01-2026 18:00
+BÀSQUET SANT BOI A
+75
+Acta
+53
+CB VILADECANS A
+01-02-2026 16:30
+CB VILA-SECA
+68
+Acta Canvis
+55
+INVOGA CBT
+31-01-2026 19:00
+VILABÀSQUET VILADECANS SMA
+87
+Acta Canvis
+66
+CB MORELL A
+01-02-2026 17:45
+CB VALLS BNA
+85
+Acta Canvis
+76
+REMM GUITART - BÀSQUET RIBES
+31-01-2026 17:45
+NOU BÀSQUET OLESA A
+68
+Acta Canvis
+63
+ELS MONJOS BC - PANSALUD
+31-01-2026 17:45
+VALLCUERBA REUS PLOMS SALLE
+46
+Acta Canvis
+63
+Jornada 16
+Equip local
+Data i Hora
+Equip visitant
+CB VILA-SECA
+07-02-2026 17:45
+DAVIMA CB CANTAIRES TORTOSA
+61
+Acta
+71
+BÀSQUET SANT BOI A
+08-02-2026 12:30
+CB ABRERA
+70
+Acta Canvis
+81
+VALLCUERBA REUS PLOMS SALLE
+07-02-2026 16:00
+REMM GUITART - BÀSQUET RIBES
+82
+Acta Canvis
+62
+NOU BÀSQUET OLESA A
+08-02-2026 17:45
+CB MORELL A
+53
+Acta Canvis
+69
+CB VALLS BNA
+07-02-2026 19:45
+INVOGA CBT
+78
+Acta
+76
+VILABÀSQUET VILADECANS SMA
+07-02-2026 18:00
+CB VILADECANS A
+66
+Acta
+60
+ELS MONJOS BC - PANSALUD
+07-02-2026 19:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+75
+Acta
+76
+Jornada 17
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+14-02-2026 19:30
+BÀSQUET SANT BOI A
+61
+Acta Canvis
+69
+CB ABRERA
+14-02-2026 18:15
+CB VILA-SECA
+70
+Acta Canvis
+84
+DAVIMA CB CANTAIRES TORTOSA
+22-03-2026 11:45
+VILABÀSQUET VILADECANS SMA
+76
+Acta Canvis
+62
+CB VILADECANS A
+14-02-2026 19:30
+CB VALLS BNA
+59
+Acta
+61
+INVOGA CBT
+14-02-2026 15:45
+NOU BÀSQUET OLESA A
+84
+Acta Canvis
+56
+CB MORELL A
+11-02-2026 20:45
+VALLCUERBA REUS PLOMS SALLE
+75
+Acta Canvis
+77
+REMM GUITART - BÀSQUET RIBES
+11-02-2026 21:15
+ELS MONJOS BC - PANSALUD
+95
+Acta Canvis
+50
+Jornada 18
+Equip local
+Data i Hora
+Equip visitant
+CB VALLS BNA
+28-02-2026 19:45
+DAVIMA CB CANTAIRES TORTOSA
+82
+Acta
+51
+VILABÀSQUET VILADECANS SMA
+28-02-2026 20:30
+CB ABRERA
+92
+Acta Canvis
+43
+CB VILA-SECA
+28-02-2026 17:45
+BÀSQUET SANT BOI A
+76
+Acta
+86
+ELS MONJOS BC - PANSALUD
+28-02-2026 19:45
+CB MORELL A
+56
+Acta
+74
+VALLCUERBA REUS PLOMS SALLE
+28-02-2026 17:45
+INVOGA CBT
+60
+Acta
+79
+NOU BÀSQUET OLESA A
+01-03-2026 17:45
+CB VILADECANS A
+83
+Acta Canvis
+73
+REMM GUITART - BÀSQUET RIBES
+28-02-2026 19:30
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+92
+Acta Canvis
+91
+Jornada 19
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+07-03-2026 17:15
+CB VILA-SECA
+66
+Acta Canvis
+76
+BÀSQUET SANT BOI A
+08-03-2026 12:00
+VILABÀSQUET VILADECANS SMA
+81
+Acta Canvis
+76
+CB ABRERA
+07-03-2026 17:30
+CB VALLS BNA
+60
+Acta Canvis
+67
+DAVIMA CB CANTAIRES TORTOSA
+08-03-2026 12:00
+NOU BÀSQUET OLESA A
+69
+Acta Canvis
+58
+CB VILADECANS A
+07-03-2026 19:30
+VALLCUERBA REUS PLOMS SALLE
+77
+Acta
+75
+INVOGA CBT
+08-03-2026 19:00
+ELS MONJOS BC - PANSALUD
+92
+Acta Canvis
+56
+CB MORELL A
+08-03-2026 19:30
+REMM GUITART - BÀSQUET RIBES
+99
+Acta Canvis
+91
+Jornada 20
+Equip local
+Data i Hora
+Equip visitant
+VALLCUERBA REUS PLOMS SALLE
+14-03-2026 16:45
+DAVIMA CB CANTAIRES TORTOSA
+64
+Acta Canvis
+66
+NOU BÀSQUET OLESA A
+15-03-2026 17:45
+CB ABRERA
+73
+Acta Canvis
+61
+CB VALLS BNA
+15-03-2026 18:00
+BÀSQUET SANT BOI A
+73
+Acta Canvis
+82
+VILABÀSQUET VILADECANS SMA
+14-03-2026 16:00
+CB VILA-SECA
+98
+Acta Canvis
+48
+REMM GUITART - BÀSQUET RIBES
+14-03-2026 19:30
+INVOGA CBT
+92
+Acta Canvis
+84
+ELS MONJOS BC - PANSALUD
+14-03-2026 16:00
+CB VILADECANS A
+66
+Acta Canvis
+63
+CB MORELL A
+15-03-2026 19:30
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+85
+Acta Canvis
+72
+Jornada 21
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+21-03-2026 17:45
+VILABÀSQUET VILADECANS SMA
+66
+Acta Canvis
+76
+CB VILA-SECA
+21-03-2026 20:00
+CB VALLS BNA
+84
+Acta Canvis
+92
+BÀSQUET SANT BOI A
+22-03-2026 12:30
+NOU BÀSQUET OLESA A
+68
+Acta Canvis
+63
+CB ABRERA
+21-03-2026 18:15
+VALLCUERBA REUS PLOMS SALLE
+71
+Acta Canvis
+72
+DAVIMA CB CANTAIRES TORTOSA
+21-03-2026 16:00
+ELS MONJOS BC - PANSALUD
+86
+Acta Canvis
+82
+CB VILADECANS A
+22-03-2026 18:30
+REMM GUITART - BÀSQUET RIBES
+71
+Acta Canvis
+72
+INVOGA CBT
+21-03-2026 16:00
+CB MORELL A
+74
+Acta
+78
+Jornada 22
+Equip local
+Data i Hora
+Equip visitant
+REMM GUITART - BÀSQUET RIBES
+11-04-2026 17:30
+DAVIMA CB CANTAIRES TORTOSA
+71
+Acta Canvis
+82
+ELS MONJOS BC - PANSALUD
+11-04-2026 16:00
+CB ABRERA
+84
+Acta Canvis
+69
+VALLCUERBA REUS PLOMS SALLE
+12-04-2026 12:30
+BÀSQUET SANT BOI A
+63
+Acta Canvis
+72
+NOU BÀSQUET OLESA A
+12-04-2026 17:00
+CB VILA-SECA
+72
+Acta
+103
+CB VALLS BNA
+12-04-2026 18:00
+VILABÀSQUET VILADECANS SMA
+73
+Acta Canvis
+67
+CB MORELL A
+12-04-2026 13:00
+CB VILADECANS A
+79
+Acta Canvis
+59
+INVOGA CBT
+11-04-2026 20:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+102
+Acta Canvis
+63
+Jornada 23
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+18-04-2026 17:45
+CB VALLS BNA
+77
+Acta Canvis
+80
+VILABÀSQUET VILADECANS SMA
+19-04-2026 18:00
+NOU BÀSQUET OLESA A
+81
+Acta Canvis
+72
+CB VILA-SECA
+19-04-2026 17:45
+VALLCUERBA REUS PLOMS SALLE
+68
+Acta Canvis
+53
+BÀSQUET SANT BOI A
+19-04-2026 17:45
+ELS MONJOS BC - PANSALUD
+61
+Acta
+53
+CB ABRERA
+18-04-2026 17:30
+REMM GUITART - BÀSQUET RIBES
+83
+Acta Canvis
+65
+DAVIMA CB CANTAIRES TORTOSA
+18-04-2026 18:00
+CB MORELL A
+71
+Acta
+72
+CB VILADECANS A
+18-04-2026 19:30
+INVOGA CBT
+78
+Acta
+92
+Jornada 24
+Equip local
+Data i Hora
+Equip visitant
+INVOGA CBT
+25-04-2026 19:00
+DAVIMA CB CANTAIRES TORTOSA
+60
+Acta Canvis
+73
+CB MORELL A
+26-04-2026 16:00
+CB ABRERA
+94
+Acta Canvis
+88
+REMM GUITART - BÀSQUET RIBES
+25-04-2026 17:45
+BÀSQUET SANT BOI A
+85
+Acta Canvis
+75
+ELS MONJOS BC - PANSALUD
+25-04-2026 19:45
+CB VILA-SECA
+77
+Acta
+73
+VALLCUERBA REUS PLOMS SALLE
+25-04-2026 17:45
+VILABÀSQUET VILADECANS SMA
+81
+Acta
+70
+NOU BÀSQUET OLESA A
+26-04-2026 17:00
+CB VALLS BNA
+79
+Acta
+66
+CB VILADECANS A
+25-04-2026 19:30
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+79
+Acta
+75
+Jornada 25
+Equip local
+Data i Hora
+Equip visitant
+CB VALLS BNA
+09-05-2026 18:00
+VALLCUERBA REUS PLOMS SALLE
+88
+Acta Canvis
+69
+VILABÀSQUET VILADECANS SMA
+09-05-2026 19:45
+ELS MONJOS BC - PANSALUD
+74
+Acta Canvis
+60
+CB VILA-SECA
+10-05-2026 18:00
+REMM GUITART - BÀSQUET RIBES
+87
+Acta Canvis
+74
+BÀSQUET SANT BOI A
+10-05-2026 12:15
+CB MORELL A
+86
+Acta Canvis
+79
+CB ABRERA
+09-05-2026 17:30
+INVOGA CBT
+98
+Acta Canvis
+106
+DAVIMA CB CANTAIRES TORTOSA
+09-05-2026 18:00
+CB VILADECANS A
+86
+Acta
+56
+NOU BÀSQUET OLESA A
+10-05-2026 17:45
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+69
+Acta Canvis
+68
+Jornada 26
+Equip local
+Data i Hora
+Equip visitant
+CONTENIDORS PENEDÈS SE CASAL VILAFRANCA
+16-05-2026 17:45
+DAVIMA CB CANTAIRES TORTOSA
+62
+Acta Canvis
+72
+CB VILADECANS A
+16-05-2026 19:30
+CB ABRERA
+60
+Acta
+81
+INVOGA CBT
+17-05-2026 17:45
+BÀSQUET SANT BOI A
+97
+Acta Canvis
+86
+CB MORELL A
+13-05-2026 20:45
+CB VILA-SECA
+67
+Acta Canvis
+55
+ELS MONJOS BC - PANSALUD
+16-05-2026 19:45
+CB VALLS BNA
+61
+Acta
+64
+VALLCUERBA REUS PLOMS SALLE
+17-05-2026 13:45
+NOU BÀSQUET OLESA A
+68
+Acta Canvis
+50
+VILABÀSQUET VILADECANS SMA
+16-05-2026 19:00
+REMM GUITART - BÀSQUET RIBES
+68
+Acta Canvis
+53
+
+
+GRUPO 2:
+Jornada 1
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+28-09-2025 19:15
+CB CABRERA A
+68
+Acta Canvis
+83
+CB VILASSAR DE DALT A
+27-09-2025 17:15
+MURALLA ÒPTICA CB BLANES A
+64
+Acta Canvis
+77
+RIO LOGISTIC CB LLIÇA D’AMUNT
+28-09-2025 18:00
+CB LA GARRIGA A
+84
+Acta Canvis
+74
+C.B. FARNERS
+27-09-2025 17:45
+CB ADEPAF TXOTS
+66
+Acta
+71
+CE PALAMOS
+01-11-2025 18:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+74
+Acta Canvis
+70
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+13-01-2026 21:00
+HOMS U.E. MATARÓ -B
+76
+Acta Canvis
+60
+CB GUÍXOLS
+27-09-2025 18:15
+CESET
+69
+Acta
+53
+Jornada 2
+Equip local
+Data i Hora
+Equip visitant
+CB CABRERA A
+05-10-2025 19:15
+CB GUÍXOLS
+114
+Acta
+48
+HOMS U.E. MATARÓ -B
+05-10-2025 17:45
+CN CALDES A
+67
+Acta
+61
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+05-12-2025 20:45
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+62
+Acta Canvis
+61
+CB ADEPAF TXOTS
+05-10-2025 17:45
+CE PALAMOS
+69
+Acta
+73
+CB LA GARRIGA A
+05-10-2025 18:00
+C.B. FARNERS
+77
+Acta
+82
+MURALLA ÒPTICA CB BLANES A
+04-10-2025 17:45
+RIO LOGISTIC CB LLIÇA D’AMUNT
+60
+Acta
+49
+CESET
+04-10-2025 17:45
+CB VILASSAR DE DALT A
+47
+Acta
+59
+Jornada 3
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+12-10-2025 19:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+67
+Acta
+76
+CB CABRERA A
+12-10-2025 19:15
+HOMS U.E. MATARÓ -B
+90
+Acta
+63
+RIO LOGISTIC CB LLIÇA D’AMUNT
+11-10-2025 18:00
+CESET
+78
+Acta
+72
+C.B. FARNERS
+11-10-2025 17:45
+MURALLA ÒPTICA CB BLANES A
+66
+Acta
+76
+CE PALAMOS
+11-10-2025 18:00
+CB LA GARRIGA A
+101
+Acta
+92
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+11-10-2025 17:45
+CB ADEPAF TXOTS
+64
+Acta
+85
+CB GUÍXOLS
+11-10-2025 18:15
+CB VILASSAR DE DALT A
+61
+Acta
+78
+Jornada 4
+Equip local
+Data i Hora
+Equip visitant
+HOMS U.E. MATARÓ -B
+18-10-2025 19:00
+CB GUÍXOLS
+67
+Acta Canvis
+56
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+18-10-2025 18:00
+CB CABRERA A
+67
+Acta
+81
+CB ADEPAF TXOTS
+19-10-2025 17:45
+CN CALDES A
+67
+Acta
+55
+CB LA GARRIGA A
+19-10-2025 18:00
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+87
+Acta
+81
+MURALLA ÒPTICA CB BLANES A
+18-10-2025 17:45
+CE PALAMOS
+70
+Acta
+77
+CESET
+18-10-2025 17:45
+C.B. FARNERS
+72
+Acta
+57
+CB VILASSAR DE DALT A
+18-10-2025 18:30
+RIO LOGISTIC CB LLIÇA D’AMUNT
+66
+Acta Canvis
+55
+Jornada 5
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+26-10-2025 19:00
+CB LA GARRIGA A
+73
+Acta
+76
+CB CABRERA A
+26-10-2025 19:15
+CB ADEPAF TXOTS
+49
+Acta
+84
+C.B. FARNERS
+25-10-2025 18:15
+CB VILASSAR DE DALT A
+77
+Acta Canvis
+72
+CE PALAMOS
+25-10-2025 18:00
+CESET
+84
+Acta
+76
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+25-10-2025 17:45
+MURALLA ÒPTICA CB BLANES A
+60
+Acta
+87
+CB GUÍXOLS
+26-10-2025 18:15
+RIO LOGISTIC CB LLIÇA D’AMUNT
+56
+Acta Canvis
+79
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+26-10-2025 18:00
+HOMS U.E. MATARÓ -B
+81
+Acta Canvis
+84
+Jornada 6
+Equip local
+Data i Hora
+Equip visitant
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+08-11-2025 18:00
+CB GUÍXOLS
+108
+Acta
+77
+CB ADEPAF TXOTS
+09-11-2025 19:45
+HOMS U.E. MATARÓ -B
+74
+Acta Canvis
+52
+CB LA GARRIGA A
+09-11-2025 18:00
+CB CABRERA A
+62
+Acta
+82
+MURALLA ÒPTICA CB BLANES A
+08-11-2025 17:45
+CN CALDES A
+74
+Acta
+60
+CESET
+08-11-2025 17:45
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+82
+Acta
+59
+CB VILASSAR DE DALT A
+08-11-2025 17:00
+CE PALAMOS
+75
+Acta
+71
+RIO LOGISTIC CB LLIÇA D’AMUNT
+08-11-2025 18:00
+C.B. FARNERS
+59
+Acta
+62
+Jornada 7
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+16-11-2025 19:30
+CESET
+77
+Acta Canvis
+74
+CB CABRERA A
+16-11-2025 19:00
+MURALLA ÒPTICA CB BLANES A
+86
+Acta Canvis
+56
+HOMS U.E. MATARÓ -B
+16-11-2025 17:45
+CB LA GARRIGA A
+79
+Acta Canvis
+63
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+16-11-2025 18:00
+CB ADEPAF TXOTS
+57
+Acta Canvis
+79
+CE PALAMOS
+15-11-2025 16:00
+RIO LOGISTIC CB LLIÇA D’AMUNT
+84
+Acta Canvis
+69
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+15-11-2025 17:45
+CB VILASSAR DE DALT A
+76
+Acta
+84
+CB GUÍXOLS
+15-11-2025 18:15
+C.B. FARNERS
+70
+Acta
+88
+Jornada 8
+Equip local
+Data i Hora
+Equip visitant
+CB ADEPAF TXOTS
+23-11-2025 17:45
+CB GUÍXOLS
+83
+Acta
+59
+CB LA GARRIGA A
+23-11-2025 18:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+71
+Acta
+55
+MURALLA ÒPTICA CB BLANES A
+22-11-2025 17:45
+HOMS U.E. MATARÓ -B
+81
+Acta
+61
+CESET
+22-11-2025 16:00
+CB CABRERA A
+78
+Acta Canvis
+87
+CB VILASSAR DE DALT A
+22-11-2025 17:15
+CN CALDES A
+76
+Acta Canvis
+66
+RIO LOGISTIC CB LLIÇA D’AMUNT
+22-11-2025 20:30
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+69
+Acta Canvis
+56
+C.B. FARNERS
+22-11-2025 17:45
+CE PALAMOS
+78
+Acta
+57
+Jornada 9
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+30-11-2025 19:15
+RIO LOGISTIC CB LLIÇA D’AMUNT
+67
+Acta Canvis
+65
+CB CABRERA A
+30-11-2025 19:15
+CB VILASSAR DE DALT A
+77
+Acta
+84
+HOMS U.E. MATARÓ -B
+30-11-2025 17:45
+CESET
+49
+Acta
+80
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+29-11-2025 18:00
+MURALLA ÒPTICA CB BLANES A
+67
+Acta
+57
+CB ADEPAF TXOTS
+30-11-2025 17:45
+CB LA GARRIGA A
+99
+Acta
+56
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+30-11-2025 16:45
+C.B. FARNERS
+74
+Acta Canvis
+83
+CB GUÍXOLS
+29-11-2025 17:00
+CE PALAMOS
+77
+Acta Canvis
+89
+Jornada 10
+Equip local
+Data i Hora
+Equip visitant
+CB LA GARRIGA A
+14-12-2025 18:00
+CB GUÍXOLS
+59
+Acta
+76
+CESET
+13-12-2025 17:45
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+75
+Acta
+83
+CB VILASSAR DE DALT A
+13-12-2025 17:00
+HOMS U.E. MATARÓ -B
+86
+Acta
+70
+RIO LOGISTIC CB LLIÇA D’AMUNT
+14-12-2025 18:00
+CB CABRERA A
+56
+Acta Canvis
+62
+C.B. FARNERS
+13-12-2025 17:45
+CN CALDES A
+72
+Acta
+52
+CE PALAMOS
+13-12-2025 18:00
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+76
+Acta
+66
+CB ADEPAF TXOTS
+14-12-2025 20:00
+MURALLA ÒPTICA CB BLANES A
+66
+Acta Canvis
+61
+Jornada 11
+Equip local
+Data i Hora
+Equip visitant
+CB CABRERA A
+21-12-2025 19:15
+C.B. FARNERS
+77
+Acta
+73
+HOMS U.E. MATARÓ -B
+20-12-2025 17:45
+RIO LOGISTIC CB LLIÇA D’AMUNT
+68
+Acta Canvis
+59
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+20-12-2025 18:00
+CB VILASSAR DE DALT A
+89
+Acta
+81
+CB ADEPAF TXOTS
+21-12-2025 17:45
+CESET
+83
+Acta
+59
+CB LA GARRIGA A
+21-12-2025 18:00
+MURALLA ÒPTICA CB BLANES A
+65
+Acta
+68
+CB GUÍXOLS
+20-12-2025 18:15
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+63
+Acta
+72
+CE PALAMOS
+18-02-2026 20:30
+CN CALDES A
+75
+Acta Canvis
+79
+Jornada 12
+Equip local
+Data i Hora
+Equip visitant
+CESET
+11-01-2026 17:30
+CB LA GARRIGA A
+78
+Acta Canvis
+79
+CB VILASSAR DE DALT A
+10-01-2026 17:15
+CB ADEPAF TXOTS
+64
+Acta Canvis
+81
+RIO LOGISTIC CB LLIÇA D’AMUNT
+11-01-2026 18:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+64
+Acta Canvis
+70
+C.B. FARNERS
+10-01-2026 17:45
+HOMS U.E. MATARÓ -B
+82
+Acta
+73
+CE PALAMOS
+10-01-2026 18:00
+CB CABRERA A
+92
+Acta
+73
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+11-01-2026 17:45
+CN CALDES A
+64
+Acta
+56
+CB GUÍXOLS
+11-01-2026 17:45
+MURALLA ÒPTICA CB BLANES A
+72
+Acta Canvis
+67
+Jornada 13
+Equip local
+Data i Hora
+Equip visitant
+CN CALDES A
+18-01-2026 19:15
+CB GUÍXOLS
+79
+Acta Canvis
+55
+CB CABRERA A
+18-01-2026 19:15
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+81
+Acta
+61
+HOMS U.E. MATARÓ -B
+18-01-2026 19:30
+CE PALAMOS
+59
+Acta Canvis
+79
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+17-01-2026 18:00
+C.B. FARNERS
+64
+Acta
+94
+CB ADEPAF TXOTS
+18-01-2026 17:45
+RIO LOGISTIC CB LLIÇA D’AMUNT
+75
+Acta
+61
+CB LA GARRIGA A
+18-01-2026 18:00
+CB VILASSAR DE DALT A
+76
+Acta
+74
+MURALLA ÒPTICA CB BLANES A
+17-01-2026 17:45
+CESET
+65
+Acta
+81
+Jornada 14
+Equip local
+Data i Hora
+Equip visitant
+CB CABRERA A
+25-01-2026 19:15
+CN CALDES A
+86
+Acta
+63
+MURALLA ÒPTICA CB BLANES A
+18-03-2026 21:00
+CB VILASSAR DE DALT A
+76
+Acta Canvis
+84
+CB LA GARRIGA A
+24-01-2026 18:00
+RIO LOGISTIC CB LLIÇA D’AMUNT
+76
+Acta Canvis
+81
+CB ADEPAF TXOTS
+25-01-2026 17:45
+C.B. FARNERS
+85
+Acta
+75
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+24-01-2026 18:00
+CE PALAMOS
+77
+Acta
+74
+HOMS U.E. MATARÓ -B
+25-01-2026 19:30
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+64
+Acta Canvis
+56
+CESET
+24-01-2026 17:45
+CB GUÍXOLS
+71
+Acta
+52
+Jornada 15
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+31-01-2026 18:15
+CB CABRERA A
+65
+Acta
+78
+CN CALDES A
+31-01-2026 17:45
+HOMS U.E. MATARÓ -B
+79
+Acta Canvis
+71
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+01-02-2026 17:15
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+75
+Acta Canvis
+72
+CE PALAMOS
+31-01-2026 18:00
+CB ADEPAF TXOTS
+59
+Acta
+84
+C.B. FARNERS
+31-01-2026 17:15
+CB LA GARRIGA A
+101
+Acta Canvis
+63
+RIO LOGISTIC CB LLIÇA D’AMUNT
+31-01-2026 18:00
+MURALLA ÒPTICA CB BLANES A
+56
+Acta
+73
+CB VILASSAR DE DALT A
+31-01-2026 17:00
+CESET
+63
+Acta
+60
+Jornada 16
+Equip local
+Data i Hora
+Equip visitant
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+07-02-2026 18:00
+CN CALDES A
+51
+Acta
+63
+HOMS U.E. MATARÓ -B
+07-02-2026 17:00
+CB CABRERA A
+57
+Acta Canvis
+73
+CESET
+07-02-2026 17:45
+RIO LOGISTIC CB LLIÇA D’AMUNT
+67
+Acta
+53
+MURALLA ÒPTICA CB BLANES A
+07-02-2026 17:45
+C.B. FARNERS
+70
+Acta
+60
+CB LA GARRIGA A
+08-02-2026 18:00
+CE PALAMOS
+81
+Acta
+88
+CB ADEPAF TXOTS
+08-02-2026 17:45
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+70
+Acta
+49
+CB VILASSAR DE DALT A
+07-02-2026 17:00
+CB GUÍXOLS
+84
+Acta
+63
+Jornada 17
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+08-04-2026 21:00
+HOMS U.E. MATARÓ -B
+86
+Acta Canvis
+81
+CB CABRERA A
+15-02-2026 19:15
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+97
+Acta
+63
+CN CALDES A
+14-02-2026 17:45
+CB ADEPAF TXOTS
+55
+Acta Canvis
+64
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+19-02-2026 21:00
+CB LA GARRIGA A
+66
+Acta Canvis
+45
+CE PALAMOS
+25-03-2026 20:30
+MURALLA ÒPTICA CB BLANES A
+78
+Acta Canvis
+75
+C.B. FARNERS
+14-02-2026 20:30
+CESET
+100
+Acta Canvis
+90
+RIO LOGISTIC CB LLIÇA D’AMUNT
+15-02-2026 18:00
+CB VILASSAR DE DALT A
+84
+Acta Canvis
+79
+Jornada 18
+Equip local
+Data i Hora
+Equip visitant
+CB LA GARRIGA A
+01-03-2026 18:00
+CN CALDES A
+69
+Acta
+75
+CB ADEPAF TXOTS
+01-03-2026 17:45
+CB CABRERA A
+62
+Acta
+66
+CB VILASSAR DE DALT A
+28-02-2026 17:00
+C.B. FARNERS
+70
+Acta
+60
+CESET
+28-02-2026 17:45
+CE PALAMOS
+61
+Acta
+66
+MURALLA ÒPTICA CB BLANES A
+28-02-2026 17:45
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+68
+Acta
+90
+RIO LOGISTIC CB LLIÇA D’AMUNT
+27-02-2026 21:30
+CB GUÍXOLS
+69
+Acta Canvis
+58
+HOMS U.E. MATARÓ -B
+28-02-2026 16:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+68
+Acta Canvis
+75
+Jornada 19
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+07-03-2026 18:15
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+84
+Acta
+68
+HOMS U.E. MATARÓ -B
+08-03-2026 17:45
+CB ADEPAF TXOTS
+31
+Acta
+75
+CB CABRERA A
+08-03-2026 19:15
+CB LA GARRIGA A
+86
+Acta
+60
+CN CALDES A
+08-03-2026 19:30
+MURALLA ÒPTICA CB BLANES A
+75
+Acta Canvis
+63
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+08-03-2026 17:45
+CESET
+74
+Acta
+65
+CE PALAMOS
+07-03-2026 18:00
+CB VILASSAR DE DALT A
+84
+Acta
+66
+C.B. FARNERS
+07-03-2026 19:00
+RIO LOGISTIC CB LLIÇA D’AMUNT
+83
+Acta Canvis
+73
+Jornada 20
+Equip local
+Data i Hora
+Equip visitant
+CESET
+24-04-2026 22:00
+CN CALDES A
+75
+Acta Canvis
+63
+MURALLA ÒPTICA CB BLANES A
+14-03-2026 17:45
+CB CABRERA A
+68
+Acta
+81
+CB LA GARRIGA A
+15-03-2026 18:00
+HOMS U.E. MATARÓ -B
+79
+Acta
+72
+CB ADEPAF TXOTS
+15-03-2026 17:45
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+78
+Acta
+58
+RIO LOGISTIC CB LLIÇA D’AMUNT
+15-03-2026 12:00
+CE PALAMOS
+74
+Acta Canvis
+85
+CB VILASSAR DE DALT A
+14-03-2026 17:15
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+76
+Acta Canvis
+63
+C.B. FARNERS
+14-03-2026 19:00
+CB GUÍXOLS
+72
+Acta Canvis
+70
+Jornada 21
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+21-03-2026 18:15
+CB ADEPAF TXOTS
+65
+Acta
+75
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+22-03-2026 19:00
+CB LA GARRIGA A
+79
+Acta Canvis
+65
+HOMS U.E. MATARÓ -B
+22-03-2026 19:30
+MURALLA ÒPTICA CB BLANES A
+54
+Acta Canvis
+63
+CB CABRERA A
+22-03-2026 19:15
+CESET
+79
+Acta
+59
+CN CALDES A
+22-03-2026 19:30
+CB VILASSAR DE DALT A
+97
+Acta Canvis
+99
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+24-02-2026 21:30
+RIO LOGISTIC CB LLIÇA D’AMUNT
+86
+Acta Canvis
+97
+CE PALAMOS
+21-03-2026 18:45
+C.B. FARNERS
+95
+Acta Canvis
+82
+Jornada 22
+Equip local
+Data i Hora
+Equip visitant
+RIO LOGISTIC CB LLIÇA D’AMUNT
+12-04-2026 12:00
+CN CALDES A
+73
+Acta Canvis
+79
+CB VILASSAR DE DALT A
+11-04-2026 17:15
+CB CABRERA A
+62
+Acta Canvis
+75
+CESET
+11-04-2026 17:45
+HOMS U.E. MATARÓ -B
+87
+Acta
+86
+MURALLA ÒPTICA CB BLANES A
+11-04-2026 17:45
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+80
+Acta
+63
+CB LA GARRIGA A
+12-04-2026 18:00
+CB ADEPAF TXOTS
+54
+Acta
+80
+C.B. FARNERS
+11-04-2026 17:15
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+66
+Acta Canvis
+76
+CE PALAMOS
+11-04-2026 18:00
+CB GUÍXOLS
+90
+Acta
+70
+Jornada 23
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+18-04-2026 19:15
+CB LA GARRIGA A
+66
+Acta Canvis
+75
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+18-04-2026 20:00
+CESET
+71
+Acta Canvis
+74
+HOMS U.E. MATARÓ -B
+19-04-2026 17:45
+CB VILASSAR DE DALT A
+64
+Acta Canvis
+80
+CB CABRERA A
+19-04-2026 19:45
+RIO LOGISTIC CB LLIÇA D’AMUNT
+78
+Acta Canvis
+87
+CN CALDES A
+19-04-2026 19:30
+C.B. FARNERS
+79
+Acta Canvis
+73
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+19-04-2026 17:45
+CE PALAMOS
+70
+Acta
+98
+MURALLA ÒPTICA CB BLANES A
+18-04-2026 19:30
+CB ADEPAF TXOTS
+76
+Acta Canvis
+66
+Jornada 24
+Equip local
+Data i Hora
+Equip visitant
+C.B. FARNERS
+25-04-2026 19:00
+CB CABRERA A
+78
+Acta Canvis
+56
+RIO LOGISTIC CB LLIÇA D’AMUNT
+25-04-2026 18:00
+HOMS U.E. MATARÓ -B
+81
+Acta Canvis
+69
+CB VILASSAR DE DALT A
+25-04-2026 16:00
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+83
+Acta Canvis
+78
+CESET
+25-04-2026 17:45
+CB ADEPAF TXOTS
+48
+Acta
+79
+MURALLA ÒPTICA CB BLANES A
+25-04-2026 17:45
+CB LA GARRIGA A
+56
+Acta
+46
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+26-04-2026 17:45
+CB GUÍXOLS
+69
+Acta
+53
+CN CALDES A
+26-04-2026 19:00
+CE PALAMOS
+62
+Acta Canvis
+81
+Jornada 25
+Equip local
+Data i Hora
+Equip visitant
+CB LA GARRIGA A
+10-05-2026 17:45
+CESET
+70
+Acta Canvis
+73
+CB ADEPAF TXOTS
+10-05-2026 16:30
+CB VILASSAR DE DALT A
+74
+Acta Canvis
+62
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+09-05-2026 18:00
+RIO LOGISTIC CB LLIÇA D’AMUNT
+77
+Acta
+79
+HOMS U.E. MATARÓ -B
+09-05-2026 16:00
+C.B. FARNERS
+53
+Acta Canvis
+111
+CB CABRERA A
+10-05-2026 19:15
+CE PALAMOS
+55
+Acta
+74
+CN CALDES A
+09-05-2026 19:00
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+62
+Acta Canvis
+72
+MURALLA ÒPTICA CB BLANES A
+09-05-2026 17:45
+CB GUÍXOLS
+74
+Acta
+80
+Jornada 26
+Equip local
+Data i Hora
+Equip visitant
+CB GUÍXOLS
+16-05-2026 18:15
+CN CALDES A
+72
+Acta
+52
+C.B. VILANOVA DEL VALLÈS NEGRE-MAS DE SANT LLEÍ
+17-05-2026 19:45
+CB CABRERA A
+76
+Acta Canvis
+63
+CE PALAMOS
+16-05-2026 18:00
+HOMS U.E. MATARÓ -B
+95
+Acta
+61
+C.B. FARNERS
+16-05-2026 17:45
+MARBRES BERTRAN BÀSQUET ARBÚCIES A
+78
+Acta
+77
+RIO LOGISTIC CB LLIÇA D’AMUNT
+17-05-2026 18:00
+CB ADEPAF TXOTS
+70
+Acta Canvis
+87
+CB VILASSAR DE DALT A
+16-05-2026 18:45
+CB LA GARRIGA A
+85
+Acta Canvis
+71
+CESET
+17-05-2026 19:30
+MURALLA ÒPTICA CB BLANES A
+82
+Acta Canvis
+70
+
+GRUPO 3:
+Jornada 1
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+28-09-2025 12:15
+CLUB NATACIÓ TERRASSA A
+41
+Acta Canvis
+55
+BC MORABANC ANDORRA B
+28-09-2025 19:00
+A.E. SANT ANDREU NATZARET-A
+75
+Acta
+63
+FORMULA SR -LLUÏSOS DE GRACIA A 
+28-09-2025 19:15
+SESE B
+69
+Acta Canvis
+67
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+27-09-2025 17:45
+PUJOL MOLLERUSSA
+75
+Acta
+64
+CENG FIWITEL
+27-09-2025 19:30
+EL MASNOU BASQUETBOL A
+71
+Acta Canvis
+70
+CE SANT NICOLAU
+28-09-2025 19:15
+UB SANT ADRIA B
+50
+Acta Canvis
+36
+IDÓNIA - BASQUE SANT PERE
+28-09-2025 12:15
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+75
+Acta Canvis
+69
+Jornada 2
+Equip local
+Data i Hora
+Equip visitant
+CLUB NATACIÓ TERRASSA A
+05-10-2025 18:30
+IDÓNIA - BASQUE SANT PERE
+54
+Acta
+67
+UB SANT ADRIA B
+04-10-2025 16:00
+CB IPSI B
+67
+Acta
+64
+EL MASNOU BASQUETBOL A
+04-10-2025 19:00
+CE SANT NICOLAU
+74
+Acta
+69
+PUJOL MOLLERUSSA
+05-10-2025 19:30
+CENG FIWITEL
+64
+Acta Canvis
+52
+SESE B
+04-10-2025 19:30
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+77
+Acta
+52
+A.E. SANT ANDREU NATZARET-A
+04-10-2025 17:45
+FORMULA SR -LLUÏSOS DE GRACIA A 
+75
+Acta
+70
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+05-10-2025 19:00
+BC MORABANC ANDORRA B
+80
+Acta Canvis
+95
+Jornada 3
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+11-10-2025 19:15
+EL MASNOU BASQUETBOL A
+81
+Acta
+85
+CLUB NATACIÓ TERRASSA A
+12-10-2025 18:30
+UB SANT ADRIA B
+43
+Acta
+64
+FORMULA SR -LLUÏSOS DE GRACIA A 
+12-10-2025 17:30
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+84
+Acta
+62
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+11-10-2025 17:45
+A.E. SANT ANDREU NATZARET-A
+87
+Acta
+74
+CENG FIWITEL
+12-10-2025 18:00
+SESE B
+53
+Acta Canvis
+90
+CE SANT NICOLAU
+11-10-2025 17:45
+PUJOL MOLLERUSSA
+70
+Acta Canvis
+72
+IDÓNIA - BASQUE SANT PERE
+12-10-2025 19:00
+BC MORABANC ANDORRA B
+74
+Acta Canvis
+92
+Jornada 4
+Equip local
+Data i Hora
+Equip visitant
+UB SANT ADRIA B
+16-10-2025 21:15
+IDÓNIA - BASQUE SANT PERE
+44
+Acta Canvis
+59
+EL MASNOU BASQUETBOL A
+18-10-2025 17:15
+CLUB NATACIÓ TERRASSA A
+74
+Acta Canvis
+65
+PUJOL MOLLERUSSA
+18-10-2025 17:00
+CB IPSI B
+79
+Acta Canvis
+60
+SESE B
+19-10-2025 19:30
+CE SANT NICOLAU
+70
+Acta Canvis
+80
+A.E. SANT ANDREU NATZARET-A
+18-10-2025 17:45
+CENG FIWITEL
+82
+Acta
+44
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+19-10-2025 19:30
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+82
+Acta Canvis
+91
+BC MORABANC ANDORRA B
+18-10-2025 16:45
+FORMULA SR -LLUÏSOS DE GRACIA A 
+85
+Acta Canvis
+62
+Jornada 5
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+25-10-2025 19:15
+SESE B
+74
+Acta
+78
+CLUB NATACIÓ TERRASSA A
+26-10-2025 18:30
+PUJOL MOLLERUSSA
+76
+Acta
+67
+UB SANT ADRIA B
+25-10-2025 18:00
+EL MASNOU BASQUETBOL A
+49
+Acta Canvis
+69
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+26-10-2025 16:00
+BC MORABANC ANDORRA B
+99
+Acta Canvis
+95
+CENG FIWITEL
+25-10-2025 17:45
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+60
+Acta Canvis
+81
+CE SANT NICOLAU
+25-10-2025 17:45
+A.E. SANT ANDREU NATZARET-A
+65
+Acta
+74
+IDÓNIA - BASQUE SANT PERE
+26-10-2025 12:00
+FORMULA SR -LLUÏSOS DE GRACIA A 
+84
+Acta Canvis
+81
+Jornada 6
+Equip local
+Data i Hora
+Equip visitant
+EL MASNOU BASQUETBOL A
+08-11-2025 19:00
+IDÓNIA - BASQUE SANT PERE
+67
+Acta
+75
+PUJOL MOLLERUSSA
+09-11-2025 18:45
+UB SANT ADRIA B
+59
+Acta Canvis
+65
+SESE B
+09-11-2025 19:30
+CLUB NATACIÓ TERRASSA A
+69
+Acta Canvis
+66
+A.E. SANT ANDREU NATZARET-A
+09-11-2025 18:00
+CB IPSI B
+88
+Acta Canvis
+74
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+09-11-2025 19:30
+CE SANT NICOLAU
+70
+Acta Canvis
+58
+BC MORABANC ANDORRA B
+09-11-2025 17:30
+CENG FIWITEL
+98
+Acta Canvis
+59
+FORMULA SR -LLUÏSOS DE GRACIA A 
+09-11-2025 17:30
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+51
+Acta
+58
+Jornada 7
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+15-11-2025 19:15
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+85
+Acta
+76
+CLUB NATACIÓ TERRASSA A
+16-11-2025 18:30
+A.E. SANT ANDREU NATZARET-A
+72
+Acta
+70
+UB SANT ADRIA B
+16-11-2025 19:30
+SESE B
+59
+Acta Canvis
+49
+EL MASNOU BASQUETBOL A
+15-11-2025 19:00
+PUJOL MOLLERUSSA
+109
+Acta
+59
+CENG FIWITEL
+15-11-2025 18:00
+FORMULA SR -LLUÏSOS DE GRACIA A 
+49
+Acta Canvis
+102
+CE SANT NICOLAU
+15-11-2025 19:30
+BC MORABANC ANDORRA B
+79
+Acta Canvis
+84
+IDÓNIA - BASQUE SANT PERE
+16-11-2025 12:00
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+57
+Acta Canvis
+85
+Jornada 8
+Equip local
+Data i Hora
+Equip visitant
+PUJOL MOLLERUSSA
+22-11-2025 16:00
+IDÓNIA - BASQUE SANT PERE
+68
+Acta
+80
+SESE B
+22-11-2025 19:30
+EL MASNOU BASQUETBOL A
+79
+Acta
+67
+A.E. SANT ANDREU NATZARET-A
+22-11-2025 17:45
+UB SANT ADRIA B
+70
+Acta
+78
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+22-11-2025 17:45
+CLUB NATACIÓ TERRASSA A
+68
+Acta
+60
+BC MORABANC ANDORRA B
+23-11-2025 18:30
+CB IPSI B
+119
+Acta Canvis
+71
+FORMULA SR -LLUÏSOS DE GRACIA A 
+23-11-2025 17:30
+CE SANT NICOLAU
+72
+Acta
+68
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+23-11-2025 12:30
+CENG FIWITEL
+78
+Acta Canvis
+54
+Jornada 9
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+29-11-2025 19:15
+FORMULA SR -LLUÏSOS DE GRACIA A 
+78
+Acta
+87
+CLUB NATACIÓ TERRASSA A
+30-11-2025 17:45
+BC MORABANC ANDORRA B
+65
+Acta Canvis
+73
+UB SANT ADRIA B
+29-11-2025 16:00
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+70
+Acta
+68
+EL MASNOU BASQUETBOL A
+29-11-2025 19:00
+A.E. SANT ANDREU NATZARET-A
+99
+Acta
+86
+PUJOL MOLLERUSSA
+30-11-2025 16:00
+SESE B
+61
+Acta Canvis
+75
+CE SANT NICOLAU
+29-11-2025 19:30
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+79
+Acta Canvis
+64
+IDÓNIA - BASQUE SANT PERE
+30-11-2025 12:00
+CENG FIWITEL
+56
+Acta Canvis
+62
+Jornada 10
+Equip local
+Data i Hora
+Equip visitant
+SESE B
+13-12-2025 19:00
+IDÓNIA - BASQUE SANT PERE
+65
+Acta Canvis
+52
+A.E. SANT ANDREU NATZARET-A
+25-01-2026 17:45
+PUJOL MOLLERUSSA
+87
+Acta Canvis
+53
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+13-12-2025 17:45
+EL MASNOU BASQUETBOL A
+64
+Acta
+75
+BC MORABANC ANDORRA B
+14-12-2025 19:00
+UB SANT ADRIA B
+83
+Acta Canvis
+65
+FORMULA SR -LLUÏSOS DE GRACIA A 
+14-12-2025 17:30
+CLUB NATACIÓ TERRASSA A
+57
+Acta
+53
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+13-12-2025 17:45
+CB IPSI B
+92
+Acta
+58
+CENG FIWITEL
+14-12-2025 18:00
+CE SANT NICOLAU
+49
+Acta Canvis
+63
+Jornada 11
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+20-12-2025 19:15
+CENG FIWITEL
+60
+Acta
+56
+CLUB NATACIÓ TERRASSA A
+21-12-2025 18:30
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+62
+Acta
+76
+UB SANT ADRIA B
+16-12-2025 21:10
+FORMULA SR -LLUÏSOS DE GRACIA A 
+56
+Acta Canvis
+60
+EL MASNOU BASQUETBOL A
+20-12-2025 19:00
+BC MORABANC ANDORRA B
+73
+Acta
+94
+PUJOL MOLLERUSSA
+20-12-2025 16:00
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+60
+Acta
+76
+SESE B
+01-11-2025 18:45
+A.E. SANT ANDREU NATZARET-A
+97
+Acta Canvis
+69
+IDÓNIA - BASQUE SANT PERE
+20-12-2025 19:30
+CE SANT NICOLAU
+78
+Acta Canvis
+80
+Jornada 12
+Equip local
+Data i Hora
+Equip visitant
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+10-01-2026 17:45
+SESE B
+69
+Acta
+48
+BC MORABANC ANDORRA B
+10-01-2026 19:00
+PUJOL MOLLERUSSA
+89
+Acta Canvis
+81
+FORMULA SR -LLUÏSOS DE GRACIA A 
+11-01-2026 17:30
+EL MASNOU BASQUETBOL A
+56
+Acta
+65
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+10-01-2026 17:45
+UB SANT ADRIA B
+84
+Acta
+62
+CENG FIWITEL
+11-01-2026 19:00
+CLUB NATACIÓ TERRASSA A
+63
+Acta
+55
+CE SANT NICOLAU
+10-01-2026 17:45
+CB IPSI B
+79
+Acta
+51
+IDÓNIA - BASQUE SANT PERE
+10-01-2026 19:00
+A.E. SANT ANDREU NATZARET-A
+77
+Acta Canvis
+79
+Jornada 13
+Equip local
+Data i Hora
+Equip visitant
+CB IPSI B
+17-01-2026 19:15
+IDÓNIA - BASQUE SANT PERE
+74
+Acta
+57
+CLUB NATACIÓ TERRASSA A
+26-03-2026 20:30
+CE SANT NICOLAU
+50
+Acta Canvis
+69
+UB SANT ADRIA B
+17-01-2026 16:00
+CENG FIWITEL
+65
+Acta
+48
+EL MASNOU BASQUETBOL A
+17-01-2026 19:00
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+98
+Acta
+85
+PUJOL MOLLERUSSA
+17-01-2026 16:00
+FORMULA SR -LLUÏSOS DE GRACIA A 
+41
+Acta
+60
+SESE B
+08-02-2026 17:45
+BC MORABANC ANDORRA B
+72
+Acta Canvis
+78
+A.E. SANT ANDREU NATZARET-A
+17-01-2026 17:45
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+78
+Acta
+65
+Jornada 14
+Equip local
+Data i Hora
+Equip visitant
+CLUB NATACIÓ TERRASSA A
+25-01-2026 18:30
+CB IPSI B
+75
+Acta
+65
+A.E. SANT ANDREU NATZARET-A
+24-01-2026 17:45
+BC MORABANC ANDORRA B
+73
+Acta
+85
+SESE B
+24-01-2026 19:30
+FORMULA SR -LLUÏSOS DE GRACIA A 
+58
+Acta
+68
+PUJOL MOLLERUSSA
+24-01-2026 19:15
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+70
+Acta Canvis
+89
+EL MASNOU BASQUETBOL A
+24-01-2026 19:00
+CENG FIWITEL
+86
+Acta
+41
+UB SANT ADRIA B
+24-01-2026 16:00
+CE SANT NICOLAU
+62
+Acta
+63
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+24-01-2026 17:45
+IDÓNIA - BASQUE SANT PERE
+65
+Acta
+54
+Jornada 15
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+31-01-2026 17:15
+CLUB NATACIÓ TERRASSA A
+54
+Acta Canvis
+62
+CB IPSI B
+01-02-2026 18:45
+UB SANT ADRIA B
+70
+Acta Canvis
+76
+CE SANT NICOLAU
+31-01-2026 17:45
+EL MASNOU BASQUETBOL A
+59
+Acta
+68
+CENG FIWITEL
+01-02-2026 18:00
+PUJOL MOLLERUSSA
+53
+Acta Canvis
+68
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+31-01-2026 17:45
+SESE B
+59
+Acta
+57
+FORMULA SR -LLUÏSOS DE GRACIA A 
+01-02-2026 17:30
+A.E. SANT ANDREU NATZARET-A
+47
+Acta
+56
+BC MORABANC ANDORRA B
+01-02-2026 19:00
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+90
+Acta
+69
+Jornada 16
+Equip local
+Data i Hora
+Equip visitant
+EL MASNOU BASQUETBOL A
+07-02-2026 19:00
+CB IPSI B
+102
+Acta
+62
+UB SANT ADRIA B
+07-02-2026 16:00
+CLUB NATACIÓ TERRASSA A
+65
+Acta
+57
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+07-02-2026 17:45
+FORMULA SR -LLUÏSOS DE GRACIA A 
+81
+Acta
+77
+A.E. SANT ANDREU NATZARET-A
+07-02-2026 17:45
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+71
+Acta
+65
+SESE B
+07-02-2026 19:30
+CENG FIWITEL
+87
+Acta
+45
+PUJOL MOLLERUSSA
+07-02-2026 16:00
+CE SANT NICOLAU
+48
+Acta
+70
+BC MORABANC ANDORRA B
+07-02-2026 13:15
+IDÓNIA - BASQUE SANT PERE
+84
+Acta Canvis
+61
+Jornada 17
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+14-02-2026 17:00
+UB SANT ADRIA B
+62
+Acta Canvis
+53
+CLUB NATACIÓ TERRASSA A
+15-02-2026 18:30
+EL MASNOU BASQUETBOL A
+63
+Acta
+64
+CB IPSI B
+14-02-2026 16:00
+PUJOL MOLLERUSSA
+72
+Acta Canvis
+76
+CE SANT NICOLAU
+14-02-2026 17:45
+SESE B
+74
+Acta
+64
+CENG FIWITEL
+15-02-2026 18:30
+A.E. SANT ANDREU NATZARET-A
+58
+Acta Canvis
+67
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+15-02-2026 12:30
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+72
+Acta Canvis
+87
+FORMULA SR -LLUÏSOS DE GRACIA A 
+15-02-2026 17:30
+BC MORABANC ANDORRA B
+61
+Acta
+71
+Jornada 18
+Equip local
+Data i Hora
+Equip visitant
+SESE B
+28-02-2026 19:30
+CB IPSI B
+68
+Acta
+53
+PUJOL MOLLERUSSA
+28-02-2026 16:00
+CLUB NATACIÓ TERRASSA A
+63
+Acta
+83
+EL MASNOU BASQUETBOL A
+28-02-2026 17:15
+UB SANT ADRIA B
+70
+Acta Canvis
+57
+BC MORABANC ANDORRA B
+01-03-2026 17:45
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+66
+Acta Canvis
+55
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+28-02-2026 17:45
+CENG FIWITEL
+78
+Acta
+58
+A.E. SANT ANDREU NATZARET-A
+28-02-2026 16:00
+CE SANT NICOLAU
+62
+Acta Canvis
+58
+FORMULA SR -LLUÏSOS DE GRACIA A 
+01-03-2026 19:15
+IDÓNIA - BASQUE SANT PERE
+71
+Acta Canvis
+69
+Jornada 19
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+08-03-2026 16:15
+EL MASNOU BASQUETBOL A
+89
+Acta Canvis
+100
+UB SANT ADRIA B
+07-03-2026 18:00
+PUJOL MOLLERUSSA
+78
+Acta Canvis
+59
+CLUB NATACIÓ TERRASSA A
+08-03-2026 18:30
+SESE B
+55
+Acta
+86
+CB IPSI B
+08-03-2026 18:00
+A.E. SANT ANDREU NATZARET-A
+70
+Acta Canvis
+77
+CE SANT NICOLAU
+07-03-2026 19:45
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+64
+Acta Canvis
+62
+CENG FIWITEL
+08-03-2026 18:30
+BC MORABANC ANDORRA B
+57
+Acta Canvis
+77
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+07-03-2026 17:45
+FORMULA SR -LLUÏSOS DE GRACIA A 
+84
+Acta
+76
+Jornada 20
+Equip local
+Data i Hora
+Equip visitant
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+14-03-2026 17:45
+CB IPSI B
+84
+Acta
+67
+A.E. SANT ANDREU NATZARET-A
+14-03-2026 17:45
+CLUB NATACIÓ TERRASSA A
+79
+Acta
+78
+SESE B
+14-03-2026 19:30
+UB SANT ADRIA B
+79
+Acta
+68
+PUJOL MOLLERUSSA
+15-03-2026 19:00
+EL MASNOU BASQUETBOL A
+61
+Acta Canvis
+84
+FORMULA SR -LLUÏSOS DE GRACIA A 
+15-03-2026 17:30
+CENG FIWITEL
+70
+Acta
+56
+BC MORABANC ANDORRA B
+14-03-2026 18:45
+CE SANT NICOLAU
+61
+Acta Canvis
+58
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+14-03-2026 17:45
+IDÓNIA - BASQUE SANT PERE
+53
+Acta
+65
+Jornada 21
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+21-03-2026 17:00
+PUJOL MOLLERUSSA
+92
+Acta Canvis
+67
+EL MASNOU BASQUETBOL A
+21-03-2026 19:00
+SESE B
+70
+Acta
+81
+UB SANT ADRIA B
+21-03-2026 20:00
+A.E. SANT ANDREU NATZARET-A
+63
+Acta Canvis
+46
+CLUB NATACIÓ TERRASSA A
+22-03-2026 18:30
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+75
+Acta
+61
+CB IPSI B
+21-03-2026 19:30
+BC MORABANC ANDORRA B
+76
+Acta Canvis
+110
+CE SANT NICOLAU
+22-03-2026 17:45
+FORMULA SR -LLUÏSOS DE GRACIA A 
+56
+Acta Canvis
+64
+CENG FIWITEL
+22-03-2026 18:00
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+68
+Acta Canvis
+59
+Jornada 22
+Equip local
+Data i Hora
+Equip visitant
+FORMULA SR -LLUÏSOS DE GRACIA A 
+12-04-2026 17:30
+CB IPSI B
+82
+Acta
+59
+BC MORABANC ANDORRA B
+12-04-2026 19:00
+CLUB NATACIÓ TERRASSA A
+80
+Acta
+59
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+12-04-2026 17:45
+UB SANT ADRIA B
+72
+Acta Canvis
+62
+A.E. SANT ANDREU NATZARET-A
+11-04-2026 17:45
+EL MASNOU BASQUETBOL A
+58
+Acta
+74
+SESE B
+12-04-2026 16:00
+PUJOL MOLLERUSSA
+72
+Acta Canvis
+58
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+11-04-2026 17:45
+CE SANT NICOLAU
+78
+Acta
+54
+CENG FIWITEL
+11-04-2026 18:00
+IDÓNIA - BASQUE SANT PERE
+61
+Acta Canvis
+90
+Jornada 23
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+18-04-2026 17:45
+SESE B
+46
+Acta
+87
+PUJOL MOLLERUSSA
+18-04-2026 16:00
+A.E. SANT ANDREU NATZARET-A
+73
+Acta
+79
+EL MASNOU BASQUETBOL A
+18-04-2026 19:00
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+85
+Acta
+79
+UB SANT ADRIA B
+18-04-2026 16:00
+BC MORABANC ANDORRA B
+61
+Acta
+74
+CLUB NATACIÓ TERRASSA A
+19-04-2026 18:30
+FORMULA SR -LLUÏSOS DE GRACIA A 
+82
+Acta
+79
+CB IPSI B
+18-04-2026 19:15
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+72
+Acta
+77
+CE SANT NICOLAU
+18-04-2026 17:45
+CENG FIWITEL
+67
+Acta
+48
+Jornada 24
+Equip local
+Data i Hora
+Equip visitant
+CENG FIWITEL
+26-04-2026 18:00
+CB IPSI B
+71
+Acta Canvis
+77
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+25-04-2026 17:45
+CLUB NATACIÓ TERRASSA A
+77
+Acta
+68
+FORMULA SR -LLUÏSOS DE GRACIA A 
+26-04-2026 17:30
+UB SANT ADRIA B
+82
+Acta
+60
+BC MORABANC ANDORRA B
+26-04-2026 17:30
+EL MASNOU BASQUETBOL A
+80
+Acta Canvis
+71
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+25-04-2026 17:45
+PUJOL MOLLERUSSA
+90
+Acta
+56
+A.E. SANT ANDREU NATZARET-A
+25-04-2026 19:30
+SESE B
+70
+Acta Canvis
+67
+CE SANT NICOLAU
+26-04-2026 17:45
+IDÓNIA - BASQUE SANT PERE
+79
+Acta Canvis
+52
+Jornada 25
+Equip local
+Data i Hora
+Equip visitant
+SESE B
+10-05-2026 16:00
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+80
+Acta Canvis
+76
+PUJOL MOLLERUSSA
+09-05-2026 12:30
+BC MORABANC ANDORRA B
+77
+Acta Canvis
+109
+EL MASNOU BASQUETBOL A
+09-05-2026 19:00
+FORMULA SR -LLUÏSOS DE GRACIA A 
+77
+Acta
+70
+UB SANT ADRIA B
+09-05-2026 16:00
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+78
+Acta
+70
+CLUB NATACIÓ TERRASSA A
+10-05-2026 18:30
+CENG FIWITEL
+84
+Acta
+40
+CB IPSI B
+09-05-2026 19:15
+CE SANT NICOLAU
+65
+Acta
+59
+A.E. SANT ANDREU NATZARET-A
+09-05-2026 19:30
+IDÓNIA - BASQUE SANT PERE
+76
+Acta Canvis
+45
+Jornada 26
+Equip local
+Data i Hora
+Equip visitant
+IDÓNIA - BASQUE SANT PERE
+17-05-2026 12:00
+CB IPSI B
+74
+Acta Canvis
+67
+CE SANT NICOLAU
+16-05-2026 17:45
+CLUB NATACIÓ TERRASSA A
+70
+Acta
+62
+CENG FIWITEL
+17-05-2026 19:00
+UB SANT ADRIA B
+86
+Acta
+87
+MOTOROLA CB SANT JOSEP BADALONA - SAM
+16-05-2026 17:45
+EL MASNOU BASQUETBOL A
+70
+Acta
+90
+FORMULA SR -LLUÏSOS DE GRACIA A 
+17-05-2026 17:30
+PUJOL MOLLERUSSA
+84
+Acta
+53
+BC MORABANC ANDORRA B
+16-05-2026 18:45
+SESE B
+74
+Acta Canvis
+81
+U. B. LLEFIÀ A - JJ FINQUES BADALONA
+17-05-2026 17:45
+A.E. SANT ANDREU NATZARET-A
+85
+Acta Canvis
+80
+
+GRUPO 4:
+Jornada 1
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+27-09-2025 16:00
+CB CASTELLET - CASA ARIMANY
+67
+Acta Canvis
+63
+VEDRUNA GRÀCIA A
+27-09-2025 19:30
+EL CÍRCOL B
+59
+Acta Canvis
+63
+AE MINGUELLA B - PURE CUISINE
+27-09-2025 20:00
+SFERIC GERFINCAS
+73
+Acta
+55
+TENEA*TALENT - C.B. ESPARREGUERA B
+28-09-2025 17:45
+BÀSQUET SAFA CLAROR A
+74
+Acta Canvis
+62
+LA SALLE MANRESA SGOL
+27-09-2025 17:45
+UE SANT CUGAT - OCCIDENT B
+67
+Acta
+73
+FC MARTINENC BÀSQUET B
+27-09-2025 19:15
+CENTRE CATÒLIC L'H A
+68
+Acta
+55
+GAMMA MONTAÑO C.B. VILATORRADA A
+27-09-2025 20:15
+C.B. CIC A
+85
+Acta
+69
+Jornada 2
+Equip local
+Data i Hora
+Equip visitant
+CB CASTELLET - CASA ARIMANY
+04-10-2025 18:00
+FC MARTINENC BÀSQUET B
+76
+Acta Canvis
+63
+UE SANT CUGAT - OCCIDENT B
+05-10-2025 19:30
+TEMPLE UE HORTA
+78
+Acta Canvis
+72
+BÀSQUET SAFA CLAROR A
+04-10-2025 18:00
+LA SALLE MANRESA SGOL
+61
+Acta
+71
+EL CÍRCOL B
+05-10-2025 16:00
+AE MINGUELLA B - PURE CUISINE
+56
+Acta
+65
+CENTRE CATÒLIC L'H A
+05-10-2025 17:45
+VEDRUNA GRÀCIA A
+81
+Acta
+78
+C.B. CIC A
+05-10-2025 19:30
+TENEA*TALENT - C.B. ESPARREGUERA B
+73
+Acta
+80
+SFERIC GERFINCAS
+05-10-2025 19:30
+GAMMA MONTAÑO C.B. VILATORRADA A
+75
+Acta
+65
+Jornada 3
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+11-10-2025 17:45
+BÀSQUET SAFA CLAROR A
+80
+Acta
+73
+CB CASTELLET - CASA ARIMANY
+12-10-2025 19:00
+UE SANT CUGAT - OCCIDENT B
+80
+Acta Canvis
+68
+AE MINGUELLA B - PURE CUISINE
+11-10-2025 20:00
+CENTRE CATÒLIC L'H A
+62
+Acta
+60
+TENEA*TALENT - C.B. ESPARREGUERA B
+11-10-2025 16:00
+SFERIC GERFINCAS
+84
+Acta
+49
+FC MARTINENC BÀSQUET B
+11-10-2025 15:45
+VEDRUNA GRÀCIA A
+57
+Acta Canvis
+65
+GAMMA MONTAÑO C.B. VILATORRADA A
+11-10-2025 20:15
+EL CÍRCOL B
+60
+Acta
+63
+LA SALLE MANRESA SGOL
+11-10-2025 17:45
+C.B. CIC A
+79
+Acta
+57
+Jornada 4
+Equip local
+Data i Hora
+Equip visitant
+UE SANT CUGAT - OCCIDENT B
+19-10-2025 17:45
+FC MARTINENC BÀSQUET B
+79
+Acta Canvis
+83
+BÀSQUET SAFA CLAROR A
+18-10-2025 18:00
+CB CASTELLET - CASA ARIMANY
+63
+Acta
+65
+SFERIC GERFINCAS
+19-10-2025 19:30
+LA SALLE MANRESA SGOL
+59
+Acta
+57
+EL CÍRCOL B
+19-10-2025 16:00
+TENEA*TALENT - C.B. ESPARREGUERA B
+46
+Acta
+80
+VEDRUNA GRÀCIA A
+18-10-2025 16:00
+AE MINGUELLA B - PURE CUISINE
+76
+Acta Canvis
+77
+C.B. CIC A
+19-10-2025 19:30
+TEMPLE UE HORTA
+93
+Acta
+99
+CENTRE CATÒLIC L'H A
+19-10-2025 17:45
+GAMMA MONTAÑO C.B. VILATORRADA A
+84
+Acta
+63
+Jornada 5
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+25-10-2025 17:45
+SFERIC GERFINCAS
+63
+Acta
+54
+UE SANT CUGAT - OCCIDENT B
+25-10-2025 19:30
+BÀSQUET SAFA CLAROR A
+82
+Acta Canvis
+66
+TENEA*TALENT - C.B. ESPARREGUERA B
+25-10-2025 16:00
+CENTRE CATÒLIC L'H A
+60
+Acta
+46
+LA SALLE MANRESA SGOL
+25-10-2025 17:45
+EL CÍRCOL B
+58
+Acta
+76
+FC MARTINENC BÀSQUET B
+25-10-2025 15:45
+AE MINGUELLA B - PURE CUISINE
+73
+Acta Canvis
+57
+CB CASTELLET - CASA ARIMANY
+25-10-2025 18:30
+C.B. CIC A
+87
+Acta
+59
+GAMMA MONTAÑO C.B. VILATORRADA A
+25-10-2025 20:15
+VEDRUNA GRÀCIA A
+80
+Acta
+66
+Jornada 6
+Equip local
+Data i Hora
+Equip visitant
+BÀSQUET SAFA CLAROR A
+08-11-2025 18:00
+FC MARTINENC BÀSQUET B
+76
+Acta
+68
+SFERIC GERFINCAS
+09-11-2025 19:30
+CB CASTELLET - CASA ARIMANY
+52
+Acta
+56
+EL CÍRCOL B
+09-11-2025 16:00
+TEMPLE UE HORTA
+51
+Acta
+71
+CENTRE CATÒLIC L'H A
+09-11-2025 19:45
+LA SALLE MANRESA SGOL
+55
+Acta Canvis
+57
+VEDRUNA GRÀCIA A
+08-11-2025 19:30
+TENEA*TALENT - C.B. ESPARREGUERA B
+75
+Acta Canvis
+80
+C.B. CIC A
+25-11-2025 22:15
+UE SANT CUGAT - OCCIDENT B
+71
+Acta Canvis
+96
+AE MINGUELLA B - PURE CUISINE
+08-11-2025 20:00
+GAMMA MONTAÑO C.B. VILATORRADA A
+76
+Acta
+65
+Jornada 7
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+16-11-2025 17:45
+CENTRE CATÒLIC L'H A
+74
+Acta Canvis
+66
+CB CASTELLET - CASA ARIMANY
+15-11-2025 19:00
+EL CÍRCOL B
+74
+Acta Canvis
+58
+UE SANT CUGAT - OCCIDENT B
+16-11-2025 19:30
+SFERIC GERFINCAS
+88
+Acta Canvis
+49
+TENEA*TALENT - C.B. ESPARREGUERA B
+15-11-2025 16:00
+AE MINGUELLA B - PURE CUISINE
+70
+Acta
+60
+LA SALLE MANRESA SGOL
+15-11-2025 17:45
+VEDRUNA GRÀCIA A
+86
+Acta
+61
+BÀSQUET SAFA CLAROR A
+15-11-2025 16:30
+C.B. CIC A
+77
+Acta Canvis
+71
+FC MARTINENC BÀSQUET B
+15-11-2025 21:00
+GAMMA MONTAÑO C.B. VILATORRADA A
+76
+Acta Canvis
+89
+Jornada 8
+Equip local
+Data i Hora
+Equip visitant
+SFERIC GERFINCAS
+23-11-2025 19:30
+BÀSQUET SAFA CLAROR A
+50
+Acta
+70
+EL CÍRCOL B
+23-11-2025 19:30
+UE SANT CUGAT - OCCIDENT B
+60
+Acta Canvis
+87
+CENTRE CATÒLIC L'H A
+23-11-2025 19:45
+CB CASTELLET - CASA ARIMANY
+62
+Acta Canvis
+71
+VEDRUNA GRÀCIA A
+22-11-2025 17:45
+TEMPLE UE HORTA
+72
+Acta
+100
+AE MINGUELLA B - PURE CUISINE
+22-11-2025 20:00
+LA SALLE MANRESA SGOL
+82
+Acta
+44
+C.B. CIC A
+23-11-2025 19:30
+FC MARTINENC BÀSQUET B
+69
+Acta
+83
+GAMMA MONTAÑO C.B. VILATORRADA A
+21-11-2025 21:15
+TENEA*TALENT - C.B. ESPARREGUERA B
+69
+Acta Canvis
+84
+Jornada 9
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+29-11-2025 17:45
+AE MINGUELLA B - PURE CUISINE
+73
+Acta
+70
+CB CASTELLET - CASA ARIMANY
+29-11-2025 18:30
+VEDRUNA GRÀCIA A
+69
+Acta
+84
+UE SANT CUGAT - OCCIDENT B
+30-11-2025 19:30
+CENTRE CATÒLIC L'H A
+72
+Acta Canvis
+59
+BÀSQUET SAFA CLAROR A
+29-11-2025 18:00
+EL CÍRCOL B
+65
+Acta
+61
+C.B. CIC A
+30-11-2025 19:30
+SFERIC GERFINCAS
+78
+Acta
+63
+LA SALLE MANRESA SGOL
+29-11-2025 17:45
+GAMMA MONTAÑO C.B. VILATORRADA A
+84
+Acta
+78
+TENEA*TALENT - C.B. ESPARREGUERA B
+29-11-2025 20:15
+FC MARTINENC BÀSQUET B
+88
+Acta Canvis
+53
+Jornada 10
+Equip local
+Data i Hora
+Equip visitant
+SFERIC GERFINCAS
+14-12-2025 19:30
+FC MARTINENC BÀSQUET B
+51
+Acta
+55
+CENTRE CATÒLIC L'H A
+14-12-2025 17:45
+BÀSQUET SAFA CLAROR A
+33
+Acta
+60
+VEDRUNA GRÀCIA A
+14-12-2025 19:30
+UE SANT CUGAT - OCCIDENT B
+59
+Acta Canvis
+98
+AE MINGUELLA B - PURE CUISINE
+13-12-2025 20:00
+CB CASTELLET - CASA ARIMANY
+68
+Acta
+71
+TENEA*TALENT - C.B. ESPARREGUERA B
+13-12-2025 18:00
+LA SALLE MANRESA SGOL
+77
+Acta Canvis
+64
+EL CÍRCOL B
+14-12-2025 16:00
+C.B. CIC A
+59
+Acta
+62
+GAMMA MONTAÑO C.B. VILATORRADA A
+13-12-2025 20:45
+TEMPLE UE HORTA
+67
+Acta Canvis
+79
+Jornada 11
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+20-12-2025 16:00
+TENEA*TALENT - C.B. ESPARREGUERA B
+61
+Acta Canvis
+54
+UE SANT CUGAT - OCCIDENT B
+20-12-2025 17:45
+AE MINGUELLA B - PURE CUISINE
+67
+Acta Canvis
+69
+BÀSQUET SAFA CLAROR A
+20-12-2025 18:00
+VEDRUNA GRÀCIA A
+60
+Acta
+56
+SFERIC GERFINCAS
+21-12-2025 19:30
+EL CÍRCOL B
+71
+Acta
+57
+FC MARTINENC BÀSQUET B
+20-12-2025 19:15
+LA SALLE MANRESA SGOL
+79
+Acta
+60
+CB CASTELLET - CASA ARIMANY
+20-12-2025 18:30
+GAMMA MONTAÑO C.B. VILATORRADA A
+84
+Acta
+82
+C.B. CIC A
+20-12-2025 20:30
+CENTRE CATÒLIC L'H A
+54
+Acta Canvis
+78
+Jornada 12
+Equip local
+Data i Hora
+Equip visitant
+CENTRE CATÒLIC L'H A
+11-01-2026 17:45
+SFERIC GERFINCAS
+64
+Acta
+68
+AE MINGUELLA B - PURE CUISINE
+10-01-2026 20:00
+BÀSQUET SAFA CLAROR A
+62
+Acta
+49
+TENEA*TALENT - C.B. ESPARREGUERA B
+10-01-2026 16:00
+CB CASTELLET - CASA ARIMANY
+82
+Acta
+61
+LA SALLE MANRESA SGOL
+10-01-2026 17:45
+TEMPLE UE HORTA
+67
+Acta
+82
+FC MARTINENC BÀSQUET B
+10-01-2026 15:45
+EL CÍRCOL B
+57
+Acta Canvis
+47
+VEDRUNA GRÀCIA A
+10-01-2026 17:45
+C.B. CIC A
+65
+Acta
+72
+GAMMA MONTAÑO C.B. VILATORRADA A
+10-01-2026 20:15
+UE SANT CUGAT - OCCIDENT B
+85
+Acta
+79
+Jornada 13
+Equip local
+Data i Hora
+Equip visitant
+TEMPLE UE HORTA
+17-01-2026 17:45
+FC MARTINENC BÀSQUET B
+68
+Acta
+50
+CB CASTELLET - CASA ARIMANY
+27-02-2026 20:30
+LA SALLE MANRESA SGOL
+63
+Acta Canvis
+55
+UE SANT CUGAT - OCCIDENT B
+02-02-2026 21:30
+TENEA*TALENT - C.B. ESPARREGUERA B
+63
+Acta Canvis
+86
+SFERIC GERFINCAS
+18-01-2026 19:30
+VEDRUNA GRÀCIA A
+61
+Acta
+41
+EL CÍRCOL B
+18-01-2026 16:00
+CENTRE CATÒLIC L'H A
+61
+Acta
+68
+BÀSQUET SAFA CLAROR A
+17-01-2026 18:00
+GAMMA MONTAÑO C.B. VILATORRADA A
+68
+Acta
+72
+C.B. CIC A
+18-01-2026 19:30
+AE MINGUELLA B - PURE CUISINE
+63
+Acta
+64
+Jornada 14
+Equip local
+Data i Hora
+Equip visitant
+CB CASTELLET - CASA ARIMANY
+11-03-2026 21:00
+TEMPLE UE HORTA
+74
+Acta Canvis
+63
+EL CÍRCOL B
+25-01-2026 16:00
+VEDRUNA GRÀCIA A
+70
+Acta
+65
+SFERIC GERFINCAS
+25-01-2026 19:30
+AE MINGUELLA B - PURE CUISINE
+52
+Acta
+43
+BÀSQUET SAFA CLAROR A
+24-01-2026 16:00
+TENEA*TALENT - C.B. ESPARREGUERA B
+80
+Acta Canvis
+90
+UE SANT CUGAT - OCCIDENT B
+25-01-2026 16:00
+LA SALLE MANRESA SGOL
+72
+Acta Canvis
+67
+CENTRE CATÒLIC L'H A
+25-01-2026 17:45
+FC MARTINENC BÀSQUET B
+73
+Acta
+52
+C.B. CIC A
+25-01-2026 19:30
+GAMMA MONTAÑO C.B. VILATORRADA A
+70
+Acta
+57
+Jornada 15
+Equip local
+Data i Hora
+Equip visitant
+FC MARTINENC BÀSQUET B
+31-01-2026 19:15
+CB CASTELLET - CASA ARIMANY
+67
+Acta
+66
+TEMPLE UE HORTA
+31-01-2026 17:45
+UE SANT CUGAT - OCCIDENT B
+55
+Acta
+69
+LA SALLE MANRESA SGOL
+01-02-2026 17:45
+BÀSQUET SAFA CLAROR A
+80
+Acta Canvis
+70
+AE MINGUELLA B - PURE CUISINE
+31-01-2026 20:00
+EL CÍRCOL B
+83
+Acta
+66
+VEDRUNA GRÀCIA A
+31-01-2026 17:45
+CENTRE CATÒLIC L'H A
+72
+Acta
+86
+TENEA*TALENT - C.B. ESPARREGUERA B
+31-01-2026 16:00
+C.B. CIC A
+82
+Acta
+52
+GAMMA MONTAÑO C.B. VILATORRADA A
+01-02-2026 19:45
+SFERIC GERFINCAS
+57
+Acta Canvis
+67
+Jornada 16
+Equip local
+Data i Hora
+Equip visitant
+BÀSQUET SAFA CLAROR A
+07-02-2026 16:30
+TEMPLE UE HORTA
+92
+Acta Canvis
+87
+UE SANT CUGAT - OCCIDENT B
+07-02-2026 17:45
+CB CASTELLET - CASA ARIMANY
+78
+Acta
+74
+CENTRE CATÒLIC L'H A
+08-02-2026 17:45
+AE MINGUELLA B - PURE CUISINE
+61
+Acta
+73
+SFERIC GERFINCAS
+08-02-2026 19:30
+TENEA*TALENT - C.B. ESPARREGUERA B
+54
+Acta
+61
+VEDRUNA GRÀCIA A
+07-02-2026 17:45
+FC MARTINENC BÀSQUET B
+75
+Acta
+99
+EL CÍRCOL B
+08-02-2026 16:00
+GAMMA MONTAÑO C.B. VILATORRADA A
+71
+Acta
+72
+C.B. CIC A
+08-02-2026 19:30
+LA SALLE MANRESA SGOL
+61
+Acta
+69
+Jornada 17
+Equip local
+Data i Hora
+Equip visitant
+FC MARTINENC BÀSQUET B
+14-02-2026 19:15
+UE SANT CUGAT - OCCIDENT B
+76
+Acta
+81
+CB CASTELLET - CASA ARIMANY
+14-02-2026 18:30
+BÀSQUET SAFA CLAROR A
+68
+Acta
+64
+LA SALLE MANRESA SGOL
+14-02-2026 17:45
+SFERIC GERFINCAS
+80
+Acta
+64
+TENEA*TALENT - C.B. ESPARREGUERA B
+14-02-2026 16:00
+EL CÍRCOL B
+81
+Acta
+88
+AE MINGUELLA B - PURE CUISINE
+14-02-2026 20:00
+VEDRUNA GRÀCIA A
+67
+Acta
+74
+TEMPLE UE HORTA
+14-02-2026 17:45
+C.B. CIC A
+76
+Acta
+72
+GAMMA MONTAÑO C.B. VILATORRADA A
+14-02-2026 20:15
+CENTRE CATÒLIC L'H A
+73
+Acta
+58
+Jornada 18
+Equip local
+Data i Hora
+Equip visitant
+SFERIC GERFINCAS
+01-03-2026 19:30
+TEMPLE UE HORTA
+49
+Acta
+60
+BÀSQUET SAFA CLAROR A
+28-02-2026 18:00
+UE SANT CUGAT - OCCIDENT B
+61
+Acta
+62
+CENTRE CATÒLIC L'H A
+28-02-2026 19:15
+TENEA*TALENT - C.B. ESPARREGUERA B
+38
+Acta Canvis
+62
+EL CÍRCOL B
+01-03-2026 16:00
+LA SALLE MANRESA SGOL
+54
+Acta
+66
+AE MINGUELLA B - PURE CUISINE
+01-03-2026 19:30
+FC MARTINENC BÀSQUET B
+56
+Acta Canvis
+50
+C.B. CIC A
+01-03-2026 19:30
+CB CASTELLET - CASA ARIMANY
+70
+Acta
+89
+VEDRUNA GRÀCIA A
+28-02-2026 17:45
+GAMMA MONTAÑO C.B. VILATORRADA A
+74
+Acta
+71
+Jornada 19
+Equip local
+Data i Hora
+Equip visitant
+FC MARTINENC BÀSQUET B
+07-03-2026 15:45
+BÀSQUET SAFA CLAROR A
+58
+Acta Canvis
+68
+CB CASTELLET - CASA ARIMANY
+07-03-2026 18:30
+SFERIC GERFINCAS
+69
+Acta
+66
+TEMPLE UE HORTA
+07-03-2026 19:30
+EL CÍRCOL B
+81
+Acta Canvis
+47
+LA SALLE MANRESA SGOL
+07-03-2026 17:45
+CENTRE CATÒLIC L'H A
+49
+Acta
+73
+TENEA*TALENT - C.B. ESPARREGUERA B
+07-03-2026 17:45
+VEDRUNA GRÀCIA A
+85
+Acta Canvis
+62
+UE SANT CUGAT - OCCIDENT B
+08-03-2026 19:30
+C.B. CIC A
+75
+Acta Canvis
+51
+GAMMA MONTAÑO C.B. VILATORRADA A
+08-03-2026 19:45
+AE MINGUELLA B - PURE CUISINE
+69
+Acta Canvis
+78
+Jornada 20
+Equip local
+Data i Hora
+Equip visitant
+CENTRE CATÒLIC L'H A
+14-03-2026 19:15
+TEMPLE UE HORTA
+61
+Acta Canvis
+77
+EL CÍRCOL B
+15-03-2026 17:45
+CB CASTELLET - CASA ARIMANY
+55
+Acta Canvis
+65
+SFERIC GERFINCAS
+15-03-2026 19:30
+UE SANT CUGAT - OCCIDENT B
+55
+Acta
+74
+AE MINGUELLA B - PURE CUISINE
+15-03-2026 19:30
+TENEA*TALENT - C.B. ESPARREGUERA B
+66
+Acta Canvis
+71
+VEDRUNA GRÀCIA A
+14-03-2026 17:45
+LA SALLE MANRESA SGOL
+78
+Acta
+75
+C.B. CIC A
+15-03-2026 19:30
+BÀSQUET SAFA CLAROR A
+75
+Acta
+78
+GAMMA MONTAÑO C.B. VILATORRADA A
+14-03-2026 20:15
+FC MARTINENC BÀSQUET B
+79
+Acta
+83
+Jornada 21
+Equip local
+Data i Hora
+Equip visitant
+BÀSQUET SAFA CLAROR A
+21-03-2026 18:00
+SFERIC GERFINCAS
+78
+Acta
+60
+UE SANT CUGAT - OCCIDENT B
+21-03-2026 17:45
+EL CÍRCOL B
+94
+Acta
+59
+CB CASTELLET - CASA ARIMANY
+21-03-2026 19:00
+CENTRE CATÒLIC L'H A
+62
+Acta Canvis
+70
+TEMPLE UE HORTA
+21-03-2026 17:45
+VEDRUNA GRÀCIA A
+74
+Acta
+67
+LA SALLE MANRESA SGOL
+21-03-2026 17:45
+AE MINGUELLA B - PURE CUISINE
+74
+Acta
+69
+FC MARTINENC BÀSQUET B
+21-03-2026 19:15
+C.B. CIC A
+76
+Acta
+67
+TENEA*TALENT - C.B. ESPARREGUERA B
+21-03-2026 20:15
+GAMMA MONTAÑO C.B. VILATORRADA A
+93
+Acta Canvis
+51
+Jornada 22
+Equip local
+Data i Hora
+Equip visitant
+AE MINGUELLA B - PURE CUISINE
+12-04-2026 19:30
+TEMPLE UE HORTA
+65
+Acta Canvis
+50
+VEDRUNA GRÀCIA A
+11-04-2026 19:30
+CB CASTELLET - CASA ARIMANY
+88
+Acta Canvis
+91
+CENTRE CATÒLIC L'H A
+12-04-2026 17:45
+UE SANT CUGAT - OCCIDENT B
+55
+Acta
+69
+EL CÍRCOL B
+12-04-2026 16:00
+BÀSQUET SAFA CLAROR A
+69
+Acta
+64
+SFERIC GERFINCAS
+12-04-2026 19:30
+C.B. CIC A
+61
+Acta
+55
+GAMMA MONTAÑO C.B. VILATORRADA A
+12-04-2026 19:45
+LA SALLE MANRESA SGOL
+68
+Acta Canvis
+63
+FC MARTINENC BÀSQUET B
+11-04-2026 15:45
+TENEA*TALENT - C.B. ESPARREGUERA B
+75
+Acta Canvis
+69
+Jornada 23
+Equip local
+Data i Hora
+Equip visitant
+FC MARTINENC BÀSQUET B
+18-04-2026 15:45
+SFERIC GERFINCAS
+79
+Acta Canvis
+60
+BÀSQUET SAFA CLAROR A
+18-04-2026 18:00
+CENTRE CATÒLIC L'H A
+72
+Acta
+66
+UE SANT CUGAT - OCCIDENT B
+19-04-2026 12:00
+VEDRUNA GRÀCIA A
+94
+Acta Canvis
+71
+CB CASTELLET - CASA ARIMANY
+18-04-2026 18:30
+AE MINGUELLA B - PURE CUISINE
+76
+Acta
+68
+LA SALLE MANRESA SGOL
+18-04-2026 17:45
+TENEA*TALENT - C.B. ESPARREGUERA B
+58
+Acta
+72
+C.B. CIC A
+19-04-2026 19:30
+EL CÍRCOL B
+76
+Acta
+72
+TEMPLE UE HORTA
+18-04-2026 17:45
+GAMMA MONTAÑO C.B. VILATORRADA A
+80
+Acta
+82
+Jornada 24
+Equip local
+Data i Hora
+Equip visitant
+TENEA*TALENT - C.B. ESPARREGUERA B
+26-04-2026 17:45
+TEMPLE UE HORTA
+82
+Acta Canvis
+66
+AE MINGUELLA B - PURE CUISINE
+26-04-2026 19:30
+UE SANT CUGAT - OCCIDENT B
+58
+Acta Canvis
+72
+VEDRUNA GRÀCIA A
+25-04-2026 17:45
+BÀSQUET SAFA CLAROR A
+90
+Acta
+77
+EL CÍRCOL B
+26-04-2026 16:00
+SFERIC GERFINCAS
+73
+Acta
+59
+LA SALLE MANRESA SGOL
+25-04-2026 17:45
+FC MARTINENC BÀSQUET B
+65
+Acta
+57
+GAMMA MONTAÑO C.B. VILATORRADA A
+25-04-2026 20:15
+CB CASTELLET - CASA ARIMANY
+59
+Acta
+73
+CENTRE CATÒLIC L'H A
+26-04-2026 17:45
+C.B. CIC A
+64
+Acta
+59
+Jornada 25
+Equip local
+Data i Hora
+Equip visitant
+SFERIC GERFINCAS
+10-05-2026 17:45
+CENTRE CATÒLIC L'H A
+62
+Acta Canvis
+54
+BÀSQUET SAFA CLAROR A
+09-05-2026 18:00
+AE MINGUELLA B - PURE CUISINE
+69
+Acta
+87
+CB CASTELLET - CASA ARIMANY
+10-05-2026 19:15
+TENEA*TALENT - C.B. ESPARREGUERA B
+73
+Acta Canvis
+68
+TEMPLE UE HORTA
+09-05-2026 17:45
+LA SALLE MANRESA SGOL
+76
+Acta
+62
+EL CÍRCOL B
+10-05-2026 16:00
+FC MARTINENC BÀSQUET B
+61
+Acta
+67
+C.B. CIC A
+10-05-2026 19:30
+VEDRUNA GRÀCIA A
+85
+Acta
+71
+UE SANT CUGAT - OCCIDENT B
+09-05-2026 19:30
+GAMMA MONTAÑO C.B. VILATORRADA A
+93
+Acta Canvis
+86
+Jornada 26
+Equip local
+Data i Hora
+Equip visitant
+FC MARTINENC BÀSQUET B
+16-05-2026 15:45
+TEMPLE UE HORTA
+76
+Acta Canvis
+88
+LA SALLE MANRESA SGOL
+16-05-2026 17:45
+CB CASTELLET - CASA ARIMANY
+57
+Acta
+63
+TENEA*TALENT - C.B. ESPARREGUERA B
+16-05-2026 17:45
+UE SANT CUGAT - OCCIDENT B
+62
+Acta Canvis
+55
+VEDRUNA GRÀCIA A
+16-05-2026 19:00
+SFERIC GERFINCAS
+76
+Acta Canvis
+59
+CENTRE CATÒLIC L'H A
+17-05-2026 17:45
+EL CÍRCOL B
+73
+Acta
+49
+GAMMA MONTAÑO C.B. VILATORRADA A
+16-05-2026 20:15
+BÀSQUET SAFA CLAROR A
+76
+Acta
+70
+AE MINGUELLA B - PURE CUISINE
+16-05-2026 20:00
+C.B. CIC A
+67
+Acta Canvis
+73
     `;
 
     const reader = new FileReader();
@@ -13965,7 +18046,6 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
         try {
             let jsonText = e.target.result;
             
-            // 1. Limpieza extrema del archivo JSON subido
             const keyword = '"allRows"';
             const index = jsonText.indexOf(keyword);
             if (index === -1) throw new Error("No se encontró 'allRows' en el archivo.");
@@ -13980,208 +18060,179 @@ AE MINGUELLA B - PURE CUISINE\n16-05-2026 20:00\nC.B. CIC A\n67\nActa Canvis\n73
             const json = JSON.parse(jsonText);
             const rows = json.allRows || json;
 
-            // 2. Comprobar que la Base de Datos está lista
-            if (typeof S === 'undefined' || !S) { alert("⚠️ La base de datos no está lista."); return; }
-            if (!S.teams) S.teams = [];
+            if (typeof S === 'undefined' || !S) { alert("⚠️ BD S no encontrada."); return; }
             if (!S.matches) S.matches = [];
 
-            // 3. Procesar el calendario de la federación con RegEx
-            // Formato esperado: Equipo Local \n DD-MM-YYYY HH:MM \n Equipo Visitante \n PuntosLocal \n Acta \n PuntosVisitante
             const rx = /([^\n]+)\n(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})\n([^\n]+)\n(\d+)\nActa[^\n]*\n(\d+)/g;
-            let realMatches = [];
             let m;
-            while(m = rx.exec(rawCalendarText)) {
-                let dParts = m[2].split('-'); // dParts = [DD, MM, YYYY]
-                
-                realMatches.push({
-                    homeName: m[1].trim().toUpperCase(),
-                    awayName: m[4].trim().toUpperCase(),
-                    // Formato exacto que usa tu app para leer las fechas: DD/MM/YYYY
-                    dateStr: `${dParts[0]}/${dParts[1]}/${dParts[2]}`, 
-                    timeStr: m[3],
-                    // Generamos un timestamp real para que el Histórico pueda ordenarlos de más reciente a más antiguo
-                    timestamp: new Date(`${dParts[2]}-${dParts[1]}-${dParts[0]}T${m[3]}:00`).getTime(),
-                    homeScore: parseInt(m[5]),
-                    awayScore: parseInt(m[6])
-                });
-            }
+            let matchesAdded = 0;
 
-            let teamsAdded = 0;
-            let playersUpdated = 0;
-            const targetSeason = "2025/2026";
-            const targetComp = "C.c. Primera Categoria Masculina";
-
-            // Función de ayuda para comparar nombres de equipos sin que un espacio nos fastidie
             const isSameTeam = (t1, t2) => {
                 let a = t1.toUpperCase(); let b = t2.toUpperCase();
                 return a === b || a.includes(b) || b.includes(a);
             };
 
-            // 4. CREAR EQUIPOS: Asegurarnos de que todos los equipos del calendario existen en S.teams
-            const uniqueTeams = [...new Set([...realMatches.map(mx => mx.homeName), ...realMatches.map(mx => mx.awayName)])];
-            
-            uniqueTeams.forEach(tName => {
-                let teamObj = S.teams.find(t => isSameTeam(t.name.toUpperCase(), tName));
-                if (!teamObj) {
-                    teamObj = { 
-                        id: 't_acc_' + Date.now() + Math.random(), 
-                        name: tName, 
-                        players: [], 
-                        wins: 0, 
-                        losses: 0,
-                        season: targetSeason,
-                        comp: targetComp,
-                        group: "Primera" 
-                    };
-                    S.teams.push(teamObj);
-                    teamsAdded++;
-                }
-            });
+            // 2. CREAR TODOS LOS PARTIDOS VACÍOS PRIMERO
+            while(m = rx.exec(rawCalendarText)) {
+                let homeName = m[1].trim().toUpperCase();
+                let dateStr = m[2];
+                let timeStr = m[3];
+                let awayName = m[4].trim().toUpperCase();
+                let homeScore = parseInt(m[5]);
+                let awayScore = parseInt(m[6]);
 
-            // 5. CREAR PARTIDOS: Volcar los partidos reales en S.matches con los nombres limpios
-            realMatches.forEach(mx => {
-                let matchId = 'm_1a_' + mx.timestamp + '_' + mx.homeName.replace(/\s+/g,'').substring(0,5);
-                
-                let existingMatch = S.matches.find(sm => sm.id === matchId);
-                if (!existingMatch) {
-                    let newMatch = {
+                let dParts = dateStr.split('-'); 
+                let matchDate = `${dParts[0]}/${dParts[1]}/${dParts[2]}`;
+                let timestamp = new Date(`${dParts[2]}-${dParts[1]}-${dParts[0]}T${timeStr}:00`).getTime();
+                let matchId = timestamp + Math.floor(Math.random() * 1000); 
+
+                let matchName = `${homeName} vs ${awayName}`;
+
+                if (!S.matches.find(sm => sm.name === matchName && sm.date === matchDate)) {
+                    S.matches.push({
                         id: matchId,
-                        date: mx.dateStr,
-                        time: mx.timeStr,
-                        timestamp: mx.timestamp,
-                        season: targetSeason,
-                        comp: targetComp,
-                        group: "Primera",
-                        // 🎯 CORREGIDO: Asignamos el nombre limpio directamente aquí para que no salga 'undefined'
-                        home: { id: 't_h_' + mx.homeName.replace(/\s+/g,''), name: mx.homeName, score: mx.homeScore, players: {} },
-                        away: { id: 't_a_' + mx.awayName.replace(/\s+/g,''), name: mx.awayName, score: mx.awayScore, players: {} }
-                    };
-                    S.matches.push(newMatch);
-                }
-            });
-
-            // 6. INYECTAR JUGADORES: Coger las medias del JSON y repartirlas en los partidos recién creados
-            let playerRows = rows.filter(r => r.type === 'player');
-            
-            playerRows.forEach(pRow => {
-                let p = pRow.data;
-                if(!p.Equip || !p.Nom) return;
-
-                let tName = p.Equip.trim().toUpperCase();
-                let teamObj = S.teams.find(t => isSameTeam(t.name.toUpperCase(), tName));
-                if (!teamObj) return; // Si no hay equipo, saltamos el jugador
-
-                let pName = p.Nom.trim();
-                let player = teamObj.players.find(x => x.name.toLowerCase() === pName.toLowerCase());
-                if (!player) {
-                    player = { id: 'p_acc_' + Date.now() + Math.random(), name: pName, dorsal: Math.floor(Math.random() * 99).toString(), stats: [] };
-                    teamObj.players.push(player);
-                }
-
-                // Rescatar todos los partidos que jugó SU equipo en el calendario (BLINDADO CON optional chaining)
-                let myMatches = S.matches.filter(sm => (sm.home && sm.home.id === teamObj.id) || (sm.away && sm.away.id === teamObj.id));
-                myMatches.sort((a,b) => a.timestamp - b.timestamp); // Ordenarlos por fecha real
-
-                let originalPJ = p.PJ || 1;
-                let playCount = Math.min(originalPJ, myMatches.length);
-                if (playCount === 0) return;
-
-                // Comprobar que no hayamos inyectado ya a este jugador si le das al botón dos veces
-                let alreadyInjected = false;
-                for(let m of myMatches) {
-                    let side = (m.home && m.home.id === teamObj.id) ? m.home : m.away;
-                    if(side && side.players && side.players[pName]) alreadyInjected = true;
-                }
-
-                if (!alreadyInjected) {
-                    // Calculadora mágica para repartir N puntos en X partidos
-                    const distributeStats = (total, count) => {
-                        let base = Math.floor(total / count);
-                        let rem = total % count;
-                        let arr = Array(count).fill(base);
-                        for(let i=0; i<rem; i++) arr[i]++;
-                        return arr; // Devuelve un array tipo [12, 12, 11, 11...]
-                    };
-
-                    const parseShots = (str) => {
-                        if(!str || !str.includes('/')) return {m:0, a:0};
-                        let parts = str.split('/');
-                        return { m: parseInt(parts[0])||0, a: parseInt(parts[1])||0 };
-                    };
-
-                    let t2 = parseShots(p['T2 intentos']);
-                    let t3 = parseShots(p['T3 intentos']);
-                    let tl = parseShots(p['TL intentos']);
-
-                    let arr_min = distributeStats(p.MIN || 0, playCount);
-                    let arr_pts = distributeStats(p.PTS || 0, playCount);
-                    let arr_ast = distributeStats(Math.round((p['AS/P'] || 0) * originalPJ), playCount);
-                    let arr_reb = distributeStats(Math.round((p['RT/P'] || 0) * originalPJ), playCount);
-                    let arr_val = distributeStats(Math.round((p['VAL/P'] || 0) * originalPJ), playCount);
-                    let arr_fc = distributeStats(Math.round((p['FC/P'] || 0) * originalPJ), playCount);
-                    let arr_fr = distributeStats(Math.round((p['FR/P'] || 0) * originalPJ), playCount);
-                    let arr_t2m = distributeStats(t2.m, playCount);
-                    let arr_t2miss = distributeStats(t2.a - t2.m, playCount);
-                    let arr_t3m = distributeStats(t3.m, playCount);
-                    let arr_t3miss = distributeStats(t3.a - t3.m, playCount);
-                    let arr_tlm = distributeStats(tl.m, playCount);
-                    let arr_tlmiss = distributeStats(tl.a - tl.m, playCount);
-
-                    // Reparto final jugador por jugador en los partidos reales
-                    for(let i = 0; i < playCount; i++) {
-                        let mObj = myMatches[i];
-                        let side = (mObj.home && mObj.home.id === teamObj.id) ? mObj.home : mObj.away;
-                        
-                        if (side) {
-                            if (!side.players) side.players = {};
-                            side.players[pName] = {
-                                name: pName, dorsal: player.dorsal,
-                                min: arr_min[i], pts: arr_pts[i],
-                                t2_m: arr_t2m[i], t2_a: arr_t2m[i] + arr_t2miss[i],
-                                t3_m: arr_t3m[i], t3_a: arr_t3m[i] + arr_t3miss[i],
-                                tl_m: arr_tlm[i], tl_a: arr_tlm[i] + arr_tlmiss[i],
-                                ast: arr_ast[i], reb: arr_reb[i], val: arr_val[i],
-                                fc: arr_fc[i], fr: arr_fr[i],
-                                blk: 0, stl: 0, tov: 0
-                            };
-                        }
-                    }
-                    playersUpdated++;
-                }
-            });
-
-            // 7. CALCULAR CLASIFICACIONES
-            S.teams.forEach(t => {
-                if (t.comp === targetComp) {
-                    let w = 0, l = 0;
-                    S.matches.forEach(m => {
-                        if (m.comp === targetComp) {
-                            if (m.home && m.home.id === t.id) { if (m.home.score > m.away.score) w++; else l++; }
-                            else if (m.away && m.away.id === t.id) { if (m.away.score > m.home.score) w++; else l++; }
-                        }
+                        name: matchName,
+                        date: matchDate,
+                        competition: "C.c Primera Categoria Masculina",
+                        homeTeam: homeName,
+                        awayTeam: awayName,
+                        scoreHome: homeScore,
+                        scoreAway: awayScore,
+                        homePlayers: [],
+                        awayPlayers: [],
+                        events: [],
+                        shots: [],
+                        subEvents: [],
+                        type: "imported",
+                        timestamp: timestamp
                     });
-                    t.wins = w;
-                    t.losses = l;
+                    matchesAdded++;
                 }
-            });
-
-            window.svL(); // Guardado local
-            
-            // 🔥 FORZAR SINCRONIZACIÓN CON FIREBASE SI EXISTE LA FUNCIÓN EN TU APP
-            if (typeof saveToFirebase === 'function') {
-                saveToFirebase();
-            } else if (typeof syncFirebase === 'function') {
-                syncFirebase();
-            } else if (typeof pushToFirebase === 'function') {
-                pushToFirebase();
-            } else {
-                console.warn("⚠️ No se encontró una función directa de Firebase. Comprueba cómo guarda tu app en la nube.");
             }
 
-            alert(`✅ ¡Importación completada!\n\nPartidos oficiales creados: ${realMatches.length}\nJugadores actualizados: ${playersUpdated}`);
+            // 3. EXTRAER JUGADORES Y REPARTIR STATS EN ENTEROS EXACTOS
+            let playerRows = rows.filter(r => r.type === 'player');
+            let playersUpdated = 0;
             
-            if (typeof renderTeams === 'function') renderTeams();
-            if (typeof renderMatches === 'function') renderMatches(); 
+            // Sacar lista de equipos que juegan en los partidos creados
+            let matchTeams = [...new Set([...S.matches.map(sm => sm.homeTeam), ...S.matches.map(sm => sm.awayTeam)])];
+
+            // Calculadora mágica de enteros: reparte N unidades en X partidos sin decimales
+            const distributeStats = (total, count) => {
+                let base = Math.floor(total / count);
+                let rem = total % count;
+                let arr = Array(count).fill(base);
+                for(let i=0; i<rem; i++) arr[i]++;
+                return arr; // Ejemplo: reparte 10 en 3 -> [4, 3, 3]
+            };
+
+            const parseShotsTotal = (str) => {
+                if(!str || !str.includes('/')) return {m:0, a:0};
+                let parts = str.split('/');
+                return { m: parseInt(parts[0])||0, a: parseInt(parts[1])||0 }; // Total exacto del JSON
+            };
+
+            playerRows.forEach((pRow, idx) => {
+                let p = pRow.data;
+                let jsonTeamName = p.Equip.trim().toUpperCase();
+                
+                // Mapear nombre del equipo del JSON con el nombre del equipo del TXT
+                let tName = matchTeams.find(t => isSameTeam(t, jsonTeamName)) || jsonTeamName;
+
+                // Rescatar los partidos de este equipo
+                let myMatches = S.matches.filter(sm => sm.homeTeam === tName || sm.awayTeam === tName);
+                myMatches.sort((a,b) => a.timestamp - b.timestamp); // Orden cronológico
+                
+                let playCount = myMatches.length;
+                if (playCount === 0) return;
+
+                // Limitar al número de partidos que realmente jugó (si jugó 15 de 26, el resto a 0)
+                let actualPlays = Math.min(p.PJ || 1, playCount);
+
+                // Recuperar los TOTALES calculados a partir de sus medias y PJ
+                let ptsTotal = p.PTS || 0;
+                let minTotal = p.MIN || 0;
+                let astTotal = Math.round((p["AS/P"] || 0) * actualPlays);
+                let roTotal = Math.round((p["RO/P"] || 0) * actualPlays);
+                let rdTotal = Math.round((p["RD/P"] || 0) * actualPlays);
+                let rebTotal = Math.round((p["RT/P"] || 0) * actualPlays);
+                let fcTotal = Math.round((p["FC/P"] || 0) * actualPlays);
+                let valTotal = Math.round((p["VAL/P"] || 0) * actualPlays);
+
+                let t2 = parseShotsTotal(p['T2 intentos']);
+                let t3 = parseShotsTotal(p['T3 intentos']);
+                let tl = parseShotsTotal(p['TL intentos']);
+
+                // Generar los arrays matemáticos sin un solo decimal
+                let arr_min = distributeStats(minTotal, actualPlays);
+                let arr_pts = distributeStats(ptsTotal, actualPlays);
+                let arr_ast = distributeStats(astTotal, actualPlays);
+                let arr_ro = distributeStats(roTotal, actualPlays);
+                let arr_rd = distributeStats(rdTotal, actualPlays);
+                let arr_reb = distributeStats(rebTotal, actualPlays);
+                let arr_fc = distributeStats(fcTotal, actualPlays);
+                let arr_val = distributeStats(valTotal, actualPlays);
+
+                // Para evitar errores lógicos (tiros metidos > tiros intentados), distribuimos los fallos
+                let arr_t2m = distributeStats(t2.m, actualPlays);
+                let arr_t2miss = distributeStats(t2.a - t2.m, actualPlays);
+                
+                let arr_t3m = distributeStats(t3.m, actualPlays);
+                let arr_t3miss = distributeStats(t3.a - t3.m, actualPlays);
+                
+                let arr_tlm = distributeStats(tl.m, actualPlays);
+                let arr_tlmiss = distributeStats(tl.a - tl.m, actualPlays);
+
+                // Repartir en los partidos
+                for(let i = 0; i < playCount; i++) {
+                    let matchObj = myMatches[i];
+                    let isHome = matchObj.homeTeam === tName;
+                    let targetArray = isHome ? matchObj.homePlayers : matchObj.awayPlayers;
+                    let isPlaying = i < actualPlays; // Si ya ha cumplido sus PJ, sus stats son 0
+
+                    let made2 = isPlaying ? arr_t2m[i] : 0;
+                    let att2 = isPlaying ? (arr_t2m[i] + arr_t2miss[i]) : 0;
+                    let made3 = isPlaying ? arr_t3m[i] : 0;
+                    let att3 = isPlaying ? (arr_t3m[i] + arr_t3miss[i]) : 0;
+                    let madeTl = isPlaying ? arr_tlm[i] : 0;
+                    let attTl = isPlaying ? (arr_tlm[i] + arr_tlmiss[i]) : 0;
+
+                    targetArray.push({
+                        dorsal: String(idx + 4),
+                        name: p.Nom.trim(),
+                        pts: isPlaying ? arr_pts[i] : 0,
+                        t2Made: made2, t2Att: att2,
+                        t3Made: made3, t3Att: att3,
+                        tlMade: madeTl, tlAtt: attTl,
+                        fc: isPlaying ? arr_fc[i] : 0,
+                        ast: isPlaying ? arr_ast[i] : 0,
+                        ro: isPlaying ? arr_ro[i] : 0,
+                        rd: isPlaying ? arr_rd[i] : 0,
+                        stl: 0, blk: 0, to: 0, pm: 0, tech: 0, anti: 0,
+                        min: isPlaying ? arr_min[i] : 0,
+                        tl: `${madeTl}/${attTl}`,
+                        t2: `${made2}/${att2}`,
+                        t3: `${made3}/${att3}`,
+                        val: isPlaying ? arr_val[i] : 0,
+                        reb: isPlaying ? arr_reb[i] : 0,
+                        tlPct: p["TL%"] !== null ? p["TL%"] : null,
+                        t2Pct: p["T2%"] !== null ? p["T2%"] : null,
+                        t3Pct: p["T3%"] !== null ? p["T3%"] : null
+                    });
+                }
+                playersUpdated++;
+            });
+
+            // 4. GUARDAR Y SINCRONIZAR
+            window.svL();
+            
+            if (typeof saveToFirebase === 'function') saveToFirebase();
+            else if (typeof syncFirebase === 'function') syncFirebase();
+
+            alert(`✅ ¡Importación Exacta Completada!\n\nSe han creado ${matchesAdded} partidos.\nStats de ${playersUpdated} jugadores repartidas matemáticamente sin decimales.`);
+
+            if (typeof rAll === 'function') { rAll(); } 
+            else { setTimeout(() => { location.reload(); }, 1500); }
 
         } catch (err) {
             console.error("Detalle del error:", err);

@@ -2450,11 +2450,7 @@ function _cleanFirestorePayload(obj){
 let _firebaseSyncTimer = null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + FIREBASE AUTOMÁTICO FRAGMENTADO
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + FIREBASE POR LOTES (BATCHES)
+// 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + SEGURO ANTI-BUCLES
 // ═══════════════════════════════════════════════════════════════════════════
 
 function svL() {
@@ -2471,9 +2467,7 @@ function svL() {
             fisio: S.fisio || {}
         };
         localStorage.setItem('bascatapp_data', JSON.stringify(lightS));
-    } catch(e) {
-        console.warn('Error guardando en local:', e);
-    }
+    } catch(e) { console.warn('Error guardando en local:', e); }
 
     // 2. SINCRONIZACIÓN REAL CON FIREBASE
     if (_firebaseSyncTimer) clearTimeout(_firebaseSyncTimer);
@@ -2482,53 +2476,51 @@ function svL() {
 
     _firebaseSyncTimer = setTimeout(async () => {
         try {
-            // A. Sincronizar metadatos globales
             const metaPayload = _cleanFirestorePayload({
-                teams: S.teams || [],
-                access: S.access || null,
-                playerNotes: S.playerNotes || {},
-                watchGroups: S.watchGroups || [],
-                nextMatch: S.nextMatch || null,
-                fisio: S.fisio || {}
+                teams: S.teams || [], access: S.access || null,
+                playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
+                nextMatch: S.nextMatch || null, fisio: S.fisio || {}
             });
             await setDoc(META_DOC, metaPayload, { merge: true });
 
-            // B. Sincronizar partidos por Lotes (Batches) para no saturar Firebase
             if (S.matches && Array.isArray(S.matches)) {
                 let batch = writeBatch(db);
                 let count = 0;
 
                 for (const m of S.matches) {
                     const mIdStr = String(m.id);
+                    
+                    // 🔥 OPTIMIZACIÓN EXTREMA ANTI-BUCLES: 
+                    // Si el partido viene del JSON y ya está en Firebase, saltamos de largo.
+                    // Esto evita el atasco de red y el "Write stream exhausted".
+                    if (m.type === "imported" && _matchHashes[mIdStr]) {
+                        continue;
+                    }
+
                     const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
                     const matchPayload = _cleanFirestorePayload({ ...m, placedShots });
                     
                     const currentHash = _hash(JSON.stringify(matchPayload));
                     if (_matchHashes[mIdStr] !== currentHash) {
                         batch.set(doc(MATCHES_COL, mIdStr), matchPayload);
-                        _matchHashes[mIdStr] = currentHash;
+                        _matchHashes[mIdStr] = currentHash; // Marcamos como subido
                         count++;
                     }
 
-                    // Firebase admite máximo 500 por lote. Hacemos cortes de 400.
                     if (count === 400) {
                         await batch.commit();
-                        batch = writeBatch(db); // Preparamos la siguiente caja
+                        batch = writeBatch(db);
                         count = 0;
                     }
                 }
-                
-                // Si quedaron partidos sueltos en la última caja, los enviamos
                 if (count > 0) {
                     await batch.commit();
                 }
             }
 
-            // C. Sincronizar clips de vídeo (También por Lotes)
             if (S.clips2 && typeof S.clips2 === 'object') {
                 let clipBatch = writeBatch(db);
                 let clipCount = 0;
-
                 for (const [mkKey, mk] of Object.entries(S.clips2)) {
                     const docId = String(Math.abs(_hash(mkKey)));
                     const clipPayload = _cleanFirestorePayload({ key: mkKey, ...mk });
@@ -2539,19 +2531,16 @@ function svL() {
                         _clipHashes[docId] = currentHash;
                         clipCount++;
                     }
-
                     if (clipCount === 400) {
                         await clipBatch.commit();
                         clipBatch = writeBatch(db);
                         clipCount = 0;
                     }
                 }
-                if (clipCount > 0) {
-                    await clipBatch.commit();
-                }
+                if (clipCount > 0) await clipBatch.commit();
             }
 
-            console.log("☁️ Nube sincronizada correctamente (Batches finalizados)");
+            console.log("☁️ Nube sincronizada (Atasco evitado con éxito)");
             setSyncStatus('ok');
         } catch(e) {
             console.error('Error subiendo a Firebase:', e);

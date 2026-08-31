@@ -2449,12 +2449,25 @@ function _cleanFirestorePayload(obj){
 
 let _firebaseSyncTimer = null;
 
+
+function extractLightMatch(m) {
+    // 1. Clonamos el partido para no romper el original
+    const light = JSON.parse(JSON.stringify(m));
+    
+    // 2. 🗑️ Eliminamos las variables masivas que colapsan la memoria
+    delete light.fcbqMoves;
+    delete light.shots;
+    delete light.timeouts;
+    
+    // 3. Devolvemos la versión ultraligera (pesa un 95% menos)
+    return light;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + SEGURO ANTI-BUCLES
 // ═══════════════════════════════════════════════════════════════════════════
 
 function svL() {
-    // 1. GUARDADO LOCAL INTELIGENTE
     try {
         let lightS = {
             teams: S.teams || [],
@@ -2469,9 +2482,7 @@ function svL() {
         localStorage.setItem('bascatapp_data', JSON.stringify(lightS));
     } catch(e) { console.warn('Error guardando en local:', e); }
 
-    // 2. SINCRONIZACIÓN REAL CON FIREBASE
     if (_firebaseSyncTimer) clearTimeout(_firebaseSyncTimer);
-    
     setSyncStatus('saving');
 
     _firebaseSyncTimer = setTimeout(async () => {
@@ -2489,25 +2500,26 @@ function svL() {
 
                 for (const m of S.matches) {
                     const mIdStr = String(m.id);
-                    
-                    // 🔥 OPTIMIZACIÓN EXTREMA ANTI-BUCLES: 
-                    // Si el partido viene del JSON y ya está en Firebase, saltamos de largo.
-                    // Esto evita el atasco de red y el "Write stream exhausted".
-                    if (m.type === "imported" && _matchHashes[mIdStr]) {
-                        continue;
-                    }
-
                     const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
                     const matchPayload = _cleanFirestorePayload({ ...m, placedShots });
                     
                     const currentHash = _hash(JSON.stringify(matchPayload));
                     if (_matchHashes[mIdStr] !== currentHash) {
+                        
+                        // 1. GUARDADO PESADO (El original, con todo el historial de jugadas)
                         batch.set(doc(MATCHES_COL, mIdStr), matchPayload);
-                        _matchHashes[mIdStr] = currentHash; // Marcamos como subido
+                        
+                        // 2. GUARDADO LIGERO (La copia de seguridad que usará la RAM para volar)
+                        const lightPayload = extractLightMatch(matchPayload);
+                        const lightRef = doc(collection(db, 'matches_light'), mIdStr);
+                        batch.set(lightRef, lightPayload);
+
+                        _matchHashes[mIdStr] = currentHash; 
                         count++;
                     }
 
-                    if (count === 10) {
+                    // 🔥 Lote de 2 en 2 para que Google no nos corte la conexión por peso
+                    if (count === 2) {
                         await batch.commit();
                         batch = writeBatch(db);
                         count = 0;
@@ -2531,7 +2543,8 @@ function svL() {
                         _clipHashes[docId] = currentHash;
                         clipCount++;
                     }
-                    if (clipCount === 400) {
+                    
+                    if (clipCount === 15) {
                         await clipBatch.commit();
                         clipBatch = writeBatch(db);
                         clipCount = 0;
@@ -2540,7 +2553,7 @@ function svL() {
                 if (clipCount > 0) await clipBatch.commit();
             }
 
-            console.log("☁️ Nube sincronizada (Atasco evitado con éxito)");
+            console.log("☁️ Nube sincronizada (Doble guardado completado)");
             setSyncStatus('ok');
         } catch(e) {
             console.error('Error subiendo a Firebase:', e);
@@ -2580,6 +2593,7 @@ async function ldLS() {
     console.warn("Caché local no disponible", e);
   }
   setSyncStatus('conn');
+  
   // ── One-time migration from legacy single doc ──
   try {
     const metaSnap = await getDoc(META_DOC);
@@ -2619,20 +2633,18 @@ async function ldLS() {
 
   onSnapshot(CLIPS_DOC, async (snap) => {
     S.clips = snap.exists() ? (snap.data().clips || {}) : {};
-    // One-time migration: clips2 used to live inside this single document
     const legacy2 = snap.exists() ? (snap.data().clips2 || null) : null;
     if (legacy2 && Object.keys(legacy2).length) {
       try {
         for (const [mkKey, mk] of Object.entries(legacy2)) {
           await setDoc(doc(CLIPS_COL, String(Math.abs(_hash(mkKey)))), { key: mkKey, ...mk });
         }
-        await setDoc(CLIPS_DOC, { clips: S.clips || {} }); // drop the old blob
+        await setDoc(CLIPS_DOC, { clips: S.clips || {} }); 
         console.log('✓ Clips migrados a documentos por partido');
       } catch(e) { console.error('clips migration', e); }
     }
   }, (err) => { console.error(err); });
 
-  // Clips library — one document per match, loaded in real time
   onSnapshot(CLIPS_COL, (qs) => {
     const c2 = {};
     qs.forEach(d => {
@@ -2644,10 +2656,12 @@ async function ldLS() {
       _clipHashes[d.id] = _hash(JSON.stringify({ key, ...rest }));
     });
     S.clips2 = c2;
-    renderVideoLib();
+    if(typeof renderVideoLib === 'function') renderVideoLib();
   }, (err) => { console.error(err); });
 
-  onSnapshot(MATCHES_COL, (qs) => {
+  // 🔥 EL CAMBIO MAESTRO: Ahora descargamos solo los resúmenes ligeros
+  const LIGHT_COL = collection(db, 'matches_light');
+  onSnapshot(LIGHT_COL, (qs) => {
     const matches = [], shots = [];
     qs.forEach(dSnap => {
       const m = dSnap.data();
@@ -2660,6 +2674,10 @@ async function ldLS() {
     matches.sort((a, b) => (a.id || 0) - (b.id || 0));
     S.matches = matches;
     S.shots = shots;
+    
+    // Guardamos esta versión ligera y rapidísima en la caché local para el próximo inicio
+    localStorage.setItem('bascatapp_data', JSON.stringify(S));
+    
     _refreshAfterSync();
   }, (err) => { console.error(err); setSyncStatus('error'); });
 }

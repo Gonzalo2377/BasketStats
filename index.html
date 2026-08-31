@@ -7095,34 +7095,49 @@ function subTapPlayer(name,team){
 let _histOpen=false;
 const HIST_PREVIEW=3;
 function toggleHistory(){_histOpen=!_histOpen;renderMatchHistory();}
+// Variable de control para la paginación (fuera de la función)
+let _histVisible = 15; 
+
 function renderMatchHistory(){
-  const el=document.getElementById('st-match-history'),cnt=document.getElementById('st-match-count');
-  if(cnt)cnt.textContent=S.matches.length?`(${S.matches.length})`:'';
-  if(!el)return;
-  if(!S.matches.length){el.innerHTML='<div class="empty">Sin partidos todavía</div>';return;}
-  const sorted=[...S.matches].sort((a,b)=>(b.id||0)-(a.id||0));
-  const shown=_histOpen?sorted:sorted.slice(0,HIST_PREVIEW);
-  const hidden=sorted.length-shown.length;
-  el.innerHTML=shown.map(m=>{
-    const live=m.type==='live',win=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':null;
+  const el = document.getElementById('st-match-history');
+  const cnt = document.getElementById('st-match-count');
+  if(cnt) cnt.textContent = S.matches.length ? `(${S.matches.length})` : '';
+  if(!el) return;
+  if(!S.matches.length) { el.innerHTML = '<div class="empty">Sin partidos todavía</div>'; return; }
+  
+  const sorted = [...S.matches].sort((a,b) => (b.id||0) - (a.id||0));
+  
+  // En lugar de "todo o nada", cogemos solo los que tocan según el contador
+  const shown = sorted.slice(0, _histVisible);
+  const hidden = sorted.length - shown.length;
+  
+  el.innerHTML = shown.map(m => {
+    const live = m.type === 'live';
+    const win = m.scoreHome > m.scoreAway ? 'home' : (m.scoreAway > m.scoreHome ? 'away' : null);
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;background:#fff">
       <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${live?'#dbeafe':'#f1f5f9'};color:${live?'#1e40af':'var(--t2)'}">${live?'⚡ DIRECTO':'📋 IMPORTADO'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:13px"><span style="${win==='home'?'color:var(--ac)':''}">${m.homeTeam}</span> ${m.scoreHome} — ${m.scoreAway} <span style="${win==='away'?'color:var(--ac)':''}">${m.awayTeam}</span></div>
         <div style="font-size:10px;color:var(--t3)">${m.date||''}${m.competition?' · '+m.competition:''}${(m.shots||[]).length?' · '+(m.shots||[]).length+' tiros':''}</div>
       </div>
-      ${_playerMode?'':`
+      ${_playerMode ? '' : `
       <button onclick="linkFCBQ(${m.id})" title="Vincular acta FCBQ" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">🔗 FCBQ</button>
       <button onclick="openMatchEdit(${m.id})" title="Editar estadísticas del partido" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">✏️</button>
       <button onclick="exportMatchPDF(${m.id})" title="Descargar estadísticas del partido en PDF" style="background:#fefce8;border:1px solid #fde68a;color:#92400e;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px">📄 PDF</button>
       <button onclick="deleteMatch(${m.id})" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>
       `}
     </div>`;
-  }).join('')+((hidden>0||_histOpen)?`
-    <button onclick="toggleHistory()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px">
-      ${_histOpen?'▲ Mostrar menos':`▼ Ver los ${hidden} partidos restantes`}
-    </button>`:'');
+  }).join('') + (hidden > 0 ? `
+    <button onclick="loadMoreHistory()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px">
+      ▼ Cargar 50 más (Quedan ${hidden})
+    </button>` : '');
 }
+
+// Nueva función para sumar 50 a la lista sin colapsar la RAM
+window.loadMoreHistory = function() {
+    _histVisible += 50;
+    renderMatchHistory();
+};
 
 function deleteMatch(id){
   if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
@@ -12299,13 +12314,28 @@ function applyMerge() {
     if(typeof toast === 'function') toast('✅ Fusionado. Espera a que ponga sincronitzat...');
 }
 
-function populateTeamSelects(){
-  const opts='<option value="">— base de datos —</option>'+
-    S.teams.sort((a,b)=>(b.season||'').localeCompare(a.season||'') || a.name.localeCompare(b.name))
-    .map(t=>`<option value="${t.id}">${t.name} (${t.season||'Sin temporada'})</option>`).join('');
-  const hs=document.getElementById('i-home-sel'), as=document.getElementById('i-away-sel');
-  if(hs)hs.innerHTML=opts;
-  if(as)as.innerHTML=opts;
+let _teamSelectsCache = '';
+let _lastTeamsLength = -1;
+
+function populateTeamSelects() {
+    const hs = document.getElementById('i-home-sel');
+    const as = document.getElementById('i-away-sel');
+    
+    // Si no estamos en una pantalla con estos selectores, salimos rápido
+    if (!hs && !as) return;
+
+    // Solo hacemos el cálculo matemático y de texto SI han cambiado los equipos
+    if (_lastTeamsLength !== S.teams.length) {
+        _teamSelectsCache = '<option value="">— base de datos —</option>' +
+            S.teams.sort((a,b) => (b.season||'').localeCompare(a.season||'') || a.name.localeCompare(b.name))
+                 .map(t => `<option value="${t.id}">${t.name} (${t.season||'Sin temporada'})</option>`)
+                 .join('');
+        _lastTeamsLength = S.teams.length; // Guardamos cuántos equipos había
+    }
+
+    // Inyectamos el texto (superrápido, sin recalcular)
+    if (hs) hs.innerHTML = _teamSelectsCache;
+    if (as) as.innerHTML = _teamSelectsCache;
 }
 
 function populateLvTeamSelects(){

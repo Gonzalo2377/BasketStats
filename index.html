@@ -6465,103 +6465,115 @@ function _renderStMaps(scoped,m,tf,gf){
   setTimeout(()=>{try{drawHeatmap('st-cv-heat',shots);drawZoneMap('st-cv-zone',shots);}catch(e){console.warn(e);}},30);
 }
 
+// 🧠 VARIABLES DE CACHÉ (Pon esto FUERA de la función, justo encima de ella)
+let _stCacheFilters = null;
+let _stCacheData = { all: [], teams: new Set(), scoped: [], mfEff: '' };
+let _stRenderLimit = 50; // Límite de jugadores en tabla para no congelar la pantalla
+
 function renderStats(){
-  // ── Filtrado FACETADO: cada desplegable ofrece solo las opciones compatibles
-  //    con TODOS los demás filtros, excepto consigo mismo. Así funciona en los
-  //    dos sentidos: si eliges equipo, solo salen sus partidos; y si eliges
-  //    partido, solo salen sus equipos.
   const val=id=>document.getElementById(id)?.value||'';
-    let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
+  let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  // Predicados individuales de cada filtro sobre un partido
-  const okL =m=>!lf ||m.competition===lf;
-  const okS =m=>!sf ||m.season===sf;
-  const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
-  const okT =m=>!tf ||m.homeTeam===tf||m.awayTeam===tf;
-  const okM =m=>!mf ||String(m.id)===String(mf);
-  // El grupo de seguimiento no descarta el partido entero: filtra qué equipos se ven
-  const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
-  const okW =m=>teamsOf(m).length>0;
+  const currentFilters = `${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  let all, teams, scoped, mfEff;
 
-  // Opciones de cada desplegable: partidos que pasan todos los filtros MENOS el suyo
-  const pool=(excepto)=>S.matches.filter(m=>
-    (excepto==='L'||okL(m))&&(excepto==='S'||okS(m))&&(excepto==='G'||okG(m))&&
-    (excepto==='T'||okT(m))&&(excepto==='M'||okM(m))&&okW(m));
+  // 🛡️ BARRERA 1: LA CACHÉ (Si los filtros son iguales, saltamos el cálculo pesado)
+  if (_stCacheFilters !== currentFilters) {
+      const okL =m=>!lf ||m.competition===lf;
+      const okS =m=>!sf ||m.season===sf;
+      const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
+      const okT =m=>!tf ||m.homeTeam===tf||m.awayTeam===tf;
+      const okM =m=>!mf ||String(m.id)===String(mf);
+      const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
+      const okW =m=>teamsOf(m).length>0;
 
-  const fill=(id,opciones,actual,ph)=>{
-    const e=document.getElementById(id);if(!e)return actual;
-    const ok=!actual||opciones.includes(actual);
-    e.innerHTML=`<option value="">${ph}</option>`+
-      opciones.map(o=>`<option value="${_esc(o)}"${o===actual&&ok?' selected':''}>${_esc(o)}</option>`).join('');
-    if(!ok){e.value='';return '';}
-    return actual;
-  };
-  const uniq=(arr,fn)=>[...new Set(arr.map(fn).filter(Boolean))].sort();
+      const pool=(excepto)=>S.matches.filter(m=>
+        (excepto==='L'||okL(m))&&(excepto==='S'||okS(m))&&(excepto==='G'||okG(m))&&
+        (excepto==='T'||okT(m))&&(excepto==='M'||okM(m))&&okW(m));
 
-  lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
-  sf =fill('st-sf', uniq(pool('S'),m=>m.season), sf, 'Todos');
-  grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
+      const fill=(id,opciones,actual,ph)=>{
+        const e=document.getElementById(id);if(!e)return actual;
+        const ok=!actual||opciones.includes(actual);
+        e.innerHTML=`<option value="">${ph}</option>`+
+          opciones.map(o=>`<option value="${_esc(o)}"${o===actual&&ok?' selected':''}>${_esc(o)}</option>`).join('');
+        if(!ok){e.value='';return '';}
+        return actual;
+      };
+      const uniq=(arr,fn)=>[...new Set(arr.map(fn).filter(Boolean))].sort();
 
-  // Grupo de seguimiento (no depende de los partidos)
-  const gsel=document.getElementById('st-gf');
-  if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
+      lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
+      sf =fill('st-sf', uniq(pool('S'),m=>m.season), sf, 'Todos');
+      grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
 
-  // Equipos disponibles: de los partidos que pasan todo menos el filtro de equipo
-  const teamsAvail=[...new Set(pool('T').flatMap(teamsOf))].sort();
-  const tsel=document.getElementById('st-tf');
-  if(tsel){
-    const ok=!tf||teamsAvail.includes(tf);
-    tsel.innerHTML=_teamSelectOptions(ok?tf:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail});
-    if(!ok){tsel.value='';tf='';}
+      const gsel=document.getElementById('st-gf');
+      if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
+
+      const teamsAvail=[...new Set(pool('T').flatMap(teamsOf))].sort();
+      const tsel=document.getElementById('st-tf');
+      if(tsel){
+        const ok=!tf||teamsAvail.includes(tf);
+        tsel.innerHTML=_teamSelectOptions(ok?tf:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail});
+        if(!ok){tsel.value='';tf='';}
+      }
+
+      const playerLabels=new Map();
+      pool('P').forEach(m=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
+          if(!_inGroup(p.team,gf)||(tf&&p.team!==tf))return;
+          const key=String(p.name||'').trim();
+          if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
+        });
+      });
+      
+      const psel=document.getElementById('st-pf');
+      if(psel){
+        const available=[...playerLabels.keys()].sort((a,b)=>a.localeCompare(b,'es'));
+        const ok=!pf||available.includes(pf);
+        psel.innerHTML='<option value="">Todos los jugadores</option>'+available.map(name=>`<option value="${_esc(name)}"${name===pf&&ok?' selected':''}>${_esc(playerLabels.get(name))}</option>`).join('');
+        if(!ok){psel.value='';pf='';}
+      }
+
+      const msel=document.getElementById('st-mf');
+      mfEff=mf;
+      if(msel){
+        const avail=pool('M').sort((a,b)=>(b.id||0)-(a.id||0));
+        const ok=!mf||avail.some(m=>String(m.id)===String(mf));
+        msel.innerHTML='<option value="">Todos (acumulado)</option>'+
+          avail.map(m=>`<option value="${m.id}"${String(m.id)===String(mf)&&ok?' selected':''}>${_esc(m.name)}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
+        if(!ok){msel.value='';mfEff='';}
+      }
+
+      const inScope=m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&
+        (!tf||m.homeTeam===tf||m.awayTeam===tf)&&(!mfEff||String(m.id)===String(mfEff));
+
+      const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const q=''; 
+      all=[]; teams=new Set();
+      scoped=S.matches.filter(inScope);
+      scoped.forEach(m=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{
+          if(!_inGroup(p.team,gf))return;
+          teams.add(p.team);
+          if(tf&&p.team!==tf)return;
+          if(pf&&p.name!==pf)return;
+          if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
+          all.push(p);});
+      });
+
+      // Guardamos el trabajo duro en la memoria caché
+      _stCacheData = { all, teams, scoped, mfEff };
+      _stCacheFilters = currentFilters;
+      _stRenderLimit = 50; // Reseteamos el límite de la tabla al cambiar de filtro
+      
+  } else {
+      // ⚡ SI LOS FILTROS SON IGUALES, CARGA A LA VELOCIDAD DE LA LUZ
+      all = _stCacheData.all;
+      teams = _stCacheData.teams;
+      scoped = _stCacheData.scoped;
+      mfEff = _stCacheData.mfEff;
   }
 
-  // Jugadores disponibles con todos los filtros salvo el propio.
-  const playerLabels=new Map();
-  pool('P').forEach(m=>{
-    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
-      if(!_inGroup(p.team,gf)||(tf&&p.team!==tf))return;
-      const key=String(p.name||'').trim();
-      if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
-    });
-  });
-  const psel=document.getElementById('st-pf');
-  if(psel){
-    const available=[...playerLabels.keys()].sort((a,b)=>a.localeCompare(b,'es'));
-    const ok=!pf||available.includes(pf);
-    psel.innerHTML='<option value="">Todos los jugadores</option>'+available.map(name=>`<option value="${_esc(name)}"${name===pf&&ok?' selected':''}>${_esc(playerLabels.get(name))}</option>`).join('');
-    if(!ok){psel.value='';pf='';}
-  }
-
-  // Partidos disponibles: los que pasan todo menos el filtro de partido
-  const msel=document.getElementById('st-mf');
-  let mfEff=mf;
-  if(msel){
-    const avail=pool('M').sort((a,b)=>(b.id||0)-(a.id||0));
-    const ok=!mf||avail.some(m=>String(m.id)===String(mf));
-    msel.innerHTML='<option value="">Todos (acumulado)</option>'+
-      avail.map(m=>`<option value="${m.id}"${String(m.id)===String(mf)&&ok?' selected':''}>${_esc(m.name)}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
-    if(!ok){msel.value='';mfEff='';}
-  }
-  // Partidos que cumplen TODOS los filtros (lo que se muestra)
-  const inScope=m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&
-    (!tf||m.homeTeam===tf||m.awayTeam===tf)&&(!mfEff||String(m.id)===String(mfEff));
-
-  // Buscador de texto: filtra por nombre o dorsal (sin distinguir acentos)
-  const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const q='';   // el filtrado por texto vive ahora dentro de cada desplegable
-  let all=[],teams=new Set();
-  const scoped=S.matches.filter(inScope);
-  scoped.forEach(m=>{
-    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{
-      if(!_inGroup(p.team,gf))return;   // fuera del grupo de seguimiento → no se muestra
-      teams.add(p.team);
-      if(tf&&p.team!==tf)return;
-      if(pf&&p.name!==pf)return;
-      if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
-      all.push(p);});
-  });
-  // Datos que usan las mini-pestañas
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
   window._stCtx={scoped,selMatch,tf,gf,pf};
   const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
@@ -6571,10 +6583,10 @@ function renderStats(){
     <div class="kpi"><div class="kv">${top?top.pts:'—'}</div><div class="kl">Màxim</div><div class="ks">${top?top.name.split(' ')[0]:''}</div></div>
     <div class="kpi"><div class="kv">${scoped.length}</div><div class="kl">Partits</div></div>
     <div class="kpi"><div class="kv">${[...teams].length}</div><div class="kl">Equips</div></div>`;
-  // Botón de PDF: solo con un partido concreto seleccionado
+  
   const pdfBtn=document.getElementById('st-pdf-btn');
   if(pdfBtn)pdfBtn.style.display=selMatch?'inline-block':'none';
-  // Quintetos iniciales (solo cuando hay un partido concreto seleccionado)
+  
   const luEl=document.getElementById('st-lineups');
   if(luEl){
     const mSel=selMatch;
@@ -6588,30 +6600,45 @@ function renderStats(){
       </div>`;
     } else luEl.innerHTML='';
   }
+
   const cols=['#','Jugador','Equip','Partit','PTS','MIN','TL','TL%','T2','T2%','T3','T3%','REB','AST','FC','VAL','+/-'];
   const th=document.getElementById('st-th');
   if(th)th.innerHTML='<tr>'+cols.map((col,i)=>`<th class="${stSort.col===i?(stSort.dir>0?'asc':'desc'):''}" onclick="ssort(${i})">${col}</th>`).join('')+'</tr>';
   const sk=[null,'name','team','mN','pts','min',null,'tlPct',null,'t2Pct',null,'t3Pct','reb','ast','fc','val','pm'];
   const sorted=[...all].sort((a,b)=>{const k=sk[stSort.col];if(!k)return 0;const va=a[k],vb=b[k];if(va==null)return 1;if(vb==null)return-1;return(typeof va==='number'?va-vb:String(va).localeCompare(String(vb)))*stSort.dir;});
+  
+  // 🛡️ BARRERA 2: DIBUJAMOS SOLO LOS PRIMEROS (Paginación)
   const tb=document.getElementById('st-tb');
-  if(tb)tb.innerHTML=sorted.length?sorted.map(p=>{
-    const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-    return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
-  }).join(''):`<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
+  if(tb) {
+      const shown = sorted.slice(0, _stRenderLimit);
+      const hidden = sorted.length - shown.length;
+      
+      let html = shown.map(p=>{
+        const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
+        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
+      }).join('');
+      
+      if (hidden > 0) {
+          html += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px;background:#f8fafc">
+              <button onclick="_stRenderLimit += 50; renderStats()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">
+                  ▼ Mostrar 50 jugadores más (Quedan ${hidden} ocultos)
+              </button>
+          </td></tr>`;
+      } else if (!sorted.length) {
+          html = `<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
+      }
+      tb.innerHTML = html;
+  }
 
   if(_stSub==='box')renderStatsAggregated();
-  // Cabecera del partido + las tres vistas nuevas
   _renderStMatchHead(selMatch);
   _renderStDetalles(scoped,selMatch);
   if(_stSub==='box')_renderStBox(selMatch);
   if(_stSub==='team')_renderStTeamStats(scoped,selMatch,tf);
   if(_stSub==='pm')_renderStPlusMinus(scoped,selMatch);
   if(_stSub==='map')_renderStMaps(scoped,selMatch,tf,gf);
-
-  // 1️⃣ Forzamos el recalculo interno de los datos avanzados con el equipo seleccionado
   if(_stSub==='adv')_renderAdvancedStats();
 }
-
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
 
 // ═══════════════════════════════════════════

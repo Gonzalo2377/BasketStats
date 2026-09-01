@@ -2565,14 +2565,19 @@ function _refreshAfterSync(){
   if(document.getElementById('t-scout')?.classList.contains('active'))renderClipsLibrary();
 }
 
-// Real-time listeners on the sharded structure. Each match lives in its own
-// Firestore document, so the old 1MB single-document ceiling is gone: the
-// only per-document limit now applies to ONE match (~50-100KB), never the whole club.
 async function ldLS() {
-  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC en 0 milisegundos
-  if(!document.getElementById('st-loader')){
-    document.body.insertAdjacentHTML('beforeend', `<div id="st-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:sans-serif;"><div style="width:50px;height:50px;border:4px solid #334155;border-top-color:#3b82f6;border-radius:50%;animation:st-spin 1s linear infinite;"></div><h2 style="margin-top:20px;font-size:18px">Descargando base de datos...</h2><style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style></div>`);
+  // 🛑 TELÓN GLOBAL DE CARGA 🛑
+  if (!document.getElementById('telon-global')) {
+      document.body.insertAdjacentHTML('beforeend', `
+          <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
+              <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
+              <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
+              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BÁSCATAPP</h2>
+              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Descargando y calculando el historial de partidos...</p>
+          </div>
+      `);
   }
+
   // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC en 0 milisegundos
   try {
     const localData = localStorage.getItem('bascatapp_data');
@@ -2667,8 +2672,6 @@ async function ldLS() {
     if(typeof renderVideoLib === 'function') renderVideoLib();
   }, (err) => { console.error(err); });
 
-  // 🔥 EL CAMBIO MAESTRO: Ahora descargamos solo los resúmenes ligeros
-  const LIGHT_COL = MATCHES_COL;
   // Descargamos de la colección principal
   onSnapshot(MATCHES_COL, (qs) => {
     const matches = [], shots = [];
@@ -2687,6 +2690,25 @@ async function ldLS() {
     // ATENCIÓN: No hacemos localStorage.setItem(..., S) aquí para no romper el límite de 5MB
     
     _refreshAfterSync();
+
+    // 🟢 DESTRUIMOS EL TELÓN GLOBAL Y COMPROBAMOS LA URL 🟢
+    const telon = document.getElementById('telon-global');
+    if(telon) {
+        telon.style.transition = "opacity 0.5s ease";
+        telon.style.opacity = "0";
+        setTimeout(() => telon.remove(), 500);
+    }
+
+    // 🔗 LEEMOS LA URL PARA VER SI NOS HAN PASADO UN JUGADOR
+    const urlParams = new URLSearchParams(window.location.search);
+    const jugadorURL = urlParams.get('jugador');
+    const equipoURL = urlParams.get('equipo');
+    if(jugadorURL) {
+        setTimeout(() => { // Esperamos medio segundo a que termine de dibujar la web
+            openPlayerProfile(jugadorURL, equipoURL || '__ALL__', urlParams.get('temp') || null);
+        }, 500);
+    }
+
   }, (err) => { console.error(err); setSyncStatus('error'); });
 }
 
@@ -9220,7 +9242,15 @@ function openPlayerProfile(name, team, targetSeason){
   });
   if(!games.length){toast('Sin partidos de este jugador','err');return;}
   
-  // ORDENACIÓN CRONOLÓGICA (Más antiguo primero, para que la gráfica vaya de izq a der)
+  // 🔗 MAGIA PARA COMPARTIR LINKS: Actualizamos la URL sin recargar la web
+  const url = new URL(window.location);
+  url.searchParams.set('jugador', name);
+  url.searchParams.set('equipo', team);
+  if(targetSeason) url.searchParams.set('temp', targetSeason);
+  window.history.pushState({}, '', url);
+  // ---------------------------------------------------------
+  
+  // ORDENACIÓN CRONOLÓGICA
   games.sort((a,b)=>a.ts-b.ts);
   
   const G=games.length;
@@ -9234,7 +9264,6 @@ function openPlayerProfile(name, team, targetSeason){
   const uniqueTeams = [...new Set(games.map(g => g.tn))];
   const teamLabel = uniqueTeams.length > 1 ? uniqueTeams.join(' ➔ ') : (uniqueTeams[0] || 'Desconocido');
 
-  // ── LÓGICA INTELIGENTE DE SEPARADORES (Equipo vs Temporada) ──
   let _cg = "";
   const chartGroups = games.map((g, i) => {
       const sLabel = (g.season && g.season !== 'Sin temporada') ? g.season : '';
@@ -9242,14 +9271,8 @@ function openPlayerProfile(name, team, targetSeason){
           _cg = sLabel ? `${g.tn} (${sLabel})` : g.tn;
       } else {
           const prev = games[i-1];
-          // ¿Cambió de equipo?
-          if (g.tn !== prev.tn) {
-              _cg = sLabel ? `${g.tn} (${sLabel})` : g.tn;
-          } 
-          // ¿Mismo equipo pero cambió de temporada?
-          else if (g.season !== prev.season && sLabel) {
-              _cg = `Temporada ${sLabel}`;
-          }
+          if (g.tn !== prev.tn) _cg = sLabel ? `${g.tn} (${sLabel})` : g.tn;
+          else if (g.season !== prev.season && sLabel) _cg = `Temporada ${sLabel}`;
       }
       return _cg;
   });
@@ -9306,9 +9329,8 @@ function openPlayerProfile(name, team, targetSeason){
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
       <div class="pp-games tw" style="max-height:340px;overflow-x:auto;overflow-y:auto"><table style="min-width:760px;border-collapse:collapse;font-size:11px;table-layout:auto">
-        <thead><tr style="background:#0f172a;position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap;min-width:48px">${h}</th>`).join('')}</tr></thead>
-        
-        <!-- Tabla cronológica (le hemos quitado el .reverse() para que coincida con los gráficos) -->
+        <!-- 🔥 COLOR DE LA CABECERA ARREGLADO (Azul oscuro var(--nv)) -->
+        <thead><tr style="background:var(--nv);position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap;min-width:48px">${h}</th>`).join('')}</tr></thead>
         <tbody>${games.map(g=>`<tr style="border-top:1px solid #eef2f7">
           <td style="padding:7px 9px;color:var(--t3);font-size:10px;white-space:nowrap">${g.date ? _esc(g.date.slice(0,10)) : '—'}</td>
           <td style="padding:7px 9px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -9918,8 +9940,15 @@ function renderCompare() {
     }, 50);
 }
 
-function closePlayerProfile(){document.getElementById('player-modal').style.display='none';}
-
+function closePlayerProfile() {
+    document.getElementById('player-modal').style.display = 'none';
+    // Limpiamos la URL al cerrar
+    const url = new URL(window.location);
+    url.searchParams.delete('jugador');
+    url.searchParams.delete('equipo');
+    url.searchParams.delete('temp');
+    window.history.pushState({}, '', url);
+}
 // ═══════════════════════════════════════════
 // 🎬 VIDEO TAB — keyboard-driven clip cutting
 // S.clips2[matchKey] = {local,away,created,teams:{[teamName]:{ataque:{[folder]:[clip]},defensa:{...}}}}

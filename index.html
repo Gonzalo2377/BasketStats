@@ -9648,6 +9648,20 @@ function renderCompare() {
     S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
+    // 🛑 CORTAFUEGOS VISUAL: Si hay rival pero los partidos aún se están descargando
+    if (hasRival && (!S.matches || S.matches.length === 0)) {
+        tabMain.innerHTML = `
+            <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:65vh; text-align:center;">
+                <div style="width:45px;height:45px;border:4px solid #e2e8f0;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
+                <h3 style="margin-top:20px;color:var(--t2);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">
+                    Calculando métricas avanzadas y mapas de tiro...
+                </h3>
+            </div>
+        `;
+        return; // Abortamos para no pintar los ceros
+    }
+
     if (!hasRival) {
         if (_playerMode) {
             tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">

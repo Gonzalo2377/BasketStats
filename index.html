@@ -6501,7 +6501,9 @@ function renderStats(){
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  const currentFilters = `${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  // 🔥 AQUÍ ESTÁ LA CORRECCIÓN: Añadido (S.matches || []).length al principio
+  const currentFilters = `${(S.matches || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  
   let all, teams, scoped, mfEff;
 
   // 🛡️ BARRERA 1: LA CACHÉ (Si los filtros son iguales, saltamos el cálculo pesado)
@@ -6665,6 +6667,7 @@ function renderStats(){
   if(_stSub==='map')_renderStMaps(scoped,selMatch,tf,gf);
   if(_stSub==='adv')_renderAdvancedStats();
 }
+
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
 
 // ═══════════════════════════════════════════

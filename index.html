@@ -2573,15 +2573,26 @@ async function ldLS() {
   if(!document.getElementById('st-loader')){
     document.body.insertAdjacentHTML('beforeend', `<div id="st-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:sans-serif;"><div style="width:50px;height:50px;border:4px solid #334155;border-top-color:#3b82f6;border-radius:50%;animation:st-spin 1s linear infinite;"></div><h2 style="margin-top:20px;font-size:18px">Descargando base de datos...</h2><style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style></div>`);
   }
+  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC en 0 milisegundos
   try {
     const localData = localStorage.getItem('bascatapp_data');
     if (localData) {
       const parsed = JSON.parse(localData);
       if (parsed && parsed.teams) {
-        // Restaurar todo el estado guardado al instante
-        S = parsed;
-        console.log("⚡ Cargado desde caché al instante");
-        // Pintar toda la interfaz de la web inmediatamente sin esperar a la nube
+        // En vez de borrar todo, fusionamos y aseguramos que los arrays vitales existan siempre
+        S.teams = parsed.teams || [];
+        S.playerNotes = parsed.playerNotes || {};
+        S.watchGroups = parsed.watchGroups || [];
+        S.nextMatch = parsed.nextMatch || null;
+        S.fisio = parsed.fisio || {};
+        
+        // El blindaje: Asegurar que nunca sean 'undefined' para que las pestañas no peten
+        S.matches = S.matches || [];
+        S.shots = S.shots || [];
+        S.clips = S.clips || {};
+        S.clips2 = S.clips2 || {};
+
+        console.log("⚡ Cargado desde caché sin romper la estructura");
         _refreshAfterSync();
         if (typeof renderCompare === 'function') renderCompare();
       }

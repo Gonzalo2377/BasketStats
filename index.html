@@ -2463,6 +2463,36 @@ function extractLightMatch(m) {
     return light;
 }
 
+window.migrarALight = async function() {
+    console.log("Iniciando volcado masivo a la carpeta ligera...");
+    // Usamos el writeBatch y la db que ya existen en tu código
+    let batch = writeBatch(db);
+    let count = 0;
+    let total = 0;
+    
+    for (let m of S.matches) {
+        const lightPayload = extractLightMatch(m); 
+        const lightRef = doc(collection(db, 'matches_light'), String(m.id));
+        batch.set(lightRef, lightPayload);
+        
+        count++; 
+        total++;
+        
+        if (count === 100) {
+            await batch.commit();
+            console.log(`✅ Copiados ${total} partidos...`);
+            batch = writeBatch(db);
+            count = 0;
+        }
+    }
+    
+    if (count > 0) {
+        await batch.commit();
+        console.log(`✅ Copiados ${total} partidos...`);
+    }
+    console.log("🚀 ¡MIGRACIÓN COMPLETADA! Ya puedes cambiar el código de lectura.");
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + SEGURO ANTI-BUCLES
 // ═══════════════════════════════════════════════════════════════════════════

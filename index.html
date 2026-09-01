@@ -2690,24 +2690,36 @@ async function ldLS() {
         setTimeout(() => telon.remove(), 500);
     }
 
-    // 🔗 INTERCEPTOR INTELIGENTE DE LINKS
+    // 🔗 INTERCEPTOR INTELIGENTE DE LINKS DE JUGADOR (CON SEGURIDAD)
     const urlParams = new URLSearchParams(window.location.search);
     const j = urlParams.get('jugador');
     const e = urlParams.get('equipo');
     const t = urlParams.get('temp');
 
     if(j) {
-        // Miramos si el usuario ya ha metido la contraseña antes (en visitas anteriores)
         const savedRole = localStorage.getItem('bascatRole');
-        if (savedRole) {
-            // Ya tiene acceso permitido, abrimos la ficha
+        
+        if (savedRole === 'staff') {
+            // OPCIÓN 2: Entró previamente como Staff. Abrimos la ficha.
             setTimeout(() => { 
                 if (typeof openPlayerProfile === 'function') {
                     openPlayerProfile(j, e || '__ALL__', t || null);
                 }
             }, 500);
+        } else if (savedRole === 'player') {
+            // OPCIÓN 1: Entró previamente como Jugador. Bloqueo total.
+            setTimeout(() => {
+                toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
+                // Limpiamos la URL para que no parezca que hay un enlace activo
+                const url = new URL(window.location);
+                url.searchParams.delete('jugador');
+                url.searchParams.delete('equipo');
+                url.searchParams.delete('temp');
+                window.history.replaceState({}, '', url);
+            }, 500);
         } else {
-            // No tiene sesión, se queda en la puerta, pero le guardamos el link en el bolsillo
+            // OPCIÓN 3: No hay sesión (Modo Incógnito o usuario nuevo).
+            // Guardamos el enlace y esperamos a que pase por la función doLogin()
             window._enlacePendiente = { j, e: e || '__ALL__', t: t || null };
         }
     }
@@ -10785,6 +10797,7 @@ function doLogin(){
   let role=null;
   if(v===acc.staff)role='staff';
   else if(v===acc.player)role='player';
+  
   if(!role){
     const err=document.getElementById('login-err');
     if(err)err.textContent='Código incorrecto';
@@ -10795,13 +10808,24 @@ function doLogin(){
   _applyRole(role);
   toast(role==='staff'?'👋 Bienvenido, staff':'👋 Bienvenido — modo jugador');
 
-  // 🔗 EJECUTAR ENLACE COMPARTIDO (Si alguien entró por un link y esperaba poner la clave)
+  // 🔗 EJECUTAR ENLACE COMPARTIDO (Con seguridad estricta)
   if (window._enlacePendiente) {
       setTimeout(() => {
-          if (typeof openPlayerProfile === 'function') {
-              openPlayerProfile(window._enlacePendiente.j, window._enlacePendiente.e, window._enlacePendiente.t);
+          if (role === 'staff') {
+              // OPCIÓN 2: Es Staff -> Le abrimos el informe
+              if (typeof openPlayerProfile === 'function') {
+                  openPlayerProfile(window._enlacePendiente.j, window._enlacePendiente.e, window._enlacePendiente.t);
+              }
+          } else {
+              // OPCIÓN 1: Es Jugador -> Bloqueamos y limpiamos el rastro
+              toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
+              const url = new URL(window.location);
+              url.searchParams.delete('jugador');
+              url.searchParams.delete('equipo');
+              url.searchParams.delete('temp');
+              window.history.replaceState({}, '', url);
           }
-          window._enlacePendiente = null; // Limpiamos la memoria
+          window._enlacePendiente = null; // Limpiamos la memoria por seguridad
       }, 300);
   }
 }

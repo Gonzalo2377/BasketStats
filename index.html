@@ -2660,7 +2660,7 @@ async function ldLS() {
   }, (err) => { console.error(err); });
 
   // 🔥 EL CAMBIO MAESTRO: Ahora descargamos solo los resúmenes ligeros
-  const LIGHT_COL = collection(db, 'matches_light');
+  const LIGHT_COL = MATCHES_COL;
   onSnapshot(LIGHT_COL, (qs) => {
     const matches = [], shots = [];
     qs.forEach(dSnap => {

@@ -2578,20 +2578,18 @@ async function ldLS() {
       `);
   }
 
-  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC en 0 milisegundos
+  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC
   try {
     const localData = localStorage.getItem('bascatapp_data');
     if (localData) {
       const parsed = JSON.parse(localData);
       if (parsed && parsed.teams) {
-        // En vez de borrar todo, fusionamos y aseguramos que los arrays vitales existan siempre
         S.teams = parsed.teams || [];
         S.playerNotes = parsed.playerNotes || {};
         S.watchGroups = parsed.watchGroups || [];
         S.nextMatch = parsed.nextMatch || null;
         S.fisio = parsed.fisio || {};
         
-        // El blindaje: Asegurar que nunca sean 'undefined' para que las pestañas no peten
         S.matches = S.matches || [];
         S.shots = S.shots || [];
         S.clips = S.clips || {};
@@ -2607,7 +2605,7 @@ async function ldLS() {
   }
   setSyncStatus('conn');
   
-  // ── One-time migration from legacy single doc ──
+  // ── Migración inicial única ──
   try {
     const metaSnap = await getDoc(META_DOC);
     if (!metaSnap.exists()) {
@@ -2621,7 +2619,7 @@ async function ldLS() {
           const placedShots = shots.filter(s => (s.mId || s.matchId) == m.id);
           await setDoc(doc(MATCHES_COL, String(m.id)), { ...m, placedShots });
         }
-        console.log('✓ Migración a estructura por-partido completada (el doc antiguo queda como backup)');
+        console.log('✓ Migración completada');
       } else {
         await setDoc(META_DOC, { teams: [], createdAt: Date.now() });
       }
@@ -2633,15 +2631,11 @@ async function ldLS() {
     S.access = snap.exists() ? (snap.data().access || null) : null;
     S.playerNotes = snap.exists() ? (snap.data().playerNotes || {}) : {};
     S.watchGroups = snap.exists() ? (snap.data().watchGroups || []) : [];
-    
-    // Sincronización en tiempo real del próximo rival entre dispositivos
     S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
     S.fisio = snap.exists() ? (snap.data().fisio || {}) : {};
 
     _refreshAfterSync();
-    if (typeof renderCompare === 'function') {
-        renderCompare();
-    }
+    if (typeof renderCompare === 'function') renderCompare();
   }, (err) => { console.error(err); setSyncStatus('error'); });
 
   onSnapshot(CLIPS_DOC, async (snap) => {
@@ -2653,8 +2647,7 @@ async function ldLS() {
           await setDoc(doc(CLIPS_COL, String(Math.abs(_hash(mkKey)))), { key: mkKey, ...mk });
         }
         await setDoc(CLIPS_DOC, { clips: S.clips || {} }); 
-        console.log('✓ Clips migrados a documentos por partido');
-      } catch(e) { console.error('clips migration', e); }
+      } catch(e) {}
     }
   }, (err) => { console.error(err); });
 
@@ -2672,7 +2665,7 @@ async function ldLS() {
     if(typeof renderVideoLib === 'function') renderVideoLib();
   }, (err) => { console.error(err); });
 
-  // Descargamos de la colección principal
+  // 🔥 DESCARGA PRINCIPAL 🔥
   onSnapshot(MATCHES_COL, (qs) => {
     const matches = [], shots = [];
     qs.forEach(dSnap => {
@@ -2687,11 +2680,9 @@ async function ldLS() {
     S.matches = matches;
     S.shots = shots;
     
-    // ATENCIÓN: No hacemos localStorage.setItem(..., S) aquí para no romper el límite de 5MB
-    
     _refreshAfterSync();
 
-    // 🟢 DESTRUIMOS EL TELÓN GLOBAL Y COMPROBAMOS LA URL 🟢
+    // 🟢 DESTRUIMOS EL TELÓN GLOBAL AQUÍ 🟢
     const telon = document.getElementById('telon-global');
     if(telon) {
         telon.style.transition = "opacity 0.5s ease";
@@ -2699,14 +2690,26 @@ async function ldLS() {
         setTimeout(() => telon.remove(), 500);
     }
 
-    // 🔗 LEEMOS LA URL PARA VER SI NOS HAN PASADO UN JUGADOR
+    // 🔗 INTERCEPTOR INTELIGENTE DE LINKS
     const urlParams = new URLSearchParams(window.location.search);
-    const jugadorURL = urlParams.get('jugador');
-    const equipoURL = urlParams.get('equipo');
-    if(jugadorURL) {
-        setTimeout(() => { // Esperamos medio segundo a que termine de dibujar la web
-            openPlayerProfile(jugadorURL, equipoURL || '__ALL__', urlParams.get('temp') || null);
-        }, 500);
+    const j = urlParams.get('jugador');
+    const e = urlParams.get('equipo');
+    const t = urlParams.get('temp');
+
+    if(j) {
+        // Miramos si el usuario ya ha metido la contraseña antes (en visitas anteriores)
+        const savedRole = localStorage.getItem('bascatRole');
+        if (savedRole) {
+            // Ya tiene acceso permitido, abrimos la ficha
+            setTimeout(() => { 
+                if (typeof openPlayerProfile === 'function') {
+                    openPlayerProfile(j, e || '__ALL__', t || null);
+                }
+            }, 500);
+        } else {
+            // No tiene sesión, se queda en la puerta, pero le guardamos el link en el bolsillo
+            window._enlacePendiente = { j, e: e || '__ALL__', t: t || null };
+        }
     }
 
   }, (err) => { console.error(err); setSyncStatus('error'); });
@@ -8623,7 +8626,7 @@ footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:1
 <div class="hero">
   <div class="eyebrow">Informe de Scouting</div>
   <h1>${rival}</h1>
-  <div class="meta">Generado por BascatApp · ${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  <div class="meta">Generado por BasketApp · ${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
   <div class="pills">
     <span class="pill">${n} partido${n!==1?'s':''} analizado${n!==1?'s':''}</span>
     <span class="pill">${Math.round(totPts/n)} pts/partido</span>
@@ -8794,7 +8797,7 @@ ${['ataque','defensa'].map(cat=>{
 </div>
 `:''}
 
-<footer>BascatApp · Scouting — ${rival} · ${new Date().toLocaleDateString('es-ES')} · Documento confidencial</footer>
+<footer>BasketApp · Scouting — ${rival} · ${new Date().toLocaleDateString('es-ES')} · Documento confidencial</footer>
 </div>
 <script>window.onload=function(){var i=document.images;if(i.length){var n=0;for(var k=0;k<i.length;k++){if(i[k].complete){n++}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250)}}}if(n===i.length)setTimeout(function(){window.print()},250);}else{setTimeout(function(){window.print()},250);}};<\/script>
 </body></html>`);
@@ -9330,7 +9333,7 @@ function openPlayerProfile(name, team, targetSeason){
       <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
       <div class="pp-games tw" style="max-height:340px;overflow-x:auto;overflow-y:auto"><table style="min-width:760px;border-collapse:collapse;font-size:11px;table-layout:auto">
         <!-- 🔥 COLOR DE LA CABECERA ARREGLADO (Azul oscuro var(--nv)) -->
-        <thead><tr style="background:var(--nv);position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="padding:7px 9px;text-align:left;color:#fff;font-size:10px;white-space:nowrap;min-width:48px">${h}</th>`).join('')}</tr></thead>
+        <thead><tr style="position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="background:#0f172a;padding:7px 9px;text-align:left;color:#ffffff;font-size:10px;white-space:nowrap;min-width:48px;border:none;">${h}</th>`).join('')}</tr></thead>
         <tbody>${games.map(g=>`<tr style="border-top:1px solid #eef2f7">
           <td style="padding:7px 9px;color:var(--t3);font-size:10px;white-space:nowrap">${g.date ? _esc(g.date.slice(0,10)) : '—'}</td>
           <td style="padding:7px 9px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -9404,7 +9407,7 @@ function exportPlayerPDF(){
   const w=window.open('','_blank');
   if(!w){toast('El navegador bloqueó la ventana. Permite popups.','err');return;}
   w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>${_esc(name)} — BascatApp</title>
+<title>${_esc(name)} — BasketApp</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#1e293b;font-size:12px;line-height:1.45}
@@ -9488,7 +9491,7 @@ ${(heatImg||zoneImg)?`<div class="sec">
   </table>
 </div>
 
-<footer>BascatApp · ${_esc(name)} · ${new Date().toLocaleDateString('es-ES')}</footer>
+<footer>BasketApp · ${_esc(name)} · ${new Date().toLocaleDateString('es-ES')}</footer>
 </div>
 <script>window.onload=function(){var i=document.images,n=0;if(!i.length){setTimeout(function(){window.print()},250);return;}for(var k=0;k<i.length;k++){if(i[k].complete){if(++n===i.length)setTimeout(function(){window.print()},300);}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},300);};}}};<\/script>
 </body></html>`);
@@ -10791,6 +10794,16 @@ function doLogin(){
   document.getElementById('login-gate').style.display='none';
   _applyRole(role);
   toast(role==='staff'?'👋 Bienvenido, staff':'👋 Bienvenido — modo jugador');
+
+  // 🔗 EJECUTAR ENLACE COMPARTIDO (Si alguien entró por un link y esperaba poner la clave)
+  if (window._enlacePendiente) {
+      setTimeout(() => {
+          if (typeof openPlayerProfile === 'function') {
+              openPlayerProfile(window._enlacePendiente.j, window._enlacePendiente.e, window._enlacePendiente.t);
+          }
+          window._enlacePendiente = null; // Limpiamos la memoria
+      }, 300);
+  }
 }
 
 function doLogout(){
@@ -11067,7 +11080,7 @@ function exportMatchPDF(matchId){
           </tr>
         </tfoot>
       </table>
-      <div class="foot"><span>★ = quintet inicial</span><span>BascatApp · ${new Date().toLocaleDateString('es-ES')}</span></div>
+      <div class="foot"><span>★ = quintet inicial</span><span>BasketApp · ${new Date().toLocaleDateString('es-ES')}</span></div>
     </div>
     ${maps[side]?`<div class="page">
       <div class="tname">${name} — Mapes de tir <span style="font-size:11px;font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">${shotsOf(side).length} tirs ubicats · ${pc(shotsOf(side).filter(s=>s.made).length,shotsOf(side).length)} d'encert</span></div>
@@ -11081,7 +11094,7 @@ function exportMatchPDF(matchId){
           <img src="${maps[side].zones}">
         </div>
       </div>
-      <div class="foot"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date:''}</span><span>BascatApp</span></div>
+      <div class="foot"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date:''}</span><span>BasketApp</span></div>
     </div>`:''}`;
   };
 

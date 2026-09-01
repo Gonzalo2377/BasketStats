@@ -2499,17 +2499,15 @@ window.migrarALight = async function() {
 
 function svL() {
     try {
-        let lightS = {
+        // Guardamos solo lo ligero en local para no saturar la cuota
+        let ultraLightS = {
             teams: S.teams || [],
-            matches: (S.matches || []).filter(m => m.type !== "imported" && !m.shotsSkipped),
-            shots: S.shots || [],
-            clips: S.clips || {},
             playerNotes: S.playerNotes || {},
             watchGroups: S.watchGroups || [],
             nextMatch: S.nextMatch || null,
             fisio: S.fisio || {}
         };
-        localStorage.setItem('bascatapp_data', JSON.stringify(lightS));
+        localStorage.setItem('bascatapp_data', JSON.stringify(ultraLightS));
     } catch(e) { console.warn('Error guardando en local:', e); }
 
     if (_firebaseSyncTimer) clearTimeout(_firebaseSyncTimer);
@@ -2527,7 +2525,6 @@ function svL() {
             if (S.matches && Array.isArray(S.matches)) {
                 let batch = writeBatch(db);
                 let count = 0;
-
                 for (const m of S.matches) {
                     const mIdStr = String(m.id);
                     const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
@@ -2535,55 +2532,19 @@ function svL() {
                     
                     const currentHash = _hash(JSON.stringify(matchPayload));
                     if (_matchHashes[mIdStr] !== currentHash) {
-                        
-                        // 1. GUARDADO PESADO (El original, con todo el historial de jugadas)
-                        batch.set(doc(MATCHES_COL, mIdStr), matchPayload);
-                        
-                        // 2. GUARDADO LIGERO (La copia de seguridad que usará la RAM para volar)
-                        const lightPayload = extractLightMatch(matchPayload);
-                        const lightRef = doc(collection(db, 'matches_light'), mIdStr);
-                        batch.set(lightRef, lightPayload);
-
+                        batch.set(doc(MATCHES_COL, mIdStr), matchPayload); // Solo el guardado normal
                         _matchHashes[mIdStr] = currentHash; 
                         count++;
                     }
-
-                    // 🔥 Lote de 2 en 2 para que Google no nos corte la conexión por peso
-                    if (count === 2) {
+                    if (count === 2) { // De 2 en 2 para que Google no corte
                         await batch.commit();
                         batch = writeBatch(db);
                         count = 0;
                     }
                 }
-                if (count > 0) {
-                    await batch.commit();
-                }
+                if (count > 0) await batch.commit();
             }
-
-            if (S.clips2 && typeof S.clips2 === 'object') {
-                let clipBatch = writeBatch(db);
-                let clipCount = 0;
-                for (const [mkKey, mk] of Object.entries(S.clips2)) {
-                    const docId = String(Math.abs(_hash(mkKey)));
-                    const clipPayload = _cleanFirestorePayload({ key: mkKey, ...mk });
-                    const currentHash = _hash(JSON.stringify(clipPayload));
-                    
-                    if (_clipHashes[docId] !== currentHash) {
-                        clipBatch.set(doc(CLIPS_COL, docId), clipPayload);
-                        _clipHashes[docId] = currentHash;
-                        clipCount++;
-                    }
-                    
-                    if (clipCount === 15) {
-                        await clipBatch.commit();
-                        clipBatch = writeBatch(db);
-                        clipCount = 0;
-                    }
-                }
-                if (clipCount > 0) await clipBatch.commit();
-            }
-
-            console.log("☁️ Nube sincronizada (Doble guardado completado)");
+            console.log("☁️ Nube sincronizada (Guardado estándar)");
             setSyncStatus('ok');
         } catch(e) {
             console.error('Error subiendo a Firebase:', e);
@@ -2691,7 +2652,8 @@ async function ldLS() {
 
   // 🔥 EL CAMBIO MAESTRO: Ahora descargamos solo los resúmenes ligeros
   const LIGHT_COL = MATCHES_COL;
-  onSnapshot(LIGHT_COL, (qs) => {
+  // Descargamos de la colección principal
+  onSnapshot(MATCHES_COL, (qs) => {
     const matches = [], shots = [];
     qs.forEach(dSnap => {
       const m = dSnap.data();
@@ -2705,8 +2667,7 @@ async function ldLS() {
     S.matches = matches;
     S.shots = shots;
     
-    // Guardamos esta versión ligera y rapidísima en la caché local para el próximo inicio
-    localStorage.setItem('bascatapp_data', JSON.stringify(S));
+    // ATENCIÓN: No hacemos localStorage.setItem(..., S) aquí para no romper el límite de 5MB
     
     _refreshAfterSync();
   }, (err) => { console.error(err); setSyncStatus('error'); });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>basketapp</title>
+<title>BascatApp</title>
 <style>
 
 /* Para el tablero de la pista */
@@ -6552,17 +6552,45 @@ function renderStats(){
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  // 🔥 AQUÍ ESTÁ LA CORRECCIÓN: Añadido (S.matches || []).length al principio
   const currentFilters = `${(S.matches || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
-  
   let all, teams, scoped, mfEff;
+  
+  let fallbackBanner = '';
 
-  // 🛡️ BARRERA 1: LA CACHÉ (Si los filtros son iguales, saltamos el cálculo pesado)
   if (_stCacheFilters !== currentFilters) {
+      // 🚀 FORZAR TEMPORADA ACTUAL
+      const cy = new Date().getFullYear();
+      const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
+      
+      let effectiveSf = sf;
+      let fallbackSfActivado = false;
+      
+      // MODO PRETEMPORADA: Si seleccionas 26/27 y no hay partidos, retrocede un año.
+      if (sf && S.matches.filter(m => m.season === sf && (!tf || m.homeTeam===tf || m.awayTeam===tf)).length === 0) {
+          const past = [...new Set(S.matches.filter(m => (!tf || m.homeTeam===tf || m.awayTeam===tf)).map(m=>m.season).filter(Boolean))].sort().reverse();
+          if (past.length > 0) {
+              effectiveSf = past[0];
+              fallbackSfActivado = true;
+          }
+      }
+
+      let activeRosterNames = null;
+      if (fallbackSfActivado && tf) {
+          const tDef = S.teams.find(x => x.name === tf);
+          if (tDef && tDef.players) activeRosterNames = tDef.players.map(x => x.name);
+      }
+
       const okL =m=>!lf ||m.competition===lf;
-      const okS =m=>!sf ||m.season===sf;
+      const okS =m=>!sf ||m.season===effectiveSf; // USA LA EFECTIVA
       const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
-      const okT =m=>!tf ||m.homeTeam===tf||m.awayTeam===tf;
+      
+      const okT =m=>{
+          if (!tf) return true;
+          // Si estamos en pretemporada, buscamos partidos donde jueguen nuestros fichajes (aunque sea en otro equipo)
+          if (activeRosterNames) return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNames.includes(p.name));
+          return m.homeTeam===tf||m.awayTeam===tf;
+      };
+      
       const okM =m=>!mf ||String(m.id)===String(mf);
       const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
       const okW =m=>teamsOf(m).length>0;
@@ -6582,13 +6610,19 @@ function renderStats(){
       const uniq=(arr,fn)=>[...new Set(arr.map(fn).filter(Boolean))].sort();
 
       lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
-      sf =fill('st-sf', uniq(pool('S'),m=>m.season), sf, 'Todos');
+      
+      // 🚀 Asegurar que la actual siempre sale en la lista
+      const allSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+      if (!allSeasons.includes(curSeason)) allSeasons.unshift(curSeason);
+      sf = fill('st-sf', allSeasons, sf, 'Todos');
+      
       grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
 
       const gsel=document.getElementById('st-gf');
       if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
 
-      const teamsAvail=[...new Set(pool('T').flatMap(teamsOf))].sort();
+      // Los equipos que salen deben incluir los nuevos creados a mano aunque no hayan jugado
+      const teamsAvail = [...new Set([...pool('T').flatMap(teamsOf), ...(S.teams||[]).map(t=>t.name)])].sort();
       const tsel=document.getElementById('st-tf');
       if(tsel){
         const ok=!tf||teamsAvail.includes(tf);
@@ -6599,7 +6633,8 @@ function renderStats(){
       const playerLabels=new Map();
       pool('P').forEach(m=>{
         [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
-          if(!_inGroup(p.team,gf)||(tf&&p.team!==tf))return;
+          if(!_inGroup(p.team,gf))return;
+          if(activeRosterNames){ if(!activeRosterNames.includes(p.name))return; } else { if(tf&&p.team!==tf)return; }
           const key=String(p.name||'').trim();
           if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
         });
@@ -6624,7 +6659,7 @@ function renderStats(){
       }
 
       const inScope=m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&
-        (!tf||m.homeTeam===tf||m.awayTeam===tf)&&(!mfEff||String(m.id)===String(mfEff));
+        (okT(m))&&(!mfEff||String(m.id)===String(mfEff));
 
       const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const q=''; 
@@ -6633,31 +6668,39 @@ function renderStats(){
       scoped.forEach(m=>{
         [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{
           if(!_inGroup(p.team,gf))return;
+          
+          if (activeRosterNames) {
+              if (!activeRosterNames.includes(p.name)) return;
+          } else {
+              if(tf&&p.team!==tf)return;
+          }
+          
           teams.add(p.team);
-          if(tf&&p.team!==tf)return;
           if(pf&&p.name!==pf)return;
           if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
           all.push(p);});
       });
 
-      // Guardamos el trabajo duro en la memoria caché
-      _stCacheData = { all, teams, scoped, mfEff };
+      _stCacheData = { all, teams, scoped, mfEff, fallbackSfActivado, effectiveSf };
       _stCacheFilters = currentFilters;
-      _stRenderLimit = 50; // Reseteamos el límite de la tabla al cambiar de filtro
+      _stRenderLimit = 50; 
       
   } else {
-      // ⚡ SI LOS FILTROS SON IGUALES, CARGA A LA VELOCIDAD DE LA LUZ
       all = _stCacheData.all;
       teams = _stCacheData.teams;
       scoped = _stCacheData.scoped;
       mfEff = _stCacheData.mfEff;
   }
 
+  if (_stCacheData.fallbackSfActivado) {
+      fallbackBanner = `<div style="grid-column: 1 / -1; background:#fef3c7; color:#92400e; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${_stCacheData.effectiveSf} para la plantilla actual.</div>`;
+  }
+
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
   window._stCtx={scoped,selMatch,tf,gf,pf};
   const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
   const kpi=document.getElementById('st-kpis');
-  if(kpi)kpi.innerHTML=`
+  if(kpi)kpi.innerHTML= fallbackBanner + `
     <div class="kpi"><div class="kv">${all.length}</div><div class="kl">Jugadors</div></div>
     <div class="kpi"><div class="kv">${top?top.pts:'—'}</div><div class="kl">Màxim</div><div class="ks">${top?top.name.split(' ')[0]:''}</div></div>
     <div class="kpi"><div class="kv">${scoped.length}</div><div class="kl">Partits</div></div>
@@ -6686,7 +6729,6 @@ function renderStats(){
   const sk=[null,'name','team','mN','pts','min',null,'tlPct',null,'t2Pct',null,'t3Pct','reb','ast','fc','val','pm'];
   const sorted=[...all].sort((a,b)=>{const k=sk[stSort.col];if(!k)return 0;const va=a[k],vb=b[k];if(va==null)return 1;if(vb==null)return-1;return(typeof va==='number'?va-vb:String(va).localeCompare(String(vb)))*stSort.dir;});
   
-  // 🛡️ BARRERA 2: DIBUJAMOS SOLO LOS PRIMEROS (Paginación)
   const tb=document.getElementById('st-tb');
   if(tb) {
       const shown = sorted.slice(0, _stRenderLimit);
@@ -6694,6 +6736,7 @@ function renderStats(){
       
       let html = shown.map(p=>{
         const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
+        // Si jugaba en otro equipo se le nota aquí
         return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
       }).join('');
       
@@ -9239,28 +9282,18 @@ function renderLiveStatsModal() {
   `;
 }
 
-// ── Perfil de Jugador (Con separador de Temporadas y 100% Cronológico) ──
 function openPlayerProfile(name, team, targetSeason){
  try{
-  const games=[];
+  let allGames=[];
   S.matches.forEach(m=>{
-    if(targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return;
-    if(targetSeason === 'Sin temporada' && m.season) return;
-
     const sides=[['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway,m.awayTeam],
                  ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome,m.homeTeam]];
     for(const [side,tName,players,my,op,oppName] of sides){
-      if(team !== '__ALL__' && team !== '__CLARET__') {
-         if (tName !== team) continue;
-      }
-      if(team === '__CLARET__' && !isOurTeam(tName)) continue;
-
       const p=(players||[]).find(x=>x.name===name);
       if(p) {
           let realTs = _parseDMY(m.date);
           if (!realTs) realTs = m.id || 0;
-
-          games.push({
+          allGames.push({
               ...p, side, mId:m.id, date:m.date||'', ts:realTs, opp:oppName, my, op, 
               res:my>op?'W':my<op?'L':'E', 
               tn: tName, 
@@ -9269,17 +9302,47 @@ function openPlayerProfile(name, team, targetSeason){
       }
     }
   });
-  if(!games.length){toast('Sin partidos de este jugador','err');return;}
+
+  if(!allGames.length){toast('Sin partidos de este jugador en la base de datos','err');return;}
+
+  let effectiveTargetSeason = targetSeason;
+  let games = [];
+
+  if (targetSeason && targetSeason !== 'Sin temporada') {
+      games = allGames.filter(g => g.season === targetSeason);
+      if (games.length === 0) {
+          // 🚀 FALLBACK PRETEMPORADA: Busca la última temporada que jugó este jugador
+          const past = [...new Set(allGames.map(g=>g.season).filter(Boolean))].sort().reverse();
+          if (past.length > 0) {
+              effectiveTargetSeason = past[0];
+              games = allGames.filter(g => g.season === effectiveTargetSeason);
+              if(games.length > 0) toast(`Mostrando stats de ${effectiveTargetSeason} (Pretemporada)`, 'info');
+          }
+      }
+  } else if (targetSeason === 'Sin temporada') {
+      games = allGames.filter(g => !g.season || g.season === 'Sin temporada');
+  } else {
+      games = allGames; 
+  }
+
+  // Si hemos usado el "Fallback", le quitamos la obligación de que la camiseta coincida, 
+  // para poder ver lo que hizo en su club anterior.
+  if (team !== '__ALL__' && team !== '__CLARET__') {
+      if (effectiveTargetSeason === targetSeason) { 
+          games = games.filter(g => g.tn === team);
+      }
+  } else if (team === '__CLARET__') {
+       games = games.filter(g => isOurTeam(g.tn));
+  }
+
+  if(!games.length){toast('Sin partidos en esta selección','err');return;}
   
-  // 🔗 MAGIA PARA COMPARTIR LINKS: Actualizamos la URL sin recargar la web
   const url = new URL(window.location);
   url.searchParams.set('jugador', name);
   url.searchParams.set('equipo', team);
   if(targetSeason) url.searchParams.set('temp', targetSeason);
   window.history.pushState({}, '', url);
-  // ---------------------------------------------------------
   
-  // ORDENACIÓN CRONOLÓGICA
   games.sort((a,b)=>a.ts-b.ts);
   
   const G=games.length;
@@ -9310,10 +9373,14 @@ function openPlayerProfile(name, team, targetSeason){
   const myShots=allShots.filter(s=>{
     if(s.player!==name)return false;
     const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
-    if(targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return false;
-    const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
-    if (team !== '__ALL__' && team !== '__CLARET__') return shotTeam === team;
-    if (team === '__CLARET__') return isOurTeam(shotTeam);
+    if(effectiveTargetSeason && effectiveTargetSeason !== 'Sin temporada' && m.season !== effectiveTargetSeason) return false;
+    
+    // Lo mismo, si es pretemporada, pillamos sus tiros jugara donde jugara
+    if (effectiveTargetSeason === targetSeason) {
+        const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
+        if (team !== '__ALL__' && team !== '__CLARET__') return shotTeam === team;
+        if (team === '__CLARET__') return isOurTeam(shotTeam);
+    }
     return true; 
   });
 
@@ -9323,7 +9390,7 @@ function openPlayerProfile(name, team, targetSeason){
     <div style="width:52px;height:52px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0">#${dorsal}</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:18px;font-weight:900">${name} ${starts>0?'<span style="color:#fbbf24" title="Titular">★</span>':''}</div>
-      <div style="font-size:11px;opacity:.75">${teamLabel} ${targetSeason?'· '+targetSeason:''} · ${G} partido${G!==1?'s':''} · titular ${starts}/${G} · ${min?Math.round(min/G)+' min/p':''}</div>
+      <div style="font-size:11px;opacity:.75">${teamLabel} ${effectiveTargetSeason?'· '+effectiveTargetSeason:''} · ${G} partido${G!==1?'s':''} · titular ${starts}/${G} · ${min?Math.round(min/G)+' min/p':''}</div>
     </div>
     <button onclick="exportPlayerPDF()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;margin-right:5px">📄 PDF</button>
     <button onclick="closePlayerProfile()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;flex-shrink:0">✕</button>`;
@@ -9358,8 +9425,7 @@ function openPlayerProfile(name, team, targetSeason){
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
       <div class="pp-games tw" style="max-height:340px;overflow-x:auto;overflow-y:auto"><table style="min-width:760px;border-collapse:collapse;font-size:11px;table-layout:auto">
-        <!-- 🔥 COLOR DE LA CABECERA ARREGLADO (Azul oscuro var(--nv)) -->
-        <thead><tr style="position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="background:#0f172a;padding:7px 9px;text-align:left;color:#ffffff;font-size:10px;white-space:nowrap;min-width:48px;border:none;">${h}</th>`).join('')}</tr></thead>
+        <thead><tr style="position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="background:#0f172a !important;padding:7px 9px;text-align:left;color:#ffffff !important;font-size:10px;white-space:nowrap;min-width:48px;border:none;">${h}</th>`).join('')}</tr></thead>
         <tbody>${games.map(g=>`<tr style="border-top:1px solid #eef2f7">
           <td style="padding:7px 9px;color:var(--t3);font-size:10px;white-space:nowrap">${g.date ? _esc(g.date.slice(0,10)) : '—'}</td>
           <td style="padding:7px 9px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -9699,82 +9765,35 @@ function renderCompare() {
     S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
-    // 🛑 CORTAFUEGOS VISUAL
     if (hasRival && (!S.matches || S.matches.length === 0)) {
-        tabMain.innerHTML = `
-            <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:65vh; text-align:center;">
-                <div style="width:45px;height:45px;border:4px solid #e2e8f0;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
-                <h3 style="margin-top:20px;color:var(--t2);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">
-                    Calculando métricas avanzadas y mapas de tiro...
-                </h3>
-            </div>
-        `;
+        tabMain.innerHTML = `<style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style><div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:65vh; text-align:center;"><div style="width:45px;height:45px;border:4px solid #e2e8f0;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div><h3 style="margin-top:20px;color:var(--t2);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Calculando métricas...</h3></div>`;
         return;
     }
 
     if (!hasRival) {
         if (_playerMode) {
-            tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)">
-                <div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div>
-                <h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2>
-                <p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival. Vuelve a entrar más tarde para preparar el partido.</p>
-            </div>`;
+            tabMain.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:65vh;text-align:center;color:var(--t2)"><div style="font-size:64px;margin-bottom:20px;opacity:0.3">⏳</div><h2 style="font-size:24px;font-weight:900;color:var(--nv);margin-bottom:12px">SIN PARTIDO TODAVÍA</h2><p style="font-size:14px;color:var(--t3);max-width:400px">El Staff aún no ha seleccionado al próximo rival.</p></div>`;
         } else {
             const rivals = new Set();
             const allSeasonsSet = new Set();
             
+            // 🚀 FORZAR TEMPORADA ACTUAL EN DESPLEGABLE
+            const cy = new Date().getFullYear();
+            const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
+            allSeasonsSet.add(curSeason);
+
             S.matches.forEach(m => {
                 if(m.homeTeam && !isOurTeam(m.homeTeam)) rivals.add(m.homeTeam);
                 if(m.awayTeam && !isOurTeam(m.awayTeam)) rivals.add(m.awayTeam);
                 if(m.season) allSeasonsSet.add(m.season);
             });
-            
-            (S.teams || []).forEach(t => {
-                if(!isOurTeam(t.name)) rivals.add(t.name);
-            });
+            (S.teams || []).forEach(t => { if(!isOurTeam(t.name)) rivals.add(t.name); });
 
             const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch?.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
             const allSeasons = [...allSeasonsSet].sort().reverse();
             const getSeasonsOpts = (sel) => `<option value="">Todas (Acumulado)</option>` + allSeasons.map(s => `<option value="${_esc(s)}"${s===sel?' selected':''}>${_esc(s)}</option>`).join('');
 
-            tabMain.innerHTML = `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
-                <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
-                <div class="fr" style="gap:10px; margin-bottom:12px">
-                    <div class="fc" style="flex:2">
-                        <label>Rival</label>
-                        <select id="nm-rival" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"><option value="">-- Selecciona Rival --</option>${opts}</select>
-                    </div>
-                    <div class="fc" style="flex:1">
-                        <label>Temp. Rival</label>
-                        <select id="nm-r-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.rivalSeason)}</select>
-                    </div>
-                    <div class="fc" style="flex:1">
-                        <label>Nuestra Temp.</label>
-                        <select id="nm-m-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.mySeason)}</select>
-                    </div>
-                </div>
-                <div class="fr" style="gap:10px">
-                    <div class="fc" style="flex:1.5">
-                        <label>Condición</label>
-                        <select id="nm-venue" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                            <option value="home" ${S.nextMatch?.venue!=='away'?'selected':''}>Jugamos en Casa (Local)</option>
-                            <option value="away" ${S.nextMatch?.venue==='away'?'selected':''}>Jugamos Fuera (Visitante)</option>
-                        </select>
-                    </div>
-                    <div class="fc" style="flex:1">
-                        <label>Fecha</label>
-                        <input type="text" id="nm-date" placeholder="Ej: 30/09" value="${_esc(S.nextMatch?.date || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                    </div>
-                    <div class="fc" style="flex:1">
-                        <label>Hora</label>
-                        <input type="text" id="nm-time" placeholder="Ej: 18:30" value="${_esc(S.nextMatch?.time || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">
-                    </div>
-                    <div class="fc" style="flex:1; justify-content:flex-end">
-                        <button onclick="saveNextMatch()" style="background:var(--nv);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">Guardar</button>
-                    </div>
-                </div>
-            </div><div class="empty">Aún no has configurado el próximo partido.</div>`;
+            tabMain.innerHTML = `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b"><div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div><div class="fr" style="gap:10px; margin-bottom:12px"><div class="fc" style="flex:2"><label>Rival</label><select id="nm-rival" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"><option value="">-- Selecciona Rival --</option>${opts}</select></div><div class="fc" style="flex:1"><label>Temp. Rival</label><select id="nm-r-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.rivalSeason)}</select></div><div class="fc" style="flex:1"><label>Nuestra Temp.</label><select id="nm-m-season" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px">${getSeasonsOpts(S.nextMatch?.mySeason)}</select></div></div><div class="fr" style="gap:10px"><div class="fc" style="flex:1.5"><label>Condición</label><select id="nm-venue" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"><option value="home" ${S.nextMatch?.venue!=='away'?'selected':''}>Jugamos en Casa (Local)</option><option value="away" ${S.nextMatch?.venue==='away'?'selected':''}>Jugamos Fuera (Visitante)</option></select></div><div class="fc" style="flex:1"><label>Fecha</label><input type="text" id="nm-date" placeholder="Ej: 30/09" value="${_esc(S.nextMatch?.date || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"></div><div class="fc" style="flex:1"><label>Hora</label><input type="text" id="nm-time" placeholder="Ej: 18:30" value="${_esc(S.nextMatch?.time || '')}" style="width:100%; border:1px solid #cbd5e1; padding:8px; border-radius:6px"></div><div class="fc" style="flex:1; justify-content:flex-end"><button onclick="saveNextMatch()" style="background:var(--nv);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">Guardar</button></div></div></div><div class="empty">Aún no has configurado el próximo partido.</div>`;
         }
         return;
     }
@@ -9795,13 +9814,11 @@ function renderCompare() {
     let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
     let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
 
-    // 🚀 LÓGICA DE PRETEMPORADA (AUTO-FALLBACK)
     let effectiveRivalSeason = rSeason;
     let effectiveMySeason = mSeason;
     let fallbackRivalActivado = false;
     let fallbackMyActivado = false;
 
-    // Si hemos seleccionado una temporada para el rival pero tiene 0 partidos, buscamos la anterior
     if (rSeason && rivMatches.length === 0) {
         const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(m=>m.season).filter(Boolean))].sort().reverse();
         if (pastSeasons.length > 0) {
@@ -9811,7 +9828,6 @@ function renderCompare() {
         }
     }
 
-    // Hacemos lo mismo para nuestro equipo
     if (mSeason && myMatches.length === 0) {
         const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(m=>m.season).filter(Boolean))].sort().reverse();
         if (pastSeasons.length > 0) {
@@ -9831,14 +9847,7 @@ function renderCompare() {
             const isWin = Number(myScore) > Number(opScore);
             const opp = isHome ? m.awayTeam : m.homeTeam;
             const dateStr = m.date ? m.date.slice(0,5) : '';
-            return `<div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px">
-                <div style="display:flex; align-items:center; gap:6px">
-                    <span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:${isWin?'#16a34a':'#dc2626'}; color:#fff; font-size:9px; font-weight:900">${isWin?'W':'L'}</span>
-                    <span style="color:var(--t3); width:32px; font-weight:600">${dateStr}</span>
-                    <b style="color:#fff; width:36px; text-align:center">${m.scoreHome}-${m.scoreAway}</b>
-                </div>
-                <span style="color:#cbd5e1; text-align:right; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:140px">${isHome ? 'vs' : '@'} ${_esc(opp)}</span>
-            </div>`;
+            return `<div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px"><div style="display:flex; align-items:center; gap:6px"><span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:${isWin?'#16a34a':'#dc2626'}; color:#fff; font-size:9px; font-weight:900">${isWin?'W':'L'}</span><span style="color:var(--t3); width:32px; font-weight:600">${dateStr}</span><b style="color:#fff; width:36px; text-align:center">${m.scoreHome}-${m.scoreAway}</b></div><span style="color:#cbd5e1; text-align:right; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:140px">${isHome ? 'vs' : '@'} ${_esc(opp)}</span></div>`;
         }).join('');
     };
 
@@ -9849,46 +9858,16 @@ function renderCompare() {
     const leftMatches = isMyTeamHome ? myMatches : rivMatches;
     const rightMatches = isMyTeamHome ? rivMatches : myMatches;
 
-    const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b">
-        <div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div>
-        <div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div>
-    </div>` : '';
+    const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b"><div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div><div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div></div>` : '';
 
-    const headHtml = `<div class="card" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)">
-        <div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:12px">🔥 PRÓXIMO PARTIDO</div>
-        <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px">
-            <div style="flex:1; text-align:right; font-size:18px; font-weight:900; color:${leftColor}; overflow:hidden; text-overflow:ellipsis">
-                <div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Local</div>
-                ${_esc(leftTeam)}
-            </div>
-            <div style="font-size:12px; font-weight:900; color:#cbd5e1; background:rgba(255,255,255,0.1); padding:4px 6px; border-radius:6px; flex-shrink:0">VS</div>
-            <div style="flex:1; text-align:left; font-size:18px; font-weight:900; color:${rightColor}; overflow:hidden; text-overflow:ellipsis">
-                <div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Visitante</div>
-                ${_esc(rightTeam)}
-            </div>
-        </div>
-        <div style="text-align:center; font-size:12px; font-weight:800; color:#fff; margin-bottom:16px; background:rgba(255,255,255,0.1); display:inline-block; padding:4px 12px; border-radius:10px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">
-            📅 ${S.nextMatch.date || 'Por definir'} &nbsp;|&nbsp; ⏰ ${S.nextMatch.time || 'Por definir'}
-        </div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px">
-            <div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:10px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>
-                ${getL5(leftTeam, leftMatches)}
-            </div>
-            <div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                <div style="font-size:10px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>
-                ${getL5(rightTeam, rightMatches)}
-            </div>
-        </div>
-    </div>`;
+    const headHtml = `<div class="card" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)"><div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:12px">🔥 PRÓXIMO PARTIDO</div><div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px"><div style="flex:1; text-align:right; font-size:18px; font-weight:900; color:${leftColor}; overflow:hidden; text-overflow:ellipsis"><div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Local</div>${_esc(leftTeam)}</div><div style="font-size:12px; font-weight:900; color:#cbd5e1; background:rgba(255,255,255,0.1); padding:4px 6px; border-radius:6px; flex-shrink:0">VS</div><div style="flex:1; text-align:left; font-size:18px; font-weight:900; color:${rightColor}; overflow:hidden; text-overflow:ellipsis"><div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Visitante</div>${_esc(rightTeam)}</div></div><div style="text-align:center; font-size:12px; font-weight:800; color:#fff; margin-bottom:16px; background:rgba(255,255,255,0.1); display:inline-block; padding:4px 12px; border-radius:10px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">📅 ${S.nextMatch.date || 'Por definir'} &nbsp;|&nbsp; ⏰ ${S.nextMatch.time || 'Por definir'}</div><div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px"><div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>${getL5(leftTeam, leftMatches)}</div><div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>${getL5(rightTeam, rightMatches)}</div></div></div>`;
 
     const myAggr = _calcTeamAggr(myMatches, myTeamName);
     const rivAggr = _calcTeamAggr(rivMatches, rival);
     
-    // Aviso visual si estamos en modo Híbrido/Pretemporada
     const fallbackNotice = (fallbackRivalActivado || fallbackMyActivado) ? 
         `<div style="background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">
-            ⚠️ MODO PRETEMPORADA: Como hay 0 partidos en la temporada seleccionada, estás viendo proyecciones y plantillas usando datos hasta la temp. ${effectiveRivalSeason}.
+            ⚠️ MODO PRETEMPORADA: Como hay 0 partidos jugados, estás viendo datos proyectados desde la temp. ${effectiveRivalSeason}.
         </div>` : '';
 
     const compHtml = `${fallbackNotice}<div class="card" style="margin-bottom:16px">
@@ -9896,19 +9875,16 @@ function renderCompare() {
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
-    // 🚀 MAGIA HÍBRIDA: Generar Roster y Mapas de Tiro
     const rivalPlayers = {};
     let rivalShots = [];
     const teamDef = S.teams.find(t => t.name === rival);
 
     if (teamDef && teamDef.players && teamDef.players.length > 0) {
-        // MODO INTELIGENTE: Plantilla actual del equipo, pero buscando datos en la temporada que toca (ej. 25/26)
         teamDef.players.forEach(p => {
             rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
         });
         
         const activeNames = Object.keys(rivalPlayers);
-        // Escaneamos solo la temporada "efectiva"
         const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
         
         matchesToScan.forEach(m => {
@@ -9933,7 +9909,6 @@ function renderCompare() {
         });
 
     } else {
-        // MODO CLÁSICO: Si el equipo no está creado en la pestaña de Equipos
         rivMatches.forEach(m => {
             const isHome = m.homeTeam === rival;
             (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {

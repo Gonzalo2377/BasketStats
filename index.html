@@ -5208,6 +5208,7 @@ window._isEjected = function(team, name) {
 };
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas de Expulsión)
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas, Marcador de Puntos y Radar TL)
+// Renderiza el tablero visual (Círculos simétricos, Marcador Digital y Radares TL Fríos)
 function renderTacticalBoard() {
     const layer = document.getElementById('tac-slots-layer');
     const bHome = document.getElementById('tac-bench-home');
@@ -5216,48 +5217,45 @@ function renderTacticalBoard() {
 
     let htmlSlots = '', htmlBenchHome = '', htmlBenchAway = '';
 
-    // 🚀 LÓGICA DE RADAR: Encontrar los peores % de TL entre los jugadores en pista
-    let worstMatch = {name: '', pct: 101, text: 'N/A', team: ''};
-    let worstSea = {name: '', pct: 101, text: 'N/A', team: ''};
-    
+    // 🚀 1. CÁLCULO DE % TL Y BÚSQUEDA DEL "PEOR" EN PISTA (EFECTO FRÍO)
+    let acc = {};
+    let today = {};
+    let minAcc = 101, minToday = 101;
+
     ['home', 'away'].forEach(t => {
-        lv.onCourt[t].forEach(pName => {
+        lv.pl[t].forEach(p => {
+            const pName = p.name;
             const s = lv.st[t][pName] || {};
-            // Peor del partido
-            if(s.tlAtt > 0) {
-                const pct = (s.tlMade / s.tlAtt) * 100;
-                if(pct < worstMatch.pct) worstMatch = {name: pName.split(' ')[0], pct, text: `${Math.round(pct)}% (${s.tlMade}/${s.tlAtt})`, team: t};
-            }
-            // Peor de la temporada (Histórico)
-            let tlm = 0, tla = 0;
+            
+            // % TL HOY
+            const tm = s.tlMade || 0;
+            const ta = s.tlAtt || 0;
+            const tpct = ta > 0 ? (tm / ta) * 100 : null;
+            today[pName] = {m: tm, a: ta, pct: tpct};
+
+            // % TL ACUMULADO (Histórico)
+            let am = 0, aa = 0;
             S.matches.forEach(m => {
-                const isHomeMatch = m.homeTeam === (t==='home'?lv.hn:lv.an);
-                const isAwayMatch = m.awayTeam === (t==='home'?lv.hn:lv.an);
-                if(isHomeMatch || isAwayMatch) {
-                    const pls = isHomeMatch ? m.homePlayers : m.awayPlayers;
+                const isH = m.homeTeam === (t==='home'?lv.hn:lv.an);
+                const isA = m.awayTeam === (t==='home'?lv.hn:lv.an);
+                if(isH || isA) {
+                    const pls = isH ? m.homePlayers : m.awayPlayers;
                     const bp = (pls||[]).find(x => x.name === pName);
-                    if(bp && bp.tlAtt > 0) { tlm += bp.tlMade; tla += bp.tlAtt; }
+                    if(bp && bp.tlAtt > 0) { am += bp.tlMade; aa += bp.tlAtt; }
                 }
             });
-            if(tla > 0) {
-                const pct = (tlm / tla) * 100;
-                if(pct < worstSea.pct) worstSea = {name: pName.split(' ')[0], pct, text: `${Math.round(pct)}% (${tlm}/${tla})`, team: t};
+            const apct = aa > 0 ? (am / aa) * 100 : null;
+            acc[pName] = {m: am, a: aa, pct: apct};
+
+            // Detectar el peor % SOLAMENTE entre los 10 jugadores que están en pista
+            if (lv.onCourt[t].has(pName)) {
+                if (tpct !== null && tpct < minToday) minToday = tpct;
+                if (apct !== null && apct < minAcc) minAcc = apct;
             }
         });
     });
 
-    // Añadimos las etiquetas de información al fondo de la cancha
-    htmlSlots += `
-        <div style="position:absolute; top:10px; left:10px; background:rgba(15,23,42,0.85); color:#f8fafc; padding:6px 10px; border-radius:8px; border:1px solid #333; font-size:10px; z-index:0; pointer-events:none;">
-            <div style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;margin-bottom:2px">🎯 Peor TL% (Temporada)</div>
-            <div style="font-weight:900;color:${worstSea.team==='home'?'var(--ac)':'#fca5a5'}">${worstSea.name || 'Nadie'} <span style="color:#fff;font-weight:600">${worstSea.text}</span></div>
-        </div>
-        <div style="position:absolute; top:10px; right:10px; background:rgba(15,23,42,0.85); color:#f8fafc; padding:6px 10px; border-radius:8px; border:1px solid #333; font-size:10px; z-index:0; pointer-events:none; text-align:right;">
-            <div style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;margin-bottom:2px">🎯 Peor TL% (Partido)</div>
-            <div style="font-weight:900;color:${worstMatch.team==='home'?'var(--ac)':'#fca5a5'}">${worstMatch.name || 'Nadie'} <span style="color:#fff;font-weight:600">${worstMatch.text}</span></div>
-        </div>
-    `;
-
+    // 🚀 2. DIBUJAR LOS JUGADORES
     ['home', 'away'].forEach(team => {
         const currentCourt = lv.onCourt[team];
         for(let i=0; i<5; i++) { if(_tacBoard.slots[team][i] && !currentCourt.has(_tacBoard.slots[team][i])) _tacBoard.slots[team][i] = null; }
@@ -5268,7 +5266,7 @@ function renderTacticalBoard() {
             }
         });
 
-        // Pintar Pista
+        // --- PINTAR PISTA ---
         for(let i=0; i<5; i++) {
             const pName = _tacBoard.slots[team][i];
             const pos = SLOT_POS[team][i];
@@ -5282,6 +5280,17 @@ function renderTacticalBoard() {
                     const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
                     const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
                     
+                    // Lógica del "Efecto Frío" (Azul Hielo si es el peor de los 10)
+                    const isColdAcc = acc[p.name].pct !== null && acc[p.name].pct === minAcc;
+                    const isColdToday = today[p.name].pct !== null && today[p.name].pct === minToday;
+
+                    // Etiquetas TL acopladas a los hombros
+                    const badgeAcc = acc[p.name].a > 0 ? 
+                        `<div style="position:absolute; top:-8px; left:-12px; background:${isColdAcc?'#e0f2fe':'#f8fafc'}; color:${isColdAcc?'#0369a1':'#475569'}; border:2px solid ${isColdAcc?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:9px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdAcc?'#0284c7':'#94a3b8'};">ACC</div>${Math.round(acc[p.name].pct)}%</div>` : '';
+
+                    const badgeToday = today[p.name].a > 0 ? 
+                        `<div style="position:absolute; top:-8px; right:-12px; background:${isColdToday?'#e0f2fe':'#f8fafc'}; color:${isColdToday?'#0369a1':'#475569'}; border:2px solid ${isColdToday?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:9px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdToday?'#0284c7':'#94a3b8'};">HOY</div>${Math.round(today[p.name].pct)}%</div>` : '';
+
                     htmlSlots += `<div class="d-token player-token" data-type="player" data-loc="court" data-team="${team}" data-name="${_esc(p.name)}" data-slot="${i}" style="left:${pos.x}%; top:${pos.y}%;">
                         <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));">
                             <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
@@ -5289,19 +5298,21 @@ function renderTacticalBoard() {
                         <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                         <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
                         
-                        <!-- ⚠️ Círculo de Faltas (Izquierda) -->
-                        <div class="foul-circle" style="background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                        <!-- ⚠️ Círculo Naranja de Faltas (Abajo Izquierda) -->
+                        <div style="position:absolute; bottom:8px; left:-8px; width:22px; height:22px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.4); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
                         
-                        <!-- 🏀 MARCADOR DIGITAL DE PUNTOS (Derecha) -->
-                        <div style="position:absolute; bottom:-2px; right:-6px; background:#000; color:#ef4444; font-family:'Courier New', monospace; font-size:12px; font-weight:900; padding:1px 4px; border-radius:4px; border:1px solid #ef4444; z-index:3; box-shadow:0 2px 5px rgba(0,0,0,0.5); line-height:1;">
-                            ${s.pts || 0}
-                        </div>
+                        <!-- 🏀 Marcador Digital de Puntos (Abajo Derecha - Mismo formato) -->
+                        <div style="position:absolute; bottom:8px; right:-8px; width:22px; height:22px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.4); background:#0f172a; line-height:1;">${s.pts || 0}</div>
+
+                        <!-- Radares en hombreras -->
+                        ${badgeAcc}
+                        ${badgeToday}
                     </div>`;
                 }
             }
         }
 
-        // Pintar Banquillo
+        // --- PINTAR BANQUILLO ---
         const benchPlayers = lv.pl[team].filter(p => !currentCourt.has(p.name));
         const benchHtml = benchPlayers.map(p => {
             const s = lv.st[team][p.name] || {};
@@ -5309,13 +5320,26 @@ function renderTacticalBoard() {
             const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
             const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
             
+            // Los del banquillo enseñan % pero NUNCA se marcan en frío azul (no están jugando)
+            const badgeAcc = acc[p.name].a > 0 ? 
+                `<div style="position:absolute; top:-4px; left:-10px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">ACC<br>${Math.round(acc[p.name].pct)}%</div>` : '';
+
+            const badgeToday = today[p.name].a > 0 ? 
+                `<div style="position:absolute; top:-4px; right:-10px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">HOY<br>${Math.round(today[p.name].pct)}%</div>` : '';
+
             return `<div class="d-token player-token" data-type="player" data-loc="bench" data-team="${team}" data-name="${_esc(p.name)}" style="position:relative; transform:none;">
                 <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));">
                     <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
                 </svg>
                 <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                 <span class="tk-name-plate" style="bottom:-6px; font-size:9px;">${p.name.split(' ')[0]}</span>
-                <div class="foul-circle" style="bottom:6px; left:-4px; width:20px; height:20px; font-size:11px; background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                
+                <div style="position:absolute; bottom:8px; left:-6px; width:20px; height:20px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#fff; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                
+                <div style="position:absolute; bottom:8px; right:-6px; width:20px; height:20px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:#0f172a; line-height:1;">${s.pts || 0}</div>
+                
+                ${badgeAcc}
+                ${badgeToday}
             </div>`;
         }).join('');
         

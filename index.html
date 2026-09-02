@@ -952,7 +952,7 @@ select {
 .tac-play-btn {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: 60px; height: 60px; background-color: rgba(255,255,255,0.85);
-    border-radius: 50%; cursor: pointer; border: 3px solid #1e293b; z-index: 5;
+    border-radius: 50%; cursor: pointer; border: 3px solid #1e293b; z-index: 999;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;
     /* PON AQUÍ LA RUTA DEL LOGO DEL CLARET */
     background-image: url('logo-claret.png'); 
@@ -9274,6 +9274,7 @@ function renderLiveStatsModal() {
   window.setLvStatsSide = function(side) { window._lvStatsSide = side; renderLiveStatsModal(); };
   const sH = window._lvStatsSide === 'home';
   const aTeam = sH ? 'home' : 'away';
+  const oppTeam = sH ? 'away' : 'home'; // 🚀 Identificamos automáticamente al equipo contrario
 
   const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','ST','BLK','PER','FC','FR','+/-'];
   const headCols=cols.map(c=>`<th style="font-size:9.5px;padding:6px;text-align:center">${c}</th>`).join('');
@@ -9304,8 +9305,9 @@ function renderLiveStatsModal() {
       </div>
     </div>`;
 
-  const evFor = lv.events.filter(e => e.team === 'home');
-  const evAgainst = lv.events.filter(e => e.team === 'away');
+  // 🚀 AHORA LA GRÁFICA LEE LA VARIABLE DEL EQUIPO SELECCIONADO
+  const evFor = lv.events.filter(e => e.team === aTeam);
+  const evAgainst = lv.events.filter(e => e.team === oppTeam);
   const htmlOrigin = generateOriginDualCard(evFor, evAgainst, 'A FAVOR', 'EN CONTRA');
   
   const cronoHtml = lv.events.length?lv.events.slice().reverse().map(e=>`
@@ -9337,29 +9339,23 @@ function renderLiveStatsModal() {
       <b style="color:${p[1]>0?'var(--gn)':'#dc2626'}">${p[1]>0?'+':''}${p[1]}</b>
     </div>`).join('') : '<div class="empty" style="font-size:10px">Se calculan al anotar canastas</div>';
 
-  // 1. Rediseñamos el botón para que flote en la esquina de LA PANTALLA (no de la caja)
-  // Generamos los insights proyectados para el equipo seleccionado
   const paceInsightsHtml = _getLivePaceInsights(aTeam);
   const htmlPaceCard = `<div class="card" style="margin:0; flex-shrink:0"><div class="ct">🔮 Proyecciones y Ritmo</div>${paceInsightsHtml}</div>`;
 
-  // Rediseñamos el botón para que flote en la esquina de LA PANTALLA
   const closeBtn = `<button onclick="closeLiveStatsModal()" style="position:absolute; top:25px; right:30px; background:#ef4444; color:#fff; border:3px solid #fff; border-radius:50%; width:44px; height:44px; font-weight:900; font-size:22px; cursor:pointer; z-index:100000; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(0,0,0,0.5); padding:0; line-height:1; transition: transform 0.1s;">✕</button>`;
 
   modalWrapper.innerHTML = `
     ${closeBtn}
     <div style="background:#EEF2F7; border-radius:14px; width:100%; max-width:1200px; height:90vh; position:relative; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
       
-      <!-- Contenedor principal con Flexbox para dividir en 2 columnas -->
       <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:stretch; height:100%; padding:20px; overflow:hidden;">
         
-        <!-- Columna Izquierda (Scroll propio) -->
         <div style="flex: 1.4; min-width:320px; display:flex; flex-direction:column; gap:16px; height:100%; overflow-y:auto; padding-right:8px; padding-bottom:20px;">
           ${htmlMain}
           <div class="card" style="margin:0; flex-shrink:0"><div class="ct">📈 Mejores parejas (+/-)</div>${pairsHtml}</div>
-          ${htmlPaceCard} <!-- 👈 Aquí hemos inyectado tu nueva herramienta predictiva -->
+          ${htmlPaceCard}
         </div>
         
-        <!-- Columna Derecha (Scroll propio) -->
         <div style="flex: 1; min-width:320px; display:flex; flex-direction:column; gap:16px; height:100%; overflow-y:auto; padding-right:8px; padding-bottom:20px;">
           ${htmlPeriods}
           <div class="card" style="margin:0; flex-shrink:0"><div class="ct">📋 Origen de los Puntos</div>${htmlOrigin}</div>
@@ -9370,7 +9366,6 @@ function renderLiveStatsModal() {
     </div>
   `;
 }
-
 function openPlayerProfile(name, team, targetSeason){
  try{
   let allGames=[];

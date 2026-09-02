@@ -4641,40 +4641,37 @@ document.addEventListener('click', function(e) {
   document.getElementById('btn-live-cancel').onclick = () => resolveShot(null);
 });
 
-(function() {
-  const board = document.getElementById('tac-board');
-  if (!board) return;
+// 🛡️ SISTEMA DE EVENTOS GLOBALES DE PISTA (Sobrevive al F5)
+let _tacDrag = { isDrag: false, startX: 0, startY: 0 };
 
-  // 🛡️ ESCUDO ANTI-CLICS FANTASMAS AL ARRASTRAR
-  let isDrag = false;
-  let startX = 0, startY = 0;
+document.addEventListener('pointerdown', (e) => {
+    const board = e.target.closest('#tac-board');
+    if (board) {
+        _tacDrag.isDrag = false;
+        _tacDrag.startX = e.clientX;
+        _tacDrag.startY = e.clientY;
+    }
+});
 
-  board.addEventListener('pointerdown', (e) => {
-      isDrag = false;
-      startX = e.clientX;
-      startY = e.clientY;
-  });
+document.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - _tacDrag.startX) > 10 || Math.abs(e.clientY - _tacDrag.startY) > 10) {
+        _tacDrag.isDrag = true;
+    }
+});
 
-  board.addEventListener('pointermove', (e) => {
-      // Si el dedo se mueve más de 10 píxeles, sabemos que es un arrastre y no un toque
-      if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) {
-          isDrag = true;
-      }
-  });
+document.addEventListener('click', (e) => {
+    const board = e.target.closest('#tac-board');
+    if (!board) return;
+    if (_tacDrag.isDrag) return; // Si arrastramos una ficha, no disparamos el tiro
 
-  board.onclick = function(e) {
-    // 🛑 LA MAGIA: Si fue un arrastre de ficha, bloqueamos el clic y no sale el popup de tiro
-    if (isDrag) return;
-
-    // Si no hay jugador seleccionado, avisar y cortar
     if (!lv.selPl) {
-      if (typeof toast === 'function') toast('¡Selecciona un jugador en pista primero!', 'err');
-      return;
+        if (typeof toast === 'function') toast('¡Selecciona un jugador en pista primero!', 'err');
+        return;
     }
 
-    // Ignorar si se hace clic en fichas, botones o elementos del marcador integrado
-    if (e.target.closest('.d-token') || e.target.closest('.tac-play-btn') || e.target.closest('.marcador-integrado')) {
-      return;
+    // Ignorar si el clic fue en un botón, ficha, o en nuestro logo central
+    if (e.target.closest('.d-token') || e.target.closest('.tac-play-btn') || e.target.closest('.marcador-integrado') || e.target.closest('#center-logo-btn')) {
+        return;
     }
 
     const r = board.getBoundingClientRect();
@@ -4683,12 +4680,7 @@ document.addEventListener('click', function(e) {
     
     const cw = r.width, ch = r.height;
     let px = rawX / cw, py = rawY / ch;
-    
-    // Si ataca el rival, invertimos las coordenadas en el mapa lógico
-    if (lv.actTeam === 'away') { 
-      px = 1 - px; 
-      py = 1 - py; 
-    }
+    if (lv.actTeam === 'away') { px = 1 - px; py = 1 - py; }
     
     const courtW = CW - 2 * PAD; 
     const courtH = CH - 2 * PAD; 
@@ -4697,13 +4689,11 @@ document.addEventListener('click', function(e) {
     
     const type = isThree(mapX, mapY) ? 'T3' : 'T2';
     
-    // Referencia al pop-up nativo flotante
     const popup = document.getElementById('shot-popup');
     const inner = document.getElementById('shot-popup-inner');
     if (!popup || !inner) return;
 
     const label = type === 'T3' ? '🎯 Triple' : '🏀 Tiro de 2';
-    
     inner.innerHTML = `
       <div style="font-size:13px;font-weight:900;color:var(--nv);text-align:center;text-transform:uppercase;margin-bottom:8px">${label} · ${lv.selPl.split(' ')[0]}</div>
       <div style="display:flex;gap:10px">
@@ -4717,50 +4707,48 @@ document.addEventListener('click', function(e) {
     left = Math.max(10, Math.min(left, window.innerWidth - 260));
     top = Math.max(10, Math.min(top, window.innerHeight - 200));
     
-    // Forzamos la capa más alta absoluta para que se superponga sin fallos
     popup.style.cssText = `position:fixed; left:${left}px; top:${top}px; z-index:2147483647 !important; background:#fff; border-radius:16px; box-shadow:0 15px 50px rgba(0,0,0,0.5); padding:18px; border:2px solid var(--bd); display:block; min-width:260px;`;
     
     const resolveShot = (made) => {
-      popup.style.display = 'none';
-      if (made === null) return;
-      
-      lv.shots.push({ x: mapX, y: mapY, made, player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, type });
-      const s = lv.st[lv.actTeam][lv.selPl];
-      if (!s) return;
-      
-      const pmAll = (pts) => {
-        const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam === 'home' ? 'away' : 'home'];
-        my.forEach(n => { if (lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts; });
-        op.forEach(n => { if (lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n]) lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n].pm -= pts; });
-      };
-      
-      const pts = type === 'T3' ? 3 : 2;
-      if (made) {
-        if (type === 'T3') { s.t3Made++; s.t3Att++; s.pts += 3; lv.score[lv.actTeam] += 3; pmAll(3); }
-        else { s.t2Made++; s.t2Att++; s.pts += 2; lv.score[lv.actTeam] += 2; pmAll(2); }
+        popup.style.display = 'none';
+        if (made === null) return;
         
-        lv.log.unshift({ team: lv.actTeam, msg: `✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period, min: lv.curMin });
-        lv.events.push({ type: type === 'T3' ? 'pts3' : 'pts2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score }, oc: _lvOC() });
+        lv.shots.push({ x: mapX, y: mapY, made, player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, type });
+        const s = lv.st[lv.actTeam][lv.selPl];
+        if (!s) return;
         
-        setTimeout(() => { if (typeof askAssist === 'function') askAssist(() => {}); }, 150);
-      } else {
-        if (type === 'T3') { s.t3Att++; } else { s.t2Att++; }
+        const pmAll = (pts) => {
+            const my = lv.onCourt[lv.actTeam], op = lv.onCourt[lv.actTeam === 'home' ? 'away' : 'home'];
+            my.forEach(n => { if (lv.st[lv.actTeam][n]) lv.st[lv.actTeam][n].pm += pts; });
+            op.forEach(n => { if (lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n]) lv.st[lv.actTeam === 'home' ? 'away' : 'home'][n].pm -= pts; });
+        };
         
-        lv.log.unshift({ team: lv.actTeam, msg: `❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period });
-        lv.events.push({ type: type === 'T3' ? 'miss3' : 'miss2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score } });
-        
-        const _st = lv.actTeam; 
-        setTimeout(() => { if (typeof askRebound === 'function') askRebound(_st); }, 120);
-      }
-      rLvAll(); 
-      if (typeof svL === 'function') svL();
+        const pts = type === 'T3' ? 3 : 2;
+        if (made) {
+            if (type === 'T3') { s.t3Made++; s.t3Att++; s.pts += 3; lv.score[lv.actTeam] += 3; pmAll(3); }
+            else { s.t2Made++; s.t2Att++; s.pts += 2; lv.score[lv.actTeam] += 2; pmAll(2); }
+            
+            lv.log.unshift({ team: lv.actTeam, msg: `✅ +${pts} ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period, min: lv.curMin });
+            lv.events.push({ type: type === 'T3' ? 'pts3' : 'pts2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score }, oc: _lvOC() });
+            
+            setTimeout(() => { if (typeof askAssist === 'function') askAssist(() => {}); }, 150);
+        } else {
+            if (type === 'T3') { s.t3Att++; } else { s.t2Att++; }
+            
+            lv.log.unshift({ team: lv.actTeam, msg: `❌ Falla ${type} — ${lv.selPl.split(' ')[0]}`, period: lv.period });
+            lv.events.push({ type: type === 'T3' ? 'miss3' : 'miss2', player: lv.selPl, team: lv.actTeam, period: lv.period, min: lv.curMin, score: { ...lv.score } });
+            
+            const _st = lv.actTeam; 
+            setTimeout(() => { if (typeof askRebound === 'function') askRebound(_st); }, 120);
+        }
+        rLvAll(); 
+        if (typeof svL === 'function') svL();
     };
 
     document.getElementById('btn-live-make').onclick = () => resolveShot(true);
     document.getElementById('btn-live-miss').onclick = () => resolveShot(false);
     document.getElementById('btn-live-cancel').onclick = () => resolveShot(null);
-  };
-})();
+});
 
 function openTacticalShotModal(name, team) {
     lv.selPl = name; 
@@ -5032,18 +5020,108 @@ window.toggleTacIndivPl = function(idx, name, team, isAcc) {
 
 let dState = { active: false, isDragging: false, el: null, clone: null, type: '', data: {}, startX: 0, startY: 0 };
 
+// Motor de arrastre reconstruido a nivel global (Evita fallos al recargar F5)
 function initDragEngine() {
-    const board = document.getElementById('lv-panel');
-    if(!board) return;
-    
-    // Matamos listeners viejos si los hubiera y ponemos los nuevos blindados
-    board.removeEventListener('pointerdown', onPtrDown);
+    document.removeEventListener('pointerdown', onPtrDown);
     document.removeEventListener('pointermove', onPtrMove);
     document.removeEventListener('pointerup', onPtrUp);
     
-    board.addEventListener('pointerdown', onPtrDown, {passive: false});
+    document.addEventListener('pointerdown', onPtrDown, {passive: false});
     document.addEventListener('pointermove', onPtrMove, {passive: false});
     document.addEventListener('pointerup', onPtrUp);
+}
+// 🚀 Lo ejecutamos inmediatamente para blindar la web desde el segundo 1
+initDragEngine();
+
+function onPtrUp(e) {
+    if (!dState.active) return;
+    
+    // Soltamos el anclaje del dedo
+    if (dState.el) {
+        try { dState.el.releasePointerCapture(e.pointerId); } catch(err){}
+    }
+
+    const wasDragging = dState.isDragging;
+    dState.active = false;
+    dState.isDragging = false;
+    
+    if (dState.clone) {
+        dState.clone.remove();
+        dState.clone = null;
+    }
+
+    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+
+    // 1. CLIC RÁPIDO EN PISTA = ABRE EL MODAL TÁCTICO DE TIRO
+    if (!wasDragging && dState.type === 'player' && dState.data.loc === 'court') {
+        openTacticalShotModal(dState.data.name, dState.data.team);
+        return;
+    }
+
+    if (!wasDragging) return; 
+
+    // 2. SOLTAR ACCIÓN (ROBOS, FALTAS...) SOBRE UN JUGADOR
+    if (dState.type === 'action' && dropTarget) {
+        const pToken = dropTarget.closest('.d-token[data-type="player"]');
+        if (pToken && pToken.dataset.loc === 'court') {
+            applyActionToPlayer(dState.data.action, pToken.dataset.name, pToken.dataset.team);
+        }
+        return;
+    }
+
+    // 3. MOVER JUGADORES (BANQUILLO <-> PISTA Y PERMUTAS EN PISTA)
+    if (dState.type === 'player' && dropTarget) {
+        const slot = dropTarget.closest('.drop-zone.tac-slot');
+        const bench = dropTarget.closest('.drop-zone.bench-zone');
+        const targetToken = dropTarget.closest('.d-token[data-type="player"]');
+
+        const pName = dState.data.name;
+        const pTeam = dState.data.team;
+
+        // Si soltamos un jugador encima de otro compañero
+        if (targetToken && targetToken.dataset.team === pTeam) {
+            const tName = targetToken.dataset.name;
+            const sourceLoc = dState.data.loc;
+            const targetLoc = targetToken.dataset.loc;
+            
+            if (sourceLoc === 'bench' && targetLoc === 'court') {
+                subTapPlayer(tName, pTeam); subTapPlayer(pName, pTeam);
+            } else if (sourceLoc === 'court' && targetLoc === 'bench') {
+                subTapPlayer(pName, pTeam); subTapPlayer(tName, pTeam);
+            } else if (sourceLoc === 'court' && targetLoc === 'court') {
+                // 🔥 MAGIA: Intercambio de posiciones entre dos compañeros en pista
+                const oldIdx = parseInt(dState.data.slot);
+                const newIdx = parseInt(targetToken.dataset.slot);
+                _tacBoard.slots[pTeam][oldIdx] = tName;
+                _tacBoard.slots[pTeam][newIdx] = pName;
+            }
+            renderTacticalBoard();
+            return;
+        }
+
+        // Si soltamos un jugador en una posición de la pista vacía
+        if (slot && slot.dataset.team === pTeam) {
+            const slotIdx = parseInt(slot.dataset.slot);
+            if (dState.data.loc === 'bench') {
+                subTapPlayer(pName, pTeam); _tacBoard.slots[pTeam][slotIdx] = pName;
+            } else {
+                // 🔥 MAGIA 2: Si el jugador ya estaba en pista y lo movemos a otro hueco
+                const oldIdx = parseInt(dState.data.slot);
+                const targetPlayer = _tacBoard.slots[pTeam][slotIdx];
+                _tacBoard.slots[pTeam][oldIdx] = targetPlayer; // Si había alguien, ocupará el antiguo puesto
+                _tacBoard.slots[pTeam][slotIdx] = pName;
+            }
+            renderTacticalBoard();
+            return;
+        }
+
+        // Si mandamos un jugador de la pista directamente al banquillo sin sustituto
+        if (bench && bench.dataset.bench === pTeam && dState.data.loc === 'court') {
+            subTapPlayer(pName, pTeam);
+            renderTacticalBoard();
+            return;
+        }
+    }
 }
 
 function onPtrDown(e) {
@@ -5099,86 +5177,6 @@ function onPtrMove(e) {
     }
 }
 
-function onPtrUp(e) {
-    if (!dState.active) return;
-    
-    // Soltamos el anclaje del dedo
-    if (dState.el) {
-        try { dState.el.releasePointerCapture(e.pointerId); } catch(err){}
-    }
-
-    const wasDragging = dState.isDragging;
-    dState.active = false;
-    dState.isDragging = false;
-    
-    if (dState.clone) {
-        dState.clone.remove();
-        dState.clone = null;
-    }
-
-    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-
-    // 1. CLIC RÁPIDO EN PISTA = TIRO
-    if (!wasDragging && dState.type === 'player' && dState.data.loc === 'court') {
-        openTacticalShotModal(dState.data.name, dState.data.team);
-        return;
-    }
-
-    if (!wasDragging) return; 
-
-    // 2. SOLTAR ACCIÓN (ROBOS, FALTAS...)
-    if (dState.type === 'action' && dropTarget) {
-        const pToken = dropTarget.closest('.d-token[data-type="player"]');
-        if (pToken && pToken.dataset.loc === 'court') {
-            applyActionToPlayer(dState.data.action, pToken.dataset.name, pToken.dataset.team);
-        }
-        return;
-    }
-
-    // 3. MOVER JUGADORES (BANQUILLO <-> PISTA)
-    if (dState.type === 'player' && dropTarget) {
-        const slot = dropTarget.closest('.drop-zone.tac-slot');
-        const bench = dropTarget.closest('.drop-zone.bench-zone');
-        const targetToken = dropTarget.closest('.d-token[data-type="player"]');
-
-        const pName = dState.data.name;
-        const pTeam = dState.data.team;
-
-        if (targetToken && targetToken.dataset.team === pTeam) {
-            const tName = targetToken.dataset.name;
-            const sourceLoc = dState.data.loc;
-            const targetLoc = targetToken.dataset.loc;
-            
-            if (sourceLoc === 'bench' && targetLoc === 'court') {
-                subTapPlayer(tName, pTeam); subTapPlayer(pName, pTeam);
-            } else if (sourceLoc === 'court' && targetLoc === 'bench') {
-                subTapPlayer(pName, pTeam); subTapPlayer(tName, pTeam);
-            }
-            renderTacticalBoard();
-            return;
-        }
-
-        if (slot && slot.dataset.team === pTeam) {
-            const slotIdx = parseInt(slot.dataset.slot);
-            if (dState.data.loc === 'bench') {
-                subTapPlayer(pName, pTeam); _tacBoard.slots[pTeam][slotIdx] = pName;
-            } else {
-                const oldIdx = parseInt(dState.data.slot);
-                _tacBoard.slots[pTeam][oldIdx] = null;
-                _tacBoard.slots[pTeam][slotIdx] = pName;
-            }
-            renderTacticalBoard();
-            return;
-        }
-
-        if (bench && bench.dataset.bench === pTeam && dState.data.loc === 'court') {
-            subTapPlayer(pName, pTeam);
-            renderTacticalBoard();
-            return;
-        }
-    }
-}
-
 // ═══════════════════════════════════════════
 // 🔇 ALERTA DE BONUS DESACTIVADA
 // ═══════════════════════════════════════════
@@ -5209,6 +5207,7 @@ window._isEjected = function(team, name) {
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas de Expulsión)
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas, Marcador de Puntos y Radar TL)
 // Renderiza el tablero visual (Círculos simétricos, Marcador Digital y Radares TL Fríos)
+// Renderiza el tablero visual (Círculos simétricos, Marcador Digital, Radares TL Fríos y LOGO CLARET OFICIAL)
 function renderTacticalBoard() {
     const layer = document.getElementById('tac-slots-layer');
     const bHome = document.getElementById('tac-bench-home');
@@ -5227,13 +5226,11 @@ function renderTacticalBoard() {
             const pName = p.name;
             const s = lv.st[t][pName] || {};
             
-            // % TL HOY
             const tm = s.tlMade || 0;
             const ta = s.tlAtt || 0;
             const tpct = ta > 0 ? (tm / ta) * 100 : null;
             today[pName] = {m: tm, a: ta, pct: tpct};
 
-            // % TL ACUMULADO (Histórico)
             let am = 0, aa = 0;
             S.matches.forEach(m => {
                 const isH = m.homeTeam === (t==='home'?lv.hn:lv.an);
@@ -5247,7 +5244,6 @@ function renderTacticalBoard() {
             const apct = aa > 0 ? (am / aa) * 100 : null;
             acc[pName] = {m: am, a: aa, pct: apct};
 
-            // Detectar el peor % SOLAMENTE entre los 10 jugadores que están en pista
             if (lv.onCourt[t].has(pName)) {
                 if (tpct !== null && tpct < minToday) minToday = tpct;
                 if (apct !== null && apct < minAcc) minAcc = apct;
@@ -5255,7 +5251,9 @@ function renderTacticalBoard() {
         });
     });
 
-    // 🚀 2. DIBUJAR LOS JUGADORES
+    // ⏱️ LOGO CENTRAL DE CLARET OFICIAL (Usa tu CSS en GitHub)
+    htmlSlots += `<div class="tac-play-btn" onclick="toggleTimer()" title="Pausar/Iniciar Tiempo"></div>`;
+
     ['home', 'away'].forEach(team => {
         const currentCourt = lv.onCourt[team];
         for(let i=0; i<5; i++) { if(_tacBoard.slots[team][i] && !currentCourt.has(_tacBoard.slots[team][i])) _tacBoard.slots[team][i] = null; }
@@ -5280,16 +5278,11 @@ function renderTacticalBoard() {
                     const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
                     const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
                     
-                    // Lógica del "Efecto Frío" (Azul Hielo si es el peor de los 10)
                     const isColdAcc = acc[p.name].pct !== null && acc[p.name].pct === minAcc;
                     const isColdToday = today[p.name].pct !== null && today[p.name].pct === minToday;
 
-                    // Etiquetas TL acopladas a los hombros
-                    const badgeAcc = acc[p.name].a > 0 ? 
-                        `<div style="position:absolute; top:-8px; left:-12px; background:${isColdAcc?'#e0f2fe':'#f8fafc'}; color:${isColdAcc?'#0369a1':'#475569'}; border:2px solid ${isColdAcc?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:9px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdAcc?'#0284c7':'#94a3b8'};">ACC</div>${Math.round(acc[p.name].pct)}%</div>` : '';
-
-                    const badgeToday = today[p.name].a > 0 ? 
-                        `<div style="position:absolute; top:-8px; right:-12px; background:${isColdToday?'#e0f2fe':'#f8fafc'}; color:${isColdToday?'#0369a1':'#475569'}; border:2px solid ${isColdToday?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:9px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdToday?'#0284c7':'#94a3b8'};">HOY</div>${Math.round(today[p.name].pct)}%</div>` : '';
+                    const badgeAcc = acc[p.name].a > 0 ? `<div style="position:absolute; top:-10px; left:-14px; background:${isColdAcc?'#e0f2fe':'#f8fafc'}; color:${isColdAcc?'#0369a1':'#475569'}; border:2px solid ${isColdAcc?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:10px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdAcc?'#0284c7':'#94a3b8'};">ACC</div>${Math.round(acc[p.name].pct)}%</div>` : '';
+                    const badgeToday = today[p.name].a > 0 ? `<div style="position:absolute; top:-10px; right:-14px; background:${isColdToday?'#e0f2fe':'#f8fafc'}; color:${isColdToday?'#0369a1':'#475569'}; border:2px solid ${isColdToday?'#38bdf8':'#cbd5e1'}; border-radius:6px; padding:2px 4px; font-size:10px; font-weight:900; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,0.3); pointer-events:none; text-align:center; line-height:1;"><div style="font-size:5px;text-transform:uppercase;margin-bottom:1px;color:${isColdToday?'#0284c7':'#94a3b8'};">HOY</div>${Math.round(today[p.name].pct)}%</div>` : '';
 
                     htmlSlots += `<div class="d-token player-token" data-type="player" data-loc="court" data-team="${team}" data-name="${_esc(p.name)}" data-slot="${i}" style="left:${pos.x}%; top:${pos.y}%;">
                         <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));">
@@ -5298,13 +5291,10 @@ function renderTacticalBoard() {
                         <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                         <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
                         
-                        <!-- ⚠️ Círculo Naranja de Faltas (Abajo Izquierda) -->
-                        <div style="position:absolute; bottom:8px; left:-8px; width:22px; height:22px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.4); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                        <div style="position:absolute; bottom:14px; left:-14px; width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:#fff; z-index:3; box-shadow:0 3px 6px rgba(0,0,0,0.4); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
                         
-                        <!-- 🏀 Marcador Digital de Puntos (Abajo Derecha - Mismo formato) -->
-                        <div style="position:absolute; bottom:8px; right:-8px; width:22px; height:22px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.4); background:#0f172a; line-height:1;">${s.pts || 0}</div>
+                        <div style="position:absolute; bottom:14px; right:-14px; width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 3px 6px rgba(0,0,0,0.4); background:#0f172a; line-height:1;">${s.pts || 0}</div>
 
-                        <!-- Radares en hombreras -->
                         ${badgeAcc}
                         ${badgeToday}
                     </div>`;
@@ -5320,12 +5310,8 @@ function renderTacticalBoard() {
             const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
             const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
             
-            // Los del banquillo enseñan % pero NUNCA se marcan en frío azul (no están jugando)
-            const badgeAcc = acc[p.name].a > 0 ? 
-                `<div style="position:absolute; top:-4px; left:-10px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">ACC<br>${Math.round(acc[p.name].pct)}%</div>` : '';
-
-            const badgeToday = today[p.name].a > 0 ? 
-                `<div style="position:absolute; top:-4px; right:-10px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">HOY<br>${Math.round(today[p.name].pct)}%</div>` : '';
+            const badgeAcc = acc[p.name].a > 0 ? `<div style="position:absolute; top:-6px; left:-12px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">ACC<br>${Math.round(acc[p.name].pct)}%</div>` : '';
+            const badgeToday = today[p.name].a > 0 ? `<div style="position:absolute; top:-6px; right:-12px; background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:4px; padding:1px 2px; font-size:7px; font-weight:800; z-index:4; pointer-events:none; text-align:center; line-height:1;">HOY<br>${Math.round(today[p.name].pct)}%</div>` : '';
 
             return `<div class="d-token player-token" data-type="player" data-loc="bench" data-team="${team}" data-name="${_esc(p.name)}" style="position:relative; transform:none;">
                 <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));">
@@ -5334,9 +5320,9 @@ function renderTacticalBoard() {
                 <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                 <span class="tk-name-plate" style="bottom:-6px; font-size:9px;">${p.name.split(' ')[0]}</span>
                 
-                <div style="position:absolute; bottom:8px; left:-6px; width:20px; height:20px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#fff; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                <div style="position:absolute; bottom:10px; left:-8px; width:22px; height:22px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
                 
-                <div style="position:absolute; bottom:8px; right:-6px; width:20px; height:20px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:#0f172a; line-height:1;">${s.pts || 0}</div>
+                <div style="position:absolute; bottom:10px; right:-8px; width:22px; height:22px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; font-family:'Courier New', monospace; color:#ef4444; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:#0f172a; line-height:1;">${s.pts || 0}</div>
                 
                 ${badgeAcc}
                 ${badgeToday}

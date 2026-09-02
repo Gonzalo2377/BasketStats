@@ -5207,6 +5207,7 @@ window._isEjected = function(team, name) {
     return false;
 };
 // Renderiza el tablero visual (Con soporte para Camisetas Rojas de Expulsión)
+// Renderiza el tablero visual (Con soporte para Camisetas Rojas, Marcador de Puntos y Radar TL)
 function renderTacticalBoard() {
     const layer = document.getElementById('tac-slots-layer');
     const bHome = document.getElementById('tac-bench-home');
@@ -5214,6 +5215,48 @@ function renderTacticalBoard() {
     if(!layer || !bHome || !bAway) return;
 
     let htmlSlots = '', htmlBenchHome = '', htmlBenchAway = '';
+
+    // 🚀 LÓGICA DE RADAR: Encontrar los peores % de TL entre los jugadores en pista
+    let worstMatch = {name: '', pct: 101, text: 'N/A', team: ''};
+    let worstSea = {name: '', pct: 101, text: 'N/A', team: ''};
+    
+    ['home', 'away'].forEach(t => {
+        lv.onCourt[t].forEach(pName => {
+            const s = lv.st[t][pName] || {};
+            // Peor del partido
+            if(s.tlAtt > 0) {
+                const pct = (s.tlMade / s.tlAtt) * 100;
+                if(pct < worstMatch.pct) worstMatch = {name: pName.split(' ')[0], pct, text: `${Math.round(pct)}% (${s.tlMade}/${s.tlAtt})`, team: t};
+            }
+            // Peor de la temporada (Histórico)
+            let tlm = 0, tla = 0;
+            S.matches.forEach(m => {
+                const isHomeMatch = m.homeTeam === (t==='home'?lv.hn:lv.an);
+                const isAwayMatch = m.awayTeam === (t==='home'?lv.hn:lv.an);
+                if(isHomeMatch || isAwayMatch) {
+                    const pls = isHomeMatch ? m.homePlayers : m.awayPlayers;
+                    const bp = (pls||[]).find(x => x.name === pName);
+                    if(bp && bp.tlAtt > 0) { tlm += bp.tlMade; tla += bp.tlAtt; }
+                }
+            });
+            if(tla > 0) {
+                const pct = (tlm / tla) * 100;
+                if(pct < worstSea.pct) worstSea = {name: pName.split(' ')[0], pct, text: `${Math.round(pct)}% (${tlm}/${tla})`, team: t};
+            }
+        });
+    });
+
+    // Añadimos las etiquetas de información al fondo de la cancha
+    htmlSlots += `
+        <div style="position:absolute; top:10px; left:10px; background:rgba(15,23,42,0.85); color:#f8fafc; padding:6px 10px; border-radius:8px; border:1px solid #333; font-size:10px; z-index:0; pointer-events:none;">
+            <div style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;margin-bottom:2px">🎯 Peor TL% (Temporada)</div>
+            <div style="font-weight:900;color:${worstSea.team==='home'?'var(--ac)':'#fca5a5'}">${worstSea.name || 'Nadie'} <span style="color:#fff;font-weight:600">${worstSea.text}</span></div>
+        </div>
+        <div style="position:absolute; top:10px; right:10px; background:rgba(15,23,42,0.85); color:#f8fafc; padding:6px 10px; border-radius:8px; border:1px solid #333; font-size:10px; z-index:0; pointer-events:none; text-align:right;">
+            <div style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;margin-bottom:2px">🎯 Peor TL% (Partido)</div>
+            <div style="font-weight:900;color:${worstMatch.team==='home'?'var(--ac)':'#fca5a5'}">${worstMatch.name || 'Nadie'} <span style="color:#fff;font-weight:600">${worstMatch.text}</span></div>
+        </div>
+    `;
 
     ['home', 'away'].forEach(team => {
         const currentCourt = lv.onCourt[team];
@@ -5245,7 +5288,14 @@ function renderTacticalBoard() {
                         </svg>
                         <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                         <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
+                        
+                        <!-- ⚠️ Círculo de Faltas (Izquierda) -->
                         <div class="foul-circle" style="background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
+                        
+                        <!-- 🏀 MARCADOR DIGITAL DE PUNTOS (Derecha) -->
+                        <div style="position:absolute; bottom:-2px; right:-6px; background:#000; color:#ef4444; font-family:'Courier New', monospace; font-size:12px; font-weight:900; padding:1px 4px; border-radius:4px; border:1px solid #ef4444; z-index:3; box-shadow:0 2px 5px rgba(0,0,0,0.5); line-height:1;">
+                            ${s.pts || 0}
+                        </div>
                     </div>`;
                 }
             }
@@ -5564,6 +5614,7 @@ function rLvAll(){
   const sh=document.getElementById('lv-score-h');if(sh)sh.textContent=lv.score.home;
   const sa=document.getElementById('lv-score-a');if(sa)sa.textContent=lv.score.away;
   renderTimer();
+  
   const byPer={};
   lv.events.forEach(e=>{
       if(!byPer[e.period])byPer[e.period]={home:0,away:0};
@@ -5575,10 +5626,21 @@ function rLvAll(){
   const hpp=document.getElementById('lv-h-pp');if(hpp)hpp.textContent=`P${lv.period}: ${cp.home}pts`;
   const app=document.getElementById('lv-a-pp');if(app)app.textContent=`P${lv.period}: ${cp.away}pts`;
   
+  // 🚀 FALTAS DE EQUIPO + ANIMACIÓN DE BONUS
   const fc_h=lv.events.filter(e=>e.team==='home'&&e.period===lv.period&&e.type==='foul').length;
   const fc_a=lv.events.filter(e=>e.team==='away'&&e.period===lv.period&&e.type==='foul').length;
   
-  // Eliminada la llamada obsoleta a renderLvStrips()
+  const fh=document.getElementById('lv-fouls-h');
+  const fa=document.getElementById('lv-fouls-a');
+  
+  // Inyectamos CSS para que el BONUS parpadee (solo se inyecta una vez)
+  if(!document.getElementById('bonus-pulse-css')) {
+      document.head.insertAdjacentHTML('beforeend', '<style id="bonus-pulse-css">@keyframes pulseBonus { 0% {opacity:1;} 50% {opacity:0.4;} 100% {opacity:1;} }</style>');
+  }
+
+  if(fh) fh.innerHTML = `<span style="font-size:1.6em;font-weight:900;line-height:1;">${fc_h}</span> ${fc_h>=4 ? '<span style="background:#dc2626;color:#fff;font-size:11px;padding:3px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;animation:pulseBonus 1s infinite;font-weight:900;letter-spacing:1px">BONUS</span>' : ''}`;
+  if(fa) fa.innerHTML = `${fc_a>=4 ? '<span style="background:#dc2626;color:#fff;font-size:11px;padding:3px 6px;border-radius:4px;margin-right:6px;vertical-align:middle;animation:pulseBonus 1s infinite;font-weight:900;letter-spacing:1px">BONUS</span>' : ''} <span style="font-size:1.6em;font-weight:900;line-height:1;">${fc_a}</span>`;
+  
   rLvLog();
   
   if(document.getElementById('live-stats-modal')?.style.display==='flex')renderLiveStatsModal();
@@ -5589,8 +5651,10 @@ function rLvAll(){
       hot.style.display=last3.length>=2&&last3.every(e=>e.player===lv.selPl)?'inline-block':'none';
   }
 
-  // Guardado de seguridad
   if(typeof _lvPersist === 'function') _lvPersist();
+  
+  // Actualizar la cancha visual si estamos en ella para refrescar las chapas
+  if(typeof renderTacticalBoard === 'function') renderTacticalBoard();
 }
 
 function rLvLog(){
@@ -6552,7 +6616,8 @@ function renderStats(){
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  const currentFilters = `${(S.matches || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  // 🚀 ARREGLO CACHÉ: Añadimos la cantidad de equipos para que detecte cuando creas uno nuevo
+  const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
   let all, teams, scoped, mfEff;
   
   let fallbackBanner = '';
@@ -6573,11 +6638,10 @@ function renderStats(){
       }
 
       let activeRosterNames = null;
+      let tDefActual = null;
       if (fallbackSfActivado && tf) {
-          // 🚀 BUSCAMOS LA PLANTILLA DE LA TEMPORADA SELECCIONADA EN EL DESPLEGABLE
-          let tDef = S.teams.find(x => x.name === tf && x.season === sf);
-          if (!tDef) tDef = S.teams.find(x => x.name === tf); // Fallback por si acaso
-          if (tDef && tDef.players) activeRosterNames = tDef.players.map(x => x.name);
+          tDefActual = S.teams.find(x => x.name === tf && x.season === sf);
+          if (tDefActual && tDefActual.players) activeRosterNames = tDefActual.players.map(x => x.name);
       }
 
       const okL =m=>!lf ||m.competition===lf;
@@ -6610,7 +6674,6 @@ function renderStats(){
 
       lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
       
-      // 🚀 UNIR TEMPORADAS DE PARTIDOS Y DE PLANTILLAS
       const allSeasons = [...new Set([...S.matches.map(m=>m.season), ...(S.teams||[]).map(t=>t.season), curSeason].filter(s => s && s !== 'Sin temporada'))].sort().reverse();
       sf = fill('st-sf', allSeasons, sf, 'Todos');
       
@@ -6652,28 +6715,42 @@ function renderStats(){
         if(!ok){msel.value='';mfEff='';}
       }
 
-      const inScope=m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&
-        (okT(m))&&(!mfEff||String(m.id)===String(mfEff));
-
       const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const q=''; 
       all=[]; teams=new Set();
-      scoped=S.matches.filter(inScope);
+      scoped=S.matches.filter(m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&(okT(m))&&(!mfEff||String(m.id)===String(mfEff)));
+      
       scoped.forEach(m=>{
-        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name}))].forEach(p=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam})),
+         ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam}))].forEach(p=>{
           if(!_inGroup(p.team,gf))return;
           
           if (activeRosterNames) {
               if (!activeRosterNames.includes(p.name)) return;
+              p.team = tf; // 🚀 ASIGNAMOS LA NUEVA CAMISETA
+              p.mN = `${p.mN} (con ${p.origT})`; // Aviso del equipo antiguo
+              teams.add(tf);
+              if(pf&&p.name!==pf)return;
+              all.push(p);
           } else {
+              teams.add(p.team);
               if(tf&&p.team!==tf)return;
+              if(pf&&p.name!==pf)return;
+              if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
+              all.push(p);
           }
-          
-          teams.add(p.team);
-          if(pf&&p.name!==pf)return;
-          if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
-          all.push(p);});
+        });
       });
+
+      // 🚀 INCLUIR A LOS FICHAJES NUEVOS QUE NO TIENEN PARTIDOS ANTIGUOS
+      if (activeRosterNames && tDefActual && tDefActual.players) {
+          const foundNames = new Set(all.map(x => x.name));
+          tDefActual.players.forEach(p => {
+              if (!foundNames.has(p.name) && (!pf || p.name === pf)) {
+                  all.push({...p, team: tf, mN: 'Fichaje (0 partidos)', pts:0, min:0, t2Pct:null, t3Pct:null, tlPct:null, reb:0, ast:0, fc:0, pm:0, val:0});
+              }
+          });
+      }
 
       _stCacheData = { all, teams, scoped, mfEff, fallbackSfActivado, effectiveSf };
       _stCacheFilters = currentFilters;
@@ -6734,11 +6811,7 @@ function renderStats(){
       }).join('');
       
       if (hidden > 0) {
-          html += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px;background:#f8fafc">
-              <button onclick="_stRenderLimit += 50; renderStats()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">
-                  ▼ Mostrar 50 jugadores más (Quedan ${hidden} ocultos)
-              </button>
-          </td></tr>`;
+          html += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px;background:#f8fafc"><button onclick="_stRenderLimit += 50; renderStats()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">▼ Mostrar 50 jugadores más (Quedan ${hidden} ocultos)</button></td></tr>`;
       } else if (!sorted.length) {
           html = `<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
       }
@@ -9304,7 +9377,6 @@ function openPlayerProfile(name, team, targetSeason){
   if (targetSeason && targetSeason !== 'Sin temporada') {
       games = allGames.filter(g => g.season === targetSeason);
       if (games.length === 0) {
-          // 🚀 FALLBACK PRETEMPORADA
           const past = [...new Set(allGames.map(g=>g.season).filter(Boolean))].sort().reverse();
           if (past.length > 0) {
               effectiveTargetSeason = past[0];
@@ -9318,15 +9390,13 @@ function openPlayerProfile(name, team, targetSeason){
       games = allGames; 
   }
 
-  // Si estamos en Fallback/Pretemporada, mostramos lo que hizo el jugador ESTUVIERA DONDE ESTUVIERA
-  if (team !== '__ALL__' && team !== '__CLARET__') {
-      if (effectiveTargetSeason === targetSeason) { 
+  // 🚀 RESTRICCIÓN: Solo obligamos a que coincida la camiseta si NO estamos en pretemporada
+  if (effectiveTargetSeason === targetSeason) {
+      if (team !== '__ALL__' && team !== '__CLARET__') {
           games = games.filter(g => g.tn === team);
+      } else if (team === '__CLARET__') {
+          games = games.filter(g => isOurTeam(g.tn));
       }
-  } else if (team === '__CLARET__') {
-       if (effectiveTargetSeason === targetSeason) {
-           games = games.filter(g => isOurTeam(g.tn));
-       }
   }
 
   if(!games.length){toast('Sin partidos en esta selección','err');return;}
@@ -9369,7 +9439,6 @@ function openPlayerProfile(name, team, targetSeason){
     const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
     if(effectiveTargetSeason && effectiveTargetSeason !== 'Sin temporada' && m.season !== effectiveTargetSeason) return false;
     
-    // Lo mismo, si es pretemporada, pillamos sus tiros sin importar la camiseta
     if (effectiveTargetSeason === targetSeason) {
         const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
         if (team !== '__ALL__' && team !== '__CLARET__') return shotTeam === team;

@@ -1338,6 +1338,16 @@ body.zen-mode {
 </head>
 <body>
 
+<div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:2147483647; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif; transition: opacity 0.5s ease;">
+        <style>
+            body { overflow: hidden; } /* Bloquea el scroll mientras carga */
+            @keyframes st-spin { 100% { transform: rotate(360deg); } }
+        </style>
+        <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
+        <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BÁSCATAPP</h2>
+        <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Descargando y calculando el historial de partidos...</p>
+</div>
+
 <!-- LOGIN GATE -->
 <div id="login-gate" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0f1f3d,#1e3a5f);z-index:2000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,.5);text-align:center">
@@ -2578,7 +2588,7 @@ async function ldLS() {
       `);
   }
 
-  // 🚀 1. CACHE FIRST: Carga instantánea desde la memoria del móvil/PC
+  // 🚀 1. CACHE FIRST
   try {
     const localData = localStorage.getItem('bascatapp_data');
     if (localData) {
@@ -2700,7 +2710,13 @@ async function ldLS() {
         const savedRole = localStorage.getItem('bascatRole');
         
         if (savedRole === 'staff') {
-            // OPCIÓN 2: Entró previamente como Staff. Abrimos la ficha.
+            // OPCIÓN 2: Entró previamente como Staff.
+            // 🔥 SOLUCIÓN: Desbloqueamos el fondo y quitamos la puerta de login
+            if (typeof _applyRole === 'function') _applyRole('staff');
+            const gate = document.getElementById('login-gate');
+            if (gate) gate.style.display = 'none';
+
+            // Ahora sí, abrimos la ficha con el fondo preparado
             setTimeout(() => { 
                 if (typeof openPlayerProfile === 'function') {
                     openPlayerProfile(j, e || '__ALL__', t || null);
@@ -2710,7 +2726,6 @@ async function ldLS() {
             // OPCIÓN 1: Entró previamente como Jugador. Bloqueo total.
             setTimeout(() => {
                 toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
-                // Limpiamos la URL para que no parezca que hay un enlace activo
                 const url = new URL(window.location);
                 url.searchParams.delete('jugador');
                 url.searchParams.delete('equipo');
@@ -2719,7 +2734,6 @@ async function ldLS() {
             }, 500);
         } else {
             // OPCIÓN 3: No hay sesión (Modo Incógnito o usuario nuevo).
-            // Guardamos el enlace y esperamos a que pase por la función doLogin()
             window._enlacePendiente = { j, e: e || '__ALL__', t: t || null };
         }
     }
@@ -9685,7 +9699,7 @@ function renderCompare() {
     S.nextMatch = S.nextMatch || { rival: '', rivalSeason: '', mySeason: '', venue: 'home', date: '', time: '' };
     const hasRival = S.nextMatch && S.nextMatch.rival && S.nextMatch.rival.trim() !== '';
 
-    // 🛑 CORTAFUEGOS VISUAL: Si hay rival pero los partidos aún se están descargando
+    // 🛑 CORTAFUEGOS VISUAL
     if (hasRival && (!S.matches || S.matches.length === 0)) {
         tabMain.innerHTML = `
             <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
@@ -9696,7 +9710,7 @@ function renderCompare() {
                 </h3>
             </div>
         `;
-        return; // Abortamos para no pintar los ceros
+        return;
     }
 
     if (!hasRival) {
@@ -9709,11 +9723,17 @@ function renderCompare() {
         } else {
             const rivals = new Set();
             const allSeasonsSet = new Set();
+            
             S.matches.forEach(m => {
                 if(m.homeTeam && !isOurTeam(m.homeTeam)) rivals.add(m.homeTeam);
                 if(m.awayTeam && !isOurTeam(m.awayTeam)) rivals.add(m.awayTeam);
                 if(m.season) allSeasonsSet.add(m.season);
             });
+            
+            (S.teams || []).forEach(t => {
+                if(!isOurTeam(t.name)) rivals.add(t.name);
+            });
+
             const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch?.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
             const allSeasons = [...allSeasonsSet].sort().reverse();
             const getSeasonsOpts = (sel) => `<option value="">Todas (Acumulado)</option>` + allSeasons.map(s => `<option value="${_esc(s)}"${s===sel?' selected':''}>${_esc(s)}</option>`).join('');
@@ -9772,8 +9792,34 @@ function renderCompare() {
     const mSeason = S.nextMatch.mySeason;
     const isMyTeamHome = S.nextMatch.venue !== 'away';
     
-    const myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
-    const rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
+    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
+    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
+
+    // 🚀 LÓGICA DE PRETEMPORADA (AUTO-FALLBACK)
+    let effectiveRivalSeason = rSeason;
+    let effectiveMySeason = mSeason;
+    let fallbackRivalActivado = false;
+    let fallbackMyActivado = false;
+
+    // Si hemos seleccionado una temporada para el rival pero tiene 0 partidos, buscamos la anterior
+    if (rSeason && rivMatches.length === 0) {
+        const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(m=>m.season).filter(Boolean))].sort().reverse();
+        if (pastSeasons.length > 0) {
+            effectiveRivalSeason = pastSeasons[0];
+            fallbackRivalActivado = true;
+            rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && m.season === effectiveRivalSeason);
+        }
+    }
+
+    // Hacemos lo mismo para nuestro equipo
+    if (mSeason && myMatches.length === 0) {
+        const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(m=>m.season).filter(Boolean))].sort().reverse();
+        if (pastSeasons.length > 0) {
+            effectiveMySeason = pastSeasons[0];
+            fallbackMyActivado = true;
+            myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && m.season === effectiveMySeason);
+        }
+    }
 
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
@@ -9838,18 +9884,77 @@ function renderCompare() {
 
     const myAggr = _calcTeamAggr(myMatches, myTeamName);
     const rivAggr = _calcTeamAggr(rivMatches, rival);
-    const compHtml = `<div class="card" style="margin-bottom:16px">
-        <div class="ct" style="margin-bottom:20px; font-size:13px">📊 Comparativa Métrica a Métrica</div>
+    
+    // Aviso visual si estamos en modo Híbrido/Pretemporada
+    const fallbackNotice = (fallbackRivalActivado || fallbackMyActivado) ? 
+        `<div style="background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">
+            ⚠️ MODO PRETEMPORADA: Como hay 0 partidos en la temporada seleccionada, estás viendo proyecciones y plantillas usando datos hasta la temp. ${effectiveRivalSeason}.
+        </div>` : '';
+
+    const compHtml = `${fallbackNotice}<div class="card" style="margin-bottom:16px">
+        <div class="ct" style="margin-bottom:20px; font-size:13px">📊 Comparativa de Equipo (Basado en historial como equipo)</div>
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
-    let rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
-        const m = rivMatches.find(mm => mm.id === (s.mId || s.matchId));
-        return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
-    });
+    // 🚀 MAGIA HÍBRIDA: Generar Roster y Mapas de Tiro
+    const rivalPlayers = {};
+    let rivalShots = [];
+    const teamDef = S.teams.find(t => t.name === rival);
+
+    if (teamDef && teamDef.players && teamDef.players.length > 0) {
+        // MODO INTELIGENTE: Plantilla actual del equipo, pero buscando datos en la temporada que toca (ej. 25/26)
+        teamDef.players.forEach(p => {
+            rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+        });
+        
+        const activeNames = Object.keys(rivalPlayers);
+        // Escaneamos solo la temporada "efectiva"
+        const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
+        
+        matchesToScan.forEach(m => {
+            [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
+                if (rivalPlayers[pMatch.name]) {
+                    const rp = rivalPlayers[pMatch.name];
+                    rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0; 
+                    rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
+                    rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
+                    rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
+                    rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
+                }
+            });
+        });
+
+        rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
+            if (!activeNames.includes(s.player)) return false;
+            const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
+            if (!m) return false;
+            if (effectiveRivalSeason && m.season !== effectiveRivalSeason) return false;
+            return true;
+        });
+
+    } else {
+        // MODO CLÁSICO: Si el equipo no está creado en la pestaña de Equipos
+        rivMatches.forEach(m => {
+            const isHome = m.homeTeam === rival;
+            (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
+                if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+                const rp = rivalPlayers[p.name];
+                rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
+                rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
+                rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
+            });
+        });
+
+        rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
+            const m = rivMatches.find(mm => mm.id === (s.mId || s.matchId));
+            return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
+        });
+    }
+
+    const rpList = Object.values(rivalPlayers);
 
     const mapsHtml = `<div class="card" style="margin-bottom:16px">
-        <div class="ct" style="font-size:13px">🗺️ Mapas de Tiro (${_esc(rival)})</div>
+        <div class="ct" style="font-size:13px">🗺️ Mapas de Tiro Globales (${_esc(rival)})</div>
         <div class="g2" style="margin-top:10px">
             <div style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid var(--bd)">
                 <div style="font-size:10px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px;text-transform:uppercase">Mapa de Calor Global</div>
@@ -9861,19 +9966,6 @@ function renderCompare() {
             </div>
         </div>
     </div>`;
-
-    const rivalPlayers = {};
-    rivMatches.forEach(m => {
-        const isHome = m.homeTeam === rival;
-        (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
-            if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
-            const rp = rivalPlayers[p.name];
-            rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
-            rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
-            rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
-        });
-    });
-    const rpList = Object.values(rivalPlayers);
 
     if (!window._nmSort) window._nmSort = { col: 'pts', dir: -1 };
     window.nmSort = function(col) {
@@ -9903,7 +9995,7 @@ function renderCompare() {
     const nmArrow = (c) => nms.col === c ? (nms.dir > 0 ? ' ▲' : ' ▼') : '';
 
     let rosterHtml = `<div class="card">
-        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Plantilla (${_esc(rival)}) <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
+        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Roster Activo (Rastreo de Stats ${effectiveRivalSeason ? effectiveRivalSeason : 'Acumulado'}) <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
         <div class="tw" style="margin-bottom:0;border:none;border-radius:0">
         <table style="min-width:700px">
         <thead><tr>
@@ -9925,8 +10017,8 @@ function renderCompare() {
         const tlp = p.tla ? Math.round(p.tlm/p.tla*100) : 0;
         rosterHtml += `<tr style="cursor:pointer;border-bottom:1px solid var(--bd)" onclick="window.toggleNextRivalPl(${idx}, '${_esc(p.name)}')">
             <td style="font-weight:800;text-align:left;color:#3b82f6">#${p.dorsal} ${_esc(p.name)} <span style="color:#3b82f6;font-size:10px;margin-left:6px;background:#eff6ff;padding:2px 6px;border-radius:4px">▾ MAPAS</span></td>
-            <td style="text-align:center">${p.games}</td><td style="text-align:center">${Math.round(p.min/p.games)||0}</td><td style="text-align:center"><b style="color:var(--nv);font-size:14px">${(p.pts/p.games).toFixed(1)}</b></td>
-            <td style="text-align:center">${t2p}%</td><td style="text-align:center">${t3p}%</td><td style="text-align:center">${tlp}%</td><td style="text-align:center">${(p.reb/p.games).toFixed(1)}</td><td style="text-align:center">${(p.ast/p.games).toFixed(1)}</td>
+            <td style="text-align:center">${p.games}</td><td style="text-align:center">${Math.round(p.min/p.games)||0}</td><td style="text-align:center"><b style="color:var(--nv);font-size:14px">${p.games ? (p.pts/p.games).toFixed(1) : '0.0'}</b></td>
+            <td style="text-align:center">${t2p}%</td><td style="text-align:center">${t3p}%</td><td style="text-align:center">${tlp}%</td><td style="text-align:center">${p.games ? (p.reb/p.games).toFixed(1) : '0.0'}</td><td style="text-align:center">${p.games ? (p.ast/p.games).toFixed(1) : '0.0'}</td>
         </tr>
         <tr id="nm-pl-row-${idx}" style="display:none;background:#f8fafc"><td colspan="9" style="padding:12px">
             <div class="g2">

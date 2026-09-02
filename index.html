@@ -6558,14 +6558,12 @@ function renderStats(){
   let fallbackBanner = '';
 
   if (_stCacheFilters !== currentFilters) {
-      // 🚀 FORZAR TEMPORADA ACTUAL
       const cy = new Date().getFullYear();
       const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
       
       let effectiveSf = sf;
       let fallbackSfActivado = false;
       
-      // MODO PRETEMPORADA: Si seleccionas 26/27 y no hay partidos, retrocede un año.
       if (sf && S.matches.filter(m => m.season === sf && (!tf || m.homeTeam===tf || m.awayTeam===tf)).length === 0) {
           const past = [...new Set(S.matches.filter(m => (!tf || m.homeTeam===tf || m.awayTeam===tf)).map(m=>m.season).filter(Boolean))].sort().reverse();
           if (past.length > 0) {
@@ -6576,17 +6574,18 @@ function renderStats(){
 
       let activeRosterNames = null;
       if (fallbackSfActivado && tf) {
-          const tDef = S.teams.find(x => x.name === tf);
+          // 🚀 BUSCAMOS LA PLANTILLA DE LA TEMPORADA SELECCIONADA EN EL DESPLEGABLE
+          let tDef = S.teams.find(x => x.name === tf && x.season === sf);
+          if (!tDef) tDef = S.teams.find(x => x.name === tf); // Fallback por si acaso
           if (tDef && tDef.players) activeRosterNames = tDef.players.map(x => x.name);
       }
 
       const okL =m=>!lf ||m.competition===lf;
-      const okS =m=>!sf ||m.season===effectiveSf; // USA LA EFECTIVA
+      const okS =m=>!sf ||m.season===effectiveSf;
       const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
       
       const okT =m=>{
           if (!tf) return true;
-          // Si estamos en pretemporada, buscamos partidos donde jueguen nuestros fichajes (aunque sea en otro equipo)
           if (activeRosterNames) return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNames.includes(p.name));
           return m.homeTeam===tf||m.awayTeam===tf;
       };
@@ -6611,17 +6610,12 @@ function renderStats(){
 
       lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
       
-      // 🚀 Asegurar que la actual siempre sale en la lista
-      const allSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
-      if (!allSeasons.includes(curSeason)) allSeasons.unshift(curSeason);
+      // 🚀 UNIR TEMPORADAS DE PARTIDOS Y DE PLANTILLAS
+      const allSeasons = [...new Set([...S.matches.map(m=>m.season), ...(S.teams||[]).map(t=>t.season), curSeason].filter(s => s && s !== 'Sin temporada'))].sort().reverse();
       sf = fill('st-sf', allSeasons, sf, 'Todos');
       
       grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
 
-      const gsel=document.getElementById('st-gf');
-      if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
-
-      // Los equipos que salen deben incluir los nuevos creados a mano aunque no hayan jugado
       const teamsAvail = [...new Set([...pool('T').flatMap(teamsOf), ...(S.teams||[]).map(t=>t.name)])].sort();
       const tsel=document.getElementById('st-tf');
       if(tsel){
@@ -6693,7 +6687,7 @@ function renderStats(){
   }
 
   if (_stCacheData.fallbackSfActivado) {
-      fallbackBanner = `<div style="grid-column: 1 / -1; background:#fef3c7; color:#92400e; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${_stCacheData.effectiveSf} para la plantilla actual.</div>`;
+      fallbackBanner = `<div style="grid-column: 1 / -1; background:#fef3c7; color:#92400e; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${_stCacheData.effectiveSf} para los jugadores de la plantilla actual.</div>`;
   }
 
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
@@ -6736,8 +6730,7 @@ function renderStats(){
       
       let html = shown.map(p=>{
         const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-        // Si jugaba en otro equipo se le nota aquí
-        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
+        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t, '${sf}')"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
       }).join('');
       
       if (hidden > 0) {
@@ -9311,7 +9304,7 @@ function openPlayerProfile(name, team, targetSeason){
   if (targetSeason && targetSeason !== 'Sin temporada') {
       games = allGames.filter(g => g.season === targetSeason);
       if (games.length === 0) {
-          // 🚀 FALLBACK PRETEMPORADA: Busca la última temporada que jugó este jugador
+          // 🚀 FALLBACK PRETEMPORADA
           const past = [...new Set(allGames.map(g=>g.season).filter(Boolean))].sort().reverse();
           if (past.length > 0) {
               effectiveTargetSeason = past[0];
@@ -9325,14 +9318,15 @@ function openPlayerProfile(name, team, targetSeason){
       games = allGames; 
   }
 
-  // Si hemos usado el "Fallback", le quitamos la obligación de que la camiseta coincida, 
-  // para poder ver lo que hizo en su club anterior.
+  // Si estamos en Fallback/Pretemporada, mostramos lo que hizo el jugador ESTUVIERA DONDE ESTUVIERA
   if (team !== '__ALL__' && team !== '__CLARET__') {
       if (effectiveTargetSeason === targetSeason) { 
           games = games.filter(g => g.tn === team);
       }
   } else if (team === '__CLARET__') {
-       games = games.filter(g => isOurTeam(g.tn));
+       if (effectiveTargetSeason === targetSeason) {
+           games = games.filter(g => isOurTeam(g.tn));
+       }
   }
 
   if(!games.length){toast('Sin partidos en esta selección','err');return;}
@@ -9375,7 +9369,7 @@ function openPlayerProfile(name, team, targetSeason){
     const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
     if(effectiveTargetSeason && effectiveTargetSeason !== 'Sin temporada' && m.season !== effectiveTargetSeason) return false;
     
-    // Lo mismo, si es pretemporada, pillamos sus tiros jugara donde jugara
+    // Lo mismo, si es pretemporada, pillamos sus tiros sin importar la camiseta
     if (effectiveTargetSeason === targetSeason) {
         const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
         if (team !== '__ALL__' && team !== '__CLARET__') return shotTeam === team;
@@ -9777,7 +9771,7 @@ function renderCompare() {
             const rivals = new Set();
             const allSeasonsSet = new Set();
             
-            // 🚀 FORZAR TEMPORADA ACTUAL EN DESPLEGABLE
+            // 🚀 INYECTAR TEMPORADA ACTUAL Y TEMPORADAS DE PLANTILLAS
             const cy = new Date().getFullYear();
             const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
             allSeasonsSet.add(curSeason);
@@ -9787,7 +9781,10 @@ function renderCompare() {
                 if(m.awayTeam && !isOurTeam(m.awayTeam)) rivals.add(m.awayTeam);
                 if(m.season) allSeasonsSet.add(m.season);
             });
-            (S.teams || []).forEach(t => { if(!isOurTeam(t.name)) rivals.add(t.name); });
+            (S.teams || []).forEach(t => { 
+                if(!isOurTeam(t.name)) rivals.add(t.name); 
+                if(t.season && t.season !== 'Sin temporada') allSeasonsSet.add(t.season);
+            });
 
             const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch?.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
             const allSeasons = [...allSeasonsSet].sort().reverse();
@@ -9867,17 +9864,21 @@ function renderCompare() {
     
     const fallbackNotice = (fallbackRivalActivado || fallbackMyActivado) ? 
         `<div style="background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">
-            ⚠️ MODO PRETEMPORADA: Como hay 0 partidos jugados, estás viendo datos proyectados desde la temp. ${effectiveRivalSeason}.
+            ⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${effectiveRivalSeason} para los jugadores de la plantilla actual.
         </div>` : '';
 
     const compHtml = `${fallbackNotice}<div class="card" style="margin-bottom:16px">
-        <div class="ct" style="margin-bottom:20px; font-size:13px">📊 Comparativa de Equipo (Basado en historial como equipo)</div>
+        <div class="ct" style="margin-bottom:20px; font-size:13px">📊 Comparativa de Equipo (Basado en historial)</div>
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
+    // 🚀 BÚSQUEDA DE PLANTILLA EXACTA POR AÑO
     const rivalPlayers = {};
     let rivalShots = [];
-    const teamDef = S.teams.find(t => t.name === rival);
+    
+    // Buscar la plantilla exacta que corresponde a la temporada seleccionada en el desplegable
+    let teamDef = S.teams.find(t => t.name === rival && t.season === rSeason);
+    if (!teamDef) teamDef = S.teams.find(t => t.name === rival); // Si no existe ese año, pillamos la última guardada
 
     if (teamDef && teamDef.players && teamDef.players.length > 0) {
         teamDef.players.forEach(p => {

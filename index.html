@@ -6639,7 +6639,6 @@ function renderStats(){
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  // 🚀 ARREGLO CACHÉ: Añadimos la cantidad de equipos para que detecte cuando creas uno nuevo
   const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
   let all, teams, scoped, mfEff;
   
@@ -6652,19 +6651,26 @@ function renderStats(){
       let effectiveSf = sf;
       let fallbackSfActivado = false;
       
-      if (sf && S.matches.filter(m => m.season === sf && (!tf || m.homeTeam===tf || m.awayTeam===tf)).length === 0) {
-          const past = [...new Set(S.matches.filter(m => (!tf || m.homeTeam===tf || m.awayTeam===tf)).map(m=>m.season).filter(Boolean))].sort().reverse();
-          if (past.length > 0) {
-              effectiveSf = past[0];
-              fallbackSfActivado = true;
+      // 🚀 FALLBACK GLOBAL DE SCOUTING: Si la temporada seleccionada tiene 0 partidos en toda la DB
+      if (sf) {
+          const hasMatchesGlobally = S.matches.some(m => m.season === sf);
+          if (!hasMatchesGlobally) {
+              const past = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+              if (past.length > 0) {
+                  effectiveSf = past[0];
+                  fallbackSfActivado = true;
+              }
           }
       }
 
-      let activeRosterNames = null;
+      let activeRosterNamesNorm = null;
       let tDefActual = null;
       if (fallbackSfActivado && tf) {
           tDefActual = S.teams.find(x => x.name === tf && x.season === sf);
-          if (tDefActual && tDefActual.players) activeRosterNames = tDefActual.players.map(x => x.name);
+          if (!tDefActual) tDefActual = S.teams.find(x => x.name === tf);
+          if (tDefActual && tDefActual.players) {
+              activeRosterNamesNorm = tDefActual.players.map(x => x.name.trim().toLowerCase());
+          }
       }
 
       const okL =m=>!lf ||m.competition===lf;
@@ -6673,7 +6679,10 @@ function renderStats(){
       
       const okT =m=>{
           if (!tf) return true;
-          if (activeRosterNames) return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNames.includes(p.name));
+          // 🚀 BUSCAMOS CON NOMBRES LIMPIOS
+          if (activeRosterNamesNorm) {
+              return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNamesNorm.includes((p.name||'').trim().toLowerCase()));
+          }
           return m.homeTeam===tf||m.awayTeam===tf;
       };
       
@@ -6714,7 +6723,8 @@ function renderStats(){
       pool('P').forEach(m=>{
         [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
           if(!_inGroup(p.team,gf))return;
-          if(activeRosterNames){ if(!activeRosterNames.includes(p.name))return; } else { if(tf&&p.team!==tf)return; }
+          const norm = (p.name||'').trim().toLowerCase();
+          if(activeRosterNamesNorm){ if(!activeRosterNamesNorm.includes(norm))return; } else { if(tf&&p.team!==tf)return; }
           const key=String(p.name||'').trim();
           if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
         });
@@ -6738,7 +6748,7 @@ function renderStats(){
         if(!ok){msel.value='';mfEff='';}
       }
 
-      const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const normStr=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const q=''; 
       all=[]; teams=new Set();
       scoped=S.matches.filter(m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&(okT(m))&&(!mfEff||String(m.id)===String(mfEff)));
@@ -6748,10 +6758,12 @@ function renderStats(){
          ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam}))].forEach(p=>{
           if(!_inGroup(p.team,gf))return;
           
-          if (activeRosterNames) {
-              if (!activeRosterNames.includes(p.name)) return;
-              p.team = tf; // 🚀 ASIGNAMOS LA NUEVA CAMISETA
-              p.mN = `${p.mN} (con ${p.origT})`; // Aviso del equipo antiguo
+          const normName = (p.name||'').trim().toLowerCase();
+          
+          if (activeRosterNamesNorm) {
+              if (!activeRosterNamesNorm.includes(normName)) return;
+              p.team = tf; 
+              p.mN = `${p.mN} (con ${p.origT})`; 
               teams.add(tf);
               if(pf&&p.name!==pf)return;
               all.push(p);
@@ -6759,17 +6771,17 @@ function renderStats(){
               teams.add(p.team);
               if(tf&&p.team!==tf)return;
               if(pf&&p.name!==pf)return;
-              if(q&&!(norm(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
+              if(q&&!(normStr(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
               all.push(p);
           }
         });
       });
 
-      // 🚀 INCLUIR A LOS FICHAJES NUEVOS QUE NO TIENEN PARTIDOS ANTIGUOS
-      if (activeRosterNames && tDefActual && tDefActual.players) {
-          const foundNames = new Set(all.map(x => x.name));
+      if (activeRosterNamesNorm && tDefActual && tDefActual.players) {
+          const foundNorms = new Set(all.map(x => (x.name||'').trim().toLowerCase()));
           tDefActual.players.forEach(p => {
-              if (!foundNames.has(p.name) && (!pf || p.name === pf)) {
+              const n = (p.name||'').trim().toLowerCase();
+              if (!foundNorms.has(n) && (!pf || p.name === pf)) {
                   all.push({...p, team: tf, mN: 'Fichaje (0 partidos)', pts:0, min:0, t2Pct:null, t3Pct:null, tlPct:null, reb:0, ast:0, fc:0, pm:0, val:0});
               }
           });
@@ -9857,8 +9869,6 @@ function renderCompare() {
         } else {
             const rivals = new Set();
             const allSeasonsSet = new Set();
-            
-            // 🚀 INYECTAR TEMPORADA ACTUAL Y TEMPORADAS DE PLANTILLAS
             const cy = new Date().getFullYear();
             const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
             allSeasonsSet.add(curSeason);
@@ -9895,31 +9905,36 @@ function renderCompare() {
     const mSeason = S.nextMatch.mySeason;
     const isMyTeamHome = S.nextMatch.venue !== 'away';
     
-    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
-    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
-
     let effectiveRivalSeason = rSeason;
     let effectiveMySeason = mSeason;
     let fallbackRivalActivado = false;
     let fallbackMyActivado = false;
 
-    if (rSeason && rivMatches.length === 0) {
-        const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(m=>m.season).filter(Boolean))].sort().reverse();
-        if (pastSeasons.length > 0) {
-            effectiveRivalSeason = pastSeasons[0];
-            fallbackRivalActivado = true;
-            rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && m.season === effectiveRivalSeason);
+    // 🚀 FALLBACK GLOBAL: Da igual si el club es nuevo. Si la temporada no tiene partidos, retrocedemos.
+    if (rSeason) {
+        const hasMatchesThisSeason = S.matches.some(m => m.season === rSeason);
+        if (!hasMatchesThisSeason) {
+            const pastSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+            if (pastSeasons.length > 0) {
+                effectiveRivalSeason = pastSeasons[0];
+                fallbackRivalActivado = true;
+            }
         }
     }
 
-    if (mSeason && myMatches.length === 0) {
-        const pastSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(m=>m.season).filter(Boolean))].sort().reverse();
-        if (pastSeasons.length > 0) {
-            effectiveMySeason = pastSeasons[0];
-            fallbackMyActivado = true;
-            myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && m.season === effectiveMySeason);
+    if (mSeason) {
+        const hasMyMatches = S.matches.some(m => m.season === mSeason);
+        if (!hasMyMatches) {
+            const pastSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+            if (pastSeasons.length > 0) {
+                effectiveMySeason = pastSeasons[0];
+                fallbackMyActivado = true;
+            }
         }
     }
+
+    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || m.season === effectiveMySeason));
+    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || m.season === effectiveRivalSeason));
 
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
@@ -9951,7 +9966,7 @@ function renderCompare() {
     
     const fallbackNotice = (fallbackRivalActivado || fallbackMyActivado) ? 
         `<div style="background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">
-            ⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${effectiveRivalSeason} para los jugadores de la plantilla actual.
+            ⚠️ MODO PRETEMPORADA: Escaneando toda la base de datos hasta la temp. ${effectiveRivalSeason}.
         </div>` : '';
 
     const compHtml = `${fallbackNotice}<div class="card" style="margin-bottom:16px">
@@ -9959,26 +9974,28 @@ function renderCompare() {
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
-    // 🚀 BÚSQUEDA DE PLANTILLA EXACTA POR AÑO
     const rivalPlayers = {};
     let rivalShots = [];
     
-    // Buscar la plantilla exacta que corresponde a la temporada seleccionada en el desplegable
+    // Plantilla exacta del equipo en el año seleccionado
     let teamDef = S.teams.find(t => t.name === rival && t.season === rSeason);
-    if (!teamDef) teamDef = S.teams.find(t => t.name === rival); // Si no existe ese año, pillamos la última guardada
+    if (!teamDef) teamDef = S.teams.find(t => t.name === rival);
 
     if (teamDef && teamDef.players && teamDef.players.length > 0) {
+        // 🚀 FILTRO ANTI-ERRORES: Nombres en minúsculas y sin espacios fantasma
         teamDef.players.forEach(p => {
-            rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+            const norm = p.name.trim().toLowerCase();
+            rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
         });
         
-        const activeNames = Object.keys(rivalPlayers);
+        const activeNormNames = Object.keys(rivalPlayers);
         const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
         
         matchesToScan.forEach(m => {
             [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
-                if (rivalPlayers[pMatch.name]) {
-                    const rp = rivalPlayers[pMatch.name];
+                const norm = (pMatch.name||'').trim().toLowerCase();
+                if (rivalPlayers[norm]) {
+                    const rp = rivalPlayers[norm];
                     rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0; 
                     rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
                     rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
@@ -9989,7 +10006,8 @@ function renderCompare() {
         });
 
         rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
-            if (!activeNames.includes(s.player)) return false;
+            const norm = (s.player||'').trim().toLowerCase();
+            if (!activeNormNames.includes(norm)) return false;
             const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
             if (!m) return false;
             if (effectiveRivalSeason && m.season !== effectiveRivalSeason) return false;
@@ -9997,17 +10015,18 @@ function renderCompare() {
         });
 
     } else {
+        // Fallback Clásico
         rivMatches.forEach(m => {
             const isHome = m.homeTeam === rival;
             (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
-                if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
-                const rp = rivalPlayers[p.name];
+                const norm = (p.name||'').trim().toLowerCase();
+                if (!rivalPlayers[norm]) rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+                const rp = rivalPlayers[norm];
                 rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
                 rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
                 rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
             });
         });
-
         rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
             const m = rivMatches.find(mm => mm.id === (s.mId || s.matchId));
             return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
@@ -10015,6 +10034,31 @@ function renderCompare() {
     }
 
     const rpList = Object.values(rivalPlayers);
+
+    // 🚀 DIBUJAR MAPAS INDIVIDUALES SIN RESTRICCIÓN DE CAMISETA
+    window._currentRivalShots = rivalShots;
+    window.toggleNextRivalPl = function(idx, name) {
+        const r = document.getElementById(`nm-pl-row-${idx}`);
+        if(!r) return;
+        if(r.style.display === 'none') {
+            r.style.display = 'table-row';
+            const norm = name.trim().toLowerCase();
+            const pShots = window._currentRivalShots.filter(s => (s.player||'').trim().toLowerCase() === norm);
+            setTimeout(() => {
+                const heatId = `nm-cv-heat-${idx}`;
+                const zoneId = `nm-cv-zone-${idx}`;
+                if(pShots.length >= 3) {
+                    drawHeatmap(heatId, pShots);
+                } else {
+                    const cv = document.getElementById(heatId);
+                    if(cv) { cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), pShots); }
+                }
+                drawZoneMap(zoneId, pShots);
+            }, 50);
+        } else {
+            r.style.display = 'none';
+        }
+    };
 
     const mapsHtml = `<div class="card" style="margin-bottom:16px">
         <div class="ct" style="font-size:13px">🗺️ Mapas de Tiro Globales (${_esc(rival)})</div>

@@ -7864,6 +7864,7 @@ function _calcTeamAggr(matches, team) {
 }
 
 // Genera las barras horizontales con efecto de Transparencia para el perdedor
+// Genera las barras horizontales con efecto de Transparencia y escudo antibloqueos
 function _renderSplitBars(name1, name2, d1, d2, col1, col2) {
     // Definimos los KPIs y marcamos (inv: true) en los que MENOS es MEJOR
     const kpis = [
@@ -7889,31 +7890,43 @@ function _renderSplitBars(name1, name2, d1, d2, col1, col2) {
     </div>`;
 
     kpis.forEach(kpi => {
-        let v1 = d1[kpi.k] || 0;
-        let v2 = d2[kpi.k] || 0;
+        // 🚀 ESCUDO ANTIBLOQUEOS: Parseo seguro por si devuelve "-" o NaN
+        let raw1 = d1[kpi.k];
+        let raw2 = d2[kpi.k];
         
-        let valStr1 = kpi.isPct ? Math.round(v1) + '%' : (Number.isInteger(v1) ? v1 : v1.toFixed(1));
-        let valStr2 = kpi.isPct ? Math.round(v2) + '%' : (Number.isInteger(v2) ? v2 : v2.toFixed(1));
+        let v1 = parseFloat(raw1);
+        let invalid1 = !isFinite(v1);
+        if (invalid1) v1 = 0;
+        
+        let v2 = parseFloat(raw2);
+        let invalid2 = !isFinite(v2);
+        if (invalid2) v2 = 0;
+        
+        // Si el dato era inválido, mostramos "-" en vez de inventarnos un "0"
+        let valStr1 = invalid1 ? '-' : (kpi.isPct ? Math.round(v1) + '%' : (Number.isInteger(v1) ? v1 : v1.toFixed(1)));
+        let valStr2 = invalid2 ? '-' : (kpi.isPct ? Math.round(v2) + '%' : (Number.isInteger(v2) ? v2 : v2.toFixed(1)));
 
         let w1 = 0, w2 = 0;
         let op1 = 1, op2 = 1;
         
+        // 🚀 CÁLCULO PROPORCIONAL EXACTO
         let max = Math.max(v1, v2);
         if (max > 0) {
             w1 = (v1 / max) * 100;
             w2 = (v2 / max) * 100;
         }
         
-        // 🚀 APLICAR EFECTO DE TRANSPARENCIA AL PERDEDOR
+        // 🚀 LÓGICA DE GANADOR/PERDEDOR (Solo afecta a la transparencia)
         if (v1 !== v2) {
             let v1Wins = kpi.inv ? (v1 < v2) : (v1 > v2);
             if (v1Wins) {
-                op2 = 0.25; // Rival pierde, se pone gris/transparente
-                if (w1 > 0) w1 = 100; // El ganador ocupa el 100% de su propia barra
+                op2 = 0.25; // Local gana, Rival se pone pálido
             } else {
-                op1 = 0.25; // Local pierde
-                if (w2 > 0) w2 = 100;
+                op1 = 0.25; // Rival gana, Local se pone pálido
             }
+        } else if (v1 === 0 && v2 === 0) {
+            // Si hay empate a 0, ponemos los dos pálidos para que no resalte
+            op1 = 0.25; op2 = 0.25;
         }
 
         html += `
@@ -7931,6 +7944,7 @@ function _renderSplitBars(name1, name2, d1, d2, col1, col2) {
     });
     return html;
 }
+
 function _generateHomeAwayHTML(team, matches, playerName = '') {
     if (playerName) return ''; 
     const h = _calcTeamAggr(matches.filter(m => m.homeTeam === team), team);

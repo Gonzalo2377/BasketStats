@@ -9905,36 +9905,29 @@ function renderCompare() {
     const mSeason = S.nextMatch.mySeason;
     const isMyTeamHome = S.nextMatch.venue !== 'away';
     
+    // 🔥 LÓGICA DIRECTA: ¿Tienen partidos jugados en la temporada que has seleccionado?
+    let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
+    let myMatchesThisSeason = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
+    
+    let isPreseason = false;
     let effectiveRivalSeason = rSeason;
+    if (rSeason && rivMatchesThisSeason.length === 0) {
+        isPreseason = true; // No hay partidos: Activamos Pretemporada y buscamos el año anterior
+        const pastGlobalSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+        effectiveRivalSeason = pastGlobalSeasons.find(s => s !== rSeason) || pastGlobalSeasons[0] || rSeason;
+    }
+
+    let isMyPreseason = false;
     let effectiveMySeason = mSeason;
-    let fallbackRivalActivado = false;
-    let fallbackMyActivado = false;
-
-    // 🚀 FALLBACK GLOBAL: Da igual si el club es nuevo. Si la temporada no tiene partidos, retrocedemos.
-    if (rSeason) {
-        const hasMatchesThisSeason = S.matches.some(m => m.season === rSeason);
-        if (!hasMatchesThisSeason) {
-            const pastSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
-            if (pastSeasons.length > 0) {
-                effectiveRivalSeason = pastSeasons[0];
-                fallbackRivalActivado = true;
-            }
-        }
+    if (mSeason && myMatchesThisSeason.length === 0) {
+        isMyPreseason = true;
+        const pastGlobalSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+        effectiveMySeason = pastGlobalSeasons.find(s => s !== mSeason) || pastGlobalSeasons[0] || mSeason;
     }
 
-    if (mSeason) {
-        const hasMyMatches = S.matches.some(m => m.season === mSeason);
-        if (!hasMyMatches) {
-            const pastSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
-            if (pastSeasons.length > 0) {
-                effectiveMySeason = pastSeasons[0];
-                fallbackMyActivado = true;
-            }
-        }
-    }
-
-    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || m.season === effectiveMySeason));
+    // Partidos que se usarán para la COMPARATIVA DE EQUIPOS (Métricas globales)
     let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || m.season === effectiveRivalSeason));
+    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || m.season === effectiveMySeason));
 
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
@@ -9964,9 +9957,9 @@ function renderCompare() {
     const myAggr = _calcTeamAggr(myMatches, myTeamName);
     const rivAggr = _calcTeamAggr(rivMatches, rival);
     
-    const fallbackNotice = (fallbackRivalActivado || fallbackMyActivado) ? 
+    const fallbackNotice = (isPreseason || isMyPreseason) ? 
         `<div style="background:#fef3c7; color:#92400e; padding:10px 14px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">
-            ⚠️ MODO PRETEMPORADA: Escaneando toda la base de datos hasta la temp. ${effectiveRivalSeason}.
+            ⚠️ MODO PRETEMPORADA: Escaneando estadísticas y mapas de los fichajes en la temp. ${effectiveRivalSeason}.
         </div>` : '';
 
     const compHtml = `${fallbackNotice}<div class="card" style="margin-bottom:16px">
@@ -9974,52 +9967,58 @@ function renderCompare() {
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
+    // 🚀 SUPER NORMALIZADOR DE NOMBRES
+    const normName = (str) => String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    
     const rivalPlayers = {};
     let rivalShots = [];
     
-    // Plantilla exacta del equipo en el año seleccionado
+    // Plantilla del equipo rival en la temporada configurada
     let teamDef = S.teams.find(t => t.name === rival && t.season === rSeason);
     if (!teamDef) teamDef = S.teams.find(t => t.name === rival);
 
-    if (teamDef && teamDef.players && teamDef.players.length > 0) {
-        // 🚀 FILTRO ANTI-ERRORES: Nombres en minúsculas y sin espacios fantasma
-        teamDef.players.forEach(p => {
-            const norm = p.name.trim().toLowerCase();
-            rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
-        });
-        
-        const activeNormNames = Object.keys(rivalPlayers);
-        const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
-        
-        matchesToScan.forEach(m => {
-            [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
-                const norm = (pMatch.name||'').trim().toLowerCase();
-                if (rivalPlayers[norm]) {
-                    const rp = rivalPlayers[norm];
-                    rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0; 
-                    rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
-                    rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
-                    rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
-                    rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
-                }
+    if (isPreseason) {
+        // --- MODO PRETEMPORADA ---
+        // (No hay partidos: Usamos la nueva plantilla y rastreamos el año pasado donde sea)
+        if (teamDef && teamDef.players) {
+            teamDef.players.forEach(p => {
+                const norm = normName(p.name);
+                rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
             });
-        });
+            
+            const activeNormNames = Object.keys(rivalPlayers);
+            const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
+            
+            matchesToScan.forEach(m => {
+                [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
+                    const norm = normName(pMatch.name);
+                    if (rivalPlayers[norm]) {
+                        const rp = rivalPlayers[norm];
+                        rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0; 
+                        rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
+                        rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
+                        rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
+                        rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
+                    }
+                });
+            });
 
-        rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
-            const norm = (s.player||'').trim().toLowerCase();
-            if (!activeNormNames.includes(norm)) return false;
-            const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
-            if (!m) return false;
-            if (effectiveRivalSeason && m.season !== effectiveRivalSeason) return false;
-            return true;
-        });
-
+            rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
+                const norm = normName(s.player);
+                if (!activeNormNames.includes(norm)) return false;
+                const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
+                if (!m) return false;
+                if (effectiveRivalSeason && m.season !== effectiveRivalSeason) return false;
+                return true;
+            });
+        }
     } else {
-        // Fallback Clásico
-        rivMatches.forEach(m => {
+        // --- MODO NORMAL ---
+        // (Sí hay partidos de esta temporada: Leemos sus stats reales con este equipo)
+        rivMatchesThisSeason.forEach(m => {
             const isHome = m.homeTeam === rival;
             (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
-                const norm = (p.name||'').trim().toLowerCase();
+                const norm = normName(p.name);
                 if (!rivalPlayers[norm]) rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
                 const rp = rivalPlayers[norm];
                 rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
@@ -10027,23 +10026,35 @@ function renderCompare() {
                 rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
             });
         });
+
+        // Aseguramos que los fichajes que aún no han jugado (0 stats) también salgan en la tabla
+        if (teamDef && teamDef.players) {
+            teamDef.players.forEach(p => {
+                const norm = normName(p.name);
+                if (!rivalPlayers[norm]) {
+                    rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+                }
+            });
+        }
+
         rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
-            const m = rivMatches.find(mm => mm.id === (s.mId || s.matchId));
+            const m = rivMatchesThisSeason.find(mm => mm.id === (s.mId || s.matchId));
             return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
         });
     }
 
     const rpList = Object.values(rivalPlayers);
 
-    // 🚀 DIBUJAR MAPAS INDIVIDUALES SIN RESTRICCIÓN DE CAMISETA
+    // 🚀 DIBUJAR MAPAS INDIVIDUALES (Con filtrado inteligente)
     window._currentRivalShots = rivalShots;
     window.toggleNextRivalPl = function(idx, name) {
         const r = document.getElementById(`nm-pl-row-${idx}`);
         if(!r) return;
         if(r.style.display === 'none') {
             r.style.display = 'table-row';
-            const norm = name.trim().toLowerCase();
-            const pShots = window._currentRivalShots.filter(s => (s.player||'').trim().toLowerCase() === norm);
+            const normNameFunc = (str) => String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+            const norm = normNameFunc(name);
+            const pShots = window._currentRivalShots.filter(s => normNameFunc(s.player) === norm);
             setTimeout(() => {
                 const heatId = `nm-cv-heat-${idx}`;
                 const zoneId = `nm-cv-zone-${idx}`;
@@ -10102,7 +10113,7 @@ function renderCompare() {
     const nmArrow = (c) => nms.col === c ? (nms.dir > 0 ? ' ▲' : ' ▼') : '';
 
     let rosterHtml = `<div class="card">
-        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Roster Activo (Rastreo de Stats ${effectiveRivalSeason ? effectiveRivalSeason : 'Acumulado'}) <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
+        <div class="ct" style="font-size:13px; margin-bottom:12px">👥 Roster Activo (Rastreo de Stats ${(isPreseason || isMyPreseason) ? effectiveRivalSeason : (rSeason||'Acumulado')}) <span style="font-size:10px;color:var(--t3);font-weight:400">— toca las cabeceras para ordenar</span></div>
         <div class="tw" style="margin-bottom:0;border:none;border-radius:0">
         <table style="min-width:700px">
         <thead><tr>

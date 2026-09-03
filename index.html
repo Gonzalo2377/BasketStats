@@ -7863,34 +7863,74 @@ function _calcTeamAggr(matches, team) {
     };
 }
 
-function _renderSplitBars(labelL, labelR, h, a, colorL, colorR) {
-    let html = `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:16px;border-bottom:2px solid var(--bd);padding-bottom:6px">
-       <span style="color:${colorL}">◀ ${labelL}</span><span style="color:${colorR}">${labelR} ▶</span>
+// Genera las barras horizontales con efecto de Transparencia para el perdedor
+function _renderSplitBars(name1, name2, d1, d2, col1, col2) {
+    // Definimos los KPIs y marcamos (inv: true) en los que MENOS es MEJOR
+    const kpis = [
+        {k:'games', l:'PJ', inv:false},
+        {k:'pts', l:'PTS FAVOR', inv:false},
+        {k:'ptsAgainst', l:'PTS CONTRA', inv:true},
+        {k:'t2Pct', l:'T2%', isPct:true},
+        {k:'t3Pct', l:'T3%', isPct:true},
+        {k:'tlPct', l:'TL%', isPct:true},
+        {k:'t3Rate', l:'%T3/TC', isPct:true},
+        {k:'ast', l:'AST'},
+        {k:'to', l:'PER', inv:true},
+        {k:'blk', l:'TAP'},
+        {k:'stl', l:'ROB'},
+        {k:'pace', l:'PACE'},
+        {k:'ortg', l:'ORTG'},
+        {k:'drtg', l:'DRTG', inv:true}
+    ];
+    
+    let html = `<div style="display:flex; justify-content:space-between; font-size:10px; font-weight:900; margin-bottom:16px; text-transform:uppercase;">
+        <div style="color:${col1}">◀ ${_esc(name1)}</div>
+        <div style="color:${col2}">${_esc(name2)} ▶</div>
     </div>`;
-    html += _SPLIT_METRICS.map(([label,key,fmt])=>{
-       const hv=h[key]||0, av=a[key]||0, mx=Math.max(Math.abs(hv),Math.abs(av),1);
-       const pwL = hv === 0 ? 0 : Math.max(1, Math.abs(hv)/mx*100);
-       const pwR = av === 0 ? 0 : Math.max(1, Math.abs(av)/mx*100);
-       
-       return `<div style="margin-bottom:8px; display:flex; align-items:center; font-size:11px">
-          <b style="width:44px; text-align:right; color:${colorL}; font-size:12px">${fmt(hv)}</b>
-          <div style="flex:1; display:flex; justify-content:flex-end; margin:0 12px">
-             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; display:flex; justify-content:flex-end">
-                ${pwL > 0 ? `<div style="height:100%; background:${colorL}; width:${pwL}%; border-radius:5px"></div>` : ''}
-             </div>
-          </div>
-          <span style="width:100px; text-align:center; font-weight:800; color:var(--t3); text-transform:uppercase; font-size:10px">${label}</span>
-          <div style="flex:1; display:flex; justify-content:flex-start; margin:0 12px">
-             <div style="height:10px; background:#f1f5f9; border-radius:5px; width:100%; display:flex; justify-content:flex-start">
-                ${pwR > 0 ? `<div style="height:100%; background:${colorR}; width:${pwR}%; border-radius:5px"></div>` : ''}
-             </div>
-          </div>
-          <b style="width:44px; text-align:left; color:${colorR}; font-size:12px">${fmt(av)}</b>
-       </div>`;
-    }).join('');
+
+    kpis.forEach(kpi => {
+        let v1 = d1[kpi.k] || 0;
+        let v2 = d2[kpi.k] || 0;
+        
+        let valStr1 = kpi.isPct ? Math.round(v1) + '%' : (Number.isInteger(v1) ? v1 : v1.toFixed(1));
+        let valStr2 = kpi.isPct ? Math.round(v2) + '%' : (Number.isInteger(v2) ? v2 : v2.toFixed(1));
+
+        let w1 = 0, w2 = 0;
+        let op1 = 1, op2 = 1;
+        
+        let max = Math.max(v1, v2);
+        if (max > 0) {
+            w1 = (v1 / max) * 100;
+            w2 = (v2 / max) * 100;
+        }
+        
+        // 🚀 APLICAR EFECTO DE TRANSPARENCIA AL PERDEDOR
+        if (v1 !== v2) {
+            let v1Wins = kpi.inv ? (v1 < v2) : (v1 > v2);
+            if (v1Wins) {
+                op2 = 0.25; // Rival pierde, se pone gris/transparente
+                if (w1 > 0) w1 = 100; // El ganador ocupa el 100% de su propia barra
+            } else {
+                op1 = 0.25; // Local pierde
+                if (w2 > 0) w2 = 100;
+            }
+        }
+
+        html += `
+        <div style="display:flex; align-items:center; margin-bottom:9px; gap:12px;">
+            <div style="width:40px; text-align:right; font-size:11px; font-weight:900; color:${col1}">${valStr1}</div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:flex-end; height:10px; background:#f1f5f9; border-radius:5px; overflow:hidden;">
+                <div style="height:100%; width:${w1}%; background:${col1}; border-radius:5px; opacity:${op1}; transition:all 0.4s ease-out;"></div>
+            </div>
+            <div style="width:80px; text-align:center; font-size:9.5px; font-weight:800; color:var(--t3); text-transform:uppercase; letter-spacing:0.05em;">${kpi.l}</div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:flex-start; height:10px; background:#f1f5f9; border-radius:5px; overflow:hidden;">
+                <div style="height:100%; width:${w2}%; background:${col2}; border-radius:5px; opacity:${op2}; transition:all 0.4s ease-out;"></div>
+            </div>
+            <div style="width:40px; text-align:left; font-size:11px; font-weight:900; color:${col2}">${valStr2}</div>
+        </div>`;
+    });
     return html;
 }
-
 function _generateHomeAwayHTML(team, matches, playerName = '') {
     if (playerName) return ''; 
     const h = _calcTeamAggr(matches.filter(m => m.homeTeam === team), team);
@@ -9905,14 +9945,13 @@ function renderCompare() {
     const mSeason = S.nextMatch.mySeason;
     const isMyTeamHome = S.nextMatch.venue !== 'away';
     
-    // 🔥 LÓGICA DIRECTA: ¿Tienen partidos jugados en la temporada que has seleccionado?
     let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
     let myMatchesThisSeason = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
     
     let isPreseason = false;
     let effectiveRivalSeason = rSeason;
     if (rSeason && rivMatchesThisSeason.length === 0) {
-        isPreseason = true; // No hay partidos: Activamos Pretemporada y buscamos el año anterior
+        isPreseason = true; 
         const pastGlobalSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
         effectiveRivalSeason = pastGlobalSeasons.find(s => s !== rSeason) || pastGlobalSeasons[0] || rSeason;
     }
@@ -9925,9 +9964,19 @@ function renderCompare() {
         effectiveMySeason = pastGlobalSeasons.find(s => s !== mSeason) || pastGlobalSeasons[0] || mSeason;
     }
 
-    // Partidos que se usarán para la COMPARATIVA DE EQUIPOS (Métricas globales)
     let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || m.season === effectiveRivalSeason));
     let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || m.season === effectiveMySeason));
+
+    if (isPreseason && rivMatches.length === 0) {
+        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(m=>m.season).filter(Boolean))].sort().reverse();
+        const lastTeamSeason = pastTeamSeasons.find(s => s !== rSeason);
+        if (lastTeamSeason) rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && m.season === lastTeamSeason);
+    }
+    if (isMyPreseason && myMatches.length === 0) {
+        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(m=>m.season).filter(Boolean))].sort().reverse();
+        const lastTeamSeason = pastTeamSeasons.find(s => s !== mSeason);
+        if (lastTeamSeason) myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && m.season === lastTeamSeason);
+    }
 
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
@@ -9967,29 +10016,29 @@ function renderCompare() {
         ${_renderSplitBars(myTeamName, rival, myAggr, rivAggr, '#f59e0b', '#3b82f6')}
     </div>`;
 
-    // 🚀 SUPER NORMALIZADOR DE NOMBRES
     const normName = (str) => String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
     
     const rivalPlayers = {};
     let rivalShots = [];
     
-    // Plantilla del equipo rival en la temporada configurada
     let teamDef = S.teams.find(t => t.name === rival && t.season === rSeason);
     if (!teamDef) teamDef = S.teams.find(t => t.name === rival);
 
     if (isPreseason) {
-        // --- MODO PRETEMPORADA ---
-        // (No hay partidos: Usamos la nueva plantilla y rastreamos el año pasado donde sea)
         if (teamDef && teamDef.players) {
             teamDef.players.forEach(p => {
                 const norm = normName(p.name);
-                rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0 };
+                // 🚀 Añadimos "playedForRival" para detectar a los nuevos
+                rivalPlayers[norm] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, min: 0, playedForRival: false };
             });
             
             const activeNormNames = Object.keys(rivalPlayers);
             const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
             
             matchesToScan.forEach(m => {
+                const isHomeMatch = m.homeTeam === rival;
+                const isAwayMatch = m.awayTeam === rival;
+
                 [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
                     const norm = normName(pMatch.name);
                     if (rivalPlayers[norm]) {
@@ -9999,6 +10048,10 @@ function renderCompare() {
                         rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
                         rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
                         rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
+                        
+                        // 🚀 Si este partido lo está jugando con el rival, marcamos que YA estaba en el club
+                        if (isHomeMatch && (m.homePlayers||[]).some(x => normName(x.name) === norm)) rp.playedForRival = true;
+                        if (isAwayMatch && (m.awayPlayers||[]).some(x => normName(x.name) === norm)) rp.playedForRival = true;
                     }
                 });
             });
@@ -10013,8 +10066,6 @@ function renderCompare() {
             });
         }
     } else {
-        // --- MODO NORMAL ---
-        // (Sí hay partidos de esta temporada: Leemos sus stats reales con este equipo)
         rivMatchesThisSeason.forEach(m => {
             const isHome = m.homeTeam === rival;
             (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
@@ -10027,7 +10078,6 @@ function renderCompare() {
             });
         });
 
-        // Aseguramos que los fichajes que aún no han jugado (0 stats) también salgan en la tabla
         if (teamDef && teamDef.players) {
             teamDef.players.forEach(p => {
                 const norm = normName(p.name);
@@ -10045,7 +10095,6 @@ function renderCompare() {
 
     const rpList = Object.values(rivalPlayers);
 
-    // 🚀 DIBUJAR MAPAS INDIVIDUALES (Con filtrado inteligente)
     window._currentRivalShots = rivalShots;
     window.toggleNextRivalPl = function(idx, name) {
         const r = document.getElementById(`nm-pl-row-${idx}`);
@@ -10133,8 +10182,12 @@ function renderCompare() {
         const t2p = p.t2a ? Math.round(p.t2m/p.t2a*100) : 0;
         const t3p = p.t3a ? Math.round(p.t3m/p.t3a*100) : 0;
         const tlp = p.tla ? Math.round(p.tlm/p.tla*100) : 0;
+        
+        // 🚀 CHAPA DE NUEVO FICHAJE (Para jugadores en modo pretemporada que NO jugaron con este rival el año pasado)
+        const newBadge = (isPreseason && !p.playedForRival) ? `<span style="background:#10b981; color:#fff; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:900; margin-left:8px; letter-spacing:0.05em; vertical-align:middle; box-shadow:0 1px 2px rgba(0,0,0,0.2);">NUEVO</span>` : '';
+
         rosterHtml += `<tr style="cursor:pointer;border-bottom:1px solid var(--bd)" onclick="window.toggleNextRivalPl(${idx}, '${_esc(p.name)}')">
-            <td style="font-weight:800;text-align:left;color:#3b82f6">#${p.dorsal} ${_esc(p.name)} <span style="color:#3b82f6;font-size:10px;margin-left:6px;background:#eff6ff;padding:2px 6px;border-radius:4px">▾ MAPAS</span></td>
+            <td style="font-weight:800;text-align:left;color:#3b82f6;vertical-align:middle;">#${p.dorsal} ${_esc(p.name)} ${newBadge} <span style="color:#3b82f6;font-size:10px;margin-left:6px;background:#eff6ff;padding:2px 6px;border-radius:4px">▾ MAPAS</span></td>
             <td style="text-align:center">${p.games}</td><td style="text-align:center">${Math.round(p.min/p.games)||0}</td><td style="text-align:center"><b style="color:var(--nv);font-size:14px">${p.games ? (p.pts/p.games).toFixed(1) : '0.0'}</b></td>
             <td style="text-align:center">${t2p}%</td><td style="text-align:center">${t3p}%</td><td style="text-align:center">${tlp}%</td><td style="text-align:center">${p.games ? (p.reb/p.games).toFixed(1) : '0.0'}</td><td style="text-align:center">${p.games ? (p.ast/p.games).toFixed(1) : '0.0'}</td>
         </tr>

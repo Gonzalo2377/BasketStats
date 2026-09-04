@@ -9,8 +9,41 @@
 /* Para el tablero de la pista */
 background-image: url('fondo-pista.png'); 
 
-/* Para el botón central (Play/Pausa) */
-background-image: url('logo-claret.png');
+/* ----------------------------------------------------------------- */
+/* LOGO CLARET CENTRAL (CRONÓMETRO)                                  */
+/* ----------------------------------------------------------------- */
+.tac-play-btn {
+    position: absolute !important; 
+    left: 50% !important; 
+    top: 50% !important; 
+    transform: translate(-50%, -50%) !important;
+    width: 65px !important; 
+    height: 65px !important; 
+    background-color: rgba(255,255,255,0.95) !important;
+    border-radius: 50% !important; 
+    cursor: pointer !important; 
+    border: 3px solid #1e293b !important; 
+    z-index: 9999 !important; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; 
+    transition: transform 0.1s !important;
+    background-image: url('https://raw.githubusercontent.com/Gonzalo2377/BasketStats/main/logo-claret.png') !important; 
+    background-size: 70% !important; 
+    background-position: center !important; 
+    background-repeat: no-repeat !important;
+}
+
+.tac-play-btn:active {
+    transform: translate(-50%, -50%) scale(0.9) !important;
+}
+
+/* Si la pantalla está en modo Zen (iPad Pro), lo hacemos más grande */
+body.zen-mode .tac-play-btn {
+    width: 140px !important; 
+    height: 140px !important; 
+    background-size: 100% !important; 
+}
+/* ----------------------------------------------------------------- */
+
 
 /* 🎯 AJUSTE DE MAPAS DESPLEGABLES EN TABLAS MÓVILES (PRÓXIMO RIVAL Y SCOUTING) */
 tr[id*="-pl-row-"] > td {
@@ -948,32 +981,7 @@ select {
 /* Ocultamos las líneas dibujadas por CSS porque ahora tienes tu imagen de fondo */
 .tac-line, .tac-center, .tac-circle, .tac-paint-l, .tac-paint-r { display: none !important; }
 
-/* Botón central Play/Pausa (Logo Claret) */
-.tac-play-btn {
-    position: absolute !important; 
-    left: 50% !important; 
-    top: 50% !important; 
-    transform: translate(-50%, -50%) !important;
-    width: 65px !important; /* Un pelín más grande para que se vea bien el logo */
-    height: 65px !important; 
-    background-color: rgba(255,255,255,0.95) !important;
-    border-radius: 50% !important; 
-    cursor: pointer !important; 
-    border: 3px solid #1e293b !important; 
-    
-    /* 🔥 ESTE NÚMERO GANA A TODAS LAS CAPAS DE LA PISTA */
-    z-index: 99999 !important; 
-    
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; 
-    transition: transform 0.1s !important;
-    
-    /* 🖼️ TU IMAGEN */
-    background-image: url('logo-claret.png') !important; 
-    background-size: 70% !important; 
-    background-position: center !important; 
-    background-repeat: no-repeat !important;
-    color: transparent !important;
-}
+
 
 /* Efecto al pulsarlo */
 .tac-play-btn:active {
@@ -1312,13 +1320,6 @@ div[class*="modal"],
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* 1. ELIMINAR EL DOBLE LOGO */
-/* Hacemos que el botón invisible del reloj sea 100% transparente */
-.tac-play-btn {
-    background-image: none !important;
-    background-color: transparent !important;
-    border: none !important;
-}
 
 /* 2. ARREGLAR LOS BANQUILLOS CORTADOS */
 .bench-zone {

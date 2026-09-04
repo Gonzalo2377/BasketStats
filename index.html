@@ -10550,24 +10550,48 @@ function exportBackup(){
     };
     bajarJSON(base, "datos_base.json");
 
-    // 2. Archivo de Partidos (Con retraso para que el navegador no lo bloquee)
+    // 2. Limpieza de Partidos y Extracción de Tiros
+    const cleanMatches = [];
+    const allShots = S.shots && S.shots.length > 0 ? [...S.shots] : [];
+
+    (S.matches || []).forEach(m => {
+        // Clonamos el partido para no romper la web mientras lo usamos
+        const clon = JSON.parse(JSON.stringify(m));
+
+        // Si los tiros están dentro del partido, los movemos al saco general
+        if (clon.shots && Array.isArray(clon.shots)) {
+            allShots.push(...clon.shots);
+            delete clon.shots; // Lo borramos del partido para quitar peso
+        }
+        if (clon.placedShots && Array.isArray(clon.placedShots)) {
+            allShots.push(...clon.placedShots);
+            delete clon.placedShots;
+        }
+
+        // ELIMINAMOS DATOS PESADOS QUE NO SE USAN EN EL ARRANQUE
+        // (Si necesitas fcbqMoves para el scouting diario, dímelo y lo dejamos)
+        delete clon.fcbqMoves; 
+
+        cleanMatches.push(clon);
+    });
+
+    // 3. Descargar Partidos (Con retraso)
     setTimeout(() => {
-        bajarJSON({ matches: S.matches || [] }, "datos_partidos.json");
+        bajarJSON({ matches: cleanMatches }, "datos_partidos.json");
     }, 600);
 
-    // 3. Archivo de Tiros
+    // 4. Descargar Tiros (Con retraso)
     setTimeout(() => {
-        bajarJSON({ shots: S.shots || [] }, "datos_tiros.json");
+        bajarJSON({ shots: allShots }, "datos_tiros.json");
     }, 1200);
 
     if (typeof toast === 'function') {
-        toast('📦 Descargando 3 archivos... Súbelos a GitHub.');
+        toast('📦 Descargando 3 archivos optimizados...');
     } else {
-        alert("✅ Se descargarán 3 archivos. Acuérdate de dar permiso al navegador si te bloquea alguna descarga.");
+        alert("✅ Se descargarán 3 archivos.");
     }
 }
 
-// Función auxiliar para descargar de forma invisible
 function bajarJSON(obj, nombre) {
     const data = JSON.stringify(obj);
     const blob = new Blob([data], {type: 'application/json'});

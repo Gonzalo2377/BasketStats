@@ -7,1354 +7,2701 @@
 <style>
 
 /* Para el tablero de la pista */
-background-image: url('fondo-pista.png'); 
 
-/* ----------------------------------------------------------------- */
-/* LOGO CLARET CENTRAL (CRONÓMETRO)                                  */
-/* ----------------------------------------------------------------- */
-.tac-play-btn {
-    position: absolute !important; 
-    left: 50% !important; 
-    top: 50% !important; 
-    transform: translate(-50%, -50%) !important;
-    width: 65px !important; 
-    height: 65px !important; 
-    background-color: rgba(255,255,255,0.95) !important;
-    border-radius: 50% !important; 
-    cursor: pointer !important; 
-    border: 3px solid #1e293b !important; 
-    z-index: 9999 !important; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; 
-    transition: transform 0.1s !important;
-    background-image: url('https://raw.githubusercontent.com/Gonzalo2377/BasketStats/main/logo-claret.png') !important; 
-    background-size: 70% !important; 
-    background-position: center !important; 
-    background-repeat: no-repeat !important;
-}
+background-image: url('fondo-pista.png');
 
-.tac-play-btn:active {
-    transform: translate(-50%, -50%) scale(0.9) !important;
-}
 
-/* Si la pantalla está en modo Zen (iPad Pro), lo hacemos más grande */
-body.zen-mode .tac-play-btn {
-    width: 140px !important; 
-    height: 140px !important; 
-    background-size: 100% !important; 
-}
-/* ----------------------------------------------------------------- */
+
+/* Para el botón central (Play/Pausa) */
+
+background-image: url('logo-claret.png');
+
 
 
 /* 🎯 AJUSTE DE MAPAS DESPLEGABLES EN TABLAS MÓVILES (PRÓXIMO RIVAL Y SCOUTING) */
+
 tr[id*="-pl-row-"] > td {
+
     padding: 0 !important; /* Eliminamos el padding forzado de la celda */
+
 }
+
+
 
 tr[id*="-pl-row-"] > td > div.g2 {
+
     padding: 15px;
+
     box-sizing: border-box;
+
 }
+
+
 
 @media (max-width: 767px) {
+
     tr[id*="-pl-row-"] > td > div.g2 {
+
         position: sticky;
+
         left: 0;
+
         /* Desvincula el mapa de los 700px de la tabla y le da el ancho exacto de tu móvil */
-        width: calc(100vw - 46px) !important; 
+
+        width: calc(100vw - 46px) !important;
+
         padding: 12px 6px;
+
     }
+
 }
+
+
 
 /* 🔒 BLOQUEO ABSOLUTO MODO JUGADOR */
+
 body.player-mode .nav,
+
 body.player-mode .tabs-nav,
+
 body.player-mode nav,
+
 body.player-mode .nb {
+
     display: none !important;
+
 }
+
 body.player-mode .tab {
+
     display: none !important;
+
 }
+
 body.player-mode #t-compare {
+
     display: block !important;
+
 }
+
+
 
 /* 🔒 MODO JUGADOR: Bloqueo visual absoluto desde la raíz */
+
 body.player-mode .tabs-nav,
+
 body.player-mode .nav,
+
 body.player-mode nav,
+
 body.player-mode .nb {
+
     display: none !important;
+
 }
 
-body.player-mode #t-matches, 
-body.player-mode #t-teams, 
-body.player-mode #t-stats, 
-body.player-mode #t-scouting, 
-body.player-mode #t-video, 
+
+
+body.player-mode #t-matches,
+
+body.player-mode #t-teams,
+
+body.player-mode #t-stats,
+
+body.player-mode #t-scouting,
+
+body.player-mode #t-video,
+
 body.player-mode #t-club {
+
     display: none !important;
+
 }
+
+
 
 body.player-mode #t-compare {
+
     display: block !important;
+
     opacity: 1 !important;
+
     visibility: visible !important;
+
 }
+
+
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 
+
+
 :root {
+
   --bg: #f5f5f7;
+
   --cd: #ffffff;
+
   --cd-solid: #ffffff;
+
   --bd: rgba(0, 0, 0, 0.08);
+
   --b2: rgba(0, 0, 0, 0.16);
 
+
+
   --tx: #1d1d1f;
+
   --t2: #6e6e73;
+
   --t3: #86868b;
 
+
+
   --nv: #1d1d1f;
+
   --nv2: #2d2d30;
+
   --ac: #0071e3;
+
   --ac-hover: #0077ed;
 
+
+
   --gn: #34c759;
+
   --gd: #ff9f0a;
+
   --pu: #af52de;
+
   --rd: #ff3b30;
 
+
+
   --fn: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
 }
+
+
 
 html, body {
+
   background: var(--bg);
+
   color: var(--tx);
+
   font-family: var(--fn);
+
   font-size: 14px;
+
   line-height: 1.47059;
+
   height: 100%;
+
   font-variant-numeric: tabular-nums;
+
   -webkit-font-smoothing: antialiased;
+
 }
+
+
 
 button {
+
   font-family: var(--fn);
+
   cursor: pointer;
+
   border: none;
+
   outline: none;
+
   transition: all 0.15s ease;
+
 }
+
+
 
 input, select, textarea {
+
   font-family: var(--fn);
+
   font-size: 13px;
+
 }
+
+
 
 /* TOPBAR */
+
 .top {
+
   background: #1d1d1f;
+
   color: #f5f5f7;
+
   display: flex;
+
   align-items: center;
+
   padding: 0 16px;
+
   height: 48px;
+
   position: sticky;
+
   top: 0;
+
   z-index: 200;
+
   gap: 12px;
+
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+
 }
+
+
 
 .logo {
+
   font-size: 15px;
+
   font-weight: 700;
+
   letter-spacing: -0.02em;
+
   color: #ffffff;
+
 }
+
 .logo span { color: #2997ff; }
 
+
+
 .bge {
+
   background: rgba(41, 151, 255, 0.2);
+
   color: #2997ff;
+
   font-size: 10px;
+
   font-weight: 600;
+
   padding: 2px 8px;
+
   border-radius: 980px;
+
 }
+
+
 
 .tr { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
+
+
 .tb {
+
   background: rgba(255, 255, 255, 0.12);
+
   color: #ffffff;
+
   border-radius: 8px;
+
   padding: 6px 12px;
+
   font-size: 11px;
+
   font-weight: 600;
+
   border: 1px solid rgba(255, 255, 255, 0.15);
+
 }
+
 .tb:hover, .tb.on { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
 
+
+
 /* NAV */
+
 .nav {
+
   display: flex;
+
   background: #2c2c2e;
+
   overflow-x: auto;
+
   scrollbar-width: none;
+
   position: sticky;
+
   top: 48px;
+
   z-index: 190;
+
   padding: 0 8px;
+
 }
+
 .nav::-webkit-scrollbar { display: none; }
 
+
+
 .nb {
+
   flex: none;
+
   padding: 10px 14px;
+
   font-size: 12px;
+
   font-weight: 500;
+
   color: rgba(255, 255, 255, 0.65);
+
   border-bottom: 2.5px solid transparent;
+
   background: none;
+
   white-space: nowrap;
+
 }
+
 .nb.active {
+
   color: #ffffff;
+
   border-bottom-color: #2997ff;
+
   font-weight: 700;
+
 }
+
 .nb:hover { color: #ffffff; background: rgba(255,255,255,0.05); }
 
+
+
 body.player-mode .nb { display: none !important; }
+
 body.player-mode .nb.nb-stats { display: inline-block !important; }
+
 body.player-mode #btn-codes, body.player-mode .btn-staff-only { display: none !important; }
 
+
+
 /* TABS */
+
 .tab { display: none; }
+
 .tab.active { display: block; }
+
 .main { padding: 16px; max-width: 1400px; margin: 0 auto; }
 
+
+
 /* CARDS */
+
 .card {
+
   background: var(--cd);
+
   border: 1px solid var(--bd);
+
   border-radius: 14px;
+
   padding: 16px;
+
   margin-bottom: 12px;
+
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
 }
+
+
 
 .ct {
+
   font-size: 11px;
+
   font-weight: 700;
+
   color: var(--nv);
+
   text-transform: uppercase;
+
   letter-spacing: 0.04em;
+
   margin-bottom: 10px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
 }
+
+
 
 /* BOTONES */
+
 .btn {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 6px;
+
   padding: 7px 14px;
+
   border-radius: 8px;
+
   font-size: 12px;
+
   font-weight: 600;
+
   white-space: nowrap;
+
 }
+
 .bp { background: var(--ac); color: #fff; }
+
 .bp:hover { background: var(--ac-hover); }
+
 .bn { background: var(--nv); color: #fff; }
+
 .bn:hover { background: #3a3a3c; }
+
 .bo { background: #fff; color: var(--tx); border: 1px solid var(--b2); }
+
 .bo:hover { background: var(--bg); }
+
 .bg { background: var(--gn); color: #fff; }
+
 .bpu { background: var(--pu); color: #fff; }
+
 .bsm { padding: 4px 10px; font-size: 11px; }
+
 .bxs { padding: 3px 8px; font-size: 10px; }
+
 .brow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
 
+
+
 /* FORMS */
+
 label {
+
   font-size: 11px;
+
   font-weight: 600;
+
   color: var(--t2);
+
   display: block;
+
   margin-bottom: 3px;
+
 }
+
+
 
 input[type=text], input[type=number], select, textarea {
+
   width: 100%;
+
   padding: 8px 10px;
+
   border: 1px solid var(--b2);
+
   border-radius: 8px;
+
   background: #fff;
+
   color: var(--tx);
+
   font-size: 13px;
+
   box-sizing: border-box;
+
 }
+
 input:focus, select:focus, textarea:focus {
+
   outline: none;
+
   border-color: var(--ac);
+
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+
 }
+
 select { min-height: 36px; }
 
+
+
 .fr { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
 .fc { flex: 1; min-width: 130px; }
 
+
+
 .st-msg { font-size: 12px; margin-top: 6px; padding: 6px 10px; border-radius: 6px; display: none; }
+
 .st-msg.ok { display: block; background: #dcfce7; color: #166534; }
+
 .st-msg.err { display: block; background: #fee2e2; color: #991b1b; }
 
+
+
 /* GRIDS */
+
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
 .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
 .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
+
+
 /* MINI-PESTAÑAS DE STATS */
+
 .stsub {
+
   display: flex;
+
   gap: 6px;
+
   overflow-x: auto;
+
   padding-bottom: 4px;
+
   margin-bottom: 12px;
+
 }
+
 .stsb {
+
   flex: none;
+
   padding: 7px 14px;
+
   border-radius: 8px;
+
   border: 1.5px solid var(--b2);
+
   background: #ffffff;
+
   color: var(--t2);
+
   font-size: 12px;
+
   font-weight: 700;
+
   cursor: pointer;
+
   white-space: nowrap;
+
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+
 }
+
 .stsb:hover { background: #f8fafc; color: var(--tx); }
+
 .stsb.active { background: var(--nv); border-color: var(--nv); color: #ffffff; }
 
+
+
 /* TABLAS */
+
 .tw {
+
   overflow-x: auto !important;
+
   -webkit-overflow-scrolling: touch;
+
   border-radius: 10px;
+
   border: 1px solid var(--bd);
+
   background: #ffffff;
+
   max-width: 100%;
+
 }
+
 table {
+
   border-collapse: collapse;
+
   width: 100%;
+
   font-size: 11.5px;
+
 }
+
 thead th {
+
   background: #f8fafc;
+
   color: var(--t2);
+
   padding: 8px 10px;
+
   text-align: left;
+
   font-size: 10.5px;
+
   font-weight: 700;
+
   border-bottom: 1px solid var(--bd);
+
   position: sticky;
+
   top: 0;
+
   white-space: nowrap;
+
 }
+
 tbody tr { border-bottom: 1px solid #f1f5f9; }
+
 tbody tr:last-child { border-bottom: none; }
+
 tbody td { padding: 7px 10px; white-space: nowrap; }
+
 tbody tr:hover td { background: rgba(0, 113, 227, 0.03); }
 
+
+
 /* KPIS */
+
 .kpi {
+
   background: #f8fafc;
+
   border: 1px solid var(--bd);
+
   border-radius: 10px;
+
   padding: 10px 12px;
+
   text-align: center;
+
 }
+
 .kv { font-size: 22px; font-weight: 800; color: var(--tx); line-height: 1.1; }
+
 .kl { font-size: 9.5px; color: var(--t3); margin-top: 3px; font-weight: 600; text-transform: uppercase; }
 
+
+
 /* CANVAS Y MAPAS A TAMAÑO COMPLETO */
+
 .cw {
+
     position: relative;
+
     touch-action: none;
+
     user-select: none;
+
     width: 100% !important;
+
     max-width: 100% !important;
+
     margin: 0 auto !important;
+
     padding: 0 !important;
+
     aspect-ratio: 420 / 400;
+
     overflow: hidden;
+
 }
+
 .cw canvas {
+
     width: 100% !important;
+
     height: 100% !important;
+
     display: block;
+
     border-radius: 8px;
+
     object-fit: contain !important; /* Evita que la imagen se estire de más */
+
 }
+
+
 
 /* MODAL DE STATS EN DIRECTO */
+
 #live-stats-modal {
+
   position: fixed;
+
   inset: 0;
+
   background: rgba(0, 0, 0, 0.5);
+
   z-index: 1000;
+
   display: none;
+
   align-items: center;
+
   justify-content: center;
+
   padding: 16px;
+
 }
+
 #live-stats-modal > div {
+
   background: #fff;
+
   border-radius: 14px;
+
   max-width: 1100px;
+
   width: 100%;
+
   max-height: 90vh;
+
   display: flex;
+
   flex-direction: column;
+
   overflow: hidden;
+
 }
+
 #live-stats-modal .modal-body {
+
   overflow-y: auto !important;
+
   overflow-x: hidden !important;
+
   padding: 16px;
+
 }
+
 #live-stats-modal .tw {
+
   width: 100% !important;
+
   overflow-x: auto !important;
+
   display: block;
+
 }
+
+
 
 @media (max-width: 900px) {
+
   #live-stats-modal > div > div > div:nth-child(1) {
+
     display: flex !important;
+
     flex-direction: column !important;
+
     gap: 12px !important;
+
   }
+
   #live-stats-modal > div > div > div:nth-child(1) > div {
+
     width: 100% !important;
+
     max-width: 100% !important;
+
     margin: 0 !important;
+
   }
+
 }
+
+
 
 @media (min-width: 768px) and (max-width: 1180px) {
+
   @media (orientation: portrait) {
+
     .g4,
+
     .g5,
+
     [style*="repeat(4"],
+
     [style*="repeat(5"] {
+
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
     }
+
   }
+
+
 
   @media (orientation: landscape) {
+
     .g4,
+
     .g5,
+
     [style*="repeat(4"],
+
     [style*="repeat(5"] {
+
       grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+
     }
+
   }
+
+
 
   #wg-edit-modal > div,
+
   #medit-modal > div,
+
   #lvedit-modal > div,
+
   #sub-modal > div,
+
   #live-stats-modal > div,
+
   #sc-clip-modal > div,
+
   #player-modal > div {
+
     width: 90vw !important;
+
     height: 85vh !important;
+
     max-width: 90vw !important;
+
     max-height: 85vh !important;
+
     margin: auto !important;
+
   }
 
+
+
   #player-modal {
+
     align-items: center !important;
+
   }
+
+
 
   #player-modal > div,
+
   #wg-edit-modal > div,
+
   #medit-modal > div,
+
   #lvedit-modal > div,
+
   #sub-modal > div,
+
   #live-stats-modal > div {
+
     overflow-y: auto !important;
+
   }
+
+
 
   .tw,
+
   .pp-scroll {
+
     max-width: 100%;
+
     overflow-x: auto !important;
+
     -webkit-overflow-scrolling: touch;
+
   }
+
+
 
   .tw > table {
+
     min-width: max-content;
+
   }
+
+
 
   .btn,
+
   .ab,
+
   .per-btn,
+
   #kb-toggle,
+
   .nb,
+
   .sbtn,
+
   .sbopt,
+
   #lv-court-strip-home button,
+
   #lv-court-strip-away button {
+
     min-height: 48px;
+
   }
 
+
+
   @media (hover: none), (pointer: coarse) {
+
     button {
+
       transition: none;
+
     }
+
+
 
     .tb:hover {
+
       background: rgba(255, 255, 255, 0.12);
+
     }
+
+
 
     .nb:hover {
+
       color: rgba(255, 255, 255, 0.65);
+
       background: none;
+
     }
+
+
 
     .bp:hover {
+
       background: var(--ac);
+
     }
+
+
 
     .bn:hover {
+
       background: var(--nv);
+
     }
+
+
 
     .bo:hover {
+
       background: #fff;
+
     }
+
+
 
     .stsb:hover {
+
       background: #ffffff;
+
       color: var(--t2);
+
     }
+
+
 
     .sbopt:hover {
+
       background: none;
+
       color: var(--tx);
+
     }
 
+
+
     tbody tr:hover td {
+
       background: transparent;
+
     }
+
   }
+
 }
+
 /* SCROLL HORIZONTAL DE GRÁFICOS DEL PERFIL DE JUGADOR */
+
 .pp-scroll {
+
   max-width: 100%;
+
   overflow-x: auto;
+
   -webkit-overflow-scrolling: touch;
+
   padding-bottom: 6px;
+
 }
+
 .pp-scroll::-webkit-scrollbar { height: 6px; }
+
 .pp-scroll::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 6px; }
 
+
+
 /* BOTONES DE ACCIÓN RÁPIDA (DIRECTO) */
+
 .ab {
+
   padding: 12px 6px;
+
   border-radius: 10px;
+
   font-size: 12px;
+
   font-weight: 700;
+
   border: 1px solid transparent;
+
   text-align: center;
+
 }
+
 .am { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+
 .af { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
 .ao { background: #f8fafc; color: var(--tx); border-color: var(--b2); }
 
+
+
 /* BOTONES DEL MARCADOR EN DIRECTO */
+
 .per-btn {
+
   background: #e2e8f0 !important;
+
   color: #0f172a !important;
+
   border: 1px solid #94a3b8 !important;
+
   font-weight: 800 !important;
+
   border-radius: 8px;
+
   padding: 5px 12px;
+
   font-size: 11px;
+
 }
+
 .per-btn.active-per {
+
   background: var(--ac) !important;
+
   color: #ffffff !important;
+
   border-color: var(--ac) !important;
+
 }
+
+
 
 #kb-toggle {
+
   background: #e2e8f0 !important;
+
   color: #0f172a !important;
+
   border: 1px solid #94a3b8 !important;
+
   font-weight: 700;
+
 }
+
+
 
 #toast {
+
   position: fixed;
+
   bottom: 24px;
+
   left: 50%;
+
   transform: translateX(-50%);
+
   background: #1d1d1f;
+
   color: #fff;
+
   padding: 8px 18px;
+
   border-radius: 20px;
+
   font-size: 12px;
+
   font-weight: 600;
+
   z-index: 900;
+
   box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-}
-/* Corrección de los anillos de porcentaje en Estadísticas de Equipo */
-svg.ring {
-  width: 54px !important;
-  height: 54px !important;
-  min-width: 54px !important;
-  display: block;
-}
-svg.ring circle.bg {
-  fill: none !important;
-  stroke: #e2e8f0 !important;
-  stroke-width: 5 !important;
-}
-svg.ring circle:not(.bg) {
-  fill: none !important;
-  stroke-width: 5 !important;
-}
-svg.ring text {
-  fill: var(--tx) !important;
-  font-family: var(--fn);
-  font-weight: 800;
-}
-/* Desplegable con buscador (Stats -> +/-) */
-.sbox {
-  position: relative;
-  width: 100%;
-  max-width: 320px;
-}
-.sbtn {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #fff;
-  border: 1px solid var(--b2);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--tx);
-  font-weight: 600;
-  text-align: left;
-}
-.sbtn .ph { color: var(--t3); font-weight: 400; }
-.sbpanel {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid var(--bd);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  margin-top: 4px;
-  z-index: 500;
-  padding: 8px;
-}
-.sbq {
-  width: 100%;
-  margin-bottom: 6px;
-  padding: 6px 8px;
-}
-.sblist {
-  max-height: 220px;
-  overflow-y: auto;
-}
-.sbgrp {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--t3);
-  text-transform: uppercase;
-  padding: 4px 6px;
-}
-.sbopt {
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--tx);
-  cursor: pointer;
-}
-.sbopt:hover {
-  background: #eff6ff;
-  color: var(--ac);
+
 }
 
-::-webkit-scrollbar { 
-    display: none !important; 
+/* Corrección de los anillos de porcentaje en Estadísticas de Equipo */
+
+svg.ring {
+
+  width: 54px !important;
+
+  height: 54px !important;
+
+  min-width: 54px !important;
+
+  display: block;
+
 }
-* { 
-    -ms-overflow-style: none !important; 
-    scrollbar-width: none !important; 
+
+svg.ring circle.bg {
+
+  fill: none !important;
+
+  stroke: #e2e8f0 !important;
+
+  stroke-width: 5 !important;
+
 }
+
+svg.ring circle:not(.bg) {
+
+  fill: none !important;
+
+  stroke-width: 5 !important;
+
+}
+
+svg.ring text {
+
+  fill: var(--tx) !important;
+
+  font-family: var(--fn);
+
+  font-weight: 800;
+
+}
+
+/* Desplegable con buscador (Stats -> +/-) */
+
+.sbox {
+
+  position: relative;
+
+  width: 100%;
+
+  max-width: 320px;
+
+}
+
+.sbtn {
+
+  width: 100%;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 8px 12px;
+
+  background: #fff;
+
+  border: 1px solid var(--b2);
+
+  border-radius: 8px;
+
+  font-size: 13px;
+
+  color: var(--tx);
+
+  font-weight: 600;
+
+  text-align: left;
+
+}
+
+.sbtn .ph { color: var(--t3); font-weight: 400; }
+
+.sbpanel {
+
+  position: absolute;
+
+  top: 100%;
+
+  left: 0;
+
+  right: 0;
+
+  background: #fff;
+
+  border: 1px solid var(--bd);
+
+  border-radius: 10px;
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+
+  margin-top: 4px;
+
+  z-index: 500;
+
+  padding: 8px;
+
+}
+
+.sbq {
+
+  width: 100%;
+
+  margin-bottom: 6px;
+
+  padding: 6px 8px;
+
+}
+
+.sblist {
+
+  max-height: 220px;
+
+  overflow-y: auto;
+
+}
+
+.sbgrp {
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  color: var(--t3);
+
+  text-transform: uppercase;
+
+  padding: 4px 6px;
+
+}
+
+.sbopt {
+
+  width: 100%;
+
+  text-align: left;
+
+  background: none;
+
+  border: none;
+
+  padding: 6px 8px;
+
+  border-radius: 6px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  color: var(--tx);
+
+  cursor: pointer;
+
+}
+
+.sbopt:hover {
+
+  background: #eff6ff;
+
+  color: var(--ac);
+
+}
+
+
+
+::-webkit-scrollbar {
+
+    display: none !important;
+
+}
+
+* {
+
+    -ms-overflow-style: none !important;
+
+    scrollbar-width: none !important;
+
+}
+
+
 
 @media (max-width: 767px) {
+
   .g2,
+
   .g3,
+
   .g4,
+
   .g5,
+
   [style*="repeat(2"],
+
   [style*="repeat(3"],
+
   [style*="repeat(4"],
+
   [style*="repeat(5"] {
+
     grid-template-columns: 1fr !important;
+
   }
+
+
 
   .main {
+
     padding: 10px;
+
   }
+
+
 
   .card {
+
     padding: 12px;
+
     border-radius: 10px;
+
   }
+
+
 
   #wg-edit-modal > div,
+
   #medit-modal > div,
+
   #lvedit-modal > div,
+
   #sub-modal > div,
+
   #live-stats-modal > div,
+
   #sc-clip-modal > div,
+
   #player-modal > div {
+
     width: 94vw !important;
+
     height: 90vh !important;
+
     max-width: 94vw !important;
+
     max-height: 90vh !important;
+
     margin: auto !important;
+
   }
+
+
 
   #player-modal {
+
     align-items: center !important;
+
   }
+
+
 
   .tw,
+
   .pp-scroll {
+
     width: 100%;
+
     max-width: 100%;
+
     overflow-x: auto !important;
+
     -webkit-overflow-scrolling: touch;
+
   }
+
+
 
   .tw > table {
+
     min-width: max-content;
+
   }
+
+
 
   .btn,
+
   .ab,
+
   .per-btn,
+
   #kb-toggle,
+
   .nb,
+
   .sbtn,
+
   .sbopt {
+
     min-height: 48px;
+
   }
+
+
 
   .ab {
+
     padding-top: 12px !important;
+
     padding-bottom: 12px !important;
+
   }
+
+
 
   .bsm,
+
   .bxs {
+
     min-height: 48px;
+
   }
+
+
 
   .fr,
+
   .brow {
+
     flex-direction: column;
+
     align-items: stretch;
+
   }
+
+
 
   .fc {
+
     width: 100%;
+
     min-width: 0;
+
   }
+
+
 
   .top {
+
     height: auto;
+
     min-height: 48px;
+
     padding: 8px 10px;
+
     flex-wrap: wrap;
+
   }
+
+
 
   .tr {
+
     width: 100%;
+
     margin-left: 0;
+
     overflow-x: auto;
+
     padding-bottom: 2px;
+
   }
+
+
 
   .nav {
+
     top: 0;
+
   }
+
+
 
   @media (hover: none), (pointer: coarse) {
+
     button {
+
       transition: none;
+
     }
+
+
 
     .tb:hover,
+
     .nb:hover,
+
     .bp:hover,
+
     .bn:hover,
+
     .bo:hover,
+
     .stsb:hover,
+
     .sbopt:hover {
+
       background: initial;
+
       color: initial;
+
     }
+
+
 
     tbody tr:hover td {
+
       background: transparent;
+
     }
+
   }
+
 }
+
+
 
 /* --- LAYOUT DEL MODAL DE DIRECTO Y ORÍGENES --- */
+
 .lsm-layout { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; }
+
 .lsm-sidebar { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 220px; flex-shrink: 0; }
+
 .lsm-table-wrap { flex: 1; min-width: 320px; margin: 0 !important; }
+
 .origin-card { flex: 1; min-width: 280px; border-radius: 10px; padding: 14px; }
+
 .origin-card.green { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+
 .origin-card.red { background: #fef2f2; border: 1.5px solid #fecaca; }
+
 .origin-title { font-size: 11px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+
 .origin-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+
 .origin-bar-bg { flex: 1; height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: hidden; }
 
+
+
 /* SCROLL TACTIL PARA POP-UPS, INFORMES Y BANNERS */
+
 @media (max-width: 1180px) {
-  #shot-popup,
-  [id$="-modal"],
-  [id*="-modal"] {
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
 
   #shot-popup,
-  [id$="-modal"] > div,
-  [id*="-modal"] > div {
-    max-height: calc(100dvh - 24px) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+
+  [id$="-modal"],
+
+  [id*="-modal"] {
+
     overscroll-behavior: contain;
+
+    -webkit-overflow-scrolling: touch;
+
   }
+
+
+
+  #shot-popup,
+
+  [id$="-modal"] > div,
+
+  [id*="-modal"] > div {
+
+    max-height: calc(100dvh - 24px) !important;
+
+    overflow-y: auto !important;
+
+    overflow-x: hidden;
+
+    -webkit-overflow-scrolling: touch;
+
+    overscroll-behavior: contain;
+
+  }
+
+
 
   #player-modal,
+
   #sc-clip-modal,
+
   #radar-modal,
+
   #merge-modal {
+
     align-items: center !important;
+
     padding: 12px !important;
+
     overflow-y: auto !important;
+
   }
+
+
 
   #lv-resume-banner,
+
   #sh-sticky-banner,
+
   [id*="-banner"] {
+
     max-height: min(40dvh, 280px);
+
     overflow-y: auto;
+
     -webkit-overflow-scrolling: touch;
+
     overscroll-behavior: contain;
+
   }
+
 }
+
+
 
 @media (max-width: 767px) {
+
   #shot-popup,
+
   [id$="-modal"] > div,
+
   [id*="-modal"] > div {
+
     max-height: calc(100dvh - 16px) !important;
+
   }
+
 }
 
-button, 
-.btn, 
-input[type="button"], 
-input[type="submit"], 
+
+
+button,
+
+.btn,
+
+input[type="button"],
+
+input[type="submit"],
+
 .kpi, /* Si tienes KPIs clickeables */
+
 [onclick] /* Aplica a cualquier elemento que tenga un onclick */ {
+
     touch-action: manipulation;
+
     -webkit-tap-highlight-color: transparent; /* Quita el parpadeo gris feo al tocar */
+
 }
+
+
 
 /* =========================================================
+
    🚀 PARCHE DE MÁXIMO RENDIMIENTO MÓVIL (NATIVE FEEL)
+
    ========================================================= */
 
+
+
 /* 1. Evitar el efecto "Goma elástica" (Pull-to-refresh) y bloqueos de scroll en el body */
+
 body, html {
+
     overscroll-behavior-y: none;
+
     -webkit-overflow-scrolling: touch;
+
 }
+
+
 
 /* 2. Scroll con "Inercia" y bloqueo de arrastre (Scroll chaining) en las pestañas */
+
 .nav {
+
     -webkit-overflow-scrolling: touch !important;
+
     overscroll-behavior-x: contain !important; /* Evita volver atrás en el navegador al deslizar pestañas */
+
     scroll-snap-type: x mandatory; /* Hace que las pestañas se frenen suavemente */
+
 }
+
 .nb {
+
     scroll-snap-align: start;
+
 }
+
+
 
 /* 3. Inercia en tablas y contenedores horizontales */
+
 .tw, .pp-scroll, [style*="overflow-y"], [style*="overflow-x"] {
+
     -webkit-overflow-scrolling: touch !important;
+
 }
+
+
 
 /* 4. Estandarizar los Desplegables (Selects) para que no se bugueen al abrirlos */
+
 select {
+
     appearance: none;
+
     -webkit-appearance: none;
+
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+
     background-repeat: no-repeat;
+
     background-position: right 10px center;
+
     background-size: 14px;
+
     padding-right: 30px !important;
+
 }
+
+
 
 /* 5. EL FIX DEFINITIVO PARA MÓVILES (Especialmente iOS) */
+
 @media (max-width: 767px) {
-    /* Si la fuente es menor a 16px, Safari hace un zoom forzado que rompe la UI. 
+
+    /* Si la fuente es menor a 16px, Safari hace un zoom forzado que rompe la UI.
+
        Esto lo previene manteniendo el aspecto estético. */
-    input[type="text"], 
-    input[type="number"], 
-    input[type="date"], 
-    select, 
+
+    input[type="text"],
+
+    input[type="number"],
+
+    input[type="date"],
+
+    select,
+
     textarea {
-        font-size: 16px !important; 
+
+        font-size: 16px !important;
+
     }
+
+
 
     /* Quitar el retraso de clic en TODOS los elementos interactivos */
+
     * {
+
         touch-action: pan-x pan-y;
+
     }
-    
+
+   
+
     /* Evitar que modales bloqueen el scroll interno en móvil */
+
     [id$="-modal"] > div,
+
     [id*="-modal"] > div {
+
         -webkit-overflow-scrolling: touch !important;
+
         overscroll-behavior-y: contain !important;
+
     }
+
 }
+
+
 
 /* ═══════════════════════════════════════════
+
    🏀 PIZARRA TÁCTICA EN DIRECTO (DRAG & DROP) v2
+
    ═══════════════════════════════════════════ */
+
 .tac-board {
+
     position: relative; width: 100%; aspect-ratio: 16/9; background: #eab308;
+
     border: 3px solid #1e293b; border-radius: 8px; overflow: hidden; margin-bottom: 12px;
+
     /* AQUÍ ESTÁ EL CAMBIO IMPORTANTE: .jpeg en lugar de .jpg */
-    background-image: url('fondo-pista.png'); 
+
+    background-image: url('fondo-pista.png');
+
     background-size: cover; background-position: center;
+
     touch-action: none;
+
 }
 
+
+
 /* Ocultamos las líneas dibujadas por CSS porque ahora tienes tu imagen de fondo */
+
 .tac-line, .tac-center, .tac-circle, .tac-paint-l, .tac-paint-r { display: none !important; }
 
 
 
-/* Efecto al pulsarlo */
-.tac-play-btn:active {
-    transform: translate(-50%, -50%) scale(0.9) !important;
+/* Botón central Play/Pausa (Logo Claret) */
+
+.tac-play-btn {
+
+    position: absolute !important;
+
+    left: 50% !important;
+
+    top: 50% !important;
+
+    transform: translate(-50%, -50%) !important;
+
+    width: 65px !important; /* Un pelín más grande para que se vea bien el logo */
+
+    height: 65px !important;
+
+    background-color: rgba(255,255,255,0.95) !important;
+
+    border-radius: 50% !important;
+
+    cursor: pointer !important;
+
+    border: 3px solid #1e293b !important;
+
+   
+
+    /* 🔥 ESTE NÚMERO GANA A TODAS LAS CAPAS DE LA PISTA */
+
+    z-index: 99999 !important;
+
+   
+
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+
+    transition: transform 0.1s !important;
+
+   
+
+    /* 🖼️ TU IMAGEN */
+
+    background-image: url('logo-claret.png') !important;
+
+    background-size: 70% !important;
+
+    background-position: center !important;
+
+    background-repeat: no-repeat !important;
+
+    color: transparent !important;
+
 }
+
+
+
+/* Efecto al pulsarlo */
+
+.tac-play-btn:active {
+
+    transform: translate(-50%, -50%) scale(0.9) !important;
+
+}
+
+
 
 /* Fichas de Jugador (Estilo Camiseta) */
+
 .tac-slot {
+
     position: absolute; width: 44px; height: 50px; border: 2px dashed rgba(0,0,0,0.4);
+
     border-radius: 8px 8px 20px 20px; transform: translate(-50%, -50%); z-index: 1;
+
 }
+
 .d-token {
+
     width: 44px; height: 50px; border-radius: 8px 8px 20px 20px; /* Forma de torso/camiseta */
+
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+
     padding-top: 6px; position: absolute; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+
     cursor: grab; user-select: none; transform: translate(-50%, -50%); font-family: var(--fn);
+
 }
+
 .d-token[data-team="home"] { background: var(--ac); color: #fff; border: 1.5px solid #fff; }
+
 .d-token[data-team="away"] { background: #ef4444; color: #fff; border: 1.5px solid #fff; }
+
 .d-token .tk-d { font-size: 17px; font-weight: 900; line-height: 1; }
+
 .d-token .tk-n { font-size: 8px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40px; margin-top: 2px; }
 
+
+
 /* Fichas de Acción (Rectangulares) */
+
 .d-token.action {
+
     width: auto; height: 26px; border-radius: 6px; padding: 0 8px; font-size: 10px;
+
     font-weight: 800; background: #fff; border: 2px solid var(--nv); color: var(--nv);
+
     display: flex; align-items: center; justify-content: center;
+
 }
+
 .d-token.action.red { border-color: #ef4444; color: #ef4444; }
+
+
 
 .d-token.dragging { z-index: 99999; transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; cursor: grabbing; pointer-events: none; }
 
+
+
 .bench-zone {
+
     display: flex !important;
+
     flex-wrap: wrap !important;
+
     gap: 8px !important;
+
     min-height: 90px !important;
+
     align-items: flex-start !important;
+
     justify-content: center !important;
+
     padding-bottom: 10px !important;
+
 }
+
 .bench-zone .d-token { position: relative; transform: none; box-shadow: none; flex-shrink: 0; }
 
+
+
 .tac-layout { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+
 .tac-sidebar { display: flex; flex-direction: column; gap: 6px; width: 44px; flex-shrink: 0; justify-content: center; }
+
 .tac-sb-btn { width: 100%; aspect-ratio: 1/1; background: #fff; border: 1.5px solid var(--bd); border-radius: 8px; font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--t2); box-shadow: 0 2px 4px rgba(0,0,0,0.02); line-height: 1; }
+
 .tac-sb-btn:hover { background: #f8fafc; color: var(--ac); }
 
+
+
 /* ═══════════════════════════════════════════
+
    🏀 REAJUSTES DE TAMAÑO, CAMISETAS Y Z-INDEX
+
    ═══════════════════════════════════════════ */
+
 /* 1. Botones laterales gigantes */
+
 .tac-sidebar { width: 75px !important; gap: 12px !important; }
+
 .tac-sb-btn { font-size: 32px !important; border-radius: 12px !important; padding: 10px 0 !important; }
+
 .tac-sb-btn small { font-size: 11px !important; margin-top: 6px !important; }
 
+
+
 /* 2. Fichas de acción (Robo, Tapón, etc.) más grandes */
+
 .d-token.action {
-    height: 38px !important; 
-    padding: 0 16px !important; 
+
+    height: 38px !important;
+
+    padding: 0 16px !important;
+
     font-size: 13px !important;
+
     border-width: 2.5px !important;
+
     border-radius: 8px !important;
+
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
 }
+
+
 
 /* 3. Popups SIEMPRE por encima y más grandes */
+
 #shot-popup {
+
     z-index: 9999999 !important; /* Capa más alta de toda la app */
-    min-width: 360px !important; 
+
+    min-width: 360px !important;
+
     padding: 20px !important;
+
 }
+
 #shot-popup-inner button {
+
     padding: 18px !important;
+
     font-size: 16px !important;
+
 }
+
+
 
 /* 4. Flechas del reloj y estilo camiseta (para resetear el estilo viejo) */
+
 .timer-arr {
+
     background: var(--bg); border: 1.5px solid var(--bd); border-radius: 6px;
+
     font-size: 18px; cursor: pointer; padding: 8px 16px; font-weight: 900; color: var(--nv);
+
 }
+
 .timer-arr:hover { background: #e2e8f0; }
 
+
+
 .d-token.player-token {
+
     background: transparent !important; border: none !important; box-shadow: none !important;
+
     width: 50px !important; height: 75px !important; border-radius: 0 !important;
-}
-.foul-circle {
-    position: absolute; bottom: 12px; left: -8px; width: 24px; height: 24px;
-    background: #f59e0b; border: 2.5px solid #fff; border-radius: 50%;
-    color: #fff; font-size: 13px; font-weight: 900; display: flex;
-    align-items: center; justify-content: center; z-index: 10;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-.tk-name-plate {
-    position: absolute; bottom: -8px; font-size: 11px; font-weight: 900;
-    background: #fff; color: #0f172a; padding: 3px 8px; border-radius: 6px;
-    border: 1.5px solid var(--bd); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 70px; z-index: 10;
+
 }
 
-/* ═══════════════════════════════════════════
-   🧘 MODO CONCENTRACIÓN: CERO SCROLL (IPAD PRO DEFINITIVO)
-   ═══════════════════════════════════════════ */
-body.zen-mode {
-    overflow: hidden !important;
-    touch-action: none !important;
+.foul-circle {
+
+    position: absolute; bottom: 12px; left: -8px; width: 24px; height: 24px;
+
+    background: #f59e0b; border: 2.5px solid #fff; border-radius: 50%;
+
+    color: #fff; font-size: 13px; font-weight: 900; display: flex;
+
+    align-items: center; justify-content: center; z-index: 10;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+
 }
+
+.tk-name-plate {
+
+    position: absolute; bottom: -8px; font-size: 11px; font-weight: 900;
+
+    background: #fff; color: #0f172a; padding: 3px 8px; border-radius: 6px;
+
+    border: 1.5px solid var(--bd); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+    max-width: 70px; z-index: 10;
+
+}
+
+
+
+/* ═══════════════════════════════════════════
+
+   🧘 MODO CONCENTRACIÓN: CERO SCROLL (IPAD PRO DEFINITIVO)
+
+   ═══════════════════════════════════════════ */
+
+body.zen-mode {
+
+    overflow: hidden !important;
+
+    touch-action: none !important;
+
+}
+
+
 
 /* Ocultamos menús de la web */
-body.zen-mode .nav, 
+
+body.zen-mode .nav,
+
 body.zen-mode .tabs-nav,
+
 body.zen-mode header {
+
     display: none !important;
+
 }
+
+
 
 #lv-panel.zen-mode-panel {
+
     position: fixed !important;
+
     top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+
     width: 100vw !important; height: 100vh !important;
+
     z-index: 999990 !important;
+
     background: #f8fafc !important;
+
     padding: 8px !important; /* Menos margen exterior para ganar espacio */
+
     box-sizing: border-box !important;
+
     display: flex !important;
+
     flex-direction: column !important;
+
     align-items: center !important;
+
 }
+
+
 
 /* Permitimos que todas las filas ocupen el 100% de la pantalla */
+
 #lv-panel.zen-mode-panel > div {
+
     width: 100% !important;
+
     max-width: 1366px !important; /* Límite exacto del iPad Pro */
+
     flex-shrink: 0 !important;
+
 }
+
+
 
 /* Pegamos la botonera arriba del todo */
-#lv-panel.zen-mode-panel > div:first-child { 
+
+#lv-panel.zen-mode-panel > div:first-child {
+
     margin-bottom: 4px !important;
+
     padding-top: 4px !important;
+
 }
+
+
 
 /* 🚀 LA MAGIA DE LA PISTA: Absorbe todo el alto sobrante */
+
 #lv-panel.zen-mode-panel .tac-layout {
+
     flex: 1 1 auto !important;
-    min-height: 0 !important; 
+
+    min-height: 0 !important;
+
     display: flex !important;
+
     justify-content: center !important;
+
     align-items: center !important;
+
     width: 100% !important;
+
 }
+
+
 
 /* 🚀 LA PISTA CRECE: Se ajusta al 100% del alto manteniendo el 16:9 */
+
 #lv-panel.zen-mode-panel .tac-board {
-    height: 100% !important; 
-    width: auto !important; 
+
+    height: 100% !important;
+
+    width: auto !important;
+
     aspect-ratio: 16/9 !important;
+
     max-width: 85vw !important; /* Evita pisar los botones laterales de mapas */
+
     margin: 0 10px !important;
+
 }
+
+
 
 /* Historial ultra compacto abajo del todo */
+
 #lv-panel.zen-mode-panel .card:last-child {
+
     padding: 4px 10px !important;
+
     margin-bottom: 0 !important;
+
 }
+
 #lv-panel.zen-mode-panel #lv-log {
+
     max-height: 28px !important; /* Casi invisible, solo la última línea */
+
 }
 
+
+
 /* ═══════════════════════════════════════════
+
    🛡️ PROTECCIÓN DE POPUPS EN PANTALLA COMPLETA
+
    ═══════════════════════════════════════════ */
-#shot-popup, 
-#tac-shot-modal, 
-#tac-side-modal, 
-#live-stats-modal, 
-#lvedit-modal, 
+
+#shot-popup,
+
+#tac-shot-modal,
+
+#tac-side-modal,
+
+#live-stats-modal,
+
+#lvedit-modal,
+
 #sub-modal {
+
     z-index: 2147483647 !important; /* Es el número máximo absoluto de capas en un navegador */
+
 }
+
+
 
 /* ═══════════════════════════════════════════
+
    🛡️ PROTECCIÓN ABSOLUTA PARA *CUALQUIER* POPUP
+
    ═══════════════════════════════════════════ */
-div[id*="modal"], 
-div[id*="Modal"], 
-div[class*="modal"], 
+
+div[id*="modal"],
+
+div[id*="Modal"],
+
+div[class*="modal"],
+
 .swal2-container {
-    z-index: 2147483647 !important; 
+
+    z-index: 2147483647 !important;
+
 }
 
 
-#tac-shot-modal, 
-#lvedit-modal, 
-#sub-modal, 
-#live-stats-modal, 
-#wg-edit-modal, 
+
+
+
+#tac-shot-modal,
+
+#lvedit-modal,
+
+#sub-modal,
+
+#live-stats-modal,
+
+#wg-edit-modal,
+
 #medit-modal {
+
     z-index: 2147483647 !important; /* Capa máxima absoluta del navegador */
+
     position: fixed !important;
+
     inset: 0 !important;
+
 }
+
+
 
 /* --- 1. HACER EL MARCADOR MÁS PEQUEÑO --- */
+
 /* Usamos scale para encoger todo el bloque superior un 15% y ganar espacio */
-#lv-panel.zen-mode-panel > div:first-child { 
-    transform: scale(0.85); 
-    transform-origin: top center; 
-    margin-bottom: -10px !important; 
+
+#lv-panel.zen-mode-panel > div:first-child {
+
+    transform: scale(0.85);
+
+    transform-origin: top center;
+
+    margin-bottom: -10px !important;
+
 }
+
+
 
 /* --- 2. LOGO CENTRAL MÁS GRANDE --- */
-.tac-play-btn { 
-    width: 140px !important; 
-    height: 140px !important; 
-    background-size: 100% !important; 
+
+.tac-play-btn {
+
+    width: 140px !important;
+
+    height: 140px !important;
+
+    background-size: 100% !important;
+
 }
+
+
 
 /* --- 3. JUGADORES GIGANTES SOLO EN PISTA --- */
-.d-token.player-token[data-loc="court"] { 
-    width: 70px !important; 
-    height: 100px !important; 
+
+.d-token.player-token[data-loc="court"] {
+
+    width: 70px !important;
+
+    height: 100px !important;
+
 }
-.d-token.player-token[data-loc="court"] svg { 
-    width: 65px !important; 
-    height: 80px !important; 
+
+.d-token.player-token[data-loc="court"] svg {
+
+    width: 65px !important;
+
+    height: 80px !important;
+
 }
+
 /* Letra del dorsal más grande */
-.d-token.player-token[data-loc="court"] .tk-d { 
-    font-size: 24px !important; 
-    margin-top: 22px !important; 
+
+.d-token.player-token[data-loc="court"] .tk-d {
+
+    font-size: 24px !important;
+
+    margin-top: 22px !important;
+
 }
+
 /* Cartel del nombre más grande */
-.d-token.player-token[data-loc="court"] .tk-name-plate { 
-    font-size: 13px !important; 
-    max-width: 90px !important; 
-    bottom: -12px !important; 
+
+.d-token.player-token[data-loc="court"] .tk-name-plate {
+
+    font-size: 13px !important;
+
+    max-width: 90px !important;
+
+    bottom: -12px !important;
+
     padding: 4px 10px !important;
+
 }
+
 /* Círculo de faltas ajustado al nuevo tamaño */
-.d-token.player-token[data-loc="court"] .foul-circle { 
-    width: 28px !important; 
-    height: 28px !important; 
-    font-size: 14px !important; 
-    bottom: 16px !important; 
-    left: -10px !important; 
+
+.d-token.player-token[data-loc="court"] .foul-circle {
+
+    width: 28px !important;
+
+    height: 28px !important;
+
+    font-size: 14px !important;
+
+    bottom: 16px !important;
+
+    left: -10px !important;
+
 }
 
+
+
 /* ═══════════════════════════════════════════
+
    📺 MARCADOR INTEGRADO Y MODAL DE TIRO GIGANTE
+
    ═══════════════════════════════════════════ */
+
 /* MARCADOR FLOTANTE */
+
 .marcador-integrado {
+
     position: absolute;
+
     top: 0; left: 50%;
+
     transform: translateX(-50%);
+
     background: rgba(15, 23, 42, 0.85); /* Azul muy oscuro translúcido */
+
     backdrop-filter: blur(4px);
+
     border: 2px solid rgba(255, 255, 255, 0.1);
+
     border-top: none;
+
     border-bottom-left-radius: 20px;
+
     border-bottom-right-radius: 20px;
+
     display: flex; gap: 30px;
+
     padding: 12px 30px 18px 30px;
+
     z-index: 20; /* Por encima de la pista, pero debajo de los popups */
+
     box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+
     align-items: center; color: white;
+
 }
 
+
+
 /* ═══════════════════════════════════════════
+
    DIETA ESTRICTA PARA EL MARCADOR FLOTANTE
+
    ═══════════════════════════════════════════ */
+
 .marcador-integrado {
+
     /* Mantiene el centrado pero encoge TODO el bloque al 65% de su tamaño */
+
     transform: translateX(-50%) scale(0.65) !important;
+
     transform-origin: top center !important;
+
     padding: 10px 20px 14px 20px !important;
+
 }
+
+
 
 /* Evitamos que los nombres largos de equipo rompan el marcador hacia abajo */
+
 .marcador-integrado .team-name {
+
     max-width: 180px !important;
+
     white-space: nowrap !important; /* Prohíbe los saltos de línea */
+
     overflow: hidden !important;
+
     text-overflow: ellipsis !important; /* Si el nombre es larguísimo, pone "..." al final */
+
     font-size: 14px !important;
+
 }
+
+
 
 /* Ajustamos el reloj un pelín más para que respire */
+
 .marcador-integrado .timer-display {
+
     padding: 2px 14px !important;
+
 }
+
+
 
 /* EQUIPOS */
+
 .team-block { text-align: center; min-width: 110px; }
+
 .team-name { font-size: 13px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+
 .team-score { font-size: 56px; font-weight: 900; line-height: 1; margin: 4px 0; }
+
 .home-block .team-score { color: #60a5fa; } /* Azul clarito */
+
 .away-block .team-score { color: #f87171; } /* Rojo clarito */
 
+
+
 .team-fouls-box { background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; color: #cbd5e1; }
+
 .team-fouls-box span { font-size: 16px; color: #ef4444; margin-left: 6px; }
 
+
+
 /* RELOJ CENTRAL */
+
 .center-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
 .timer-controls { display: flex; align-items: center; gap: 16px; }
+
 .timer-display { font-size: 48px; font-weight: 900; font-family: monospace; background: #000; color: #fff; padding: 4px 20px; border-radius: 12px; border: 2px solid #334155; user-select: none; cursor: pointer; letter-spacing: 2px; }
+
 .timer-col { display: flex; flex-direction: column; gap: 6px; }
+
 .timer-arr-int { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 14px; padding: 6px 14px; cursor: pointer; }
+
 .timer-arr-int:active { background: rgba(255,255,255,0.3); }
 
+
+
 /* PERIODOS */
+
 .period-controls { display: flex; gap: 6px; }
+
 .period-controls .per-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 14px; font-size: 11px; font-weight: 800; border-radius: 8px; cursor: pointer;}
+
 .period-controls .per-btn.active-per { background: #3b82f6; color: #fff; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
 
+
+
 /* POPUP DE TIRO ENORME */
+
 #tac-shot-modal {
+
     background: rgba(15,23,42,0.95) !important;
+
 }
+
 #tac-shot-modal > div {
-    width: 60vw !important; 
-    max-width: 550px !important; 
+
+    width: 60vw !important;
+
+    max-width: 550px !important;
+
     padding: 20px !important;
+
 }
+
 #tac-shot-name {
+
     font-size: 26px !important; /* Letra más grande para el nombre */
+
 }
+
 #tac-shot-cv {
+
     width: 100% !important;
+
     height: auto !important;
+
     border-radius: 10px;
+
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
 }
+
+
+
+/* 1. ELIMINAR EL DOBLE LOGO */
+
+/* Hacemos que el botón invisible del reloj sea 100% transparente */
+
+.tac-play-btn {
+
+    background-image: none !important;
+
+    background-color: transparent !important;
+
+    border: none !important;
+
+}
+
 
 
 /* 2. ARREGLAR LOS BANQUILLOS CORTADOS */
+
 .bench-zone {
+
     display: flex !important;
+
     flex-wrap: wrap !important; /* Si hay muchos, bajan a la siguiente fila */
+
     gap: 8px !important;
+
     min-height: 90px !important;
+
     align-items: flex-start !important;
+
     justify-content: center !important;
+
     padding-bottom: 10px !important;
+
 }
+
 /* Permitimos un mini-scroll en modo zen si la pantalla es enana, para no cortar cabezas */
+
 #lv-panel.zen-mode-panel { overflow-y: auto !important; }
 
+
+
 /* 3. ACHICAR EL POPUP DE TIRO */
+
 #tac-shot-modal > div {
+
     width: 60vw !important; /* Pasa de 95vw a 60vw (más estrecho) */
+
     max-width: 550px !important; /* Tope máximo */
+
     padding: 20px !important;
+
 }
 
+
+
 /* 🛑 BLOQUEO ABSOLUTO DE PANTALLA EN DIRECTO */
+
 body.zen-mode {
-    overflow: hidden !important; 
+
+    overflow: hidden !important;
+
     touch-action: none !important;
+
     overscroll-behavior: none !important;
+
 }
-#lv-panel.zen-mode-panel, 
+
+#lv-panel.zen-mode-panel,
+
 #lv-panel.zen-mode-panel * {
+
     touch-action: none !important;
+
 }
+
 /* Excepción: permitimos scroll vertical solo en el historial pequeñito */
+
 #lv-log, #lv-log * {
+
     touch-action: pan-y !important;
+
 }
+
 </style>
 </head>
 <body>
@@ -9191,14 +10538,39 @@ function importBackupFile(evt){
 }
 
 function exportBackup(){
-  const data=JSON.stringify({exportedAt:new Date().toISOString(),version:2,...S},null,1);
-  const blob=new Blob([data],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`bascatapp_backup_${new Date().toISOString().slice(0,10)}.json`;
+  // 1. Limpiamos y aseguramos la estructura exacta que GitHub va a leer
+  const exportData = {
+      teams: S.teams || [],
+      matches: S.matches || [],
+      shots: S.shots || [],
+      playerNotes: S.playerNotes || {},
+      watchGroups: S.watchGroups || [],
+      nextMatch: S.nextMatch || null,
+      fisio: S.fisio || {},
+      clips: S.clips || {},
+      clips2: S.clips2 || {}
+  };
+
+  // 2. Convertimos a texto
+  const data = JSON.stringify(exportData);
+  
+  // 3. Forzamos la descarga
+  const blob = new Blob([data], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  
+  // 🔥 EL CAMBIO CLAVE: Nombre fijo para que no tengas que renombrarlo a mano
+  a.download = "datos_historicos.json"; 
+  
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  toast('📦 Copia de seguridad descargada');
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  
+  // Usamos tu sistema de notificaciones
+  if (typeof toast === 'function') {
+      toast('📦 Backup datos_historicos.json listo para GitHub');
+  } else {
+      alert("✅ Backup 'datos_historicos.json' descargado.");
+  }
 }
 
 

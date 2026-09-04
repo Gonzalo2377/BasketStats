@@ -10538,39 +10538,46 @@ function importBackupFile(evt){
 }
 
 function exportBackup(){
-  // 1. Limpiamos y aseguramos la estructura exacta que GitHub va a leer
-  const exportData = {
-      teams: S.teams || [],
-      matches: S.matches || [],
-      shots: S.shots || [],
-      playerNotes: S.playerNotes || {},
-      watchGroups: S.watchGroups || [],
-      nextMatch: S.nextMatch || null,
-      fisio: S.fisio || {},
-      clips: S.clips || {},
-      clips2: S.clips2 || {}
-  };
+    // 1. Archivo Base (Equipos y Configuración)
+    const base = {
+        teams: S.teams || [],
+        playerNotes: S.playerNotes || {},
+        watchGroups: S.watchGroups || [],
+        nextMatch: S.nextMatch || null,
+        fisio: S.fisio || {},
+        clips: S.clips || {},
+        clips2: S.clips2 || {}
+    };
+    bajarJSON(base, "datos_base.json");
 
-  // 2. Convertimos a texto
-  const data = JSON.stringify(exportData);
-  
-  // 3. Forzamos la descarga
-  const blob = new Blob([data], {type: 'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  
-  // 🔥 EL CAMBIO CLAVE: Nombre fijo para que no tengas que renombrarlo a mano
-  a.download = "datos_historicos.json"; 
-  
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  
-  // Usamos tu sistema de notificaciones
-  if (typeof toast === 'function') {
-      toast('📦 Backup datos_historicos.json listo para GitHub');
-  } else {
-      alert("✅ Backup 'datos_historicos.json' descargado.");
-  }
+    // 2. Archivo de Partidos (Con retraso para que el navegador no lo bloquee)
+    setTimeout(() => {
+        bajarJSON({ matches: S.matches || [] }, "datos_partidos.json");
+    }, 600);
+
+    // 3. Archivo de Tiros
+    setTimeout(() => {
+        bajarJSON({ shots: S.shots || [] }, "datos_tiros.json");
+    }, 1200);
+
+    if (typeof toast === 'function') {
+        toast('📦 Descargando 3 archivos... Súbelos a GitHub.');
+    } else {
+        alert("✅ Se descargarán 3 archivos. Acuérdate de dar permiso al navegador si te bloquea alguna descarga.");
+    }
+}
+
+// Función auxiliar para descargar de forma invisible
+function bajarJSON(obj, nombre) {
+    const data = JSON.stringify(obj);
+    const blob = new Blob([data], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
 }
 
 

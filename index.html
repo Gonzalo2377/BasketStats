@@ -950,14 +950,34 @@ select {
 
 /* Botón central Play/Pausa (Logo Claret) */
 .tac-play-btn {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    width: 60px; height: 60px; background-color: rgba(255,255,255,0.85);
-    border-radius: 50%; cursor: pointer; border: 3px solid #1e293b; z-index: 999;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;
-    /* PON AQUÍ LA RUTA DEL LOGO DEL CLARET */
-    background-image: url('logo-claret.png'); 
-    background-size: 75%; background-position: center; background-repeat: no-repeat;
+    position: absolute !important; 
+    left: 50% !important; 
+    top: 50% !important; 
+    transform: translate(-50%, -50%) !important;
+    width: 65px !important; /* Un pelín más grande para que se vea bien el logo */
+    height: 65px !important; 
+    background-color: rgba(255,255,255,0.95) !important;
+    border-radius: 50% !important; 
+    cursor: pointer !important; 
+    border: 3px solid #1e293b !important; 
+    
+    /* 🔥 ESTE NÚMERO GANA A TODAS LAS CAPAS DE LA PISTA */
+    z-index: 99999 !important; 
+    
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; 
+    transition: transform 0.1s !important;
+    
+    /* 🖼️ TU IMAGEN */
+    background-image: url('logo-claret.png') !important; 
+    background-size: 70% !important; 
+    background-position: center !important; 
+    background-repeat: no-repeat !important;
     color: transparent !important;
+}
+
+/* Efecto al pulsarlo */
+.tac-play-btn:active {
+    transform: translate(-50%, -50%) scale(0.9) !important;
 }
 
 /* Fichas de Jugador (Estilo Camiseta) */
@@ -1727,8 +1747,10 @@ body.zen-mode {
             <div style="font-size:10px;font-weight:800;color:var(--ac);margin-bottom:4px;text-transform:uppercase" id="tac-lbl-home">LOCAL</div>
             <div class="bench-zone drop-zone" data-bench="home" id="tac-bench-home"></div>
         </div>
-        <div style="display:flex; flex-direction:column; width:60px; justify-content:center">
-            <button onclick="lvUndo()" style="width:100%;aspect-ratio:1/1;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;font-size:20px;cursor:pointer" title="Deshacer última acción">↩</button>
+        <div style="display:flex; flex-direction:column; justify-content:center">
+            <button onclick="openHistoryModal()" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:12px 14px; background:#fff; border:2px solid var(--bd); border-radius:12px; font-size:11px; font-weight:900; color:var(--nv); cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.05); transition:all 0.2s; white-space:nowrap;">
+                📋 HISTORIAL
+            </button>
         </div>
         <div style="display:flex; flex-direction:column; flex:1">
             <div style="font-size:10px;font-weight:800;color:#ef4444;margin-bottom:4px;text-transform:uppercase;text-align:right" id="tac-lbl-away">RIVAL</div>
@@ -1736,12 +1758,7 @@ body.zen-mode {
         </div>
     </div>
     
-    <!-- HISTORIAL PEQUEÑO -->
-    <div class="card" style="margin-top:12px; padding:8px">
-      <div class="ct">⚡ Historial de acciones</div>
-      <div id="lv-log" style="max-height:100px;overflow-y:auto;font-size:11px"></div>
-    </div>
-
+    
   </div> <!-- FIN LV-PANEL -->
 
   <!-- MODAL DE TIRO DESDE PIZARRA (ARREGLADO Y BLINDADO) -->
@@ -5255,9 +5272,6 @@ function renderTacticalBoard() {
         });
     });
 
-    // ⏱️ LOGO CENTRAL DE CLARET OFICIAL (Capa blindada con z-index:999)
-    htmlSlots += `<div class="tac-play-btn" onclick="toggleTimer()" title="Pausar/Iniciar Tiempo" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:60px; height:60px; background-color:rgba(255,255,255,0.85); background-image:url('logo-claret.png'); background-size:75%; background-position:center; background-repeat:no-repeat; border-radius:50%; border:3px solid #1e293b; z-index:999; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer;"></div>`;
-
     ['home', 'away'].forEach(team => {
         const currentCourt = lv.onCourt[team];
         for(let i=0; i<5; i++) { if(_tacBoard.slots[team][i] && !currentCourt.has(_tacBoard.slots[team][i])) _tacBoard.slots[team][i] = null; }
@@ -5613,25 +5627,96 @@ function adjustTimer(secs){ // 🔥 Ajuste rápido de la mesa
   lv.timer.seconds=Math.max(0,lv.timer.seconds+secs);
   renderTimer();
 }
-function toggleTimer(){if(lv.timer.running){clearInterval(lv.timer.interval);lv.timer.running=false;}else{
-  // First start: require exactly 5 on court per team (starting fives)
-  if(!lv._startersOk){
-    const h=lv.onCourt.home.size,a=lv.onCourt.away.size;
-    if(h!==5||a!==5){
-      toast(`Selecciona los quintetos iniciales: ${lv.hn||'Local'} ${h}/5 · ${lv.an||'Visitante'} ${a}/5`,'err');
-      openSubModal();
-      return;
-    }
-    // Confirm starters
-    lv.starters={home:[...lv.onCourt.home],away:[...lv.onCourt.away]};
-    ['home','away'].forEach(t=>lv.onCourt[t].forEach(n=>{
-      const s=lv.st[t][n];if(s){s.starter=true;if(s._enteredMin==null)s._enteredMin=0;}
-    }));
-    lv._startersOk=true;
-    lv.log.unshift({team:'home',msg:`⭐ Quintetos confirmados`,period:lv.period});
-    toast('⭐ Quintetos iniciales confirmados');
-  }lv.timer.interval=setInterval(()=>{if(lv.timer.seconds>0){lv.timer.seconds--;renderTimer();}else{clearInterval(lv.timer.interval);lv.timer.running=false;toast('⏱ Final del període!');}},1000);lv.timer.running=true;}renderTimer();}
+// 1. Cronómetro estricto: Bloquea el inicio si no hay 5 exactos en cada equipo
+function toggleTimer() {
+    if (lv.timer.running) {
+        clearInterval(lv.timer.interval);
+        lv.timer.running = false;
+    } else {
+        // 🔥 VALIDACIÓN ESTRICTA: ¿Hay 5 exactos en pista?
+        const h = lv.onCourt.home.size;
+        const a = lv.onCourt.away.size;
+        
+        if (h !== 5 || a !== 5) {
+            if (typeof toast === 'function') toast(`⚠️ ALERTA: Deben haber exactamente 5 en pista. Local: ${h}/5 | Rival: ${a}/5`, 'err');
+            return; // Bloquea el arranque del cronómetro
+        }
 
+        // Si es el primer arranque, confirmamos los quintetos iniciales
+        if (!lv._startersOk) {
+            lv.starters = { home: [...lv.onCourt.home], away: [...lv.onCourt.away] };
+            ['home', 'away'].forEach(t => lv.onCourt[t].forEach(n => {
+                const s = lv.st[t][n];
+                if (s) { s.starter = true; if (s._enteredMin == null) s._enteredMin = 0; }
+            }));
+            lv._startersOk = true;
+            lv.log.unshift({ team: 'home', msg: `⭐ Quintetos confirmados`, period: lv.period });
+            if (typeof toast === 'function') toast('⭐ Quintetos iniciales confirmados');
+        }
+        
+        // Arrancar cronómetro
+        lv.timer.interval = setInterval(() => {
+            if (lv.timer.seconds > 0) {
+                lv.timer.seconds--;
+                renderTimer();
+            } else {
+                clearInterval(lv.timer.interval);
+                lv.timer.running = false;
+                if (typeof toast === 'function') toast('⏱ Final del període!');
+            }
+        }, 1000);
+        lv.timer.running = true;
+    }
+    renderTimer();
+}
+
+// 2. Abre el Popup del Historial de Acciones
+window.openHistoryModal = function() {
+    let mod = document.getElementById('history-modal');
+    if (!mod) {
+        mod = document.createElement('div');
+        mod.id = 'history-modal';
+        mod.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.85); z-index:999999; display:flex; align-items:center; justify-content:center; padding:15px;';
+        document.body.appendChild(mod);
+    }
+    
+    mod.innerHTML = `
+        <div style="background:#fff; border-radius:16px; width:100%; max-width:600px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 25px 50px rgba(0,0,0,0.5); position:relative; overflow:hidden;">
+            <div style="background:#f8fafc; padding:16px 20px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:var(--nv); font-size:15px; font-weight:900; letter-spacing:0.5px;">⚡ HISTORIAL DE ACCIONES</h3>
+                <button onclick="document.getElementById('history-modal').style.display='none'" style="background:#fef2f2; border:2px solid #fecaca; color:#dc2626; border-radius:50%; width:32px; height:32px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;">✕</button>
+            </div>
+            <div id="history-modal-content" style="padding:16px; overflow-y:auto; flex:1; background:#fdfdfd;">
+                <!-- Aquí se inyectan las acciones -->
+            </div>
+        </div>
+    `;
+    mod.style.display = 'flex';
+    rLvLog(); // Forzamos que se pinte la lista nada más abrirlo
+};
+
+// 3. Pintar la lista de acciones (Ahora apunta al Modal en vez de abajo)
+function rLvLog(){
+    // Buscamos el contenedor del modal
+    const el = document.getElementById('history-modal-content');
+    if(!el) return;
+    
+    if(!lv.events.length){
+        el.innerHTML = '<div class="empty" style="padding:30px 10px; font-size:13px;">Sin acciones registradas en este partido</div>';
+        return;
+    }
+    
+    const n = lv.events.length;
+    // Pintamos TODAS las acciones con un botón de borrado independiente gigante
+    el.innerHTML = lv.events.slice().reverse().map((ev, k) => {
+        const i = n - 1 - k; // Índice real para poder borrarla con exactitud
+        return `<div style="padding:10px 14px; margin-bottom:6px; border:1px solid var(--bd); border-radius:10px; background:#fff; display:flex; gap:12px; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+            <span class="chip ${ev.team==='home'?'ch':'ca'}" style="font-size:12px; font-weight:900; flex-shrink:0;">P${ev.period}</span>
+            <span style="color:var(--t2); font-size:13px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_lvEventLabel(ev)}</span>
+            <button onclick="lvDeleteEvent(${i})" title="Borrar esta acción permanentemente" style="background:#fee2e2; border:2px solid #fecaca; color:#dc2626; border-radius:8px; cursor:pointer; font-size:11px; font-weight:900; padding:6px 12px; flex-shrink:0; transition:all 0.15s;">🗑️ BORRAR</button>
+        </div>`;
+    }).join('');
+}
 function toggleLvStats(){}
 function rLvAll(){
   const sh=document.getElementById('lv-score-h');if(sh)sh.textContent=lv.score.home;
@@ -5680,21 +5765,7 @@ function rLvAll(){
   if(typeof renderTacticalBoard === 'function') renderTacticalBoard();
 }
 
-function rLvLog(){
-  const el=document.getElementById('lv-log');if(!el)return;
-  if(!lv.events.length){el.innerHTML='<div class="empty">Sin acciones</div>';return;}
-  // Se listan los eventos (más recientes primero) con opción de borrar cualquiera
-  const n=lv.events.length;
-  el.innerHTML=lv.events.slice().reverse().slice(0,20).map((ev,k)=>{
-    const i=n-1-k; // índice real dentro de lv.events
-    return `<div style="padding:3px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:5px;align-items:center">
-      <span class="chip ${ev.team==='home'?'ch':'ca'}" style="font-size:9px;flex-shrink:0">P${ev.period}</span>
-      <span style="color:var(--t2);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_lvEventLabel(ev)}</span>
-      <button onclick="lvDeleteEvent(${i})" title="Borrar esta acción"
-        style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:12px;line-height:1;padding:2px 4px;flex-shrink:0">✕</button>
-    </div>`;
-  }).join('')+(n>20?`<div style="font-size:9px;color:var(--t3);padding-top:4px">Mostrando las 20 últimas de ${n} acciones</div>`:'');
-}
+
 function rLvStats(){}
 function rLvPairs(){}
 function rLvMomentum(){}

@@ -2779,7 +2779,17 @@ body.zen-mode {
         <div class="fr">
           <div class="fc" style="flex:2"><label>Nombre del equipo</label><input type="text" id="eq-name" placeholder="Ej: U.E. Claret"></div>
           <div class="fc" style="flex:1;min-width:90px"><label>Temporada</label><input type="text" id="eq-season" placeholder="Ej: 26-27"></div>
-          <div class="fc" style="flex:0;min-width:60px"><label>Color</label><input type="color" id="eq-color" value="#E8402A" style="padding:3px;height:36px"></div>
+          
+          <!-- 🔥 NUEVOS CONTROLES DE CAMISETA -->
+          <div class="fc" style="flex:0;min-width:75px">
+            <label>Diseño</label>
+            <select id="eq-pattern" style="height:36px;padding:3px;border-radius:6px;border:1px solid var(--bd)" onchange="document.getElementById('eq-c2-container').style.display = this.value === 'stripes' ? 'block' : 'none'">
+              <option value="solid">Liso</option>
+              <option value="stripes">Rayas</option>
+            </select>
+          </div>
+          <div class="fc" style="flex:0;min-width:50px"><label>Col. 1</label><input type="color" id="eq-color" value="#0047AB" style="padding:3px;height:36px"></div>
+          <div class="fc" style="flex:0;min-width:50px;display:none" id="eq-c2-container"><label>Col. 2</label><input type="color" id="eq-color2" value="#FFFFFF" style="padding:3px;height:36px"></div>
         </div>
         <label>Jugadors (un per línia: #4 PAU DÍAZ JIMÉNEZ)</label>
         <textarea id="eq-players" rows="10" placeholder="#4 SERGIO GIMENEZ IGUZQUIZA&#10;#5 MARÇAL PLAZAS LEMOS&#10;#7 MARTÍ TALAMINO COLLADO&#10;#8 JORDI CALLIZO ARMENGOL&#10;#10 CARLES CUXART PINO&#10;#12 FRAN PÉREZ CARRASCO"></textarea>
@@ -6642,7 +6652,20 @@ function renderTacticalBoard() {
                     const s = lv.st[team][p.name] || {};
                     const fC = s.fc || 0;
                     const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
-                    const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
+                    
+                    // 🔥 LÓGICA DE LA CAMISETA Y LAS RAYAS (PISTA)
+                    const tName = team === 'home' ? lv.hn : lv.an;
+                    const tObj = S.teams.find(x => x.name.toLowerCase() === tName.toLowerCase()) || {};
+                    const shirt = tObj.shirt || { pattern: 'solid', color1: (team === 'home' ? 'var(--ac)' : '#ef4444'), color2: '#ffffff' };
+
+                    let defsHtml = '';
+                    let fillStyle = isExp ? '#991b1b' : shirt.color1;
+
+                    if (!isExp && shirt.pattern === 'stripes') {
+                        const patId = `str-c-${team}-${i}`;
+                        defsHtml = `<defs><pattern id="${patId}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="6" height="12" fill="${shirt.color1}"/><rect x="6" width="6" height="12" fill="${shirt.color2}"/></pattern></defs>`;
+                        fillStyle = `url(#${patId})`;
+                    }
                     
                     // ¿Es este jugador el que tiene el peor % de toda la pista?
                     const isColdAcc = acc[p.name].a > 0 && acc[p.name].pct === minAcc;
@@ -6658,7 +6681,8 @@ function renderTacticalBoard() {
 
                     htmlSlots += `<div class="d-token player-token" data-type="player" data-loc="court" data-team="${team}" data-name="${_esc(p.name)}" data-slot="${i}" style="left:${pos.x}%; top:${pos.y}%;">
                         <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));">
-                            <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
+                            ${defsHtml}
+                            <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="#fff" stroke-width="1.5"/>
                         </svg>
                         <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                         <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
@@ -6680,7 +6704,20 @@ function renderTacticalBoard() {
             const s = lv.st[team][p.name] || {};
             const fC = s.fc || 0;
             const isExp = fC >= 5 || ((s.tech || 0) + (s.antiFlagrant || 0) >= 2);
-            const tCol = isExp ? '#991b1b' : (team === 'home' ? 'var(--ac)' : '#ef4444');
+            
+            // 🔥 LÓGICA DE LA CAMISETA Y LAS RAYAS (BANQUILLO)
+            const tName = team === 'home' ? lv.hn : lv.an;
+            const tObj = S.teams.find(x => x.name.toLowerCase() === tName.toLowerCase()) || {};
+            const shirt = tObj.shirt || { pattern: 'solid', color1: (team === 'home' ? 'var(--ac)' : '#ef4444'), color2: '#ffffff' };
+
+            let defsHtml = '';
+            let fillStyle = isExp ? '#991b1b' : shirt.color1;
+
+            if (!isExp && shirt.pattern === 'stripes') {
+                const patId = `str-b-${team}-${p.dorsal}`;
+                defsHtml = `<defs><pattern id="${patId}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="6" height="12" fill="${shirt.color1}"/><rect x="6" width="6" height="12" fill="${shirt.color2}"/></pattern></defs>`;
+                fillStyle = `url(#${patId})`;
+            }
             
             const valAcc = acc[p.name].a > 0 ? Math.round(acc[p.name].pct)+'%' : '- %';
             const valToday = today[p.name].a > 0 ? Math.round(today[p.name].pct)+'%' : '- %';
@@ -6690,7 +6727,8 @@ function renderTacticalBoard() {
 
             return `<div class="d-token player-token" data-type="player" data-loc="bench" data-team="${team}" data-name="${_esc(p.name)}" style="position:relative; transform:none;">
                 <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));">
-                    <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${tCol}" stroke="#fff" stroke-width="1.5"/>
+                    ${defsHtml}
+                    <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="#fff" stroke-width="1.5"/>
                 </svg>
                 <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                 <span class="tk-name-plate" style="bottom:-6px; font-size:9px;">${p.name.split(' ')[0]}</span>
@@ -6711,7 +6749,6 @@ function renderTacticalBoard() {
     bHome.innerHTML = htmlBenchHome;
     bAway.innerHTML = htmlBenchAway;
 }
-
 // ── TÉCNICAS A BANQUILLO O ENTRENADOR (Botón central) ──
 function promptTechStaff() {
     _showLvPrompt("TÉCNICA A CUERPO TÉCNICO", [
@@ -13987,22 +14024,32 @@ function _populateLvTeamSelectsLegacy(){
 
 function saveTeam(){
   const name=document.getElementById('eq-name').value.trim();
-  const color=document.getElementById('eq-color').value;
   const season=document.getElementById('eq-season')?.value.trim() || 'Sin temporada';
+  
+  // 🔥 Atrapamos los nuevos colores y el diseño
+  const color1 = document.getElementById('eq-color').value;
+  const color2 = document.getElementById('eq-color2') ? document.getElementById('eq-color2').value : '#FFFFFF';
+  const pattern = document.getElementById('eq-pattern') ? document.getElementById('eq-pattern').value : 'solid';
+  const shirt = { pattern, color1, color2 };
+
   const players=parsePlList(document.getElementById('eq-players').value);
   if(!name){setSt('eq-st','Cal posar el nom de l\'equip.','err');return;}
   if(!players.length){setSt('eq-st','Cal afegir almenys un jugador.','err');return;}
   
   const existing=S.teams.find(t=>t.name.toLowerCase()===name.toLowerCase() && (t.season||'Sin temporada')===season);
   if(existing){
-    existing.color=color;
+    existing.color=color1; 
+    existing.shirt=shirt; // 👈 Guardamos el diseño en el equipo existente
     existing.players=players;
     toast(`Equip actualitzat: ${name} (${season})`);
   } else {
-    S.teams.push({id:Date.now(),name,season,color,players});
+    // 👈 Guardamos el diseño en el equipo nuevo
+    S.teams.push({id:Date.now(),name,season,color:color1,shirt,players});
     toast(`Equip desat: ${name} (${season})`);
   }
-  svL();clearTeamForm();renderTeams();populateTeamSelects();populateLvTeamSelects();
+  svL();
+  if(typeof clearTeamForm === 'function') clearTeamForm();
+  renderTeams();populateTeamSelects();populateLvTeamSelects();
 }
 
 function editTeam(id){

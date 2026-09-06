@@ -4984,9 +4984,10 @@ function askTL(fouledName,nTL){
   popup.style.cssText=`position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px;border:2px solid var(--bd);display:block;min-width:200px`;
   window._tlState={player:fouledName,total:nTL,done:0,team:window._foulCtx?.shooterTeam||(lv.actTeam==='home'?'away':'home')};
 }
+
 function tlClick(idx,made){
   const ts=window._tlState;if(!ts)return;
-  const shooterTeam=ts.team||(lv.actTeam==='home'?'away':'home'); // team that SHOOTS, not fouled
+  const shooterTeam=ts.team||(lv.actTeam==='home'?'away':'home'); 
   const s=lv.st[shooterTeam]?.[ts.player];
   if(s){
     if(made){
@@ -4997,15 +4998,34 @@ function tlClick(idx,made){
     }
     s.tlAtt=(s.tlAtt||0)+1;
     lv.log.unshift({team:shooterTeam,msg:`${made?'✅':'❌'} TL${idx} — ${ts.player.split(' ')[0]}`,period:lv.period});
-    // El marcador es imprescindible: la cronología de Stats descarta los eventos
-    // que no lo llevan, y por eso los TL desaparecían al terminar el partido.
     lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
   }
   ts.done++;
-  if(ts.done>=ts.total){closeSP(null);rLvAll();svL();}
-  else{
-    const btns=document.querySelectorAll('#shot-popup-inner button[onclick^="tlClick"]');
-    btns.forEach(b=>b.style.opacity='.4');
+  
+  // Deshabilitar visualmente los botones de este tiro
+  const popupInner = document.getElementById('shot-popup-inner');
+  if (popupInner) {
+      const filaBotones = popupInner.children[idx]; // Coge la fila exacta del TL pulsado
+      if (filaBotones && filaBotones.tagName === 'DIV') {
+          filaBotones.style.opacity = '0.3';
+          filaBotones.style.pointerEvents = 'none'; // Impide doble clic
+      }
+  }
+
+  // Si hemos terminado todos los tiros de la serie...
+  if(ts.done>=ts.total){
+      closeSP(null);
+      rLvAll();
+      svL();
+      
+      // 🚀 ¡AQUÍ ESTÁ LA MAGIA DEL REBOTE AUTOMÁTICO!
+      // Si el último tiro se ha fallado, lanzamos tu panel nativo de rebotes
+      if (!made) {
+          setTimeout(() => {
+              lv.selPl = ts.player; // Marcamos al tirador para que salga su nombre en el panel
+              askRebound(shooterTeam);
+          }, 300); // Un pequeño retardo para que la interfaz respire
+      }
   }
 }
 
@@ -7265,49 +7285,6 @@ window._lvPersist = function() {
         _guardadoOriginal();
     }, 2000); // Espera 2 segundos de inactividad para guardar sin congelar la tablet
 };
-
-// =========================================================
-// 🚀 PARCHE 3 MEJORADO: REBOTE TRAS ÚLTIMO TIRO LIBRE
-// =========================================================
-const _lvEventsPushOriginal = lv.events.push.bind(lv.events);
-
-lv.events.push = function(...args) {
-    _lvEventsPushOriginal(...args);
-    
-    const ev = args[0];
-    if (!ev) return;
-
-    // Solo reaccionamos si es un Tiro Libre fallado
-    if (ev.type === 'tl_out') {
-        
-        // Comprobamos si el popup de "Tiros Libres Restantes" se acaba de cerrar (indicando que era el último tiro)
-        // O bien, si no hay ningún popup abierto de tiros libres.
-        const shotPopup = document.getElementById('shot-popup');
-        const isLastShot = !shotPopup || shotPopup.style.display === 'none' || !shotPopup.innerHTML.includes('Restantes');
-
-        if (isLastShot) {
-            setTimeout(() => {
-                _showLvPrompt("🏀 REBOTE TRAS ÚLTIMO TL", [
-                    { label: "🛡️ Rebote Defensivo", value: "rd", color: "#16a34a", bg: "#f0fdf4" },
-                    { label: "📌 Rebote Ofensivo", value: "ro", color: "#ea580c", bg: "#fff7ed" },
-                    { label: "❌ Ninguno / Falta / Fuera", value: "nada", color: "#64748b", bg: "#f8fafc" }
-                ], (respuesta) => {
-                    if (respuesta !== 'nada') {
-                        if (typeof toast === 'function') toast(`Toca al jugador que ha cogido el rebote ${respuesta === 'rd' ? 'DEFENSIVO' : 'OFENSIVO'}`);
-                        
-                        // Activamos el modo "arrastrar acción" o "tocar jugador"
-                        if (typeof dState !== 'undefined') {
-                            dState.active = true;
-                            dState.type = 'action';
-                            dState.data = { action: respuesta };
-                        }
-                    }
-                });
-            }, 600); // Retraso de seguridad para que termine de cerrarse todo lo del tiro libre
-        }
-    }
-};
-
 
 // ═══════════════════════════════════════════
 // SHOT MAP MANUAL

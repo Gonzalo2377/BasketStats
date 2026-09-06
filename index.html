@@ -7043,6 +7043,8 @@ function adjustTimer(secs){ // 🔥 Ajuste rápido de la mesa
   renderTimer();
 }
 // 1. Cronómetro estricto: Bloquea el inicio si no hay 5 exactos en cada equipo
+// 1. Cronómetro estricto: Bloquea el inicio si no hay 5 exactos en pista
+// + REGISTRO DE MINUTOS PERFECTO ENGANCHADO AL RELOJ
 function toggleTimer() {
     if (lv.timer.running) {
         clearInterval(lv.timer.interval);
@@ -7062,17 +7064,35 @@ function toggleTimer() {
             lv.starters = { home: [...lv.onCourt.home], away: [...lv.onCourt.away] };
             ['home', 'away'].forEach(t => lv.onCourt[t].forEach(n => {
                 const s = lv.st[t][n];
-                if (s) { s.starter = true; if (s._enteredMin == null) s._enteredMin = 0; }
+                if (s) { 
+                    s.starter = true; 
+                    s._enteredMin = null; // Destruimos el sistema viejo de cálculos raros
+                }
             }));
             lv._startersOk = true;
             lv.log.unshift({ team: 'home', msg: `⭐ Quintetos confirmados`, period: lv.period });
             if (typeof toast === 'function') toast('⭐ Quintetos iniciales confirmados');
         }
         
-        // Arrancar cronómetro
+        // Arrancar cronómetro y contar minutos
         lv.timer.interval = setInterval(() => {
             if (lv.timer.seconds > 0) {
                 lv.timer.seconds--;
+                
+                // 🔥 LA MAGIA DE LOS MINUTOS 🔥
+                // Cada segundo real que corre en el reloj, sumamos 1 segundo 
+                // de juego a los 10 jugadores que pisan la pista en este instante.
+                ['home', 'away'].forEach(team => {
+                    lv.onCourt[team].forEach(pName => {
+                        const s = lv.st[team][pName];
+                        if (s) {
+                            s.sec = (s.sec || 0) + 1; // Sumamos 1 segundo
+                            s.min = Math.round(s.sec / 60); // Calculamos los minutos reales
+                            s._enteredMin = null; // Bloqueo de seguridad para que endLive() no sume de más
+                        }
+                    });
+                });
+                
                 renderTimer();
             } else {
                 clearInterval(lv.timer.interval);
@@ -7205,7 +7225,18 @@ function endLive(){
       const parts = raw.split('-');  
       return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : raw;
     })() ,competition:_lvComp,group:_lvGrp,season:_lvSea,homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
-  S.matches.push(m);svL();
+  S.matches.push(m);
+  
+  // 🛠️ PARCHE 2: FORZAR GUARDADO EN LA NUBE SÍ O SÍ
+  try {
+      if (typeof setDoc !== 'undefined' && typeof doc !== 'undefined' && typeof MATCHES_COL !== 'undefined') {
+          setDoc(doc(MATCHES_COL, m.id.toString()), m).then(() => {
+              console.log("✅ Partido inyectado directamente a Firebase");
+          });
+      }
+  } catch(e) { console.error("Error al forzar subida:", e); }
+  
+  svL();
   _lvClearPersist();
   const top=[...mkPl('home'),...mkPl('away')].sort((a,b)=>b.pts-a.pts)[0];
   document.getElementById('lv-panel').style.display='none';
@@ -7218,6 +7249,49 @@ const KB={'r':'ro','d':'rd','a':'ast','f':'foul','t':'tech','y':'anti','s':'stl'
 const KB_L={'r':'Reb.Of.','d':'Reb.Def.','a':'Asist.','f':'Falta','t':'Técnica','y':'Anti.','s':'Robo','b':'Tapón','p':'Pérdida','z':'Desfer'};
 let _kbOn=false;
 function toggleKb(){_kbOn=!_kbOn;const btn=document.getElementById('kb-toggle');if(btn){btn.textContent=_kbOn?'⌨️ ON':'⌨️ OFF';btn.style.background=_kbOn?'rgba(22,163,74,.6)':'rgba(255,255,255,.15)';}const hints=document.getElementById('kb-hints');if(hints)hints.style.display=_kbOn?'block':'none';if(_kbOn&&hints)hints.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px">'+Object.entries(KB_L).map(([k,v])=>`<span style="font-size:9px"><kbd style="background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px">${k.toUpperCase()}</kbd> ${v}</span>`).join('')+'</div>';}
+
+
+
+// =========================================================
+// 🚀 PARCHES DE EMERGENCIA PARA EL DIRECTO (FLUIDEZ Y REBOTE)
+// =========================================================
+
+// 🛠️ PARCHE 1: ANTI-CONGELACIÓN (Debounce del guardado)
+let _temporizadorGuardado = null;
+const _guardadoOriginal = window._lvPersist || function(){};
+window._lvPersist = function() {
+    clearTimeout(_temporizadorGuardado);
+    _temporizadorGuardado = setTimeout(() => {
+        _guardadoOriginal();
+    }, 2000); // Espera 2 segundos de inactividad para guardar sin congelar la tablet
+};
+
+// 🛠️ PARCHE 3: INTERCEPTOR DE TIRO LIBRE FALLADO
+const _lvActOriginal = typeof lvAct === 'function' ? lvAct : function(){};
+lvAct = function(type) {
+    _lvActOriginal(type); // Ejecutamos la acción normal de apuntar el tiro fallado
+    
+    // Si la acción fue fallar un Tiro Libre, sacamos el popup
+    if (type === 'tl_out') {
+        setTimeout(() => {
+            _showLvPrompt("🏀 REBOTE TRAS TIRO FALLADO", [
+                { label: "🛡️ Rebote Defensivo", value: "rd", color: "#16a34a", bg: "#f0fdf4" },
+                { label: "📌 Rebote Ofensivo", value: "ro", color: "#ea580c", bg: "#fff7ed" },
+                { label: "❌ Ninguno / Falta / Fuera", value: "nada", color: "#64748b", bg: "#f8fafc" }
+            ], (respuesta) => {
+                if (respuesta !== 'nada') {
+                    if (typeof toast === 'function') toast(`Toca al jugador que ha cogido el rebote ${respuesta === 'rd' ? 'DEFENSIVO' : 'OFENSIVO'}`);
+                    
+                    // Activamos el modo "arrastrar acción" para que solo tengas que tocar al jugador
+                    dState.active = true;
+                    dState.type = 'action';
+                    dState.data = { action: respuesta };
+                }
+            });
+        }, 400); // Le damos casi medio segundo para que respire la interfaz
+    }
+};
+
 
 // ═══════════════════════════════════════════
 // SHOT MAP MANUAL
@@ -10871,8 +10945,25 @@ function renderLiveStatsModal() {
 
   const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','ST','BLK','PER','FC','FR','+/-'];
   const headCols=cols.map(c=>`<th style="font-size:9.5px;padding:6px;text-align:center">${c}</th>`).join('');
-  const rowsStr=lv.pl[aTeam].map(p=>{
+  
+  // 👇 AQUÍ EMPIEZAN LOS CAMBIOS DE LOS TOTALES 👇
+  // 1. Inicializamos los contadores a cero
+  let t_pts=0, t_t2m=0, t_t2a=0, t_t3m=0, t_t3a=0, t_tlm=0, t_tla=0;
+  let t_ro=0, t_rd=0, t_ast=0, t_stl=0, t_blk=0, t_to=0, t_fc=0, t_fr=0, t_pm=0;
+
+  // 2. Cambiamos 'const' por 'let' y sumamos las variables de cada jugador
+  let rowsStr=lv.pl[aTeam].map(p=>{
     const s=lv.st[aTeam][p.name]||{}, pm=s.pm||0;
+    
+    // Acumulamos para el total del equipo
+    t_pts += (s.pts || 0);
+    t_t2m += (s.t2Made || 0); t_t2a += (s.t2Att || 0);
+    t_t3m += (s.t3Made || 0); t_t3a += (s.t3Att || 0);
+    t_tlm += (s.tlMade || 0); t_tla += (s.tlAtt || 0);
+    t_ro += (s.ro || 0); t_rd += (s.rd || 0); t_ast += (s.ast || 0);
+    t_stl += (s.stl || 0); t_blk += (s.blk || 0); t_to += (s.to || 0);
+    t_fc += (s.fc || 0); t_fr += (s.fr || 0); t_pm += pm;
+
     const bg=lv.onCourt[aTeam].has(p.name)?'background:#f0fdf4':'';
     return `<tr style="${bg}">
       <td>#${p.dorsal}</td><td style="font-weight:700;text-align:left;white-space:nowrap">${p.name.split(' ')[0]}${s.fc>=4?'⚠️':''}</td>
@@ -10883,6 +10974,20 @@ function renderLiveStatsModal() {
       <td style="font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
     </tr>`;
   }).join('');
+
+  // 3. Añadimos la fila de TOTAL justo al final
+  rowsStr += `<tr style="background:#e2e8f0; border-top: 2px solid var(--bd); font-size:11px;">
+      <td colspan="2" style="font-weight:900; text-align:right; padding-right:10px;">TOTAL EQUIPO</td>
+      <td><b style="font-size:14px; color:var(--nv)">${t_pts}</b></td>
+      <td style="white-space:nowrap; font-weight:800;">${t_t2m}/${t_t2a} <span style="font-size:9px;color:var(--t3)">(${t_t2a>0?Math.round((t_t2m/t_t2a)*100):0}%)</span></td>
+      <td style="white-space:nowrap; font-weight:800;">${t_t3m}/${t_t3a} <span style="font-size:9px;color:var(--t3)">(${t_t3a>0?Math.round((t_t3m/t_t3a)*100):0}%)</span></td>
+      <td style="white-space:nowrap; font-weight:800;">${t_tlm}/${t_tla} <span style="font-size:9px;color:var(--t3)">(${t_tla>0?Math.round((t_tlm/t_tla)*100):0}%)</span></td>
+      <td style="font-weight:800">${t_ro}</td><td style="font-weight:800">${t_rd}</td><td style="font-weight:800">${t_ast}</td>
+      <td style="font-weight:800">${t_stl}</td><td style="font-weight:800">${t_blk}</td><td style="font-weight:800">${t_to}</td>
+      <td style="font-weight:800">${t_fc}</td><td style="font-weight:800">${t_fr}</td>
+      <td style="font-weight:900;color:${t_pm>0?'var(--gn)':t_pm<0?'#dc2626':'inherit'}">${t_pm>0?'+':''}${t_pm}</td>
+  </tr>`;
+  // 👆 FIN DE LOS CAMBIOS 👆
 
   const htmlMain = `
     <div class="card" style="margin:0; padding:15px; display:flex; flex-direction:column; flex-shrink:0;">

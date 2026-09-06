@@ -10654,20 +10654,6 @@ function bajarJSON(obj, nombre) {
     URL.revokeObjectURL(a.href);
 }
 
-function bajarJSON(obj, nombre) {
-    const data = JSON.stringify(obj);
-    const blob = new Blob([data], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = nombre;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-}
-
-
-
 // ═══════════════════════════════════════════
 // PLAYER PROFILE (Stats → click on a player)
 // ═══════════════════════════════════════════

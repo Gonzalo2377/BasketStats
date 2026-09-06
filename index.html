@@ -10574,8 +10574,8 @@ function importBackupFile(evt){
   evt.target.value='';
 }
 
-function exportBackup(){
-    // 1. Archivo Base (Equipos y Configuración)
+function exportBackup() {
+    // 1. Archivo Base (Equipos, Configuración, Clips) -> Pesa poquísimo
     const base = {
         teams: S.teams || [],
         playerNotes: S.playerNotes || {},
@@ -10585,48 +10585,73 @@ function exportBackup(){
         clips: S.clips || {},
         clips2: S.clips2 || {}
     };
-    bajarJSON(base, "datos_base.json");
+    bajarJSON(base, "00_hist_base.json");
 
-    // 2. Limpieza de Partidos y Extracción de Tiros
+    // 2. Extraer Tiros y Limpiar Partidos
     const cleanMatches = [];
-    const allShots = S.shots && S.shots.length > 0 ? [...S.shots] : [];
+    const allShots = [];
 
     (S.matches || []).forEach(m => {
-        // Clonamos el partido para no romper la web mientras lo usamos
         const clon = JSON.parse(JSON.stringify(m));
-
-        // Si los tiros están dentro del partido, los movemos al saco general
+        
+        // Sacamos los tiros del partido para que no pesen tanto
         if (clon.shots && Array.isArray(clon.shots)) {
             allShots.push(...clon.shots);
-            delete clon.shots; // Lo borramos del partido para quitar peso
+            delete clon.shots;
         }
         if (clon.placedShots && Array.isArray(clon.placedShots)) {
             allShots.push(...clon.placedShots);
             delete clon.placedShots;
         }
-
-        // ELIMINAMOS DATOS PESADOS QUE NO SE USAN EN EL ARRANQUE
-        // (Si necesitas fcbqMoves para el scouting diario, dímelo y lo dejamos)
-        delete clon.fcbqMoves; 
-
         cleanMatches.push(clon);
     });
 
-    // 3. Descargar Partidos (Con retraso)
-    setTimeout(() => {
-        bajarJSON({ matches: cleanMatches }, "datos_partidos.json");
-    }, 600);
+    // 3. TROCEAR PARTIDOS (Paquetes de 250 partidos = ~15 MB cada uno)
+    const chunkSize = 250;
+    let delay = 1000; // 1 segundo de espera entre descargas para que el navegador no te las bloquee
 
-    // 4. Descargar Tiros (Con retraso)
-    setTimeout(() => {
-        bajarJSON({ shots: allShots }, "datos_tiros.json");
-    }, 1200);
-
-    if (typeof toast === 'function') {
-        toast('📦 Descargando 3 archivos optimizados...');
-    } else {
-        alert("✅ Se descargarán 3 archivos.");
+    for (let i = 0; i < cleanMatches.length; i += chunkSize) {
+        const chunk = cleanMatches.slice(i, i + chunkSize);
+        const numeroLote = Math.floor(i / chunkSize) + 1;
+        
+        setTimeout(() => {
+            bajarJSON({ matches: chunk }, `01_hist_partidos_parte_${numeroLote}.json`);
+        }, delay);
+        delay += 1000;
     }
+
+    // 4. TROCEAR TIROS (Paquetes de 10.000 tiros)
+    const shotChunkSize = 10000;
+    for (let i = 0; i < allShots.length; i += shotChunkSize) {
+        const chunk = allShots.slice(i, i + shotChunkSize);
+        const numeroLote = Math.floor(i / shotChunkSize) + 1;
+        
+        setTimeout(() => {
+            bajarJSON({ shots: chunk }, `02_hist_tiros_parte_${numeroLote}.json`);
+        }, delay);
+        delay += 1000;
+    }
+
+    const totalArchivos = 1 + Math.ceil(cleanMatches.length / chunkSize) + Math.ceil(allShots.length / shotChunkSize);
+    
+    if (typeof toast === 'function') {
+        toast(`📦 Generando ${totalArchivos} archivos... Acepta las descargas múltiples.`);
+    } else {
+        alert(`Se van a descargar ${totalArchivos} archivos. Dale a "Permitir" si Chrome/Safari te avisa de descargas múltiples.`);
+    }
+}
+
+// Función auxiliar de descarga invisible
+function bajarJSON(obj, nombre) {
+    const data = JSON.stringify(obj);
+    const blob = new Blob([data], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
 }
 
 function bajarJSON(obj, nombre) {

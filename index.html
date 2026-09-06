@@ -7266,29 +7266,45 @@ window._lvPersist = function() {
     }, 2000); // Espera 2 segundos de inactividad para guardar sin congelar la tablet
 };
 
-// 🛠️ PARCHE 3: INTERCEPTOR DE TIRO LIBRE FALLADO
-const _lvActOriginal = typeof lvAct === 'function' ? lvAct : function(){};
-lvAct = function(type) {
-    _lvActOriginal(type); // Ejecutamos la acción normal de apuntar el tiro fallado
+// =========================================================
+// 🚀 PARCHE 3 MEJORADO: REBOTE TRAS ÚLTIMO TIRO LIBRE
+// =========================================================
+const _lvEventsPushOriginal = lv.events.push.bind(lv.events);
+
+lv.events.push = function(...args) {
+    _lvEventsPushOriginal(...args);
     
-    // Si la acción fue fallar un Tiro Libre, sacamos el popup
-    if (type === 'tl_out') {
-        setTimeout(() => {
-            _showLvPrompt("🏀 REBOTE TRAS TIRO FALLADO", [
-                { label: "🛡️ Rebote Defensivo", value: "rd", color: "#16a34a", bg: "#f0fdf4" },
-                { label: "📌 Rebote Ofensivo", value: "ro", color: "#ea580c", bg: "#fff7ed" },
-                { label: "❌ Ninguno / Falta / Fuera", value: "nada", color: "#64748b", bg: "#f8fafc" }
-            ], (respuesta) => {
-                if (respuesta !== 'nada') {
-                    if (typeof toast === 'function') toast(`Toca al jugador que ha cogido el rebote ${respuesta === 'rd' ? 'DEFENSIVO' : 'OFENSIVO'}`);
-                    
-                    // Activamos el modo "arrastrar acción" para que solo tengas que tocar al jugador
-                    dState.active = true;
-                    dState.type = 'action';
-                    dState.data = { action: respuesta };
-                }
-            });
-        }, 400); // Le damos casi medio segundo para que respire la interfaz
+    const ev = args[0];
+    if (!ev) return;
+
+    // Solo reaccionamos si es un Tiro Libre fallado
+    if (ev.type === 'tl_out') {
+        
+        // Comprobamos si el popup de "Tiros Libres Restantes" se acaba de cerrar (indicando que era el último tiro)
+        // O bien, si no hay ningún popup abierto de tiros libres.
+        const shotPopup = document.getElementById('shot-popup');
+        const isLastShot = !shotPopup || shotPopup.style.display === 'none' || !shotPopup.innerHTML.includes('Restantes');
+
+        if (isLastShot) {
+            setTimeout(() => {
+                _showLvPrompt("🏀 REBOTE TRAS ÚLTIMO TL", [
+                    { label: "🛡️ Rebote Defensivo", value: "rd", color: "#16a34a", bg: "#f0fdf4" },
+                    { label: "📌 Rebote Ofensivo", value: "ro", color: "#ea580c", bg: "#fff7ed" },
+                    { label: "❌ Ninguno / Falta / Fuera", value: "nada", color: "#64748b", bg: "#f8fafc" }
+                ], (respuesta) => {
+                    if (respuesta !== 'nada') {
+                        if (typeof toast === 'function') toast(`Toca al jugador que ha cogido el rebote ${respuesta === 'rd' ? 'DEFENSIVO' : 'OFENSIVO'}`);
+                        
+                        // Activamos el modo "arrastrar acción" o "tocar jugador"
+                        if (typeof dState !== 'undefined') {
+                            dState.active = true;
+                            dState.type = 'action';
+                            dState.data = { action: respuesta };
+                        }
+                    }
+                });
+            }, 600); // Retraso de seguridad para que termine de cerrarse todo lo del tiro libre
+        }
     }
 };
 

@@ -10575,7 +10575,7 @@ function importBackupFile(evt){
 }
 
 function exportBackup() {
-    // 1. Archivo Base (Equipos, Configuración, Clips) -> Pesa poquísimo
+    // 1. Archivo Base
     const base = {
         teams: S.teams || [],
         playerNotes: S.playerNotes || {},
@@ -10593,8 +10593,6 @@ function exportBackup() {
 
     (S.matches || []).forEach(m => {
         const clon = JSON.parse(JSON.stringify(m));
-        
-        // Sacamos los tiros del partido para que no pesen tanto
         if (clon.shots && Array.isArray(clon.shots)) {
             allShots.push(...clon.shots);
             delete clon.shots;
@@ -10606,9 +10604,9 @@ function exportBackup() {
         cleanMatches.push(clon);
     });
 
-    // 3. TROCEAR PARTIDOS (Paquetes de 250 partidos = ~15 MB cada uno)
-    const chunkSize = 250;
-    let delay = 1000; // 1 segundo de espera entre descargas para que el navegador no te las bloquee
+    // 3. TROCEAR PARTIDOS (Bajamos a 50 partidos por paquete = ~5 MB máximo)
+    const chunkSize = 50; 
+    let delay = 1000; 
 
     for (let i = 0; i < cleanMatches.length; i += chunkSize) {
         const chunk = cleanMatches.slice(i, i + chunkSize);
@@ -10617,11 +10615,11 @@ function exportBackup() {
         setTimeout(() => {
             bajarJSON({ matches: chunk }, `01_hist_partidos_parte_${numeroLote}.json`);
         }, delay);
-        delay += 1000;
+        delay += 600; // Un poco más rápido entre descargas
     }
 
-    // 4. TROCEAR TIROS (Paquetes de 10.000 tiros)
-    const shotChunkSize = 10000;
+    // 4. TROCEAR TIROS (Bajamos a 5.000 tiros por paquete)
+    const shotChunkSize = 5000;
     for (let i = 0; i < allShots.length; i += shotChunkSize) {
         const chunk = allShots.slice(i, i + shotChunkSize);
         const numeroLote = Math.floor(i / shotChunkSize) + 1;
@@ -10629,19 +10627,18 @@ function exportBackup() {
         setTimeout(() => {
             bajarJSON({ shots: chunk }, `02_hist_tiros_parte_${numeroLote}.json`);
         }, delay);
-        delay += 1000;
+        delay += 600;
     }
 
     const totalArchivos = 1 + Math.ceil(cleanMatches.length / chunkSize) + Math.ceil(allShots.length / shotChunkSize);
     
     if (typeof toast === 'function') {
-        toast(`📦 Generando ${totalArchivos} archivos... Acepta las descargas múltiples.`);
+        toast(`📦 Generando ${totalArchivos} archivos ligeros...`);
     } else {
-        alert(`Se van a descargar ${totalArchivos} archivos. Dale a "Permitir" si Chrome/Safari te avisa de descargas múltiples.`);
+        alert(`Se van a descargar ${totalArchivos} archivos. Dale a "Permitir" si el navegador avisa.`);
     }
 }
 
-// Función auxiliar de descarga invisible
 function bajarJSON(obj, nombre) {
     const data = JSON.stringify(obj);
     const blob = new Blob([data], {type: 'application/json'});
@@ -10653,6 +10650,8 @@ function bajarJSON(obj, nombre) {
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
 }
+
+
 
 // ═══════════════════════════════════════════
 // PLAYER PROFILE (Stats → click on a player)

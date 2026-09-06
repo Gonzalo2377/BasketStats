@@ -2702,6 +2702,36 @@ body.zen-mode {
 
 }
 
+/* 📱 PARCHE EXCLUSIVO PARA IPAD MINI / TABLETS PEQUEÑAS */
+/* El iPad Pro ignorará esto porque su pantalla es más alta y ancha */
+@media screen and (max-height: 810px), screen and (max-width: 1150px) {
+    
+    /* 1. Hacemos las fichas de los jugadores un 25% más pequeñas en la pista */
+    .player-token[data-loc="court"] {
+        transform: translate(-50%, -50%) scale(0.75) !important;
+    }
+    
+    /* 2. Reducimos las fichas del banquillo para que las etiquetas ACC/HOY no se pisen */
+    .player-token[data-loc="bench"] {
+        transform: scale(0.75) !important;
+        transform-origin: top center !important;
+        /* Quitamos el margen fantasma que queda al encogerlas */
+        margin-bottom: -15px !important; 
+        margin-left: -5px !important;
+        margin-right: -5px !important;
+    }
+
+    /* 3. Hacemos más pequeños los botones de acción centrales (FALTA, ROBO, TÉCNICA...) */
+    .d-token:not(.player-token) {
+        transform: translate(-50%, -50%) scale(0.75) !important;
+    }
+
+    /* 4. Apretamos un poco los contenedores de los banquillos abajo */
+    #tac-bench-home, #tac-bench-away {
+        gap: 2px !important;
+        padding-top: 5px !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -3754,7 +3784,7 @@ body.zen-mode {
 // FIREBASE SETUP
 // ═══════════════════════════════════════════
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch, query, where } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
 const firebaseConfig = {

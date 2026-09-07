@@ -10622,6 +10622,7 @@ function renderLiveStatsModal() {
   const jugadoresOrdenados = lv.pl[aTeam].slice().sort((a,b) => parseInt(a.dorsal) - parseInt(b.dorsal));
 
   // 3. Pintamos las filas con el nuevo formato agrupado
+  // 3. Pintamos las filas con el nuevo formato agrupado y los porcentajes por jugador
   let rowsStr=jugadoresOrdenados.map(p=>{
     const s=lv.st[aTeam][p.name]||{};
     const pm=s.pm||0;
@@ -10629,11 +10630,21 @@ function renderLiveStatsModal() {
     const fc=s.fc||0, fr=s.fr||0;
     const min=s.min||0;
     
+    // Variables de tiros del jugador
+    const t2m = s.t2Made || 0; const t2a = s.t2Att || 0;
+    const t3m = s.t3Made || 0; const t3a = s.t3Att || 0;
+    const tlm = s.tlMade || 0; const tla = s.tlAtt || 0;
+
+    // Cálculo de porcentajes
+    const t2pct = t2a > 0 ? Math.round((t2m / t2a) * 100) : 0;
+    const t3pct = t3a > 0 ? Math.round((t3m / t3a) * 100) : 0;
+    const tlpct = tla > 0 ? Math.round((tlm / tla) * 100) : 0;
+    
     // Acumulamos para el total del equipo
     t_pts += (s.pts || 0);
-    t_t2m += (s.t2Made || 0); t_t2a += (s.t2Att || 0);
-    t_t3m += (s.t3Made || 0); t_t3a += (s.t3Att || 0);
-    t_tlm += (s.tlMade || 0); t_tla += (s.tlAtt || 0);
+    t_t2m += t2m; t_t2a += t2a;
+    t_t3m += t3m; t_t3a += t3a;
+    t_tlm += tlm; t_tla += tla;
     t_ro += ro; t_rd += rd; t_ast += (s.ast || 0);
     t_stl += (s.stl || 0); t_blk += (s.blk || 0); t_to += (s.to || 0);
     t_fc += fc; t_fr += fr; t_pm += pm;
@@ -10642,8 +10653,10 @@ function renderLiveStatsModal() {
     return `<tr style="${bg}">
       <td>#${p.dorsal}</td><td style="font-weight:700;text-align:left;white-space:nowrap">${p.name.split(' ')[0]}${fc>=4?'⚠️':''}</td>
       <td style="font-weight:600;color:var(--t2)">${min}'</td>
-      <td><b style="font-size:13px">${s.pts||0}</b></td><td style="white-space:nowrap">${s.t2Made||0}/${s.t2Att||0}</td>
-      <td style="white-space:nowrap">${s.t3Made||0}/${s.t3Att||0}</td><td style="white-space:nowrap">${s.tlMade||0}/${s.tlAtt||0}</td>
+      <td><b style="font-size:13px">${s.pts||0}</b></td>
+      <td style="white-space:nowrap">${t2m}/${t2a} <span style="font-size:9px;color:var(--t3)">(${t2pct}%)</span></td>
+      <td style="white-space:nowrap">${t3m}/${t3a} <span style="font-size:9px;color:var(--t3)">(${t3pct}%)</span></td>
+      <td style="white-space:nowrap">${tlm}/${tla} <span style="font-size:9px;color:var(--t3)">(${tlpct}%)</span></td>
       <td>${ro}/${rd}</td><td><b style="font-size:12px">${rt}</b></td><td>${s.ast||0}</td><td>${s.stl||0}</td>
       <td>${s.blk||0}</td><td>${s.to||0}</td><td>${fc}/${fr}</td>
       <td style="font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
@@ -10738,6 +10751,7 @@ function renderLiveStatsModal() {
     </div>
   `;
 }
+
 function openPlayerProfile(name, team, targetSeason){
  try{
   let allGames=[];

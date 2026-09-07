@@ -10183,12 +10183,11 @@ function exportScoutPDF() {
   }
 
   function generarFotoPDF() {
-    // 🚨 IMPORTANTE: Pon aquí el ID del <div> de tu pestaña de Scouting 🚨
-    // Búscalo en tu HTML (ejemplo: 'panel-scouting', 'tab-scout', etc.)
-    const panelScouting = document.getElementById('PON_AQUI_EL_ID_DE_TU_PESTAÑA'); // <--- ¡CAMBIA ESTO!
+    // 🚀 AQUÍ ESTÁ EL ID EXACTO DE TU PESTAÑA HTML
+    const panelScouting = document.getElementById('t-scout'); 
 
     if (!panelScouting) {
-      alert('Error: No encuentro la pestaña de Scouting. Asegúrate de poner el ID correcto en la función exportScoutPDF.');
+      alert('Error: No encuentro la pestaña de Scouting.');
       return;
     }
 
@@ -10196,7 +10195,7 @@ function exportScoutPDF() {
     html2canvas(panelScouting, {
       scale: 2, // Alta resolución para que los números pequeños se lean perfectos
       useCORS: true,
-      backgroundColor: '#ffffff' // Fondo blanco por si usas transparencias
+      backgroundColor: '#f8fafc' // Fondo para que cuadre con tu diseño
     }).then(canvas => {
       const imgData = canvas.toDataURL('image/png');
 

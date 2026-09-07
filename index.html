@@ -3035,14 +3035,18 @@ body.zen-mode {
   <!-- Live panel (REDISEÑO PIZARRA TÁCTICA) -->
   <div id="lv-panel" style="display:none">
     
-    <!-- FILA DE BOTONES DE CONTROL -->
-    <div style="display:flex; gap:8px; justify-content:center; margin-bottom:14px; padding-top:10px;">
-      <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2)">
+    <<!-- 1. BOTONES ESQUINA SUPERIOR IZQUIERDA -->
+    <div style="position: absolute; top: 15px; left: 15px; display: flex; gap: 8px; z-index: 9999;">
+      <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.3)">
         🔲 Pantalla Completa
       </button>
-      <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">📊 Stats</button>
-      <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px">✏️ Equipos</button>
-      <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px">🏁 Finalizar</button>
+      <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.3)">📊 Stats</button>
+    </div>
+
+    <!-- 2. BOTONES ESQUINA SUPERIOR DERECHA -->
+    <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 9999;">
+      <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.3)">✏️ Equipos</button>
+      <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.3)">🏁 Finalizar</button>
     </div>
 
     <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
@@ -10936,51 +10940,57 @@ function renderLiveStatsModal() {
   const aTeam = sH ? 'home' : 'away';
   const oppTeam = sH ? 'away' : 'home'; // 🚀 Identificamos automáticamente al equipo contrario
 
-  const cols=['#','Nom','PTS','T2','T3','TL','RO','RD','AST','ST','BLK','PER','FC','FR','+/-'];
+  const cols=['#','Nom','MIN','PTS','T2','T3','TL','R O/D','RT','AST','ST','BLK','PER','F C/R','+/-'];
   const headCols=cols.map(c=>`<th style="font-size:9.5px;padding:6px;text-align:center">${c}</th>`).join('');
   
-  // 👇 AQUÍ EMPIEZAN LOS CAMBIOS DE LOS TOTALES 👇
   // 1. Inicializamos los contadores a cero
   let t_pts=0, t_t2m=0, t_t2a=0, t_t3m=0, t_t3a=0, t_tlm=0, t_tla=0;
   let t_ro=0, t_rd=0, t_ast=0, t_stl=0, t_blk=0, t_to=0, t_fc=0, t_fr=0, t_pm=0;
 
-  // 2. Cambiamos 'const' por 'let' y sumamos las variables de cada jugador
-  let rowsStr=lv.pl[aTeam].map(p=>{
-    const s=lv.st[aTeam][p.name]||{}, pm=s.pm||0;
+  // 2. Ordenamos por dorsal de menor a mayor
+  const jugadoresOrdenados = lv.pl[aTeam].slice().sort((a,b) => parseInt(a.dorsal) - parseInt(b.dorsal));
+
+  // 3. Pintamos las filas con el nuevo formato agrupado
+  let rowsStr=jugadoresOrdenados.map(p=>{
+    const s=lv.st[aTeam][p.name]||{};
+    const pm=s.pm||0;
+    const ro=s.ro||0, rd=s.rd||0, rt=ro+rd;
+    const fc=s.fc||0, fr=s.fr||0;
+    const min=s.min||0;
     
     // Acumulamos para el total del equipo
     t_pts += (s.pts || 0);
     t_t2m += (s.t2Made || 0); t_t2a += (s.t2Att || 0);
     t_t3m += (s.t3Made || 0); t_t3a += (s.t3Att || 0);
     t_tlm += (s.tlMade || 0); t_tla += (s.tlAtt || 0);
-    t_ro += (s.ro || 0); t_rd += (s.rd || 0); t_ast += (s.ast || 0);
+    t_ro += ro; t_rd += rd; t_ast += (s.ast || 0);
     t_stl += (s.stl || 0); t_blk += (s.blk || 0); t_to += (s.to || 0);
-    t_fc += (s.fc || 0); t_fr += (s.fr || 0); t_pm += pm;
+    t_fc += fc; t_fr += fr; t_pm += pm;
 
     const bg=lv.onCourt[aTeam].has(p.name)?'background:#f0fdf4':'';
     return `<tr style="${bg}">
-      <td>#${p.dorsal}</td><td style="font-weight:700;text-align:left;white-space:nowrap">${p.name.split(' ')[0]}${s.fc>=4?'⚠️':''}</td>
+      <td>#${p.dorsal}</td><td style="font-weight:700;text-align:left;white-space:nowrap">${p.name.split(' ')[0]}${fc>=4?'⚠️':''}</td>
+      <td style="font-weight:600;color:var(--t2)">${min}'</td>
       <td><b style="font-size:13px">${s.pts||0}</b></td><td style="white-space:nowrap">${s.t2Made||0}/${s.t2Att||0}</td>
       <td style="white-space:nowrap">${s.t3Made||0}/${s.t3Att||0}</td><td style="white-space:nowrap">${s.tlMade||0}/${s.tlAtt||0}</td>
-      <td>${s.ro||0}</td><td>${s.rd||0}</td><td>${s.ast||0}</td><td>${s.stl||0}</td>
-      <td>${s.blk||0}</td><td>${s.to||0}</td><td>${s.fc||0}</td><td>${s.fr||0}</td>
+      <td>${ro}/${rd}</td><td><b style="font-size:12px">${rt}</b></td><td>${s.ast||0}</td><td>${s.stl||0}</td>
+      <td>${s.blk||0}</td><td>${s.to||0}</td><td>${fc}/${fr}</td>
       <td style="font-weight:700;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
     </tr>`;
   }).join('');
 
-  // 3. Añadimos la fila de TOTAL justo al final
+  // 4. Añadimos la fila de TOTAL ajustada a las nuevas columnas
   rowsStr += `<tr style="background:#e2e8f0; border-top: 2px solid var(--bd); font-size:11px;">
-      <td colspan="2" style="font-weight:900; text-align:right; padding-right:10px;">TOTAL EQUIPO</td>
+      <td colspan="3" style="font-weight:900; text-align:right; padding-right:10px;">TOTAL EQUIPO</td>
       <td><b style="font-size:14px; color:var(--nv)">${t_pts}</b></td>
       <td style="white-space:nowrap; font-weight:800;">${t_t2m}/${t_t2a} <span style="font-size:9px;color:var(--t3)">(${t_t2a>0?Math.round((t_t2m/t_t2a)*100):0}%)</span></td>
       <td style="white-space:nowrap; font-weight:800;">${t_t3m}/${t_t3a} <span style="font-size:9px;color:var(--t3)">(${t_t3a>0?Math.round((t_t3m/t_t3a)*100):0}%)</span></td>
       <td style="white-space:nowrap; font-weight:800;">${t_tlm}/${t_tla} <span style="font-size:9px;color:var(--t3)">(${t_tla>0?Math.round((t_tlm/t_tla)*100):0}%)</span></td>
-      <td style="font-weight:800">${t_ro}</td><td style="font-weight:800">${t_rd}</td><td style="font-weight:800">${t_ast}</td>
+      <td style="font-weight:800">${t_ro}/${t_rd}</td><td style="font-weight:900">${t_ro + t_rd}</td><td style="font-weight:800">${t_ast}</td>
       <td style="font-weight:800">${t_stl}</td><td style="font-weight:800">${t_blk}</td><td style="font-weight:800">${t_to}</td>
-      <td style="font-weight:800">${t_fc}</td><td style="font-weight:800">${t_fr}</td>
+      <td style="font-weight:800">${t_fc}/${t_fr}</td>
       <td style="font-weight:900;color:${t_pm>0?'var(--gn)':t_pm<0?'#dc2626':'inherit'}">${t_pm>0?'+':''}${t_pm}</td>
   </tr>`;
-  // 👆 FIN DE LOS CAMBIOS 👆
 
   const htmlMain = `
     <div class="card" style="margin:0; padding:15px; display:flex; flex-direction:column; flex-shrink:0;">
@@ -12906,20 +12916,18 @@ function _mapsToImages(shots){
 function exportMatchPDF(matchId){
   const mf=matchId ?? (document.getElementById('st-mf')?.value || '');
   const m=S.matches.find(x=>x.id==mf);
-  if(!m){toast('Selecciona un partido primero','err');return;}
-  // Si además hay un equipo seleccionado, el PDF sale SOLO de ese equipo.
+  if(!m){if(typeof toast==='function')toast('Selecciona un partido primero','err');return;}
+  
   const tf=matchId==null?(document.getElementById('st-tf')?.value||'').trim():'';
   let onlySide=null;
   if(tf){
     if(m.homeTeam===tf)onlySide='home';
     else if(m.awayTeam===tf)onlySide='away';
-    // si el equipo seleccionado no juega este partido, se ignora (salen ambos)
   }
 
   const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
   const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
 
-  // Parciales derivados de los marcadores acumulados por período.
   const quarterRows=_matchQuarters(m)||[];
   const maxQ=Math.max(4,quarterRows.reduce((max,q)=>Math.max(max,q.p||0),0));
   const perQ={home:Array(maxQ).fill(0),away:Array(maxQ).fill(0)};
@@ -12929,10 +12937,9 @@ function exportMatchPDF(matchId){
   const everyone=[...(m.homePlayers||[]),...(m.awayPlayers||[])];
   const anyMin=everyone.some(p=>p.min),anyReb=everyone.some(p=>p.reb),anyAst=everyone.some(p=>p.ast);
 
-  // Tiros ubicados de este partido, por equipo → imágenes de los mapas
   const matchShots=[
     ...S.shots.filter(s=>(s.mId||s.matchId)==m.id),
-    ...(m.shots||[])            // los embebidos ya pertenecen a este partido
+    ...(m.shots||[])
   ];
   const shotsOf=sd=>matchShots.filter(s=>s.team===sd);
   const maps={home:_mapsToImages(shotsOf('home')),away:_mapsToImages(shotsOf('away'))};
@@ -12962,10 +12969,14 @@ function exportMatchPDF(matchId){
     const name=side==='home'?m.homeTeam:m.awayTeam;
     const score=side==='home'?m.scoreHome:m.scoreAway;
     const opp=side==='home'?m.scoreAway:m.scoreHome;
-    const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(b.pts||0)-(a.pts||0));
+    
+    // 🚀 AQUÍ ESTÁ EL CAMBIO DE ORDENACIÓN: Ahora ordena matemáticamente por el número de dorsal
+    const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(parseInt(a.dorsal)||0)-(parseInt(b.dorsal)||0));
+    
     const T=pls.reduce((t,p)=>{
       ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','ro','rd','reb','ast','to','blk','stl','fc','fr','min','pm'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
       return t;},{});
+      
     return `<div class="page">
       <div class="tname">${name} <b>${score}</b>–${opp}
         ${won===side?'<span class="win">GUANYADOR</span>':won?'<span class="lose">DERROTA</span>':''}</div>
@@ -12977,7 +12988,7 @@ function exportMatchPDF(matchId){
           <th>RO</th><th>RD</th><th>RT</th><th>AST</th><th>PER</th><th>BLK</th><th>STL</th><th>FC</th><th>FR</th><th>+/-</th>
         </tr></thead>
         <tbody>
-        ${pls.map((p,i)=>`<tr${i%2?' class="alt"':''}>
+        ${pls.map((p)=>`<tr>
           <td class="l dim">${p.dorsal}</td>
           <td class="l nm">${p.name}${p.starter?'<span class="st">★</span>':''}</td>
           ${anyMin?`<td>${Math.round(p.min||0)||'—'}</td>`:''}
@@ -13025,12 +13036,21 @@ function exportMatchPDF(matchId){
   };
 
   const w=window.open('','_blank');
-  if(!w){toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err');return;}
+  if(!w){if(typeof toast==='function')toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err');return;}
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}</title>
   <style>
     @page{size:A4 landscape;margin:7mm}
     *{box-sizing:border-box}
+    
+    /* 🚀 AQUÍ ESTÁ LA MAGIA PARA FORZAR LOS COLORES DE FONDO AL IMPRIMIR EL PDF */
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+    
     body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:0}
     .page{padding:7px 12px;page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page}
     .page:last-of-type{page-break-after:auto;break-after:auto}
@@ -13053,14 +13073,8 @@ function exportMatchPDF(matchId){
     .tname b{color:#e8402a;font-size:18px}
     .win{color:#15803d;font-size:11px;margin-left:8px;border:1.5px solid #15803d;border-radius:10px;padding:1px 9px}
     .lose{color:#94a3b8;font-size:11px;margin-left:8px;border:1.5px solid #cbd5e1;border-radius:10px;padding:1px 9px}
-    .cards{display:flex;gap:8px;margin-bottom:7px}
-    .card{flex:1;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 10px;min-width:0}
-    .cl{font-size:8.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-    .cn{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .cs{font-size:9.5px;color:#64748b}
     table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;page-break-inside:avoid;break-inside:avoid}
-    th{background:#0f1f3d;color:#fff;padding:3px 3px;text-align:center;font-weight:700;font-size:8.5px;
-      text-transform:uppercase;letter-spacing:.03em}
+    th{background:#0f1f3d;color:#fff;padding:3px 3px;text-align:center;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em}
     th.l{text-align:left;padding-left:10px}
     td{padding:2.5px 3px;text-align:center;border-bottom:1px solid #eef2f7}
     td.l{text-align:left;padding-left:10px}
@@ -13069,15 +13083,17 @@ function exportMatchPDF(matchId){
     td.dim{color:#94a3b8;font-weight:700}
     td.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .st{color:#f59e0b;margin-left:4px}
-    tr.alt td{background:#f8fafc}
+    
+    /* 🚀 AQUÍ ESTÁ EL EFECTO CEBRA AUTOMÁTICO */
+    tbody tr:nth-child(even) td {background-color:#f1f5f9 !important;}
+    
     .pos{color:#15803d}.neg{color:#dc2626}
-    tfoot .tot td{background:#e8eef6;font-weight:800;border-top:2px solid #0f1f3d;padding:3px}
-    tfoot .pct td{background:#f1f5f9;font-size:9px;color:#334155;font-weight:700}
+    tfoot .tot td{background:#e8eef6 !important;font-weight:800;border-top:2px solid #0f1f3d;padding:3px}
+    tfoot .pct td{background:#f8fafc !important;font-size:9px;color:#334155;font-weight:700}
     th:first-child,td:first-child{width:3.5%}
     th:nth-child(2),td:nth-child(2){width:23%}
     th:not(:first-child):not(:nth-child(2)),td:not(:first-child):not(:nth-child(2)){width:4.08%}
-    .foot{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:4px;font-size:8.5px;color:#94a3b8;
-      display:flex;justify-content:space-between}
+    .foot{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:4px;font-size:8.5px;color:#94a3b8;display:flex;justify-content:space-between}
     .maps{display:flex;gap:16px;align-items:flex-start;justify-content:center}
     .mapbox{flex:1;max-width:47%}
     .ml{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;color:#0f1f3d}
@@ -13591,7 +13607,6 @@ window.vSeekBy = function(seconds) {
     if (v) v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + seconds));
 };
 
-// ── 5. FORMULARIO FLOTANTE (SE VE EN PANTALLA COMPLETA) ──
 // ── 5. FORMULARIO FLOTANTE (SE VE EN PANTALLA COMPLETA) ──
 window.vClipMark = function() {
     const v = document.getElementById('v-video');

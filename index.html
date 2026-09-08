@@ -13316,26 +13316,35 @@ async function ldLS() {
           }
       };
 
+      // 👇 EL NUEVO VIGILANTE PERMANENTE 👇
+      if (!window._roleWatcher) {
+          window._currentRole = savedRole; // Apuntamos quién eres al entrar
+          window._roleWatcher = setInterval(() => {
+              const activeRole = localStorage.getItem('bascatRole');
+              // Si de repente el rol cambia (ej: de Jugador pasas a Staff)
+              if (activeRole !== window._currentRole) {
+                  window._currentRole = activeRole;
+                  console.log("🔄 Cambio de cuenta detectado. Reiniciando motor...");
+                  ldLS(); // ¡Magia! Vuelve a lanzar la función desde cero
+              }
+          }, 500);
+      }
+
       // 🧠 LÓGICA DE RUTAS Y DESCARGAS
       if (!savedRole) {
           // ==========================================
-          // 1. NO SABE QUIÉN ERES
+          // 1. NO SABE QUIÉN ERES: Fuera telón
           // ==========================================
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
-          
-          // 🕵️ EL ESPÍA: Esperamos en la sombra a que hagas clic en Staff o Jugador
-          const waitForRole = setInterval(() => {
-              if (localStorage.getItem('bascatRole')) {
-                  clearInterval(waitForRole);
-                  ldLS(); // ¡Se relanza sola ahora que ya sabemos el rol!
-              }
-          }, 500);
-          return; // Salimos para no hacer nada más hasta que elijas
+          return; // 👈 CRUCIAL: Salimos de la función y dejamos al vigilante esperando tu clic
           
       } else if (savedRole === 'player') {
           // ==========================================
-          // 2.1 MODO JUGADOR
+          // 2.1 MODO JUGADOR: Solo Claret + Rival 
           // ==========================================
+          const tMsg = document.getElementById('telon-msg');
+          if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
+          
           let queryStr = rivalSemana 
               ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
@@ -13353,9 +13362,7 @@ async function ldLS() {
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
           
       } else {
-          // ==========================================
-          // 2.2 MODO STAFF (BACKGROUND FETCH)
-          // ==========================================
+          
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
 
           setTimeout(async () => {

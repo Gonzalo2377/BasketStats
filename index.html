@@ -13286,12 +13286,40 @@ async function ldLS() {
           S.clips2 = c2;
       }
 
-      S.matches = []; S.shots = [];
+      S.matches = []; 
+      S.shots = [];
       const tMsg = document.getElementById('telon-msg');
+
+      // 🚀 FUNCIÓN ANTI-COLAPSOS GLOBAL (Aplica a todo)
+      const fetchEnLotes = async (queryBase) => {
+          let fromRow = 0;
+          const step = 20; // Embudo de seguridad de 20 en 20 para archivos muy pesados
+          let fetching = true;
+          while (fetching) {
+              const { data, error } = await queryBase.range(fromRow, fromRow + step - 1);
+              if (error) throw error;
+              if (data && data.length > 0) {
+                  data.forEach(row => {
+                      const m = row.match_data;
+                      if (!S.matches.find(x => x.id === m.id)) { // Filtro anti-duplicados
+                          const ps = m.placedShots || []; delete m.placedShots;
+                          S.matches.push(m); S.shots.push(...ps);
+                          if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
+                      }
+                  });
+                  S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+                  _refreshAfterSync();
+                  fromRow += step;
+                  if (data.length < step) fetching = false; 
+              } else {
+                  fetching = false;
+              }
+          }
+      };
 
       if (savedRole === 'player') {
           // ==========================================
-          // MODO JUGADOR: Solo Claret + Rival 
+          // MODO JUGADOR: Solo Claret + Rival (Sin segundo plano)
           // ==========================================
           if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
           let queryStr = rivalSemana 
@@ -13316,46 +13344,10 @@ async function ldLS() {
           // ==========================================
           if (tMsg) tMsg.innerText = "Cargando Copa y Supercopa...";
           
-          const { data: dataCopa } = await supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%');
-          if (dataCopa) {
-              dataCopa.forEach(row => {
-                  const m = row.match_data;
-                  const ps = m.placedShots || []; delete m.placedShots;
-                  S.matches.push(m); S.shots.push(...ps);
-                  if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-              });
-          }
-          S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-          _refreshAfterSync();
+          // FASE 1 (Bloqueante): Copa y Supercopa por el embudo seguro
+          await fetchEnLotes(supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%'));
 
-          // 🚀 FUNCIÓN ANTI-COLAPSOS: Descarga la categoría en porciones de 200
-          const fetchEnLotes = async (queryBase) => {
-              let fromRow = 0;
-              const step = 20; 
-              let fetching = true;
-              while (fetching) {
-                  const { data, error } = await queryBase.range(fromRow, fromRow + step - 1);
-                  if (error) throw error;
-                  if (data && data.length > 0) {
-                      data.forEach(row => {
-                          const m = row.match_data;
-                          if (!S.matches.find(x => x.id === m.id)) { // Filtro anti-duplicados
-                              const ps = m.placedShots || []; delete m.placedShots;
-                              S.matches.push(m); S.shots.push(...ps);
-                              if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-                          }
-                      });
-                      S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-                      _refreshAfterSync();
-                      fromRow += step;
-                      if (data.length < step) fetching = false; // Se acabó esta categoría
-                  } else {
-                      fetching = false;
-                  }
-              }
-          };
-
-          // FASE 2: CARGA EN SEGUNDO PLANO
+          // FASE 2: CARGA EN SEGUNDO PLANO (El telón ya se puede quitar en unos milisegundos)
           setTimeout(async () => {
               try {
                   if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana...', 'ok');
@@ -13365,7 +13357,6 @@ async function ldLS() {
                   await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'));
 
                   if (typeof toast === 'function') toast('⏳ Descargando resto del histórico...', 'ok');
-                  // Aquí metemos el "resto", pero como pasa por el embudo de 200 en 200, jamás dará error 500
                   await fetchEnLotes(supabase.from('matches').select('match_data')
                       .not('competition', 'ilike', '%Copa%')
                       .not('competition', 'ilike', '%Supercopa%')

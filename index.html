@@ -3919,149 +3919,7 @@ function _refreshAfterSync(){
   if(document.getElementById('t-scout')?.classList.contains('active'))renderClipsLibrary();
 }
 
-async function ldLS() {
-  // 🛑 TELÓN GLOBAL DE CARGA 🛑
-  if (!document.getElementById('telon-global')) {
-      document.body.insertAdjacentHTML('beforeend', `
-          <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
-              <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
-              <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
-              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
-              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
-          </div>
-      `);
-  }
 
-  // 1. CARGA LOCAL RÁPIDA (Caché)
-  try {
-    const localData = localStorage.getItem('bascatapp_data');
-    if (localData) {
-      const parsed = JSON.parse(localData);
-      if (parsed) {
-        S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
-        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
-        S.fisio = parsed.fisio || {};
-        _refreshAfterSync();
-      }
-    }
-  } catch (e) {}
-
-  const savedRole = localStorage.getItem('bascatRole');
-  const rivalSemana = S.nextMatch?.rival || '';
-
-  try {
-      // 2. DESCARGAR METADATA Y CLIPS (Supabase)
-      const [metaRes, clipsRes] = await Promise.all([
-        supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
-        supabase.from('clips').select('*')
-      ]);
-
-      if (metaRes.data) {
-          const md = metaRes.data.data;
-          S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
-          S.fisio = md.fisio || {};
-      }
-
-      if (clipsRes.data) {
-          const c2 = {};
-          clipsRes.data.forEach(row => {
-              if (row.id !== 'legacy_clips') { // Ignoramos legacy antiguo si lo hubiera
-                  c2[row.data.key] = row.data;
-              }
-          });
-          S.clips2 = c2;
-      }
-
-      // 3. DESCARGAR PARTIDOS INTELIGENTE
-      let query = supabase.from('matches').select('match_data');
-      
-      // Si es jugador, filtramos a nivel de servidor (vuela)
-      if (savedRole === 'player') {
-          if (rivalSemana) {
-              query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
-          } else {
-              query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
-          }
-      }
-
-      const matchesRes = await query;
-      if (matchesRes.error) throw matchesRes.error;
-
-      const matches = [], shots = [];
-      matchesRes.data.forEach(row => {
-          const m = row.match_data;
-          const ps = m.placedShots || [];
-          delete m.placedShots;
-          matches.push(m);
-          shots.push(...ps);
-      });
-
-      matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-      S.matches = matches; S.shots = shots;
-
-      _refreshAfterSync();
-
-      // 4. INICIAR REALTIME (Sustituto de onSnapshot)
-      // Esto hace que la app se actualice sola si otro entrenador guarda algo
-      supabase.channel('public:db_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
-              if(payload.new && payload.new.id === 'global') {
-                  const md = payload.new.data;
-                  S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
-                  S.fisio = md.fisio || {};
-                  _refreshAfterSync();
-                  if(typeof renderCompare === 'function') renderCompare();
-              }
-          })
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
-              // Si alguien mete un partido nuevo, lo añadimos y refrescamos
-              if(payload.new && payload.new.match_data) {
-                  const m = payload.new.match_data;
-                  if(!S.matches.find(x => x.id === m.id)) {
-                      S.matches.push(m);
-                      if(m.placedShots) S.shots.push(...m.placedShots);
-                      _refreshAfterSync();
-                  }
-              }
-          })
-          .subscribe();
-
-  } catch (err) {
-      console.error("❌ Error grave iniciando Supabase:", err);
-      toast('Modo Offline: Usando caché local', 'err');
-  }
-
-  // 🟢 DESTRUIR TELÓN 🟢
-  const telon = document.getElementById('telon-global');
-  if(telon) {
-      telon.style.transition = "opacity 0.4s ease";
-      telon.style.opacity = "0";
-      setTimeout(() => telon.remove(), 400);
-  }
-
-  // 🔗 INTERCEPTOR DE LINKS COMPARTIDOS
-  const urlParams = new URLSearchParams(window.location.search);
-  if(urlParams.get('jugador')) {
-      if (savedRole === 'staff') {
-          if (typeof _applyRole === 'function') _applyRole('staff');
-          const gate = document.getElementById('login-gate'); if (gate) gate.style.display = 'none';
-          setTimeout(() => { 
-              if (typeof openPlayerProfile === 'function') {
-                  openPlayerProfile(urlParams.get('jugador'), urlParams.get('equipo') || '__ALL__', urlParams.get('temp') || null);
-              }
-          }, 500);
-      } else if (savedRole === 'player') {
-          setTimeout(() => {
-              toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
-              window.history.replaceState({}, '', window.location.pathname);
-          }, 500);
-      } else {
-          window._enlacePendiente = { j: urlParams.get('jugador'), e: urlParams.get('equipo') || '__ALL__', t: urlParams.get('temp') || null };
-      }
-  }
-}
 
 function toast(msg,type='ok'){
   const el=document.getElementById('toast');
@@ -13381,9 +13239,153 @@ window.vCancelClip = function() {
     });
 };
 
-// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE - MODO TANQUE)
+async function ldLS() {
+  // 🛑 TELÓN GLOBAL DE CARGA 🛑
+  if (!document.getElementById('telon-global')) {
+      document.body.insertAdjacentHTML('beforeend', `
+          <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
+              <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
+              <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
+              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
+              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
+          </div>
+      `);
+  }
+
+  // 1. CARGA LOCAL RÁPIDA (Caché)
+  try {
+    const localData = localStorage.getItem('bascatapp_data');
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      if (parsed) {
+        S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
+        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
+        S.fisio = parsed.fisio || {};
+        _refreshAfterSync();
+      }
+    }
+  } catch (e) {}
+
+  const savedRole = localStorage.getItem('bascatRole');
+  const rivalSemana = S.nextMatch?.rival || '';
+
+  try {
+      // 2. DESCARGAR METADATA Y CLIPS (Supabase)
+      const [metaRes, clipsRes] = await Promise.all([
+          supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
+          supabase.from('clips').select('*')
+      ]);
+
+      if (metaRes.data) {
+          const md = metaRes.data.data;
+          S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
+          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+          S.fisio = md.fisio || {};
+      }
+
+      if (clipsRes.data) {
+          const c2 = {};
+          clipsRes.data.forEach(row => {
+              if (row.id !== 'legacy_clips') {
+                  c2[row.data.key] = row.data;
+              }
+          });
+          S.clips2 = c2;
+      }
+
+      // 3. DESCARGAR PARTIDOS INTELIGENTE
+      let query = supabase.from('matches').select('match_data');
+      
+      if (savedRole === 'player') {
+          if (rivalSemana) {
+              query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
+          } else {
+              query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
+          }
+      }
+
+      const matchesRes = await query;
+      if (matchesRes.error) throw matchesRes.error;
+
+      const matches = [], shots = [];
+      matchesRes.data.forEach(row => {
+          const m = row.match_data;
+          const ps = m.placedShots || [];
+          delete m.placedShots;
+          matches.push(m);
+          shots.push(...ps);
+          
+          // 🔥 EL PARCHE MÁGICO: Sellar los partidos descargados para no re-subirlos
+          if (typeof _hash === 'function') {
+              const fullMatch = { ...m, placedShots: ps };
+              _matchHashes[String(m.id)] = _hash(JSON.stringify(fullMatch));
+          }
+      });
+
+      matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+      S.matches = matches; S.shots = shots;
+
+      _refreshAfterSync();
+
+      // 4. INICIAR REALTIME
+      supabase.channel('public:db_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
+              if(payload.new && payload.new.id === 'global') {
+                  const md = payload.new.data;
+                  S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
+                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+                  S.fisio = md.fisio || {};
+                  _refreshAfterSync();
+                  if(typeof renderCompare === 'function') renderCompare();
+              }
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
+              if(payload.new && payload.new.match_data) {
+                  const m = payload.new.match_data;
+                  if(!S.matches.find(x => x.id === m.id)) {
+                      S.matches.push(m);
+                      if(m.placedShots) S.shots.push(...m.placedShots);
+                      if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify(m));
+                      _refreshAfterSync();
+                  }
+              }
+          })
+          .subscribe();
+
+  } catch (err) {
+      console.error("❌ Error grave iniciando Supabase:", err);
+      toast('Modo Offline: Usando caché local', 'err');
+  }
+
+  // 🟢 DESTRUIR TELÓN 🟢
+  const telon = document.getElementById('telon-global');
+  if(telon) {
+      telon.style.transition = "opacity 0.4s ease";
+      telon.style.opacity = "0";
+      setTimeout(() => telon.remove(), 400);
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('jugador')) {
+      if (savedRole === 'staff') {
+          if (typeof _applyRole === 'function') _applyRole('staff');
+          const gate = document.getElementById('login-gate'); if (gate) gate.style.display = 'none';
+          setTimeout(() => { 
+              if (typeof openPlayerProfile === 'function') openPlayerProfile(urlParams.get('jugador'), urlParams.get('equipo') || '__ALL__', urlParams.get('temp') || null);
+          }, 500);
+      } else if (savedRole === 'player') {
+          setTimeout(() => {
+              toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
+              window.history.replaceState({}, '', window.location.pathname);
+          }, 500);
+      } else {
+          window._enlacePendiente = { j: urlParams.get('jugador'), e: urlParams.get('equipo') || '__ALL__', t: urlParams.get('temp') || null };
+      }
+  }
+}
+
+// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
 async function svL() {
-  // 1. Guardado Local Rápido
   const payload = {
     teams: S.teams || [], access: S.access || null,
     playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
@@ -13391,19 +13393,15 @@ async function svL() {
   };
   try { localStorage.setItem('bascatapp_data', JSON.stringify(payload)); } catch(e){}
 
-  // 2. Sistema Anti-Saturación
   if (window._supabaseSyncTimer) clearTimeout(window._supabaseSyncTimer);
   if (typeof setSyncStatus === 'function') setSyncStatus('saving');
 
   window._supabaseSyncTimer = setTimeout(async () => {
     try {
-      // A) Subir configuraciones globales
       await supabase.from('metadata').upsert({ id: 'global', data: payload });
 
-      // B) Subir Partidos Inteligente (De 1 en 1)
       if (S.matches && Array.isArray(S.matches)) {
         const matchesToUpsert = [];
-
         for (const m of S.matches) {
           const mIdStr = String(m.id);
           const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
@@ -13411,44 +13409,38 @@ async function svL() {
 
           const currentHash = typeof _hash === 'function' ? _hash(JSON.stringify(fullMatch)) : null;
           
-          // Si el hash no coincide, el partido es nuevo o ha cambiado
+          // Solo coge los partidos que realmente son nuevos o han sido editados
           if (currentHash === null || _matchHashes[mIdStr] !== currentHash) {
             matchesToUpsert.push({
-              id: m.id,
-              home_team: m.homeTeam || '',
-              away_team: m.awayTeam || '',
-              season: m.season || 'Sin temporada',
-              competition: m.competition || '',
-              match_date: m.date || '',
-              match_data: fullMatch,
-              hash: currentHash // Lo guardamos temporalmente
+              id: m.id, home_team: m.homeTeam || '', away_team: m.awayTeam || '',
+              season: m.season || 'Sin temporada', competition: m.competition || '',
+              match_date: m.date || '', match_data: fullMatch, hash: currentHash
             });
           }
         }
 
-        // C) Inyección Individual A Prueba de Fallos
         if (matchesToUpsert.length > 0) {
-          for (let i = 0; i < matchesToUpsert.length; i++) {
-            const matchRecord = matchesToUpsert[i];
+          // 🔥 AVISO VISUAL: Te dice cuántos va a subir
+          if (typeof toast === 'function') toast(`☁️ Subiendo ${matchesToUpsert.length} partidos a la nube... No cierres la web.`, 'ok');
+          
+          const chunkSize = 5; // Paquetes de 5 para no saturar
+          for (let i = 0; i < matchesToUpsert.length; i += chunkSize) {
+            const chunk = matchesToUpsert.slice(i, i + chunkSize);
             
-            // Subimos SOLO este partido
-            const { error } = await supabase.from('matches').upsert({
-              id: matchRecord.id,
-              home_team: matchRecord.home_team,
-              away_team: matchRecord.away_team,
-              season: matchRecord.season,
-              competition: matchRecord.competition,
-              match_date: matchRecord.match_date,
-              match_data: matchRecord.match_data
-            });
+            const { error } = await supabase.from('matches').upsert(chunk.map(c => ({
+                id: c.id, home_team: c.home_team, away_team: c.away_team,
+                season: c.season, competition: c.competition, match_date: c.match_date, match_data: c.match_data
+            })));
             
             if (error) throw error;
             
-            // SOLO si ha tenido éxito real, actualizamos el hash en memoria
-            if (matchRecord.hash !== null) {
-               _matchHashes[String(matchRecord.id)] = matchRecord.hash;
-            }
+            // Sellar en memoria para no volver a subirlos nunca más
+            chunk.forEach(c => { if (c.hash !== null) _matchHashes[String(c.id)] = c.hash; });
+            await new Promise(r => setTimeout(r, 250)); // Respiro rápido
           }
+          
+          // 🔥 AVISO VISUAL: Te avisa al terminar
+          if (typeof toast === 'function') toast(`✅ ¡Todos los partidos guardados en Supabase!`, 'ok');
           console.log(`☁️ Supabase sincronizado: ${matchesToUpsert.length} partidos subidos`);
         }
       }
@@ -13457,6 +13449,7 @@ async function svL() {
     } catch(e) {
       console.error('❌ Error subiendo a Supabase:', e);
       if (typeof setSyncStatus === 'function') setSyncStatus('error');
+      if (typeof toast === 'function') toast(`❌ Error de conexión al guardar.`, 'err');
     }
   }, 2000); 
 }

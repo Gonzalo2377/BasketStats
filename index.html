@@ -13241,7 +13241,8 @@ window.vCancelClip = function() {
 
 async function ldLS() {
   // 🛑 TELÓN GLOBAL 🛑
-  if (!document.getElementById('telon-global')) {
+  let telon = document.getElementById('telon-global');
+  if (!telon) {
       document.body.insertAdjacentHTML('beforeend', `
           <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
               <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
@@ -13250,6 +13251,7 @@ async function ldLS() {
               <p id="telon-msg" style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
           </div>
       `);
+      telon = document.getElementById('telon-global');
   }
 
   // 1. CARGA LOCAL RÁPIDA
@@ -13268,10 +13270,9 @@ async function ldLS() {
 
   const savedRole = localStorage.getItem('bascatRole');
   const rivalSemana = S.nextMatch?.rival || '';
-  const telon = document.getElementById('telon-global');
 
   try {
-      // 2. METADATA SÚPER RÁPIDA (Configuración de la app)
+      // 2. METADATA SÚPER RÁPIDA
       const [metaRes, clipsRes] = await Promise.all([
           supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
           supabase.from('clips').select('*')
@@ -13288,10 +13289,10 @@ async function ldLS() {
           S.clips2 = c2;
       }
 
-      S.matches = []; S.shots = [];
+      if (!S.matches) S.matches = []; 
+      if (!S.shots) S.shots = [];
 
-      // 🚀 FUNCIÓN ANTI-COLAPSOS (Con control de velocidad)
-      // Recibe la petición y cuántos partidos bajar de golpe (step)
+      // 🚀 FUNCIÓN ANTI-COLAPSOS
       const fetchEnLotes = async (queryBase, step = 20) => {
           let fromRow = 0; 
           let fetching = true;
@@ -13318,17 +13319,23 @@ async function ldLS() {
       // 🧠 LÓGICA DE RUTAS Y DESCARGAS
       if (!savedRole) {
           // ==========================================
-          // 1. NO SABE QUIÉN ERES: Fuera telón al instante para que elijas
+          // 1. NO SABE QUIÉN ERES
           // ==========================================
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
           
+          // 🕵️ EL ESPÍA: Esperamos en la sombra a que hagas clic en Staff o Jugador
+          const waitForRole = setInterval(() => {
+              if (localStorage.getItem('bascatRole')) {
+                  clearInterval(waitForRole);
+                  ldLS(); // ¡Se relanza sola ahora que ya sabemos el rol!
+              }
+          }, 500);
+          return; // Salimos para no hacer nada más hasta que elijas
+          
       } else if (savedRole === 'player') {
           // ==========================================
-          // 2.1 MODO JUGADOR: Solo Claret + Rival 
+          // 2.1 MODO JUGADOR
           // ==========================================
-          const tMsg = document.getElementById('telon-msg');
-          if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
-          
           let queryStr = rivalSemana 
               ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
@@ -13343,33 +13350,25 @@ async function ldLS() {
               S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
               _refreshAfterSync();
           }
-          // Quitar telón al acabar
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
           
       } else {
           // ==========================================
-          // 2.2 MODO STAFF: Background Fetch (El diseño que pediste)
+          // 2.2 MODO STAFF (BACKGROUND FETCH)
           // ==========================================
-          
-          // Quitamos el telón DE INMEDIATO para que ya puedas usar la app y moverte
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
 
-          // Empezamos la descarga en segundo plano
           setTimeout(async () => {
               try {
-                  // A. Primera Catalana (Como no pesa, step de 100 para que vuele)
                   if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana...', 'ok');
                   await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Primera%'), 100);
 
-                  // B. Copa y Supercopa (Pesados: step de 20 por seguridad)
                   if (typeof toast === 'function') toast('⏳ Descargando Copa y Supercopa...', 'ok');
                   await fetchEnLotes(supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%'), 20);
 
-                  // C. Preferente (Pesados: step de 20)
                   if (typeof toast === 'function') toast('⏳ Descargando Preferente...', 'ok');
                   await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'), 20);
 
-                  // D. Todo lo demás que pueda haber quedado
                   if (typeof toast === 'function') toast('⏳ Completando histórico...', 'ok');
                   await fetchEnLotes(supabase.from('matches').select('match_data')
                       .not('competition', 'ilike', '%Copa%')
@@ -13379,8 +13378,33 @@ async function ldLS() {
 
                   if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
               } catch(e) { console.error("Error en carga de fondo:", e); }
-          }, 500); // Esto empieza medio segundo después de que ya tengas el control de la pantalla
+          }, 500);
       }
+
+      // 🔄 RECUPERAMOS EL REALTIME (Para que deje de decir "Conectando" y se ponga verde)
+      supabase.channel('public:db_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
+              if(payload.new && payload.new.id === 'global') {
+                  const md = payload.new.data;
+                  S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
+                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+                  S.fisio = md.fisio || {};
+                  _refreshAfterSync();
+                  if(typeof renderCompare === 'function') renderCompare();
+              }
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
+              if(payload.new && payload.new.match_data) {
+                  const m = payload.new.match_data;
+                  if(!S.matches.find(x => x.id === m.id)) {
+                      S.matches.push(m);
+                      if(m.placedShots) S.shots.push(...m.placedShots);
+                      if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify(m));
+                      _refreshAfterSync();
+                  }
+              }
+          })
+          .subscribe();
 
   } catch (err) {
       console.error("❌ Error iniciando Supabase:", err);

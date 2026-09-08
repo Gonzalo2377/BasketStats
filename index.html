@@ -13286,24 +13286,20 @@ async function ldLS() {
           S.clips2 = c2;
       }
 
-      S.matches = []; 
-      S.shots = [];
+      S.matches = []; S.shots = [];
       const tMsg = document.getElementById('telon-msg');
 
-      // 🚀 2. DESCARGA CONDICIONAL (EL DISEÑO QUE HAS PEDIDO)
       if (savedRole === 'player') {
           // ==========================================
-          // MODO JUGADOR: Solo Claret + Rival (Vuela)
+          // MODO JUGADOR: Solo Claret + Rival 
           // ==========================================
           if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
-          
           let queryStr = rivalSemana 
               ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
           
           const { data, error } = await supabase.from('matches').select('match_data').or(queryStr).limit(1000);
           if (error) throw error;
-          
           if (data) {
               data.forEach(row => {
                   const m = row.match_data;
@@ -13316,15 +13312,11 @@ async function ldLS() {
           
       } else {
           // ==========================================
-          // MODO STAFF: Carga Inicial (Copa/Supercopa) y Background Fetch
+          // MODO STAFF: Carga Inicial y Background Fetch
           // ==========================================
           if (tMsg) tMsg.innerText = "Cargando Copa y Supercopa...";
           
-          // FASE 1 (Bloqueante para el telón): Copa y Supercopa
-          const { data: dataCopa } = await supabase.from('matches')
-              .select('match_data')
-              .or('competition.ilike.%Copa%,competition.ilike.%Supercopa%');
-              
+          const { data: dataCopa } = await supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%');
           if (dataCopa) {
               dataCopa.forEach(row => {
                   const m = row.match_data;
@@ -13336,34 +13328,18 @@ async function ldLS() {
           S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
           _refreshAfterSync();
 
-          // FASE 2: CARGA EN SEGUNDO PLANO (El usuario ya está usando la app)
-          setTimeout(async () => {
-              try {
-                  if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana en segundo plano...', 'ok');
-                  
-                  // Bajar Primera Catalana
-                  const { data: dataPrimera } = await supabase.from('matches').select('match_data').ilike('competition', '%Primera%');
-                  if (dataPrimera) {
-                      dataPrimera.forEach(row => {
+          // 🚀 FUNCIÓN ANTI-COLAPSOS: Descarga la categoría en porciones de 200
+          const fetchEnLotes = async (queryBase) => {
+              let fromRow = 0;
+              const step = 20; 
+              let fetching = true;
+              while (fetching) {
+                  const { data, error } = await queryBase.range(fromRow, fromRow + step - 1);
+                  if (error) throw error;
+                  if (data && data.length > 0) {
+                      data.forEach(row => {
                           const m = row.match_data;
-                          if (!S.matches.find(x => x.id === m.id)) { // Evitar duplicados
-                              const ps = m.placedShots || []; delete m.placedShots;
-                              S.matches.push(m); S.shots.push(...ps);
-                              if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-                          }
-                      });
-                      S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-                      _refreshAfterSync(); // Actualizamos la interfaz silenciosamente
-                  }
-
-                  if (typeof toast === 'function') toast('⏳ Descargando Preferente...', 'ok');
-
-                  // Bajar Junior Preferente
-                  const { data: dataPref } = await supabase.from('matches').select('match_data').ilike('competition', '%Preferente%');
-                  if (dataPref) {
-                      dataPref.forEach(row => {
-                          const m = row.match_data;
-                          if (!S.matches.find(x => x.id === m.id)) {
+                          if (!S.matches.find(x => x.id === m.id)) { // Filtro anti-duplicados
                               const ps = m.placedShots || []; delete m.placedShots;
                               S.matches.push(m); S.shots.push(...ps);
                               if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
@@ -13371,35 +13347,36 @@ async function ldLS() {
                       });
                       S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
                       _refreshAfterSync();
+                      fromRow += step;
+                      if (data.length < step) fetching = false; // Se acabó esta categoría
+                  } else {
+                      fetching = false;
                   }
+              }
+          };
 
-                  // Bajar el resto (Amistosos u otros, para no perder nada del histórico)
-                  const { data: dataResto } = await supabase.from('matches')
-                      .select('match_data')
+          // FASE 2: CARGA EN SEGUNDO PLANO
+          setTimeout(async () => {
+              try {
+                  if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana...', 'ok');
+                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Primera%'));
+
+                  if (typeof toast === 'function') toast('⏳ Descargando Preferente...', 'ok');
+                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'));
+
+                  if (typeof toast === 'function') toast('⏳ Descargando resto del histórico...', 'ok');
+                  // Aquí metemos el "resto", pero como pasa por el embudo de 200 en 200, jamás dará error 500
+                  await fetchEnLotes(supabase.from('matches').select('match_data')
                       .not('competition', 'ilike', '%Copa%')
                       .not('competition', 'ilike', '%Supercopa%')
                       .not('competition', 'ilike', '%Primera%')
-                      .not('competition', 'ilike', '%Preferente%');
-
-                  if (dataResto) {
-                      dataResto.forEach(row => {
-                          const m = row.match_data;
-                          if (!S.matches.find(x => x.id === m.id)) {
-                              const ps = m.placedShots || []; delete m.placedShots;
-                              S.matches.push(m); S.shots.push(...ps);
-                              if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-                          }
-                      });
-                      S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-                      _refreshAfterSync();
-                  }
+                      .not('competition', 'ilike', '%Preferente%'));
 
                   if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
-
               } catch(e) {
                   console.error("Error en carga de fondo:", e);
               }
-          }, 2000); // Esto arranca 2 segundos después de que el Staff ya tenga el control
+          }, 2000); 
       }
 
   } catch (err) {
@@ -13407,7 +13384,7 @@ async function ldLS() {
       if (typeof toast === 'function') toast('Modo Offline / Error', 'err');
   }
 
-  // 🟢 DESTRUIR TELÓN (Liberamos la pantalla de inmediato) 🟢
+  // 🟢 DESTRUIR TELÓN 🟢
   const telon = document.getElementById('telon-global');
   if(telon) {
       telon.style.transition = "opacity 0.4s ease";
@@ -13415,7 +13392,6 @@ async function ldLS() {
       setTimeout(() => telon.remove(), 400);
   }
 
-  // Enlaces directos a perfiles...
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('jugador')) {
       if (savedRole === 'staff') {

@@ -13240,37 +13240,10 @@ window.vCancelClip = function() {
 };
 
 async function ldLS() {
-  // 🛑 TELÓN GLOBAL DE CARGA 🛑
-  if (!document.getElementById('telon-global')) {
-      document.body.insertAdjacentHTML('beforeend', `
-          <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
-              <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
-              <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
-              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
-              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
-          </div>
-      `);
-  }
-
-  // 1. CARGA LOCAL RÁPIDA (Caché)
-  try {
-    const localData = localStorage.getItem('bascatapp_data');
-    if (localData) {
-      const parsed = JSON.parse(localData);
-      if (parsed) {
-        S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
-        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
-        S.fisio = parsed.fisio || {};
-        _refreshAfterSync();
-      }
-    }
-  } catch (e) {}
-
   const savedRole = localStorage.getItem('bascatRole');
   const rivalSemana = S.nextMatch?.rival || '';
 
   try {
-      // 2. DESCARGAR METADATA Y CLIPS (Supabase)
       const [metaRes, clipsRes] = await Promise.all([
           supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
           supabase.from('clips').select('*')
@@ -13282,107 +13255,79 @@ async function ldLS() {
           S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
           S.fisio = md.fisio || {};
       }
-
       if (clipsRes.data) {
-          const c2 = {};
-          clipsRes.data.forEach(row => {
-              if (row.id !== 'legacy_clips') {
-                  c2[row.data.key] = row.data;
-              }
-          });
+          const c2 = {}; clipsRes.data.forEach(r => { if(r.id !== 'legacy_clips') c2[r.data.key] = r.data; });
           S.clips2 = c2;
       }
 
-      // 3. DESCARGAR PARTIDOS INTELIGENTE
-      let query = supabase.from('matches').select('match_data');
+      let matchesRes;
       
+      // 🚀 MOTOR DE DESCARGA CONDICIONAL
       if (savedRole === 'player') {
-          if (rivalSemana) {
-              query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
-          } else {
-              query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
-          }
+          // JUGADOR: Descarga PESADA, pero solo filtra sus partidos y los del rival (Baja en milisegundos)
+          let query = supabase.from('matches').select('match_data');
+          if (rivalSemana) query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
+          else query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
+          matchesRes = await query;
+      } else {
+          // STAFF: Descarga los 1530 partidos de golpe, pero desde la VISTA LIGERA (Sin la morralla de la FCBQ)
+          matchesRes = await supabase.from('matches_light').select('match_data');
       }
 
-      const matchesRes = await query;
       if (matchesRes.error) throw matchesRes.error;
 
       const matches = [], shots = [];
       matchesRes.data.forEach(row => {
           const m = row.match_data;
-          const ps = m.placedShots || [];
-          delete m.placedShots;
-          matches.push(m);
-          shots.push(...ps);
+          const ps = m.placedShots || []; delete m.placedShots;
+          matches.push(m); shots.push(...ps);
           
-          // 🔥 EL PARCHE MÁGICO: Sellar los partidos descargados para no re-subirlos
-          if (typeof _hash === 'function') {
-              const fullMatch = { ...m, placedShots: ps };
-              _matchHashes[String(m.id)] = _hash(JSON.stringify(fullMatch));
-          }
+          if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
       });
 
       matches.sort((a, b) => (a.id || 0) - (b.id || 0));
       S.matches = matches; S.shots = shots;
-
       _refreshAfterSync();
 
-      // 4. INICIAR REALTIME
-      supabase.channel('public:db_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
-              if(payload.new && payload.new.id === 'global') {
-                  const md = payload.new.data;
-                  S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
-                  S.fisio = md.fisio || {};
-                  _refreshAfterSync();
-                  if(typeof renderCompare === 'function') renderCompare();
-              }
-          })
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
-              if(payload.new && payload.new.match_data) {
-                  const m = payload.new.match_data;
-                  if(!S.matches.find(x => x.id === m.id)) {
-                      S.matches.push(m);
-                      if(m.placedShots) S.shots.push(...m.placedShots);
-                      if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify(m));
-                      _refreshAfterSync();
-                  }
-              }
-          })
-          .subscribe();
-
   } catch (err) {
-      console.error("❌ Error grave iniciando Supabase:", err);
-      toast('Modo Offline: Usando caché local', 'err');
-  }
-
-  // 🟢 DESTRUIR TELÓN 🟢
-  const telon = document.getElementById('telon-global');
-  if(telon) {
-      telon.style.transition = "opacity 0.4s ease";
-      telon.style.opacity = "0";
-      setTimeout(() => telon.remove(), 400);
-  }
-
-  const urlParams = new URLSearchParams(window.location.search);
-  if(urlParams.get('jugador')) {
-      if (savedRole === 'staff') {
-          if (typeof _applyRole === 'function') _applyRole('staff');
-          const gate = document.getElementById('login-gate'); if (gate) gate.style.display = 'none';
-          setTimeout(() => { 
-              if (typeof openPlayerProfile === 'function') openPlayerProfile(urlParams.get('jugador'), urlParams.get('equipo') || '__ALL__', urlParams.get('temp') || null);
-          }, 500);
-      } else if (savedRole === 'player') {
-          setTimeout(() => {
-              toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
-              window.history.replaceState({}, '', window.location.pathname);
-          }, 500);
-      } else {
-          window._enlacePendiente = { j: urlParams.get('jugador'), e: urlParams.get('equipo') || '__ALL__', t: urlParams.get('temp') || null };
-      }
+      console.error("❌ Error iniciando Supabase:", err);
+      toast('Modo Offline / Error', 'err');
   }
 }
+
+// 📦 DESCARGA ACTAS PESADAS BAJO DEMANDA
+window.descargarDetallesPesados = async function(teamName) {
+    // 1. Buscamos qué partidos de este equipo NO tienen el play-by-play (fcbqMoves) en memoria
+    const partidosFaltantes = S.matches
+        .filter(m => (m.homeTeam === teamName || m.awayTeam === teamName) && !m.fcbqMoves)
+        .map(m => m.id);
+
+    if (partidosFaltantes.length === 0) return; // Ya los tienes todos
+
+    if (typeof toast === 'function') toast(`⏳ Descargando actas de ${teamName}...`, 'ok');
+
+    // 2. Pedimos a la tabla 'matches' (la pesada) SOLO los IDs que nos faltan
+    const { data, error } = await supabase.from('matches')
+        .select('match_data')
+        .in('id', partidosFaltantes);
+
+    if (error) { console.error(error); return; }
+
+    // 3. Inyectamos los datos pesados en tu memoria RAM (S.matches) de forma silenciosa
+    data.forEach(row => {
+        const full = row.match_data;
+        const mMemoria = S.matches.find(x => x.id === full.id);
+        if (mMemoria) {
+            mMemoria.fcbqMoves = full.fcbqMoves || [];
+            mMemoria.events = full.events || [];
+            mMemoria.shots = full.shots || [];
+            mMemoria.subEvents = full.subEvents || [];
+            if (full.placedShots) S.shots.push(...full.placedShots);
+        }
+    });
+
+    if (typeof toast === 'function') toast(`✅ Scouting de ${teamName} listo.`, 'ok');
+};
 
 // 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
 async function svL() {

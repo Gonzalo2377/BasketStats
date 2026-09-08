@@ -13268,8 +13268,10 @@ async function ldLS() {
 
   const savedRole = localStorage.getItem('bascatRole');
   const rivalSemana = S.nextMatch?.rival || '';
+  const telon = document.getElementById('telon-global');
 
   try {
+      // 2. METADATA SÚPER RÁPIDA (Configuración de la app)
       const [metaRes, clipsRes] = await Promise.all([
           supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
           supabase.from('clips').select('*')
@@ -13286,14 +13288,12 @@ async function ldLS() {
           S.clips2 = c2;
       }
 
-      S.matches = []; 
-      S.shots = [];
-      const tMsg = document.getElementById('telon-msg');
+      S.matches = []; S.shots = [];
 
-      // 🚀 FUNCIÓN ANTI-COLAPSOS GLOBAL (Aplica a todo)
-      const fetchEnLotes = async (queryBase) => {
-          let fromRow = 0;
-          const step = 20; // Embudo de seguridad de 20 en 20 para archivos muy pesados
+      // 🚀 FUNCIÓN ANTI-COLAPSOS (Con control de velocidad)
+      // Recibe la petición y cuántos partidos bajar de golpe (step)
+      const fetchEnLotes = async (queryBase, step = 20) => {
+          let fromRow = 0; 
           let fetching = true;
           while (fetching) {
               const { data, error } = await queryBase.range(fromRow, fromRow + step - 1);
@@ -13301,7 +13301,7 @@ async function ldLS() {
               if (data && data.length > 0) {
                   data.forEach(row => {
                       const m = row.match_data;
-                      if (!S.matches.find(x => x.id === m.id)) { // Filtro anti-duplicados
+                      if (!S.matches.find(x => x.id === m.id)) {
                           const ps = m.placedShots || []; delete m.placedShots;
                           S.matches.push(m); S.shots.push(...ps);
                           if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
@@ -13311,78 +13311,84 @@ async function ldLS() {
                   _refreshAfterSync();
                   fromRow += step;
                   if (data.length < step) fetching = false; 
-              } else {
-                  fetching = false;
-              }
+              } else { fetching = false; }
           }
       };
 
-      if (savedRole === 'player') {
+      // 🧠 LÓGICA DE RUTAS Y DESCARGAS
+      if (!savedRole) {
           // ==========================================
-          // MODO JUGADOR: Solo Claret + Rival (Sin segundo plano)
+          // 1. NO SABE QUIÉN ERES: Fuera telón al instante para que elijas
           // ==========================================
+          if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
+          
+      } else if (savedRole === 'player') {
+          // ==========================================
+          // 2.1 MODO JUGADOR: Solo Claret + Rival 
+          // ==========================================
+          const tMsg = document.getElementById('telon-msg');
           if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
+          
           let queryStr = rivalSemana 
               ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
           
           const { data, error } = await supabase.from('matches').select('match_data').or(queryStr).limit(1000);
-          if (error) throw error;
-          if (data) {
+          if (!error && data) {
               data.forEach(row => {
                   const m = row.match_data;
                   const ps = m.placedShots || []; delete m.placedShots;
                   S.matches.push(m); S.shots.push(...ps);
               });
+              S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+              _refreshAfterSync();
           }
-          S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-          _refreshAfterSync();
+          // Quitar telón al acabar
+          if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
           
       } else {
           // ==========================================
-          // MODO STAFF: Carga Inicial y Background Fetch
+          // 2.2 MODO STAFF: Background Fetch (El diseño que pediste)
           // ==========================================
-          if (tMsg) tMsg.innerText = "Cargando Copa y Supercopa...";
           
-          // FASE 1 (Bloqueante): Copa y Supercopa por el embudo seguro
-          await fetchEnLotes(supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%'));
+          // Quitamos el telón DE INMEDIATO para que ya puedas usar la app y moverte
+          if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
 
-          // FASE 2: CARGA EN SEGUNDO PLANO (El telón ya se puede quitar en unos milisegundos)
+          // Empezamos la descarga en segundo plano
           setTimeout(async () => {
               try {
+                  // A. Primera Catalana (Como no pesa, step de 100 para que vuele)
                   if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Primera%'));
+                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Primera%'), 100);
 
+                  // B. Copa y Supercopa (Pesados: step de 20 por seguridad)
+                  if (typeof toast === 'function') toast('⏳ Descargando Copa y Supercopa...', 'ok');
+                  await fetchEnLotes(supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%'), 20);
+
+                  // C. Preferente (Pesados: step de 20)
                   if (typeof toast === 'function') toast('⏳ Descargando Preferente...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'));
+                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'), 20);
 
-                  if (typeof toast === 'function') toast('⏳ Descargando resto del histórico...', 'ok');
+                  // D. Todo lo demás que pueda haber quedado
+                  if (typeof toast === 'function') toast('⏳ Completando histórico...', 'ok');
                   await fetchEnLotes(supabase.from('matches').select('match_data')
                       .not('competition', 'ilike', '%Copa%')
                       .not('competition', 'ilike', '%Supercopa%')
                       .not('competition', 'ilike', '%Primera%')
-                      .not('competition', 'ilike', '%Preferente%'));
+                      .not('competition', 'ilike', '%Preferente%'), 20);
 
                   if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
-              } catch(e) {
-                  console.error("Error en carga de fondo:", e);
-              }
-          }, 2000); 
+              } catch(e) { console.error("Error en carga de fondo:", e); }
+          }, 500); // Esto empieza medio segundo después de que ya tengas el control de la pantalla
       }
 
   } catch (err) {
       console.error("❌ Error iniciando Supabase:", err);
       if (typeof toast === 'function') toast('Modo Offline / Error', 'err');
+      if(telon) telon.remove();
   }
 
-  // 🟢 DESTRUIR TELÓN 🟢
-  const telon = document.getElementById('telon-global');
-  if(telon) {
-      telon.style.transition = "opacity 0.4s ease";
-      telon.style.opacity = "0";
-      setTimeout(() => telon.remove(), 400);
-  }
-
+  // Comprobación de perfil de jugador en URL
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('jugador')) {
       if (savedRole === 'staff') {

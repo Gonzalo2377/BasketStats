@@ -2764,7 +2764,18 @@ body.zen-mode {
 <!-- TOPBAR -->
 <div class="top">
   <div class="logo">Basket<span>App</span></div>
-  <span class="bge">β</span><span id="app-ver" style="font-size:16px;color:rgb(79, 186, 253);margin-left:6px">DARE TO DREAM</span>
+  <span id="app-ver" style="
+      font-size: 13.5px;
+      font-weight: 900;
+      margin-left: 10px;
+      letter-spacing: 0.18em;
+      background: linear-gradient(to right, #1e33ec, #6ba0ef, #f7f7f9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      text-shadow: 0px 0px 15px rgba(129, 140, 248, 0.4);
+    ">DARE TO DREAM</span>
   <div class="tr">
     <button id="btn-codes" onclick="changeAccessCodes()" title="Cambiar códigos de acceso" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔑</button>
     <button onclick="doLogout()" title="Cerrar sesión" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer">🔒 Salir</button>
@@ -3786,29 +3797,13 @@ body.zen-mode {
 </div>
 
 <script type="module">
-// ═══════════════════════════════════════════
-// FIREBASE SETUP
-// ═══════════════════════════════════════════
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch, query, where } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCUUqhC86_f-_2jVT49r8W5uen7QkwcZJ4",
-  authDomain: "bascatapp.firebaseapp.com",
-  projectId: "bascatapp",
-  storageBucket: "bascatapp.firebasestorage.app",
-  messagingSenderId: "174616708851",
-  appId: "1:174616708851:web:b03b42debf8664309b1986"
-};
+// 🚀 INICIALIZACIÓN DE SUPABASE
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const DATA_DOC = doc(db, 'bascatapp', 'data'); // legacy single-doc (kept as backup)
-const META_DOC = doc(db, 'bascatapp', 'meta');
-const CLIPS_DOC = doc(db, 'bascatapp', 'clipsdoc');
-const MATCHES_COL = collection(db, 'bascatapp', 'data', 'matches');
-const CLIPS_COL = collection(db, 'bascatapp', 'data', 'clips'); // un documento por partido: sin límite de tamaño
+const supabaseUrl = 'https://amjxnjxjtakgsfpisnbq.supabase.co';
+const supabaseKey = 'sb_publishable_zDk6pygUKObV7uRHWYCGxw_FpAqfR6B';
+const supabase = createClient(supabaseUrl, supabaseKey);
 let _clipHashes={};
 // djb2 hash to detect which matches actually changed (avoid rewriting everything)
 function _hash(str){let h=5381;for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))|0;}return h;}
@@ -3852,6 +3847,33 @@ let S = {teams:[], matches:[], shots:[], clips:{}, playerNotes:{}, watchGroups:[
 let _saving = false;
 let _saveTimer = null;
 
+// 💾 FUNCIÓN PARA GUARDAR EN SUPABASE
+async function saveMatchToSupabase(m) {
+    try {
+        // Upsert significa: "Si no existe, lo crea. Si ya existe (mismo id), lo actualiza"
+        const { data, error } = await supabase
+            .from('matches')
+            .upsert({
+                id: m.id, // Tu ID numérico (ej. Date.now() o el de la FCBQ)
+                home_team: m.homeTeam || '',
+                away_team: m.awayTeam || '',
+                season: m.season || 'Sin temporada',
+                competition: m.competition || '',
+                match_date: m.date || '',
+                match_data: m // METEMOS TODO EL JSON DEL PARTIDO AQUÍ DENTRO
+            });
+
+        if (error) {
+            console.error("❌ Error de Supabase:", error);
+            if(typeof toast === 'function') toast('Error al guardar en nube', 'err');
+        } else {
+            console.log("✅ Partido inyectado directamente a Supabase");
+        }
+    } catch (e) {
+        console.error("❌ Error forzando subida a Supabase:", e);
+    }
+}
+
 function setSyncStatus(state) {
   const dot = document.getElementById('sync-dot');
   const txt = document.getElementById('sync-txt');
@@ -3884,95 +3906,6 @@ function extractLightMatch(m) {
     return light;
 }
 
-window.migrarALight = async function() {
-    console.log("Iniciando volcado masivo a la carpeta ligera...");
-    // Usamos el writeBatch y la db que ya existen en tu código
-    let batch = writeBatch(db);
-    let count = 0;
-    let total = 0;
-    
-    for (let m of S.matches) {
-        const lightPayload = extractLightMatch(m); 
-        const lightRef = doc(collection(db, 'matches_light'), String(m.id));
-        batch.set(lightRef, lightPayload);
-        
-        count++; 
-        total++;
-        
-        if (count === 100) {
-            await batch.commit();
-            console.log(`✅ Copiados ${total} partidos...`);
-            batch = writeBatch(db);
-            count = 0;
-        }
-    }
-    
-    if (count > 0) {
-        await batch.commit();
-        console.log(`✅ Copiados ${total} partidos...`);
-    }
-    console.log("🚀 ¡MIGRACIÓN COMPLETADA! Ya puedes cambiar el código de lectura.");
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🧠 SVL INTELIGENTE: LOCALSTORAGE LIGERO + SEGURO ANTI-BUCLES
-// ═══════════════════════════════════════════════════════════════════════════
-
-function svL() {
-    try {
-        // Guardamos solo lo ligero en local para no saturar la cuota
-        let ultraLightS = {
-            teams: S.teams || [],
-            playerNotes: S.playerNotes || {},
-            watchGroups: S.watchGroups || [],
-            nextMatch: S.nextMatch || null,
-            fisio: S.fisio || {}
-        };
-        localStorage.setItem('bascatapp_data', JSON.stringify(ultraLightS));
-    } catch(e) { console.warn('Error guardando en local:', e); }
-
-    if (_firebaseSyncTimer) clearTimeout(_firebaseSyncTimer);
-    setSyncStatus('saving');
-
-    _firebaseSyncTimer = setTimeout(async () => {
-        try {
-            const metaPayload = _cleanFirestorePayload({
-                teams: S.teams || [], access: S.access || null,
-                playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
-                nextMatch: S.nextMatch || null, fisio: S.fisio || {}
-            });
-            await setDoc(META_DOC, metaPayload, { merge: true });
-
-            if (S.matches && Array.isArray(S.matches)) {
-                let batch = writeBatch(db);
-                let count = 0;
-                for (const m of S.matches) {
-                    const mIdStr = String(m.id);
-                    const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
-                    const matchPayload = _cleanFirestorePayload({ ...m, placedShots });
-                    
-                    const currentHash = _hash(JSON.stringify(matchPayload));
-                    if (_matchHashes[mIdStr] !== currentHash) {
-                        batch.set(doc(MATCHES_COL, mIdStr), matchPayload); // Solo el guardado normal
-                        _matchHashes[mIdStr] = currentHash; 
-                        count++;
-                    }
-                    if (count === 2) { // De 2 en 2 para que Google no corte
-                        await batch.commit();
-                        batch = writeBatch(db);
-                        count = 0;
-                    }
-                }
-                if (count > 0) await batch.commit();
-            }
-            console.log("☁️ Nube sincronizada (Guardado estándar)");
-            setSyncStatus('ok');
-        } catch(e) {
-            console.error('Error subiendo a Firebase:', e);
-            setSyncStatus('error');
-        }
-    }, 3000); 
-}
 
 function _refreshAfterSync(){
   const loader = document.getElementById('st-loader');
@@ -3994,162 +3927,140 @@ async function ldLS() {
               <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
               <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
               <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
-              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Descargando y calculando el historial de partidos...</p>
+              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
           </div>
       `);
   }
 
-  // 🚀 1. CACHE FIRST
+  // 1. CARGA LOCAL RÁPIDA (Caché)
   try {
     const localData = localStorage.getItem('bascatapp_data');
     if (localData) {
       const parsed = JSON.parse(localData);
-      if (parsed && parsed.teams) {
-        S.teams = parsed.teams || [];
-        S.playerNotes = parsed.playerNotes || {};
-        S.watchGroups = parsed.watchGroups || [];
-        S.nextMatch = parsed.nextMatch || null;
+      if (parsed) {
+        S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
+        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
         S.fisio = parsed.fisio || {};
-        
-        S.matches = S.matches || [];
-        S.shots = S.shots || [];
-        S.clips = S.clips || {};
-        S.clips2 = S.clips2 || {};
-
-        console.log("⚡ Cargado desde caché sin romper la estructura");
         _refreshAfterSync();
-        if (typeof renderCompare === 'function') renderCompare();
       }
     }
-  } catch (e) {
-    console.warn("Caché local no disponible", e);
-  }
-  setSyncStatus('conn');
-  
-  // ── Migración inicial única ──
+  } catch (e) {}
+
+  const savedRole = localStorage.getItem('bascatRole');
+  const rivalSemana = S.nextMatch?.rival || '';
+
   try {
-    const metaSnap = await getDoc(META_DOC);
-    if (!metaSnap.exists()) {
-      const legacy = await getDoc(DATA_DOC);
-      if (legacy.exists()) {
-        const d = legacy.data();
-        await setDoc(META_DOC, { teams: d.teams || [], migratedAt: Date.now() });
-        await setDoc(CLIPS_DOC, { clips: d.clips || {} });
-        const shots = d.shots || [];
-        for (const m of (d.matches || [])) {
-          const placedShots = shots.filter(s => (s.mId || s.matchId) == m.id);
-          await setDoc(doc(MATCHES_COL, String(m.id)), { ...m, placedShots });
-        }
-        console.log('✓ Migración completada');
-      } else {
-        await setDoc(META_DOC, { teams: [], createdAt: Date.now() });
+      // 2. DESCARGAR METADATA Y CLIPS (Supabase)
+      const [metaRes, clipsRes] = await Promise.all([
+        supabase.from('metadata').select('data').eq('id', 'global').maybeSingle(),
+        supabase.from('clips').select('*')
+      ]);
+
+      if (metaRes.data) {
+          const md = metaRes.data.data;
+          S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
+          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+          S.fisio = md.fisio || {};
       }
-    }
-  } catch(e) { console.error('Migration error:', e); }
 
-  onSnapshot(META_DOC, (snap) => {
-    S.teams = snap.exists() ? (snap.data().teams || []) : [];
-    S.access = snap.exists() ? (snap.data().access || null) : null;
-    S.playerNotes = snap.exists() ? (snap.data().playerNotes || {}) : {};
-    S.watchGroups = snap.exists() ? (snap.data().watchGroups || []) : [];
-    S.nextMatch = snap.exists() ? (snap.data().nextMatch || null) : null;
-    S.fisio = snap.exists() ? (snap.data().fisio || {}) : {};
+      if (clipsRes.data) {
+          const c2 = {};
+          clipsRes.data.forEach(row => {
+              if (row.id !== 'legacy_clips') { // Ignoramos legacy antiguo si lo hubiera
+                  c2[row.data.key] = row.data;
+              }
+          });
+          S.clips2 = c2;
+      }
 
-    _refreshAfterSync();
-    if (typeof renderCompare === 'function') renderCompare();
-  }, (err) => { console.error(err); setSyncStatus('error'); });
+      // 3. DESCARGAR PARTIDOS INTELIGENTE
+      let query = supabase.from('matches').select('match_data');
+      
+      // Si es jugador, filtramos a nivel de servidor (vuela)
+      if (savedRole === 'player') {
+          if (rivalSemana) {
+              query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
+          } else {
+              query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
+          }
+      }
 
-  onSnapshot(CLIPS_DOC, async (snap) => {
-    S.clips = snap.exists() ? (snap.data().clips || {}) : {};
-    const legacy2 = snap.exists() ? (snap.data().clips2 || null) : null;
-    if (legacy2 && Object.keys(legacy2).length) {
-      try {
-        for (const [mkKey, mk] of Object.entries(legacy2)) {
-          await setDoc(doc(CLIPS_COL, String(Math.abs(_hash(mkKey)))), { key: mkKey, ...mk });
-        }
-        await setDoc(CLIPS_DOC, { clips: S.clips || {} }); 
-      } catch(e) {}
-    }
-  }, (err) => { console.error(err); });
+      const matchesRes = await query;
+      if (matchesRes.error) throw matchesRes.error;
 
-  onSnapshot(CLIPS_COL, (qs) => {
-    const c2 = {};
-    qs.forEach(d => {
-      const data = d.data();
-      const key = data.key;
-      if (!key) return;
-      const { key: _k, ...rest } = data;
-      c2[key] = rest;
-      _clipHashes[d.id] = _hash(JSON.stringify({ key, ...rest }));
-    });
-    S.clips2 = c2;
-    if(typeof renderVideoLib === 'function') renderVideoLib();
-  }, (err) => { console.error(err); });
+      const matches = [], shots = [];
+      matchesRes.data.forEach(row => {
+          const m = row.match_data;
+          const ps = m.placedShots || [];
+          delete m.placedShots;
+          matches.push(m);
+          shots.push(...ps);
+      });
 
-  // 🔥 DESCARGA PRINCIPAL 🔥
-  onSnapshot(MATCHES_COL, (qs) => {
-    const matches = [], shots = [];
-    qs.forEach(dSnap => {
-      const m = dSnap.data();
-      const ps = m.placedShots || [];
-      delete m.placedShots;
-      matches.push(m);
-      shots.push(...ps);
-      _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-    });
-    matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-    S.matches = matches;
-    S.shots = shots;
-    
-    _refreshAfterSync();
+      matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+      S.matches = matches; S.shots = shots;
 
-    // 🟢 DESTRUIMOS EL TELÓN GLOBAL AQUÍ 🟢
-    const telon = document.getElementById('telon-global');
-    if(telon) {
-        telon.style.transition = "opacity 0.5s ease";
-        telon.style.opacity = "0";
-        setTimeout(() => telon.remove(), 500);
-    }
+      _refreshAfterSync();
 
-    // 🔗 INTERCEPTOR INTELIGENTE DE LINKS DE JUGADOR (CON SEGURIDAD)
-    const urlParams = new URLSearchParams(window.location.search);
-    const j = urlParams.get('jugador');
-    const e = urlParams.get('equipo');
-    const t = urlParams.get('temp');
+      // 4. INICIAR REALTIME (Sustituto de onSnapshot)
+      // Esto hace que la app se actualice sola si otro entrenador guarda algo
+      supabase.channel('public:db_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
+              if(payload.new && payload.new.id === 'global') {
+                  const md = payload.new.data;
+                  S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
+                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+                  S.fisio = md.fisio || {};
+                  _refreshAfterSync();
+                  if(typeof renderCompare === 'function') renderCompare();
+              }
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
+              // Si alguien mete un partido nuevo, lo añadimos y refrescamos
+              if(payload.new && payload.new.match_data) {
+                  const m = payload.new.match_data;
+                  if(!S.matches.find(x => x.id === m.id)) {
+                      S.matches.push(m);
+                      if(m.placedShots) S.shots.push(...m.placedShots);
+                      _refreshAfterSync();
+                  }
+              }
+          })
+          .subscribe();
 
-    if(j) {
-        const savedRole = localStorage.getItem('bascatRole');
-        
-        if (savedRole === 'staff') {
-            // OPCIÓN 2: Entró previamente como Staff.
-            // 🔥 SOLUCIÓN: Desbloqueamos el fondo y quitamos la puerta de login
-            if (typeof _applyRole === 'function') _applyRole('staff');
-            const gate = document.getElementById('login-gate');
-            if (gate) gate.style.display = 'none';
+  } catch (err) {
+      console.error("❌ Error grave iniciando Supabase:", err);
+      toast('Modo Offline: Usando caché local', 'err');
+  }
 
-            // Ahora sí, abrimos la ficha con el fondo preparado
-            setTimeout(() => { 
-                if (typeof openPlayerProfile === 'function') {
-                    openPlayerProfile(j, e || '__ALL__', t || null);
-                }
-            }, 500);
-        } else if (savedRole === 'player') {
-            // OPCIÓN 1: Entró previamente como Jugador. Bloqueo total.
-            setTimeout(() => {
-                toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
-                const url = new URL(window.location);
-                url.searchParams.delete('jugador');
-                url.searchParams.delete('equipo');
-                url.searchParams.delete('temp');
-                window.history.replaceState({}, '', url);
-            }, 500);
-        } else {
-            // OPCIÓN 3: No hay sesión (Modo Incógnito o usuario nuevo).
-            window._enlacePendiente = { j, e: e || '__ALL__', t: t || null };
-        }
-    }
+  // 🟢 DESTRUIR TELÓN 🟢
+  const telon = document.getElementById('telon-global');
+  if(telon) {
+      telon.style.transition = "opacity 0.4s ease";
+      telon.style.opacity = "0";
+      setTimeout(() => telon.remove(), 400);
+  }
 
-  }, (err) => { console.error(err); setSyncStatus('error'); });
+  // 🔗 INTERCEPTOR DE LINKS COMPARTIDOS
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('jugador')) {
+      if (savedRole === 'staff') {
+          if (typeof _applyRole === 'function') _applyRole('staff');
+          const gate = document.getElementById('login-gate'); if (gate) gate.style.display = 'none';
+          setTimeout(() => { 
+              if (typeof openPlayerProfile === 'function') {
+                  openPlayerProfile(urlParams.get('jugador'), urlParams.get('equipo') || '__ALL__', urlParams.get('temp') || null);
+              }
+          }, 500);
+      } else if (savedRole === 'player') {
+          setTimeout(() => {
+              toast('🔒 Acceso denegado: Solo el Staff puede ver estos informes', 'err');
+              window.history.replaceState({}, '', window.location.pathname);
+          }, 500);
+      } else {
+          window._enlacePendiente = { j: urlParams.get('jugador'), e: urlParams.get('equipo') || '__ALL__', t: urlParams.get('temp') || null };
+      }
+  }
 }
 
 function toast(msg,type='ok'){
@@ -7022,6 +6933,7 @@ function lvUndo(){
   lv.events.pop();
   _lvReplay();rLvAll();svL();
 }
+
 function resetTimer(){clearInterval(lv.timer.interval);lv.timer.running=false;lv.timer.seconds=lv.period>4?300:600;renderTimer();}
 function setPer(n) {
   const p = parseInt(n, 10);
@@ -7253,14 +7165,10 @@ function endLive(){
     })() ,competition:_lvComp,group:_lvGrp,season:_lvSea,homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
   S.matches.push(m);
   
-  // 🛠️ PARCHE 2: FORZAR GUARDADO EN LA NUBE SÍ O SÍ
+  // 🛠️ GUARDADO DEFINITIVO EN SUPABASE
   try {
-      if (typeof setDoc !== 'undefined' && typeof doc !== 'undefined' && typeof MATCHES_COL !== 'undefined') {
-          setDoc(doc(MATCHES_COL, m.id.toString()), m).then(() => {
-              console.log("✅ Partido inyectado directamente a Firebase");
-          });
-      }
-  } catch(e) { console.error("Error al forzar subida:", e); }
+      saveMatchToSupabase(m);
+  } catch(e) { console.error("Error al forzar subida a Supabase:", e); }
   
   svL();
   _lvClearPersist();
@@ -8949,7 +8857,7 @@ window.loadMoreHistory = function() {
     renderMatchHistory();
 };
 
-function deleteMatch(id){
+async function deleteMatch(id){ // 👈 Añadido async aquí
   if(_playerMode){toast('Modo jugador: solo lectura','err');return;}
   const m=S.matches.find(m=>m.id===id);if(!m)return;
   if(!confirm('¿Borrar "'+m.homeTeam+' '+m.scoreHome+'-'+m.scoreAway+' '+m.awayTeam+'"?'))return;
@@ -8965,10 +8873,13 @@ function deleteMatch(id){
   S.matches=S.matches.filter(m=>m.id!==id);
   S.shots=(S.shots||[]).filter(s=>(s.mId||s.matchId)!=id);
   
-  // 🔥 LA CLAVE: Destruir el documento real en Firebase para que no vuelva a descargarse
+  // 🔥 LA CLAVE: Destruir el documento real en Supabase
   try {
-    deleteDoc(doc(db, 'bascatapp', 'data', 'matches', String(id))).catch(e => console.warn('Error borrando en nube:', e));
-  } catch(e) {}
+    const { error } = await supabase.from('matches').delete().eq('id', id);
+    if(error) throw error;
+  } catch(e) {
+    console.warn('Error borrando en nube:', e);
+  }
   
   svL();
   renderMatchHistory();
@@ -11157,27 +11068,18 @@ window.saveNextMatch = async function() {
         time: document.getElementById('nm-time')?.value || ''
     };
     
-    try {
-        await setDoc(META_DOC, { nextMatch: S.nextMatch }, { merge: true });
-        if(typeof toast === 'function') toast("✅ Próximo rival sincronizado en la nube", 'ok');
-    } catch(e) {
-        console.error("Error al sincronizar próximo rival:", e);
-        if(typeof toast === 'function') toast("⚠️ Error al sincronizar con la nube", 'err');
-    }
-    
-    svL();
+    svL(); // 👈 Esto ya lo sube a Supabase
     renderCompare();
+    if(typeof toast === 'function') toast("✅ Próximo rival sincronizado en la nube", 'ok');
 };
 
 window.clearNextMatch = async function() {
     S.nextMatch = null;
-    try {
-        await setDoc(META_DOC, { nextMatch: null }, { merge: true });
-    } catch(e) {}
-    svL();
+    svL(); // 👈 Esto ya lo actualiza en Supabase
     renderCompare();
     if(typeof toast === 'function') toast("🗑️ Partido desconfigurado", 'ok');
 };
+
 
 window.toggleNextRivalPl = function(idx, name) {
     const r = document.getElementById(`nm-pl-row-${idx}`);
@@ -13479,6 +13381,29 @@ window.vCancelClip = function() {
     });
 };
 
+// 💾 GUARDAR METADATA GLOBAL
+async function svL() {
+  const payload = {
+    teams: S.teams || [],
+    access: S.access || null,
+    playerNotes: S.playerNotes || {},
+    watchGroups: S.watchGroups || [],
+    nextMatch: S.nextMatch || null,
+    fisio: S.fisio || {}
+  };
+  
+  // Guardamos copia de seguridad local (instantánea)
+  try { localStorage.setItem('bascatapp_data', JSON.stringify(payload)); } catch(e){}
+
+  // Subimos a Supabase
+  try {
+    const { error } = await supabase.from('metadata').upsert({ id: 'global', data: payload });
+    if(error) throw error;
+  } catch(e) {
+    console.error("Error guardando en Supabase:", e);
+  }
+}
+
 // ── Vincular Acta FCBQ ──
 async function linkFCBQ(matchId) {
     const url = prompt('🔗 Pega el enlace de estadísticas de la FCBQ para este partido:\n(Añadirá la cronología oficial para analizar posesiones y tipos de pérdidas. TUS TIROS se mantendrán intactos)');
@@ -13837,11 +13762,8 @@ Object.assign(window,{
 });
 
 // Autenticación anónima
-(async()=>{
-  try{ await signInAnonymously(getAuth(app)); console.log('✓ Firebase auth anónima'); }
-  catch(e){ console.warn('Auth anónima no disponible (¿proveedor sin activar?):', e.code||e.message); }
-  ldLS();
-})();
+// Iniciar la app con Supabase
+ldLS();
 setTimeout(initAccess,50);
 try { const n=localStorage.getItem('bascatScoutNotes'); if(n) _scoutNotes=JSON.parse(n); } catch(e) {}
 setTimeout(()=>{ drawCourtOnCanvas('db-cv'); },300);

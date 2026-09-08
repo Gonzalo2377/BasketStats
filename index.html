@@ -13381,27 +13381,70 @@ window.vCancelClip = function() {
     });
 };
 
-// 💾 GUARDAR METADATA GLOBAL
+// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
 async function svL() {
+  // 1. Guardado Local Rápido (Instantáneo para caché)
   const payload = {
-    teams: S.teams || [],
-    access: S.access || null,
-    playerNotes: S.playerNotes || {},
-    watchGroups: S.watchGroups || [],
-    nextMatch: S.nextMatch || null,
-    fisio: S.fisio || {}
+    teams: S.teams || [], access: S.access || null,
+    playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
+    nextMatch: S.nextMatch || null, fisio: S.fisio || {}
   };
-  
-  // Guardamos copia de seguridad local (instantánea)
   try { localStorage.setItem('bascatapp_data', JSON.stringify(payload)); } catch(e){}
 
-  // Subimos a Supabase
-  try {
-    const { error } = await supabase.from('metadata').upsert({ id: 'global', data: payload });
-    if(error) throw error;
-  } catch(e) {
-    console.error("Error guardando en Supabase:", e);
-  }
+  // 2. Sistema Anti-Saturación (Debounce de 2.5 segundos)
+  if (window._supabaseSyncTimer) clearTimeout(window._supabaseSyncTimer);
+  if (typeof setSyncStatus === 'function') setSyncStatus('saving');
+
+  window._supabaseSyncTimer = setTimeout(async () => {
+    try {
+      // A) Subir configuraciones globales (Equipos, Notas, etc.)
+      await supabase.from('metadata').upsert({ id: 'global', data: payload });
+
+      // B) Subir Partidos Inteligente (Detecta cuáles han cambiado)
+      if (S.matches && Array.isArray(S.matches)) {
+        const matchesToUpsert = [];
+
+        for (const m of S.matches) {
+          const mIdStr = String(m.id);
+          // Anexar los tiros de la pestaña de mapas al partido antes de subirlo
+          const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
+          const fullMatch = { ...m, placedShots };
+
+          // Verificar si el partido es nuevo o ha cambiado (gracias a la función hash)
+          const currentHash = typeof _hash === 'function' ? _hash(JSON.stringify(fullMatch)) : null;
+          
+          if (currentHash === null || _matchHashes[mIdStr] !== currentHash) {
+            matchesToUpsert.push({
+              id: m.id,
+              home_team: m.homeTeam || '',
+              away_team: m.awayTeam || '',
+              season: m.season || 'Sin temporada',
+              competition: m.competition || '',
+              match_date: m.date || '',
+              match_data: fullMatch
+            });
+            if (currentHash !== null) _matchHashes[mIdStr] = currentHash;
+          }
+        }
+
+        // C) Subir a Supabase en ráfagas de 100 para evitar bloqueos en importaciones masivas
+        if (matchesToUpsert.length > 0) {
+          const chunkSize = 100;
+          for (let i = 0; i < matchesToUpsert.length; i += chunkSize) {
+            const chunk = matchesToUpsert.slice(i, i + chunkSize);
+            const { error } = await supabase.from('matches').upsert(chunk);
+            if (error) throw error;
+          }
+          console.log(`☁️ Supabase sincronizado: ${matchesToUpsert.length} partidos subidos`);
+        }
+      }
+
+      if (typeof setSyncStatus === 'function') setSyncStatus('ok');
+    } catch(e) {
+      console.error('❌ Error subiendo a Supabase:', e);
+      if (typeof setSyncStatus === 'function') setSyncStatus('error');
+    }
+  }, 2500); // El sistema espera a que termines de hacer clics/importar para subirlo todo
 }
 
 // ── Vincular Acta FCBQ ──

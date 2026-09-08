@@ -13381,8 +13381,7 @@ window.vCancelClip = function() {
     });
 };
 
-// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
-// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
+// 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE - MODO TANQUE)
 async function svL() {
   // 1. Guardado Local Rápido
   const payload = {
@@ -13401,7 +13400,7 @@ async function svL() {
       // A) Subir configuraciones globales
       await supabase.from('metadata').upsert({ id: 'global', data: payload });
 
-      // B) Subir Partidos Inteligente
+      // B) Subir Partidos Inteligente (De 1 en 1)
       if (S.matches && Array.isArray(S.matches)) {
         const matchesToUpsert = [];
 
@@ -13412,6 +13411,7 @@ async function svL() {
 
           const currentHash = typeof _hash === 'function' ? _hash(JSON.stringify(fullMatch)) : null;
           
+          // Si el hash no coincide, el partido es nuevo o ha cambiado
           if (currentHash === null || _matchHashes[mIdStr] !== currentHash) {
             matchesToUpsert.push({
               id: m.id,
@@ -13420,23 +13420,35 @@ async function svL() {
               season: m.season || 'Sin temporada',
               competition: m.competition || '',
               match_date: m.date || '',
-              match_data: fullMatch
+              match_data: fullMatch,
+              hash: currentHash // Lo guardamos temporalmente
             });
-            if (currentHash !== null) _matchHashes[mIdStr] = currentHash;
           }
         }
 
-        // C) Subir en MICRO-RÁFAGAS (¡CORREGIDO PARA EVITAR EL TIMEOUT!)
+        // C) Inyección Individual A Prueba de Fallos
         if (matchesToUpsert.length > 0) {
-          const chunkSize = 3; // 👈 Entran de 3 en 3
-            for (let i = 0; i < matchesToUpsert.length; i += chunkSize) {
-            const chunk = matchesToUpsert.slice(i, i + chunkSize);
-            const { error } = await supabase.from('matches').upsert(chunk);
+          for (let i = 0; i < matchesToUpsert.length; i++) {
+            const matchRecord = matchesToUpsert[i];
+            
+            // Subimos SOLO este partido
+            const { error } = await supabase.from('matches').upsert({
+              id: matchRecord.id,
+              home_team: matchRecord.home_team,
+              away_team: matchRecord.away_team,
+              season: matchRecord.season,
+              competition: matchRecord.competition,
+              match_date: matchRecord.match_date,
+              match_data: matchRecord.match_data
+            });
+            
             if (error) throw error;
             
-            // ⏱️ Respiro de medio segundo
-            await new Promise(r => setTimeout(r, 500));
-          }                     
+            // SOLO si ha tenido éxito real, actualizamos el hash en memoria
+            if (matchRecord.hash !== null) {
+               _matchHashes[String(matchRecord.id)] = matchRecord.hash;
+            }
+          }
           console.log(`☁️ Supabase sincronizado: ${matchesToUpsert.length} partidos subidos`);
         }
       }
@@ -13446,7 +13458,7 @@ async function svL() {
       console.error('❌ Error subiendo a Supabase:', e);
       if (typeof setSyncStatus === 'function') setSyncStatus('error');
     }
-  }, 2500); 
+  }, 2000); 
 }
 
 // ── Vincular Acta FCBQ ──

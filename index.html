@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -13240,6 +13240,32 @@ window.vCancelClip = function() {
 };
 
 async function ldLS() {
+  // 🛑 TELÓN GLOBAL DE CARGA 🛑
+  if (!document.getElementById('telon-global')) {
+      document.body.insertAdjacentHTML('beforeend', `
+          <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
+              <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
+              <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
+              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
+              <p style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
+          </div>
+      `);
+  }
+
+  // 1. CARGA LOCAL RÁPIDA (Caché)
+  try {
+    const localData = localStorage.getItem('bascatapp_data');
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      if (parsed) {
+        S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
+        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
+        S.fisio = parsed.fisio || {};
+        _refreshAfterSync();
+      }
+    }
+  } catch (e) {}
+
   const savedRole = localStorage.getItem('bascatRole');
   const rivalSemana = S.nextMatch?.rival || '';
 
@@ -13264,13 +13290,12 @@ async function ldLS() {
       
       // 🚀 MOTOR DE DESCARGA CONDICIONAL
       if (savedRole === 'player') {
-          // JUGADOR: Descarga PESADA, pero solo filtra sus partidos y los del rival (Baja en milisegundos)
           let query = supabase.from('matches').select('match_data');
           if (rivalSemana) query = query.or(`home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`);
           else query = query.or('home_team.ilike.%Claret%,away_team.ilike.%Claret%');
           matchesRes = await query;
       } else {
-          // STAFF: Descarga los 1530 partidos de golpe, pero desde la VISTA LIGERA (Sin la morralla de la FCBQ)
+          // Si ejecutaste el SQL en Supabase, esto vuela.
           matchesRes = await supabase.from('matches_light').select('match_data');
       }
 
@@ -13291,7 +13316,32 @@ async function ldLS() {
 
   } catch (err) {
       console.error("❌ Error iniciando Supabase:", err);
-      toast('Modo Offline / Error', 'err');
+      if (typeof toast === 'function') toast('Modo Offline / Error', 'err');
+  }
+
+  // 🟢 DESTRUIR TELÓN (ESTO ES LO QUE FALTABA) 🟢
+  const telon = document.getElementById('telon-global');
+  if(telon) {
+      telon.style.transition = "opacity 0.4s ease";
+      telon.style.opacity = "0";
+      setTimeout(() => telon.remove(), 400);
+  }
+
+  // Lógica de URL params (perfiles compartidos)
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('jugador')) {
+      if (savedRole === 'staff') {
+          if (typeof _applyRole === 'function') _applyRole('staff');
+          const gate = document.getElementById('login-gate'); if (gate) gate.style.display = 'none';
+          setTimeout(() => { 
+              if (typeof openPlayerProfile === 'function') openPlayerProfile(urlParams.get('jugador'), urlParams.get('equipo') || '__ALL__', urlParams.get('temp') || null);
+          }, 500);
+      } else if (savedRole === 'player') {
+          setTimeout(() => {
+              if (typeof toast === 'function') toast('🔒 Acceso denegado', 'err');
+              window.history.replaceState({}, '', window.location.pathname);
+          }, 500);
+      }
   }
 }
 

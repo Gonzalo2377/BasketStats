@@ -5640,8 +5640,18 @@ function startLive(){
   const hn=document.getElementById('lv-hn').value.trim(),an=document.getElementById('lv-an').value.trim();
   if(!hn||!an){setSt('lv-st','Debes poner los nombres de los equipos.','err');return;}
   lv.hn=hn;lv.an=an;
-  lv.pl.home=parsePlList(document.getElementById('lv-hp').value);
-  lv.pl.away=parsePlList(document.getElementById('lv-ap').value);
+  
+  // 🚀 MAGIA 2: Si el jugador no tiene nombre, le ponemos "Jugador #dorsal"
+  const limpiarPlantilla = (lista) => {
+      return parsePlList(lista).map(p => {
+          if (!p.name || p.name.trim() === '') p.name = p.dorsal ? `Jugador #${p.dorsal}` : 'Anónimo';
+          return p;
+      });
+  };
+
+  lv.pl.home = limpiarPlantilla(document.getElementById('lv-hp').value);
+  lv.pl.away = limpiarPlantilla(document.getElementById('lv-ap').value);
+  
   if(!lv.pl.home.length||!lv.pl.away.length){setSt('lv-st','Debes añadir jugadores a los dos equipos.','err');return;}
   
   lv.st={home:{},away:{}};lv.periodScores=[];
@@ -5652,7 +5662,6 @@ function startLive(){
   lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
   lv.onCourt={home:new Set(),away:new Set()};
   
-  // Limpiar el tablero lógico
   window._tacBoard.slots = { home: [null,null,null,null,null], away: [null,null,null,null,null] };
 
   document.getElementById('lv-setup').style.display='none';
@@ -5665,9 +5674,8 @@ function startLive(){
   lv._startersOk=false;lv.starters=null;
   
   rLvAll();
-  initDragEngine(); // Encender motor táctil
+  initDragEngine(); 
   
-  // Pedir titulares
   toast('⭐ Marca los 5 titulares de cada equipo en la ventana');
   setTimeout(()=>openSubModal(),400);
 }
@@ -7363,7 +7371,6 @@ function _renderStDetalles(scoped,m){
   const best=(pl)=>[...(pl||[])].sort((x,y)=>(y.pts||0)-(x.pts||0))[0];
   const bh=best(m.homePlayers), ba=best(m.awayPlayers);
 
-  // ── Parciales estilo captura: sin columna de equipo, ganador en oscuro ──
   const qCard=q?`<div class="card" style="margin-bottom:9px;padding:14px 16px">
     <div style="display:grid;grid-template-columns:repeat(${q.length},1fr);gap:4px;text-align:center">
       ${q.map(x=>`<div style="font-size:12px;color:var(--t3);padding-bottom:7px">${x.p<=4?'Q'+x.p:'PR'+(x.p-4)}</div>`).join('')}
@@ -7378,7 +7385,6 @@ function _renderStDetalles(scoped,m){
     </div>
   </div>`:'<div class="card" style="margin-bottom:9px"><div class="empty" style="font-size:11px">Sin cronología: este partido no tiene parciales por cuarto.</div></div>';
 
-  // ── Mejor de cada equipo (PTS/REB/AST/STL/BLK) ──
   const cmpRow=(lbl,va,vb)=>`<div style="display:flex;align-items:center;padding:3px 0">
       <b style="width:44px;text-align:right;font-size:16px">${va}</b>
       <span style="flex:1;text-align:center;font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">${lbl}</span>
@@ -7406,22 +7412,66 @@ function _renderStDetalles(scoped,m){
     </div>
   </div>`:'';
 
-  // ── Cronograma de BARRAS: cada acción de anotación, altura = ventaja ──
+  // ── 🚀 SISTEMA DE TOOLTIP BLINDADO CONTRA ERRORES DE SINTAXIS ──
+  if (!window.showBarTooltip) {
+      window.showBarTooltip = function(e, rectEl) {
+          let tt = document.getElementById('cronograma-tooltip');
+          if(!tt) {
+              tt = document.createElement('div');
+              tt.id = 'cronograma-tooltip';
+              tt.style.cssText = 'position:absolute; z-index:999999; background:#0f172a; color:#fff; padding:8px 12px; border-radius:8px; font-size:12px; pointer-events:none; box-shadow:0 10px 15px -3px rgba(0,0,0,0.4); text-align:center; transform:translate(-50%, -100%); margin-top:-15px; font-family:sans-serif; transition: opacity 0.1s ease;';
+              document.body.appendChild(tt);
+          }
+          
+          // Leemos los datos directamente del elemento (así evitamos que las comillas rompan todo)
+          const h = parseInt(rectEl.dataset.h, 10);
+          const a = parseInt(rectEl.dataset.a, 10);
+          const timeStr = rectEl.dataset.time;
+          
+          const diff = h - a;
+          const col = diff > 0 ? '#4ade80' : diff < 0 ? '#60a5fa' : '#cbd5e1';
+          tt.innerHTML = `<div style="font-weight:900;font-size:18px;color:${col};line-height:1.1">${h} - ${a}</div><div style="color:#94a3b8;font-size:10px;font-weight:700;margin-top:4px">${timeStr}</div>`;
+          tt.style.display = 'block';
+          tt.style.left = e.pageX + 'px';
+          tt.style.top = e.pageY + 'px';
+      };
+      window.moveBarTooltip = function(e) {
+          const tt = document.getElementById('cronograma-tooltip');
+          if(tt) { tt.style.left = e.pageX + 'px'; tt.style.top = e.pageY + 'px'; }
+      };
+      window.hideBarTooltip = function() {
+          const tt = document.getElementById('cronograma-tooltip');
+          if(tt) tt.style.display = 'none';
+      };
+  }
+
   const scoring=(m.events||[]).filter(e=>['pts2','pts3','tl_in'].includes(e.type)&&e.score);
   let barSvg='';
   if(scoring.length>1){
     const W=580,H=120,mid=H/2;
-    const diffs=scoring.map(e=>{const h=e.score.h!=null?e.score.h:e.score.home,a=e.score.a!=null?e.score.a:e.score.away;return h-a;});
-    const mx=Math.max(...diffs.map(Math.abs),6);
-    const bw=Math.max(1.6,W/diffs.length-1);
-    barSvg=`<div class="card" style="margin-bottom:9px">
+    const mx=Math.max(...scoring.map(e => Math.abs((e.score.h!=null?e.score.h:e.score.home)-(e.score.a!=null?e.score.a:e.score.away))), 6);
+    const bw=Math.max(1.6,W/scoring.length-1);
+    
+    barSvg=`<div class="card" style="margin-bottom:9px; position:relative;">
       <div class="ct">📈 Cronograma del partido <span style="font-weight:600;text-transform:none;color:var(--t3)">· ventaja de ${_esc(m.homeTeam)} arriba</span></div>
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
         <line x1="0" y1="${mid}" x2="${W}" y2="${mid}" stroke="#cbd5e1" stroke-width="1"/>
-        ${diffs.map((d,i)=>{
-          const x=i*(W/diffs.length), hgt=Math.abs(d)/mx*(mid-8);
+        ${scoring.map((e,i)=>{
+          const h = e.score.h!=null?e.score.h:e.score.home;
+          const a = e.score.a!=null?e.score.a:e.score.away;
+          const d = h - a;
+          const x=i*(W/scoring.length), hgt=Math.abs(d)/mx*(mid-8);
           const y=d>=0?mid-hgt:mid;
-          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,hgt).toFixed(1)}" fill="${d>=0?'#16a34a':'#3b82f6'}" opacity=".9"/>`;
+          
+          const qName = e.period<=4 ? 'Q'+e.period : 'PR'+(e.period-4);
+          const timeStr = `${qName} · ${_fmtClock(_elapsedMin(m, e.period, e.min, false))}`;
+          
+          // 🚀 SE GUARDAN EN data-h, data-a y data-time EN VEZ DE EN EL ONMOUSEOVER
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,hgt).toFixed(1)}" fill="${d>=0?'#16a34a':'#3b82f6'}" opacity=".9" style="cursor:crosshair; transition: opacity 0.15s"
+            data-h="${h}" data-a="${a}" data-time="${_esc(timeStr)}"
+            onmouseover="this.style.opacity='0.5'; window.showBarTooltip(event, this)"
+            onmousemove="window.moveBarTooltip(event)"
+            onmouseout="this.style.opacity='.9'; window.hideBarTooltip()"/>`;
         }).join('')}
         <text x="3" y="11" font-size="9" fill="#15803d">+${mx}</text>
         <text x="3" y="${H-3}" font-size="9" fill="#1e40af">-${mx}</text>
@@ -7432,14 +7482,10 @@ function _renderStDetalles(scoped,m){
     </div>`;
   }
 
-  // ── Jugada a jugada: SOLO anotación, agrupado por cuartos ──
-  // Cada fila usa TODO el ancho para el nombre (nunca hay dos canastas a la vez),
-  // y los elementos fijos (minuto, burbuja, marcador) tienen ancho constante para
-  // que los números no se desplacen de una fila a otra.
   const byQ={};
   scoring.forEach(e=>{(byQ[e.period]=byQ[e.period]||[]).push(e);});
   const pOf=(e)=>e.type==='pts3'?3:e.type==='pts2'?2:1;
-  const qs=Object.keys(byQ).map(Number).sort((a,b)=>b-a);   // último cuarto primero
+  const qs=Object.keys(byQ).map(Number).sort((a,b)=>b-a);
   const pbp=qs.length?qs.map(qq=>{
     const evs=byQ[qq].slice().reverse();
     const last=byQ[qq][byQ[qq].length-1];
@@ -7736,14 +7782,23 @@ function _renderStPlusMinus(scoped,m){
   const body=document.getElementById('st-pm-body');
   const sel=document.getElementById('st-pm-holder');
   if(!body||!sel)return;
+  
   if(!m){
     sel.innerHTML='';
     body.innerHTML='<div class="card"><div class="empty">Elige un partido concreto arriba para ver el +/- por tramos.</div></div>';
     return;
   }
-  const cur=window._stPmSel||'';
-  // Lista de jugadores agrupada por equipo, con buscador integrado
-  const items=[];
+  
+  const cur=window._stPmSel||'TOTAL';
+  
+  // 🚀 AÑADIMOS EL BOTÓN 'TOTAL' AL PRINCIPIO DE LA LISTA
+  const items=[{
+      value: 'TOTAL',
+      label: '📊 VER TOTAL DEL EQUIPO',
+      sub: '',
+      group: 'General'
+  }];
+  
   [['home',m.homeTeam,m.homePlayers],['away',m.awayTeam,m.awayPlayers]].forEach(([side,tn,pl])=>{
     (pl||[]).forEach(p=>items.push({
       value:side+'|'+p.name,
@@ -7751,84 +7806,165 @@ function _renderStPlusMinus(scoped,m){
       sub:String(p.dorsal||''),
       group:tn||side}));
   });
+  
   window._sbData=window._sbData||{};window._sbData['stpm']=items;
   const valido=cur&&items.some(i=>i.value===cur);
-  if(!valido)window._stPmSel='';
-  sel.innerHTML=searchSelect('stpm',items,valido?cur:'','— elige jugador —','stPmPick');
-  const v=valido?cur:'';
-  if(!v){body.innerHTML='<div class="card"><div class="empty">Elige un jugador para ver en qué tramos estuvo en pista y su +/- en cada uno.</div></div>';return;}
+  if(!valido)window._stPmSel='TOTAL';
+  
+  sel.innerHTML=searchSelect('stpm',items,valido?cur:'TOTAL','— ver detalle de un jugador —','stPmPick');
+  const v=valido?cur:'TOTAL';
+
+  // ==========================================
+  // LÍNEA DE TIEMPO GLOBAL DEL EQUIPO
+  // ==========================================
+  if(v === 'TOTAL'){
+      const renderTeamTimeline = (side) => {
+          const pl = side==='home' ? m.homePlayers : m.awayPlayers;
+          const scoring=(m.events||[]).filter(e=>['pts2','pts3','tl_in'].includes(e.type)&&e.score).map(e=>{
+              const h=e.score.h!=null?e.score.h:e.score.home, a=e.score.a!=null?e.score.a:e.score.away;
+              return {t:_elapsedMin(m,e.period,e.min,false), pts:e.type==='pts3'?3:e.type==='pts2'?2:1, team:e.team, oc:e.oc||null};
+          }).sort((x,y)=>x.t-y.t);
+
+          const maxT = Math.max(40, (m.events||[]).reduce((mx,e)=>Math.max(mx, _elapsedMin(m, e.period, e.min, false)), 40));
+
+          let html = `<div style="overflow-x:auto; margin-top:12px;"><table style="width:100%; min-width:800px; border-collapse:collapse; font-size:11px; background:#fff">
+              <thead>
+                  <tr style="border-bottom:1px solid var(--bd); color:var(--t2); background:#f8fafc">
+                      <th style="text-align:left; padding:12px; font-weight:900">JUGADOR/A</th>
+                      <th style="text-align:center; padding:12px; width:40px; font-weight:900">MIN</th>
+                      <th style="padding:12px; width:70%;">
+                          <div style="display:flex; justify-content:space-between; position:relative; width:100%; color:var(--t3); font-size:10px; font-weight:800">
+                              <span style="position:absolute; left:0%;">0'</span>
+                              <span style="position:absolute; left:${(10/maxT)*100}%; transform:translateX(-50%)">10' (P1)</span>
+                              <span style="position:absolute; left:${(20/maxT)*100}%; transform:translateX(-50%)">20' (P2)</span>
+                              <span style="position:absolute; left:${(30/maxT)*100}%; transform:translateX(-50%)">30' (P3)</span>
+                              <span style="position:absolute; left:${(40/maxT)*100}%; transform:translateX(-100%)">40' (P4)</span>
+                          </div>
+                      </th>
+                      <th style="text-align:center; padding:12px; width:70px; font-weight:900">± TOTAL</th>
+                  </tr>
+              </thead>
+              <tbody>`;
+
+          const sortedPl = [...(pl||[])].sort((a,b)=>(b.min||0)-(a.min||0));
+
+          sortedPl.forEach(p => {
+              const {stints}=_playerStints(m, p.name, side);
+              if(!stints || stints.length === 0) return; 
+
+              const onCourtAt=(e)=>{
+                  if(e.oc) return (e.oc[side]||[]).includes(p.name);
+                  return stints.some(st=>e.t>=st.a&&e.t<=st.b);
+              };
+              const deltaOf=(e)=>(e.team===side?e.pts:-e.pts);
+
+              const segs=stints.map(st=>{
+                  const inSeg=scoring.filter(e=>e.t>=st.a&&e.t<=st.b&&onCourtAt(e));
+                  return {...st, min:st.b-st.a, pm:inSeg.reduce((a2,e)=>a2+deltaOf(e),0)};
+              });
+              const totalPM=scoring.filter(onCourtAt).reduce((a2,e)=>a2+deltaOf(e),0);
+              const totalOn=segs.reduce((a2,sg)=>a2+sg.min,0);
+
+              let barHtml = `<div style="position:relative; width:100%; height:20px; background:#f1f5f9; border-radius:10px; overflow:hidden;">`;
+              segs.forEach(sg => {
+                  const left = (sg.a / maxT) * 100;
+                  const width = (sg.min / maxT) * 100;
+                  const col = sg.pm > 0 ? '#22c55e' : sg.pm < 0 ? '#ef4444' : '#cbd5e1'; 
+                  const txt = sg.pm > 0 ? `+${sg.pm}` : sg.pm < 0 ? sg.pm : '0';
+                  barHtml += `<div style="position:absolute; left:${left}%; width:${width}%; height:100%; background:${col}; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-weight:900; overflow:hidden; white-space:nowrap; border:1.5px solid #fff;">${width>3?txt:''}</div>`;
+              });
+              barHtml += `</div>`;
+
+              const pmCol = totalPM > 0 ? '#22c55e' : totalPM < 0 ? '#ef4444' : '#cbd5e1';
+              html += `<tr style="border-bottom:1px solid var(--bd);">
+                  <td style="padding:10px 12px; font-weight:800; color:var(--nv); font-size:12px">${p.dorsal?p.dorsal+' - ':''}${p.name}</td>
+                  <td style="text-align:center; padding:10px; font-weight:900; color:var(--t2)">${Math.round(totalOn)}'</td>
+                  <td style="padding:10px 0; vertical-align:middle;">${barHtml}</td>
+                  <td style="text-align:center; padding:10px;">
+                      <span style="display:inline-block; padding:4px 10px; width:45px; text-align:center; background:${pmCol}; color:${totalPM===0?'var(--nv)':'#fff'}; font-weight:900; border-radius:6px; font-size:12px;">${totalPM>0?'+':''}${totalPM}</span>
+                  </td>
+              </tr>`;
+          });
+
+          html += `</tbody></table></div>`;
+          return html;
+      };
+
+      const activeSide = window._stTimelineSide || 'home';
+      body.innerHTML=`
+          <div class="card" style="margin-bottom:12px; padding:0; overflow:hidden">
+              <div style="background:#0f172a; padding:12px 16px; display:flex; gap:8px; align-items:center;">
+                  <button onclick="window._stTimelineSide='home'; renderStats()" style="flex:1; padding:10px; border-radius:8px; border:2px solid ${(activeSide==='home')?'#f59e0b':'transparent'}; background:${(activeSide==='home')?'rgba(255,255,255,0.1)':'transparent'}; color:#fff; font-weight:900; cursor:pointer; font-size:13px transition:all 0.2s">${m.homeTeam}</button>
+                  <button onclick="window._stTimelineSide='away'; renderStats()" style="flex:1; padding:10px; border-radius:8px; border:2px solid ${(activeSide==='away')?'#f59e0b':'transparent'}; background:${(activeSide==='away')?'rgba(255,255,255,0.1)':'transparent'}; color:#fff; font-weight:900; cursor:pointer; font-size:13px transition:all 0.2s">${m.awayTeam}</button>
+              </div>
+              
+              <div style="padding:16px;">
+                  <div style="display:flex; gap:16px; font-size:10px; color:var(--t2); font-weight:700; margin-bottom:8px">
+                      <span style="display:flex; align-items:center; gap:4px"><div style="width:12px;height:12px;background:#22c55e;border-radius:3px"></div> En pista - Suma</span>
+                      <span style="display:flex; align-items:center; gap:4px"><div style="width:12px;height:12px;background:#ef4444;border-radius:3px"></div> En pista - Resta</span>
+                      <span style="display:flex; align-items:center; gap:4px"><div style="width:12px;height:12px;background:#cbd5e1;border-radius:3px"></div> En pista - Neutro (0)</span>
+                      <span style="display:flex; align-items:center; gap:4px"><div style="width:12px;height:12px;background:#f1f5f9;border-radius:3px;border:1px solid var(--bd)"></div> Banquillo</span>
+                  </div>
+                  ${renderTeamTimeline(activeSide)}
+              </div>
+          </div>
+      `;
+      return;
+  }
+
+  // ==========================================
+  // GRÁFICO DE CURVAS DETALLADO (SI SELECCIONAS A UN JUGADOR)
+  // ==========================================
   const [side,player]=v.split('|');
   const {stints,totalMin}=_playerStints(m,player,side);
   const sign=side==='home'?1:-1;
 
-  // Canastas con su momento y su quinteto
   const scoring=(m.events||[]).filter(e=>['pts2','pts3','tl_in'].includes(e.type)&&e.score).map(e=>{
     const h=e.score.h!=null?e.score.h:e.score.home, a=e.score.a!=null?e.score.a:e.score.away;
     return {t:_elapsedMin(m,e.period,e.min,false),diff:(h||0)-(a||0),
             pts:e.type==='pts3'?3:e.type==='pts2'?2:1, team:e.team, oc:e.oc||null};
   }).sort((x,y)=>x.t-y.t);
-  const hasOC=scoring.length>0&&scoring.every(e=>e.oc);
 
-  // +/- del jugador en cada canasta: exacto si hay quinteto guardado
   const onCourtAt=(e)=>{
     if(e.oc)return (e.oc[side]||[]).includes(player);
-    return stints.some(st=>e.t>=st.a&&e.t<=st.b);   // respaldo aproximado
+    return stints.some(st=>e.t>=st.a&&e.t<=st.b);
   };
   const deltaOf=(e)=>(e.team===side?e.pts:-e.pts);
 
-  // Tramos con su +/-
   const segs=stints.map(st=>{
     const inSeg=scoring.filter(e=>e.t>=st.a&&e.t<=st.b&&onCourtAt(e));
     return {...st,min:st.b-st.a,pm:inSeg.reduce((a2,e)=>a2+deltaOf(e),0)};
   });
-  // Total exacto = todas las canastas con el jugador en pista
   const totalPM=scoring.filter(onCourtAt).reduce((a2,e)=>a2+deltaOf(e),0);
-  const totalOn=segs.reduce((a2,sg)=>a2+sg.min,0);   // minutos totales en pista
-  // Valor que muestra la tabla, para poder avisar si no cuadra
+  const totalOn=segs.reduce((a2,sg)=>a2+sg.min,0);
+  
   const plRow=((side==='home'?m.homePlayers:m.awayPlayers)||[]).find(p=>p.name===player);
   const tablePM=plRow?(plRow.pm||0):null;
   const mismatch=(tablePM!=null&&tablePM!==totalPM);
 
-  // ── Cronograma de ÁREA: la ventaja del equipo del jugador a lo largo del
-  //    partido. Se dibuja dos veces: suave en todo el partido y con color
-  //    intenso SOLO en los tramos en los que el jugador estaba en pista.
   const maxP=(m.events||[]).reduce((mx,e)=>Math.max(mx,e.period||1),4);
   const W=600,H=190,PADX=0;
   const mid=H/2;
   const mx=Math.max(...scoring.map(e=>Math.abs(e.diff)),6);
   const X=t=>Math.max(0,Math.min(W,t/totalMin*W));
   const Y=d=>mid-(sign*d)/mx*(mid-6);
-  // Perfil MUESTREADO POR MINUTO: en vez de un punto por canasta (que provoca
-  // cortes verticales cuando varias caen en el mismo minuto, porque el acta solo
-  // tiene resolución de minuto), se toma la ventaja al final de cada minuto de
-  // juego. Así cada punto tiene una X distinta y el trazo solo puede mantenerse
-  // horizontal, subir o bajar en diagonal: nunca un salto vertical.
+  
   const ventajaEn=(t)=>{let d=0;for(const e of scoring){if(e.t<=t)d=e.diff;else break;}return d;};
   const raw=[];
   for(let t=0;t<=totalMin;t++)raw.push({x:X(t),y:Y(ventajaEn(t))});
-  // Blindaje: si por lo que sea dos puntos comparten X, se queda solo el último.
-  // Con dos puntos en la misma X el trazo tendría que subir o bajar en vertical.
   for(let k=raw.length-1;k>0;k--){if(Math.abs(raw[k].x-raw[k-1].x)<0.01)raw.splice(k-1,1);}
-  // Perfil con tramos rectos, que sigue el dato de cerca. Suavizar con curvas
-  // hacía que se "pasaran de largo" y salían globos que no correspondían al
-  // marcador real. Solo se redondean ligeramente las uniones (stroke-linejoin).
   const smooth=(pp)=>pp.map((q,k)=>(k?'L':'M')+q.x.toFixed(1)+','+q.y.toFixed(1)).join(' ');
-  // Un único área (curva → línea del 0). Luego se recorta por mitades para
-  // pintar de verde lo que queda arriba y de azul lo que queda abajo.
   const areaD=smooth(raw)+` L${W},${mid} L0,${mid} Z`;
   const uid=Math.random().toString(36).slice(2,8);
   const clipTop=`clipT${uid}`, clipBot=`clipB${uid}`;
   const defs=`
     <clipPath id="${clipTop}"><rect x="0" y="0" width="${W}" height="${mid}"/></clipPath>
     <clipPath id="${clipBot}"><rect x="0" y="${mid}" width="${W}" height="${H-mid}"/></clipPath>`;
-  // Líneas divisorias de cuartos y prórrogas
+  
   const marks=[];for(let k=1;k<maxP;k++){marks.push(k<=4?k*10:40+(k-4)*5);}
   const qLines=marks.map(t=>`<line x1="${X(t).toFixed(1)}" y1="0" x2="${X(t).toFixed(1)}" y2="${H}" stroke="#fff" stroke-width="2"/>`).join('');
-  // ── Franja de tramos en pista, DEBAJO del gráfico ──────────────────────────
-  // Antes los tramos se marcaban recortando el área en bloques, y ese recorte
-  // rectangular creaba bordes verticales que ensuciaban el dibujo. Ahora el área
-  // va limpia y los tramos se muestran en su propia barra de tiempo.
-  const SH=30;   // alto de la franja
+  
+  const SH=30;
   const stintBar=`<svg viewBox="0 0 ${W} ${SH}" style="width:100%;height:auto;display:block;margin-top:5px">
     <rect x="0" y="9" width="${W}" height="12" rx="6" fill="#eef2f7"/>
     ${marks.map(t=>`<line x1="${X(t).toFixed(1)}" y1="6" x2="${X(t).toFixed(1)}" y2="24" stroke="#cbd5e1" stroke-width="1"/>`).join('')}
@@ -7844,6 +7980,7 @@ function _renderStPlusMinus(scoped,m){
       return `<text x="${cx.toFixed(1)}" y="19" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff">${txt}</text>`;
     }).join('')}
   </svg>`;
+  
   const perLabels=(()=>{
     const out=[];let prev=0;
     for(let k=1;k<=maxP;k++){
@@ -7856,7 +7993,7 @@ function _renderStPlusMinus(scoped,m){
 
   body.innerHTML=`
     ${mismatch?`<div class="card" style="margin-bottom:9px;background:#fffbeb;border-color:#fde68a">
-      <div style="font-size:11.5px;color:#92400e">⚠️ Este partido se importó con una versión anterior que no guardaba el quinteto en cada canasta, así que los tramos son una <b>aproximación</b> (tabla: ${tablePM>0?'+':''}${tablePM} · tramos: ${totalPM>0?'+':''}${totalPM}). <b>Reimporta el partido</b> y ambos coincidirán exactamente.</div>
+      <div style="font-size:11.5px;color:#92400e">⚠️ Este partido se importó con una versión anterior que no guardaba el quinteto en cada canasta, así que los tramos son una <b>aproximación</b>.</div>
     </div>`:''}
     <div class="card" style="margin-bottom:9px">
       <div class="ct" style="display:block">📈 Cronograma</div>
@@ -7875,9 +8012,6 @@ function _renderStPlusMinus(scoped,m){
       ${stintBar}
       <div style="display:flex;font-size:9.5px;color:var(--t3);margin-top:3px;text-align:center">
         ${perLabels}
-      </div>
-      <div style="font-size:10px;color:var(--t3);margin-top:6px">
-        Arriba, la ventaja del equipo de ${_esc(player)} durante el partido (verde = va ganando). Debajo, la barra marca <b>los tramos en los que él estuvo en pista</b>, en verde o rojo según el <b>+/- de ese tramo</b>.
       </div>
     </div>
     <div class="card">
@@ -9309,7 +9443,9 @@ function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     const ins = [];
     const t3Rate = advData.fga ? (advData.t3a/advData.fga)*100 : 0;
     
-    const topScorer = rpList[0];
+    // 🚀 CORREGIDO: Ahora ordenamos de mayor a menor por puntos totales antes de coger al primero
+    const topScorer = [...rpList].sort((a, b) => b.pts - a.pts)[0];
+    
     if (topScorer) ins.push(`🏀 <b>${_esc(topScorer.name)}</b>: máximo anotador con <b>${topScorer.pts} puntos</b> en ${topScorer.games} partidos (${(topScorer.pts/topScorer.games).toFixed(1)}/partido).`);
     
     const t3pl = rpList.filter(p=>p.t3a>=5).sort((a,b)=>(b.t3m/b.t3a)-(a.t3m/a.t3a));
@@ -9336,6 +9472,7 @@ function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     const foulRate = rpList.filter(p=>p.games>=1).map(p=>({name:p.name,avg:p.fc/p.games,tot:p.fc,g:p.games})).sort((a,b)=>b.avg-a.avg);
     if(foulRate.length && foulRate[0].avg >= 2.5) ins.push(`⚠️ Más cargado de faltas: <b>${_esc(foulRate[0].name.split(' ')[0])}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
     
+    // También nos aseguramos de que el mejor +/- se ordena correctamente
     const pmPl = [...rpList].sort((a,b)=>(b.pm||0)-(a.pm||0));
     if(pmPl[0] && pmPl[0].pm > 0) ins.push(`📈 Mejor +/-: <b>${_esc(pmPl[0].name)}</b> con <b>+${pmPl[0].pm}</b> (${pmPl[0].games} jug.).`);
 
@@ -9934,73 +10071,86 @@ function saveScoutNotes() {
 }
 
 function exportScoutPDF() {
-  if (!_scoutRival) {
-    if(typeof toast === 'function') toast('Selecciona un rival primero', 'err');
-    return;
-  }
-  
-  if(typeof toast === 'function') toast('📸 Capturando pantalla exacta... (puede tardar un par de segundos)');
-
-  // 1. Cargamos una librería externa (html2canvas) que hace la foto literal
-  if (!window.html2canvas) {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    script.onload = () => generarFotoPDF();
-    document.head.appendChild(script);
-  } else {
-    generarFotoPDF();
-  }
-
-  function generarFotoPDF() {
-    // 🚀 AQUÍ ESTÁ EL ID EXACTO DE TU PESTAÑA HTML
-    const panelScouting = document.getElementById('t-scout'); 
-
-    if (!panelScouting) {
-      alert('Error: No encuentro la pestaña de Scouting.');
-      return;
+    if (!_scoutRival) {
+        if (typeof toast === 'function') toast('Selecciona un rival primero', 'err');
+        return;
     }
 
-    // 2. Hacemos la foto exacta de los píxeles, colores y mapas
-    html2canvas(panelScouting, {
-      scale: 2, // Alta resolución para que los números pequeños se lean perfectos
-      useCORS: true,
-      backgroundColor: '#f8fafc' // Fondo para que cuadre con tu diseño
-    }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
+    if (typeof toast === 'function') toast('🖨️ Preparando documento vectorial...', 'ok');
 
-      // 3. Abrimos ventana y ponemos la imagen gigante para imprimir
-      const w = window.open('','_blank');
-      if(!w){
-        if(typeof toast === 'function') toast('El navegador bloqueó la ventana. Permite ventanas emergentes.', 'err');
-        return;
-      }
-      
-      w.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Scouting - ${_scoutRival}</title>
-            <style>
-              @page { margin: 10mm; }
-              body { margin: 0; background: #fff; text-align: center; }
-              /* La imagen ocupa todo el ancho de la página, sin romperse */
-              img { width: 100%; max-width: 280mm; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${imgData}" onload="setTimeout(() => window.print(), 500);">
-          </body>
-        </html>
-      `);
-      w.document.close();
-    }).catch(err => {
-      console.error('Error capturando pantalla:', err);
-      if(typeof toast === 'function') toast('Error al capturar la pantalla', 'err');
-    });
-  }
+    // 1. Buscamos si ya hay un estilo de impresión y lo borramos por si acaso
+    let oldStyle = document.getElementById('impresion-scout-style');
+    if (oldStyle) oldStyle.remove();
+
+    // 2. Creamos el CSS Mágico
+    const style = document.createElement('style');
+    style.id = 'impresion-scout-style';
+    style.innerHTML = `
+        @media print {
+            /* Forzamos que se impriman TODOS los colores de fondo, anillos SVG y sombras */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Ocultamos literalmente toda la aplicación para dejar el folio en blanco */
+            body * {
+                visibility: hidden;
+            }
+            
+            /* Hacemos visible ÚNICAMENTE el contenedor de Scouting y sus hijos */
+            #t-scout, #t-scout * {
+                visibility: visible;
+            }
+            
+            /* Movemos el panel de Scouting arriba a la izquierda del folio exacto */
+            #t-scout {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: #f8fafc !important; /* Mismo fondo de tu app */
+            }
+            
+            /* 🛡️ PROTECCIÓN ANTI-CORTES: Evitamos que una tarjeta se parta entre dos páginas */
+            .card, table, tr, #sc-block-1 > div, #sc-block-8 > div, canvas {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            
+            /* Limpieza visual: Ocultamos botones, selectores y cosas que no se usan en papel */
+            button, select, input, .tabs, #login-gate {
+                display: none !important;
+            }
+
+            /* Quitamos bordes innecesarios o sombras si queremos que quede más plano, 
+               aunque aquí respetaremos tu CSS original para que sea idéntico */
+            
+            @page {
+                size: A4 portrait; /* Folio vertical */
+                margin: 10mm; /* Márgenes profesionales */
+            }
+        }
+    `;
+    
+    // Inyectamos el CSS en la web
+    document.head.appendChild(style);
+    
+    // 3. Le damos al navegador 300ms para procesar el CSS y lanzamos el diálogo de Guardar PDF
+    setTimeout(() => {
+        // Esto abrirá la ventana nativa de tu PC/Móvil para Guardar como PDF
+        window.print();
+        
+        // 4. Limpiamos las huellas después de imprimir (tanto si guardas como si cancelas)
+        setTimeout(() => {
+            const s = document.getElementById('impresion-scout-style');
+            if (s) s.remove();
+        }, 1000);
+        
+    }, 300);
 }
-
-
 
 // ── Utilidades de vídeo/clips reutilizadas por la pestaña 🎬 Vídeo ──
 function _fmtT(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; }
@@ -11908,40 +12058,99 @@ function _clRenderRows(){
     </tr>`).join('');
 }
 
+// 🚀 INICIALIZAMOS EL TAMAÑO POR DEFECTO A 5
+window._clComboSize = window._clComboSize || 5;
+
+// FUNCIÓN GLOBAL PARA LOS BOTONES
+window.changeComboSize = function(s) {
+    window._clComboSize = s;
+    if (window._oursCache) renderClubLineups(window._oursCache);
+};
+
 function renderClubLineups(ours){
   const el=document.getElementById('cl-lineups');if(!el)return;
-  const lineups={};
+  window._oursCache = ours; 
+
+  const getCombinations = (arr, k) => {
+    if (k > arr.length || k <= 0) return [];
+    if (k === arr.length) return [arr];
+    if (k === 1) return arr.map(a => [a]);
+    const combs = [];
+    for (let i = 0; i <= arr.length - k; i++) {
+      const head = arr.slice(i, i + 1);
+      const tailcombs = getCombinations(arr.slice(i + 1), k - 1);
+      tailcombs.forEach(tc => combs.push(head.concat(tc)));
+    }
+    return combs;
+  };
+
+  const size = window._clComboSize;
+  const combos = {};
+
   ours.forEach(o=>{
-    const m=o.m,side=o.side;
-    const subs=(m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
-    if(!subs.length&&!(m.events||[]).length)return;
-    const court=new Set((o.players.filter(p=>p.starter).length===5?o.players.filter(p=>p.starter):o.players.slice(0,5)).map(p=>p.name));
-    let si=0;
-    (m.events||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0)).forEach(ev=>{
-      while(si<subs.length&&(subs[si].min||0)<=(ev.min||0)){
-        const s=subs[si++];
-        if(s.team!==side)continue;
-        if(s.type==='out')court.delete(s.player);else court.add(s.player);
-      }
-      const pts={'pts2':2,'pts3':3,'tl_in':1}[ev.type];if(!pts)return;
-      if(court.size!==5)return;
-      const key=[...court].sort().join('|');
-      if(!lineups[key])lineups[key]={names:[...court].map(n=>n.split(' ')[0]),pm:0,ev:0};
-      lineups[key].pm+=(ev.team===side?pts:-pts);
-      lineups[key].ev++;
+    const m = o.m, side = o.side;
+    const subs = (m.subEvents||[]).slice().sort((a,b)=>(a.min||0)-(b.min||0));
+    let court = new Set((o.players.filter(p=>p.starter).length===5 ? o.players.filter(p=>p.starter) : o.players.slice(0,5)).map(p=>p.name));
+    let lastMin = 0;
+
+    const allTimeline = [];
+    subs.forEach(s => { if(s.team===side) allTimeline.push({t: s.min||0, type: 'sub', p: s.player, action: s.type})});
+    (m.events||[]).forEach(e => {
+        if(['pts2','pts3','tl_in'].includes(e.type) && e.score) {
+            allTimeline.push({t: _elapsedMin(m, e.period, e.min, false), type: 'score', pts: e.type==='pts3'?3:e.type==='pts2'?2:1, team: e.team});
+        }
+    });
+    allTimeline.sort((a,b) => a.t - b.t);
+
+    allTimeline.forEach(ev => {
+        const dt = ev.t - lastMin;
+        if(dt > 0 && court.size >= size) {
+            getCombinations([...court].sort(), size).forEach(sub => {
+                const k = sub.join('|');
+                if(!combos[k]) combos[k] = {names: sub.map(n=>n.split(' ')[0]), pm:0, ev:0, min:0};
+                combos[k].min += dt;
+            });
+        }
+        lastMin = ev.t;
+
+        if (ev.type === 'sub') {
+            if(ev.action==='out') court.delete(ev.p); else court.add(ev.p);
+        } else if (ev.type === 'score') {
+            if(court.size >= size) {
+                getCombinations([...court].sort(), size).forEach(sub => {
+                    const k = sub.join('|');
+                    if(!combos[k]) combos[k] = {names: sub.map(n=>n.split(' ')[0]), pm:0, ev:0, min:0};
+                    combos[k].pm += (ev.team===side ? ev.pts : -ev.pts);
+                    if(ev.team===side) combos[k].ev++; 
+                });
+            }
+        }
     });
   });
-  const top=Object.values(lineups).filter(l=>l.ev>=4).sort((a,b)=>b.pm-a.pm).slice(0,5);
-  el.innerHTML=top.length?top.map((l,i)=>`
-    <div style="padding:6px 0;border-bottom:1px solid var(--bd)">
+
+  const top = Object.values(combos).filter(c => c.min >= 1 || c.ev >= 1).sort((a,b) => b.pm - a.pm).slice(0, 5);
+
+  // Botones más finos (padding reducido)
+  const btns = [2,3,4,5].map(s => `<button onclick="window.changeComboSize(${s})" style="flex:1; padding:4px 0; border-radius:4px; border:1px solid ${size===s?'var(--nv)':'var(--bd)'}; background:${size===s?'var(--nv)':'#f8fafc'}; color:${size===s?'#fff':'var(--t2)'}; cursor:pointer; font-weight:900; font-size:11px; transition:all 0.2s">De ${s}</button>`).join('');
+
+  el.innerHTML = `
+    <div style="display:flex; gap:4px; margin-bottom:8px">${btns}</div>
+    <div style="display:flex; flex-direction:column;">
+    ${top.length ? top.map((l,i)=>`
+    <!-- Formato de lista compacta, igual que la tabla de la derecha -->
+    <div style="padding:7.5px 0; border-bottom:1px solid var(--bd); display:flex; flex-direction:column; gap:4px;">
       <div style="display:flex;align-items:center;gap:7px">
-        <span style="width:18px;height:18px;border-radius:50%;background:${i===0?'var(--gn)':'var(--nv)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
-        <span style="flex:1;font-size:11px;font-weight:600">${l.names.join(' · ')}</span>
-        <b style="color:${l.pm>0?'var(--gn)':'#dc2626'};font-size:13px">${l.pm>0?'+':''}${l.pm}</b>
+        <span style="width:16px;height:16px;border-radius:50%;background:${i<3?'var(--gn)':'var(--nv)'};color:#fff;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <span style="flex:1;font-size:11px;font-weight:800;color:var(--nv)">${l.names.join(' <span style="color:var(--t3);font-weight:400;font-size:10px;margin:0 1px">+</span> ')}</span>
+        <b style="color:${l.pm>0?'#15803d':l.pm<0?'#991b1b':'var(--t2)'};font-size:12px;background:${l.pm>0?'#dcfce7':l.pm<0?'#fee2e2':'#f1f5f9'};padding:2px 6px;border-radius:4px">${l.pm>0?'+':''}${l.pm}</b>
       </div>
-      <div style="font-size:9px;color:var(--t3);margin-left:25px">${l.ev} acciones de anotación con este quinteto</div>
+      <div style="display:flex; gap:12px; font-size:9.5px; color:var(--t3); margin-left:23px; font-weight:600">
+        <span style="display:flex; align-items:center; gap:3px">⏱️ <b>${Math.round(l.min)}</b> min</span>
+        <span style="display:flex; align-items:center; gap:3px">🎯 <b>${l.ev}</b> acciones</span>
+      </div>
     </div>`).join('')
-    :'<div class="empty">Se necesitan partidos con cambios registrados (Directo o cronología reimportada)</div>';
+    : '<div class="empty">No hay combinaciones de este tamaño con suficientes datos.</div>'}
+    </div>`;
 }
 
 
@@ -14126,6 +14335,9 @@ function populateLvTeamSelects(){
 function _advancedTeam(matches,team){
   const z={pts:0,opp:0,t2m:0,t2a:0,t3m:0,t3a:0,ftm:0,fta:0,orb:0,drb:0,to:0,ast:0,min:0};
   (matches||[]).forEach(m=>{
+    // 🚀 MAGIA 1: Si es Amistoso, no sumamos sus stats
+    if (m.competition && m.competition.toLowerCase().includes('amistoso')) return;
+    
     const home=m.homeTeam===team,pl=home?m.homePlayers:m.awayPlayers;
     if(!home&&m.awayTeam!==team)return;
     z.pts+=Number(home?m.scoreHome:m.scoreAway)||0;
@@ -14136,7 +14348,9 @@ function _advancedTeam(matches,team){
       z.to+=p.to||0;z.ast+=p.ast||0;z.min+=p.min||0;
     });
   });
-  const fga=z.t2a+z.t3a,poss=fga+.44*z.fta-z.orb+z.to,n=(matches||[]).filter(m=>m.homeTeam===team||m.awayTeam===team).length||1;
+  const fga=z.t2a+z.t3a,poss=fga+.44*z.fta-z.orb+z.to,n=(matches||[]).filter(m=>{
+      return (m.homeTeam===team||m.awayTeam===team) && (!m.competition || !m.competition.toLowerCase().includes('amistoso'));
+  }).length||1;
   return {...z,fga,poss,n,pace:poss/n,ortg:poss?100*z.pts/poss:0,drtg:poss?100*z.opp/poss:0,efg:fga?(z.t2m+z.t3m+0.5*z.t3m)/fga:0,ts:(fga+.44*z.fta)?z.pts/(2*(fga+.44*z.fta)):0,astTo:z.to?z.ast/z.to:0,orbPct:(z.orb+z.drb)?z.orb/(z.orb+z.drb):0,drbPct:(z.orb+z.drb)?z.drb/(z.orb+z.drb):0};
 }
 
@@ -14146,6 +14360,9 @@ function _advancedTeamSplit(matches, team) {
     loss: { pts: 0, opp: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, orb: 0, drb: 0, to: 0, ast: 0, min: 0, n: 0 }
   };
   (matches || []).forEach(m => {
+    // 🚀 MAGIA 1: Si es Amistoso, no sumamos sus stats
+    if (m.competition && m.competition.toLowerCase().includes('amistoso')) return;
+
     const home = m.homeTeam === team;
     const away = m.awayTeam === team;
     if (!home && !away) return;

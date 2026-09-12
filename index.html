@@ -4859,11 +4859,7 @@ document.addEventListener('touchstart', function(e) {
 // ═══════════════════════════════════════════
 // TEAMS MANAGEMENT
 // ═══════════════════════════════════════════
-function parsePlList(txt){
-  return txt.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
-    const m=l.match(/^#?(\d+)\s+(.+)/);return m?{dorsal:m[1],name:m[2].trim()}:null;
-  }).filter(Boolean);
-}
+
 
 
 
@@ -14093,6 +14089,24 @@ function _populateLvTeamSelectsLegacy(){
 // ═══════════════════════════════════════════════════════════════════════════
 // GESTIÓN DE EQUIPOS Y PLANTILLAS
 // ═══════════════════════════════════════════════════════════════════════════
+
+function parsePlList(txt){
+  return txt.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+    // Intentamos extraer "#Dorsal Nombre" o solo "#Dorsal"
+    const m = l.match(/^#?(\d+)(?:\s+(.*))?$/);
+    
+    if (m) {
+      const dorsal = m[1];
+      const rawName = (m[2] || '').trim();
+      // Si ha puesto número pero no nombre, creamos el Anónimo automático
+      const name = rawName !== '' ? rawName : `Jugador #${dorsal}`;
+      return { dorsal, name };
+    } else {
+      // Si no empieza por número, asumimos que solo ha escrito el nombre sin dorsal
+      return { dorsal: '-', name: l };
+    }
+  }).filter(Boolean);
+}
 
 function saveTeam(){
   const name=document.getElementById('eq-name').value.trim();

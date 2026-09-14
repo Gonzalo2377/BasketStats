@@ -12925,7 +12925,7 @@ function exportMatchPDF(matchId){
           <td class="sg"><b>${p.t3Made||0}/${p.t3Att||0}</b> <span>${pc(p.t3Made,p.t3Att)}</span></td>
           <td class="sg"><b>${p.tlMade||0}/${p.tlAtt||0}</b> <span>${pc(p.tlMade,p.tlAtt)}</span></td>
           <td class="sg"><b>${p.reb||0}</b> <span>(${p.ro||0}/${p.rd||0})</span></td>
-          <td>${p.ast||0}</td><td class="b" style="color:#ef4444">${p.to||0}</td><td>${p.blk||0}</td><td>${p.stl||0}</td>
+          <td>${p.ast||0}</td><td>${p.to||0}</td><td>${p.blk||0}</td><td>${p.stl||0}</td>
           <td class="sg"><b>${p.fc||0}</b> <span>(${p.fc||0}/${p.fr||0})</span></td>
           <td class="b ${(p.pm||0)>0?'pos':(p.pm||0)<0?'neg':''}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
           <td class="b ${cv>0?'pos':cv<0?'neg':''}">${cv>0?'+':''}${cv}</td>
@@ -12941,7 +12941,7 @@ function exportMatchPDF(matchId){
             <td class="sg"><b>${T.t3Made}/${T.t3Att}</b> <span>${pc(T.t3Made,T.t3Att)}</span></td>
             <td class="sg"><b>${T.tlMade}/${T.tlAtt}</b> <span>${pc(T.tlMade,T.tlAtt)}</span></td>
             <td class="sg"><b>${T.reb}</b> <span>(${T.ro}/${T.rd})</span></td>
-            <td>${T.ast}</td><td style="color:#ef4444">${T.to}</td><td>${T.blk}</td><td>${T.stl}</td>
+            <td>${T.ast}</td><td>${T.to}</td><td>${T.blk}</td><td>${T.stl}</td>
             <td class="sg"><b>${T.fc}</b> <span>(${T.fc}/${T.fr})</span></td><td></td>
             ${(()=>{const cvT=calcVal(T); return `<td class="${cvT>0?'pos':cvT<0?'neg':''}">${cvT>0?'+':''}${cvT}</td>`;})()}
           </tr>
@@ -13014,6 +13014,8 @@ function exportMatchPDF(matchId){
     th:nth-child(2),td:nth-child(2){width:18%}
     th:not(:first-child):not(:nth-child(2)){width:5.3%}
     .foot{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:4px;font-size:8.5px;color:#94a3b8;display:flex;justify-content:space-between}
+    
+    /* 🚀 CSS RESTAURADO PARA LOS MAPAS */
     .maps{display:flex;gap:16px;align-items:flex-start;justify-content:center}
     .mapbox{flex:1;max-width:47%}
     .ml{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;color:#0f1f3d}

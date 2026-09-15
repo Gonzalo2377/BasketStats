@@ -3046,27 +3046,28 @@ body.zen-mode {
   <!-- Live panel (REDISEÑO PIZARRA TÁCTICA) -->
   <div id="lv-panel" style="display:none">
     
-    <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:14px; padding-top:10px; box-sizing:border-box; padding-left:15px; padding-right:15px;">
-      
-      <div style="display:flex; gap:8px;">
-        <button onclick="toggleZenMode()" id="zen-btn" class="btn" style="background:#0f172a;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2)">
-          🔲 Pantalla Completa
-        </button>
-        <button onclick="openLiveStatsModal()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2)">📊 Stats</button>
-      </div>
-
-      <div style="display:flex; gap:8px;">
-        <button onclick="openLvEdit()" class="btn bo bsm" style="font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2)">✏️ Equipos</button>
-        <button onclick="endLive()" class="btn bg bsm" style="background:#dc2626;color:#fff;border:none;font-size:11px;padding:6px 14px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2)">🏁 Finalizar</button>
-      </div>
-
-    </div>
-
-    <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+    <div id="lv-alerts-container" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;margin-top:10px;padding:0 15px;"></div>
 
     <div class="tac-layout">
-      <!-- SIDEBAR LOCAL -->
+      <!-- SIDEBAR LOCAL (Izquierda) -->
       <div class="tac-sidebar">
+        
+        <!-- 👻 BOTÓN FANTASMA AQUI: ¡Vital para que no dé error el Javascript! -->
+        <div id="zen-btn" style="display:none;"></div>
+
+        <!-- 🚀 Botones movidos a la columna izquierda (BLINDADOS CONTRA ZOOM) -->
+        <button onclick="toggleZenMode()" id="zen-btn-fix" class="tac-sb-btn" title="Pantalla Completa" style="background:#0f172a;color:#fff;border-color:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;">
+          <span style="font-size:14px !important;">🔲</span>
+          <span style="font-size:8px !important;font-weight:800;color:#fff;margin-top:2px;">FULL</span>
+        </button>
+        
+        <button onclick="openLiveStatsModal()" class="tac-sb-btn" title="Estadísticas" style="background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;">
+          <span style="font-size:14px !important;">📊</span>
+          <span style="font-size:8px !important;font-weight:800;color:var(--nv);margin-top:2px;">STATS</span>
+        </button>
+        
+        <div style="height:10px"></div> <!-- Separador -->
+
         <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
@@ -3129,15 +3130,35 @@ body.zen-mode {
          <div class="d-token action red" data-type="action" data-action="foul" style="left: 50%; top: 32%;">FALTA</div>
 
 
-         <!-- ⬇️ GRUPO INFERIOR (Bajo el círculo central) -->
-         <div class="d-token action" data-type="action_click" data-action="tech_staff" style="left: 50%; top: 74%; background:#fefce8; color:#854d0e; border:2px solid #fde047; cursor:pointer; z-index:15;">TÉCNICA E/B</div>
-         
-         <div class="d-token action red" data-type="action" data-action="anti" style="left: 39%; top: 88%;">ANTIDEPORTIVA</div>
-         <div class="d-token action" data-type="action" data-action="tech" style="left: 61%; top: 88%; background:#fefce8; color:#854d0e; border-color:#fde047;">TÉCNICA JUG.</div>
+         <!-- 1. Tiempo Muerto (Bajado al 67%) -->
+         <div class="d-token action" onclick="askTimeout()" style="left: 50%; top: 67%; background:#1e293b; color:#fff; border:2px solid #fff; cursor:pointer; z-index:15;">TIEMPO MUERTO</div>
+
+         <!-- 2. Técnica E/B (Bajado al 79%) -->
+         <div class="d-token action" data-type="action_click" data-action="tech_staff" style="left: 50%; top: 79%; background:#fefce8; color:#854d0e; border:2px solid #fde047; cursor:pointer; z-index:15;">TÉCNICA E/B</div>
+
+         <!-- 3. Antideportiva (Bajado al 92%) -->
+         <div class="d-token action red" data-type="action" data-action="anti" style="left: 39%; top: 92%;">ANTIDEPORTIVA</div>
+
+         <!-- 4. Técnica Jugador (Bajado al 92%) -->
+         <div class="d-token action" data-type="action" data-action="tech" style="left: 61%; top: 92%; background:#fefce8; color:#854d0e; border-color:#fde047;">TÉCNICA JUG.</div>
       </div>
 
-      <!-- SIDEBAR RIVAL -->
+      <!-- SIDEBAR RIVAL (Derecha) -->
       <div class="tac-sidebar">
+        <!-- 🚀 Botones movidos a la columna derecha (BLINDADOS CONTRA ZOOM) -->
+        <button onclick="endLive()" class="tac-sb-btn" title="Finalizar Partido" style="background:#dc2626;color:#fff;border-color:#dc2626;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;">
+          <span style="font-size:14px !important;">🏁</span>
+          <span style="font-size:8px !important;font-weight:800;color:#fff;margin-top:2px;">FIN</span>
+        </button>
+        
+        <button onclick="openLvEdit()" class="tac-sb-btn" title="Editar Equipos" style="background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;">
+          <span style="font-size:14px !important;">✏️</span>
+          <span style="font-size:8px !important;font-weight:800;color:var(--nv);margin-top:2px;">EQP</span>
+        </button>
+        
+        <div style="height:10px"></div> <!-- Separador -->
+
+        <!-- Mapas del Rival -->
         <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'away')">📊<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
@@ -3162,7 +3183,6 @@ body.zen-mode {
             <div class="bench-zone drop-zone" data-bench="away" id="tac-bench-away"></div>
         </div>
     </div>
-    
     
   </div> <!-- FIN LV-PANEL -->
 
@@ -3975,6 +3995,64 @@ function ST(id){
 }
 function pf(m,a){return a>0?Math.round(m/a*100)+'%':'—';}
 function setSt(id,msg,tp='ok'){const e=document.getElementById(id);e.textContent=msg;e.className='st-msg '+tp;}
+
+
+// Añadimos 'window.' para que esté disponible globalmente sin importar dónde pegues el código
+window.askTimeout = function() {
+    // Paramos el reloj automáticamente por seguridad
+    if (lv.timer && lv.timer.interval && typeof toggleTimer === 'function') {
+        toggleTimer();
+    }
+    
+    const homeName = lv.hn || 'Local';
+    const awayName = lv.an || 'Rival';
+    
+    // Creamos el modal oscuro
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:12px;padding:20px;width:300px;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+            <div style="font-weight:900;font-size:16px;margin-bottom:15px;color:var(--nv)">⏱️ TIEMPO MUERTO</div>
+            <div style="font-size:12px;color:var(--t3);margin-bottom:20px;">¿Qué equipo ha pedido el tiempo muerto?</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <button id="to-home-btn" style="background:#0ea5e9;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:800;cursor:pointer;">📕 ${homeName}</button>
+                <button id="to-away-btn" style="background:#3b82f6;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:800;cursor:pointer;">📘 ${awayName}</button>
+                <button id="to-cancel-btn" style="background:#e2e8f0;color:var(--t2);border:none;padding:12px;border-radius:8px;font-weight:800;cursor:pointer;margin-top:5px;">Deshacer</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Funciones de los botones del modal
+    document.getElementById('to-home-btn').onclick = () => {
+        window._registrarTimeout('home', homeName);
+        document.body.removeChild(overlay);
+    };
+    document.getElementById('to-away-btn').onclick = () => {
+        window._registrarTimeout('away', awayName);
+        document.body.removeChild(overlay);
+    };
+    document.getElementById('to-cancel-btn').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+};
+
+window._registrarTimeout = function(side, teamName) {
+    if (!lv.events) return;
+    
+    lv.events.push({
+        id: Date.now(),
+        period: lv.period,
+        time: lv.timer ? lv.timer.seconds : 0,
+        team: side,
+        type: 'timeout',
+        score: { home: lv.score.home, away: lv.score.away },
+        desc: `Tiempo Muerto solicitado por ${teamName}`
+    });
+    
+    if(typeof _lvAddAlert === 'function') _lvAddAlert(`⏱️ Tiempo muerto: ${teamName}`);
+    if(typeof _saveLiveMatch === 'function') _saveLiveMatch();
+};
 
 // ═══════════════════════════════════════════
 // 🩹 MÓDULO FISIO / RENDIMIENTO FÍSICO
@@ -7394,13 +7472,13 @@ function _renderStDetalles(scoped,m){
   };
   
   const mvpHtml = (mvpHome && mvpAway) ? `
-    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+    <div style="display:flex; align-items:center; justify-content:center; gap:20px; width:100%; max-width:380px; margin:0 auto;">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px;">
            ${getNotaBadge(maxSRHome.toFixed(1))}
            <div style="font-size:11px; font-weight:800; color:#0f172a; text-align:center; line-height:1.2;">${formatName(mvpHome.name)}</div>
            <div style="font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-top:-4px;">${_esc(m.homeTeam).substring(0,10)}</div>
         </div>
-        <div style="flex:1; max-width:220px; display:flex; flex-direction:column; gap:2px; padding:0 10px;">
+        <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
            ${statRow('PTS', mvpHome.pts||0, mvpAway.pts||0)}
            ${statRow('REB', mvpHome.reb||0, mvpAway.reb||0)}
            ${statRow('AST', mvpHome.ast||0, mvpAway.ast||0)}
@@ -7415,23 +7493,27 @@ function _renderStDetalles(scoped,m){
     </div>
   ` : '';
 
-  // 🚀 CAJA 1: CUARTOS (Izquierda) + MVP (Derecha) EN LAYOUT SPLIT
+  // 🚀 CAJA 1: CUARTOS Y EQUIPOS (Más espacio) + MVP (Agrupado a la derecha)
   const qCard = `
-  <div class="card" style="margin-bottom:9px; padding:20px 16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:24px;">
-    <div style="flex:1; min-width:250px; ${mvpHtml ? 'border-right:1px solid var(--bd); padding-right:24px;' : ''}">
+  <div class="card" style="margin-bottom:9px; padding:20px 16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:24px;">
+    <div style="flex:1.5; min-width:320px; ${mvpHtml ? 'border-right:1px solid var(--bd); padding-right:24px;' : ''}">
       ${q ? `
-      <div style="display:grid;grid-template-columns:repeat(${q.length},1fr);gap:4px;text-align:center;margin-bottom:14px;">
+      <!-- Nombres de equipo añadidos a la izquierda, alineado con los cuartos -->
+      <div style="display:grid;grid-template-columns: 100px repeat(${q.length},1fr);gap:4px;text-align:center;margin-bottom:14px;align-items:center;">
+        <div></div> <!-- Espacio en blanco sobre los nombres -->
         ${q.map(x=>`<div style="font-size:12px;color:var(--t3);">${x.p<=4?'Q'+x.p:'PR'+(x.p-4)}</div>`).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(${q.length},1fr);gap:4px;text-align:center;margin-bottom:8px;">
+      <div style="display:grid;grid-template-columns: 100px repeat(${q.length},1fr);gap:4px;text-align:center;margin-bottom:8px;align-items:center;">
+        <div style="font-size:10px;font-weight:900;color:var(--t3);text-align:left;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_esc(m.homeTeam)}">${_esc(m.homeTeam)}</div>
         ${q.map(x=>`<div style="font-size:20px;font-weight:${x.h>=x.a?'800':'500'};color:${x.h>=x.a?'var(--tx)':'#94a3b8'}">${x.h}</div>`).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(${q.length},1fr);gap:4px;text-align:center">
+      <div style="display:grid;grid-template-columns: 100px repeat(${q.length},1fr);gap:4px;text-align:center;align-items:center;">
+        <div style="font-size:10px;font-weight:900;color:var(--t3);text-align:left;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_esc(m.awayTeam)}">${_esc(m.awayTeam)}</div>
         ${q.map(x=>`<div style="font-size:20px;font-weight:${x.a>=x.h?'800':'500'};color:${x.a>=x.h?'var(--tx)':'#94a3b8'}">${x.a}</div>`).join('')}
       </div>
       ` : '<div class="empty" style="font-size:11px;text-align:center;">Sin cronología: este partido no tiene parciales por cuarto.</div>'}
     </div>
-    ${mvpHtml ? `<div style="flex:1.2; min-width:300px; display:flex; justify-content:center;">${mvpHtml}</div>` : ''}
+    ${mvpHtml ? `<div style="flex:1; min-width:300px; display:flex; justify-content:center;">${mvpHtml}</div>` : ''}
   </div>`;
 
   if (!window.showBarTooltip) {
@@ -7447,7 +7529,16 @@ function _renderStDetalles(scoped,m){
           const timeStr = rectEl.dataset.time;
           const diff = h - a;
           const col = diff > 0 ? '#4ade80' : diff < 0 ? '#60a5fa' : '#cbd5e1';
-          tt.innerHTML = `<div style="font-weight:900;font-size:18px;color:${col};line-height:1.1">${h} - ${a}</div><div style="color:#94a3b8;font-size:10px;font-weight:700;margin-top:4px">${timeStr}</div>`;
+          
+          let titleHtml = `<div style="font-weight:900;font-size:18px;color:${col};line-height:1.1">${h} - ${a}</div>`;
+          // Si es un tooltip de Tiempo Muerto (que no tiene h/a, le pasamos 'TM')
+          if (rectEl.dataset.type === 'timeout') {
+              const teamTm = rectEl.dataset.team;
+              const colorTm = teamTm === 'home' ? '#16a34a' : '#3b82f6';
+              titleHtml = `<div style="font-weight:900;font-size:14px;color:${colorTm};line-height:1.1">Tiempo Muerto</div>`;
+          }
+          
+          tt.innerHTML = `${titleHtml}<div style="color:#94a3b8;font-size:10px;font-weight:700;margin-top:4px">${timeStr}</div>`;
           tt.style.display = 'block';
           tt.style.left = e.pageX + 'px';
           tt.style.top = e.pageY + 'px';
@@ -7463,6 +7554,9 @@ function _renderStDetalles(scoped,m){
   }
 
   const scoring=(m.events||[]).filter(e=>['pts2','pts3','tl_in'].includes(e.type)&&e.score);
+  // 🚀 TIMEOUTS: Rescatamos los tiempos muertos del partido
+  const timeouts=(m.events||[]).filter(e=>e.type==='timeout');
+
   let barSvg='';
   if(scoring.length>1){
     const W=580,H=120,mid=H/2;
@@ -7519,6 +7613,34 @@ function _renderStDetalles(scoped,m){
       </div>
     `;
 
+    // 🚀 MAGIA CRONOGRAMA: Calculamos DÓNDE caerían los Tiempos Muertos en la gráfica X
+    const getXForTime = (period, seconds) => {
+        const tMin = _elapsedMin(m, period, seconds/60, false);
+        // Aproximamos a qué canasta corresponde este minuto (0 a scoring.length-1)
+        let closestScoringIdx = 0;
+        let minDiff = 9999;
+        scEvs.forEach((e, i) => {
+            const eMin = _elapsedMin(m, e.period, e.min, false);
+            if (Math.abs(eMin - tMin) < minDiff) {
+                minDiff = Math.abs(eMin - tMin);
+                closestScoringIdx = i;
+            }
+        });
+        return closestScoringIdx * (W/scoring.length);
+    };
+
+    const tmLinesHtml = timeouts.map(tm => {
+        const tmX = getXForTime(tm.period, tm.time || 0);
+        const qName = tm.period<=4 ? 'Q'+tm.period : 'PR'+(tm.period-4);
+        const timeStr = `${qName} · ${_fmtClock(_elapsedMin(m, tm.period, (tm.time||0)/60, false))}`;
+        const strokeCol = tm.team === 'home' ? '#16a34a' : '#3b82f6';
+        return `<line x1="${tmX.toFixed(1)}" y1="10" x2="${tmX.toFixed(1)}" y2="${H-10}" stroke="${strokeCol}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.8" style="cursor:help" 
+            data-type="timeout" data-team="${tm.team}" data-time="${_esc(timeStr)}"
+            onmouseover="window.showBarTooltip(event, this)"
+            onmousemove="window.moveBarTooltip(event)"
+            onmouseout="window.hideBarTooltip()" />`;
+    }).join('');
+
     barSvg=`<div class="card" style="margin-bottom:9px; position:relative;">
       <div class="ct">📈 Cronograma del partido <span style="font-weight:600;text-transform:none;color:var(--t3)">· ventaja de ${_esc(m.homeTeam)} arriba</span></div>
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
@@ -7538,6 +7660,10 @@ function _renderStDetalles(scoped,m){
             onmousemove="window.moveBarTooltip(event)"
             onmouseout="this.style.opacity='.9'; window.hideBarTooltip()"/>`;
         }).join('')}
+        
+        <!-- Líneas de Tiempo Muerto -->
+        ${tmLinesHtml}
+
         <text x="3" y="11" font-size="9" fill="#15803d">+${mx}</text>
         <text x="3" y="${H-3}" font-size="9" fill="#1e40af">-${mx}</text>
       </svg>

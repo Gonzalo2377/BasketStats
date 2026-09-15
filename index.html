@@ -7675,7 +7675,7 @@ function _renderStBox(m){
       case 'val': return calcVal(p);
       case 'reb': return p.reb || 0;
       case 'ast': return p.ast || 0;
-      case 'to': return p.to || 0; // Añadido orden por pérdidas
+      case 'to': return p.to || 0; 
       case 'stl': return p.stl || 0;
       case 'blk': return p.blk || 0;
       case 'fc': return p.fc || 0;
@@ -7713,7 +7713,7 @@ function _renderStBox(m){
         <th onclick="boxSort('tl')" style="text-align:center;cursor:pointer">TL${arrIcon('tl')}</th>
         <th onclick="boxSort('reb')" style="text-align:center;cursor:pointer">R (O/D)${arrIcon('reb')}</th>
         <th onclick="boxSort('ast')" style="text-align:center;cursor:pointer">AST${arrIcon('ast')}</th>
-        <th onclick="boxSort('to')" style="text-align:center;cursor:pointer;color:#dc2626">PER${arrIcon('to')}</th>
+        <th onclick="boxSort('to')" style="text-align:center;cursor:pointer">PER${arrIcon('to')}</th>
         <th onclick="boxSort('blk')" style="text-align:center;cursor:pointer">BLK${arrIcon('blk')}</th>
         <th onclick="boxSort('stl')" style="text-align:center;cursor:pointer">STL${arrIcon('stl')}</th>
         <th onclick="boxSort('fc')" style="text-align:center;cursor:pointer">F (C/R)${arrIcon('fc')}</th>
@@ -7734,7 +7734,7 @@ function _renderStBox(m){
           <td style="white-space:nowrap;text-align:center"><b>${p.tlMade||0}/${p.tlAtt||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p.tlMade,p.tlAtt)}</span></td>
           <td style="text-align:center"><b>${p.reb||0}</b> <span style="font-size:10px;color:var(--t3)">(${p.ro||0}/${p.rd||0})</span></td>
           <td style="text-align:center">${p.ast||0}</td>
-          <td style="text-align:center;font-weight:700;color:#ef4444">${p.to||0}</td>
+          <td style="text-align:center">${p.to||0}</td>
           <td style="text-align:center">${p.blk||0}</td>
           <td style="text-align:center">${p.stl||0}</td>
           <td style="text-align:center"><b>${p.fc||0}</b> <span style="font-size:10px;color:var(--t3)">(${p.fc||0}/${p.fr||0})</span></td>
@@ -7752,7 +7752,7 @@ function _renderStBox(m){
         <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tot.tlMade||0}/${tot.tlAtt||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tot.tlMade||0,tot.tlAtt||0)}</span></td>
         <td style="text-align:center;font-weight:800"><b>${tot.reb||0}</b> <span style="font-size:10px;color:var(--t3)">(${tot.ro||0}/${tot.rd||0})</span></td>
         <td style="text-align:center;font-weight:800">${tot.ast||0}</td>
-        <td style="text-align:center;font-weight:800;color:#ef4444">${tot.to||0}</td>
+        <td style="text-align:center;font-weight:800">${tot.to||0}</td>
         <td style="text-align:center;font-weight:800">${tot.blk||0}</td>
         <td style="text-align:center;font-weight:800">${tot.stl||0}</td>
         <td style="text-align:center;font-weight:800"><b>${tot.fc||0}</b> <span style="font-size:10px;color:var(--t3)">(${tot.fc||0}/${tot.fr||0})</span></td>
@@ -9314,7 +9314,7 @@ function renderStatsAggregated(){
     const teamLabels = [...p.teams].join(' / ');
     const seasonLabels = [...p.seasons].join(', ');
     
-    // 🚀 LÍNEA CORREGIDA: Quitamos el Math.round(p.min) e inyectamos fmtMin
+    // 🚀 LÍNEA CORREGIDA: Forzamos el color 'inherit' en el td de 'to' (Pérdidas)
     return `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" data-n="${_esc(p.name)}" data-t="__ALL__" onclick="openPlayerProfile(this.dataset.n, this.dataset.t, '')">
       <td style="padding:5px 6px">#${p.dorsal}</td>
       <td style="padding:5px 6px;font-weight:700">${_esc(p.name)} <span style="color:var(--t3);font-size:9px">(${p.games.length}P)</span></td>
@@ -9327,7 +9327,7 @@ function renderStatsAggregated(){
       <td style="padding:5px 6px">${p.t3Made}/${p.t3Att}</td><td style="padding:5px 6px">${pc(p.t3Made,p.t3Att)}</td>
       <td style="padding:5px 6px">${p.reb||'—'}</td><td style="padding:5px 6px">${p.ast||'—'}</td>
       <td style="padding:5px 6px">${p.stl||'—'}</td><td style="padding:5px 6px">${p.blk||'—'}</td>
-      <td style="padding:5px 6px">${p.to||'—'}</td><td style="padding:5px 6px">${p.fc}</td>
+      <td style="padding:5px 6px;color:inherit!important;">${p.to||'—'}</td><td style="padding:5px 6px">${p.fc}</td>
       <td style="padding:5px 6px">${p.fr||'—'}</td>
       <td style="padding:5px 6px;color:${valC}">${p.val}</td>
       <td style="padding:5px 6px;font-weight:700;color:${pmC}">${p.pm>0?'+':''}${p.pm}</td>
@@ -9649,7 +9649,6 @@ function renderScouting() {
 
   let sfSelect = document.getElementById('sc-sf');
   
-  // 🚀 LA CLAVE: Forzamos el evento 'onchange' para que al tocar, recalcule todo
   if (sfSelect) {
       sfSelect.onchange = renderScouting;
   }
@@ -9657,7 +9656,6 @@ function renderScouting() {
   let sfEff = '';
   if (sfSelect) {
       const cur = sfSelect.value;
-      // Filtramos las temporadas disponibles solo para el rival seleccionado
       const matchPool = _scoutRival ? S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) : S.matches;
       const seasons = [...new Set(matchPool.map(m=>m.season).filter(Boolean))].sort().reverse();
       const ok = !cur || seasons.includes(cur);
@@ -9678,8 +9676,7 @@ function renderScouting() {
   const scContent = document.getElementById('sc-content');
   scContent.style.display = 'block';
 
-  // 🚀 AQUÍ ESTÁ LA CLAVE: Filtramos los partidos del rival obligando a coincidir con la temporada
-  const matches = S.matches.filter(m => {
+  let matches = S.matches.filter(m => {
       const isThisRival = (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
       const matchesSeason = !sfEff || m.season === sfEff;
       return isThisRival && matchesSeason;
@@ -9690,13 +9687,44 @@ function renderScouting() {
       return;
   }
 
-  const advData = _advancedTeam(matches, _scoutRival);
+  // 🚀 LÓGICA DE AMISTOSOS VS OFICIALES
+  const isAmistoso = (m) => (m.competition || '').toLowerCase().includes('amistoso');
+  const oficiales = matches.filter(m => !isAmistoso(m));
+  
+  let onlyAmistosos = false;
+  if (oficiales.length > 0) {
+      matches = oficiales; // Hay partidos oficiales, ignoramos los amistosos por completo
+  } else {
+      onlyAmistosos = true; // Solo hay amistosos en este grupo/temporada
+  }
+
+  if (!matches.length) {
+      document.getElementById('sc-content').innerHTML = '<div class="empty">Sin datos válidos.</div>';
+      return;
+  }
+
+  // 🚀 MOTOR MANUAL PARA PUNTOS Y PORCENTAJES (Tolera empates perfectamente)
+  const advData = { n: matches.length, pts: 0, opp: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0 };
+  matches.forEach(m => {
+      const isHome = m.homeTeam === _scoutRival;
+      advData.pts += Number(isHome ? m.scoreHome : m.scoreAway) || 0;
+      advData.opp += Number(isHome ? m.scoreAway : m.scoreHome) || 0;
+      
+      const roster = isHome ? (m.homePlayers || []) : (m.awayPlayers || []);
+      roster.forEach(p => {
+          advData.t2m += p.t2Made || 0; advData.t2a += p.t2Att || 0;
+          advData.t3m += p.t3Made || 0; advData.t3a += p.t3Att || 0;
+          advData.ftm += p.tlMade || 0; advData.fta += p.tlAtt || 0;
+      });
+  });
+
   const advFCBQ = _analyzeAdvancedFCBQ(matches, _scoutRival);
 
   const rivalPlayers = {};
   matches.forEach(m => {
     const isHome = m.homeTeam === _scoutRival;
-    (isHome ? m.homePlayers : m.awayPlayers || []).forEach(p => {
+    const roster = isHome ? (m.homePlayers || []) : (m.awayPlayers || []);
+    roster.forEach(p => {
       if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, starts: 0, min: 0 };
       const rp = rivalPlayers[p.name];
       rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
@@ -9707,23 +9735,36 @@ function renderScouting() {
   });
   const rpList = Object.values(rivalPlayers);
 
-  // ── 1. STATS BÁSICAS (2x3) CON RANKING LIGA Y ANILLOS VERDE/ROJO ──
   const b1 = document.getElementById('sc-block-1');
   if (b1) {
       b1.style.gridAutoRows = '1fr'; 
       
-      const W = matches.filter(m => m.homeTeam === _scoutRival ? Number(m.scoreHome) > Number(m.scoreAway) : Number(m.scoreAway) > Number(m.scoreHome)).length;
-      const L = matches.length - W;
+      let W = 0, L = 0, D = 0;
+      matches.forEach(m => {
+          const myScore = Number(m.homeTeam === _scoutRival ? m.scoreHome : m.scoreAway);
+          const opScore = Number(m.homeTeam === _scoutRival ? m.scoreAway : m.scoreHome);
+          if (myScore > opScore) W++;
+          else if (myScore < opScore) L++;
+          else D++; 
+      });
+      
+      // Si son amistosos, mostramos W-L. Si hay oficiales (y tuvieran empate), mostramos W-L-D.
+      const balanceStr = onlyAmistosos ? `${W}-${L}` : `${W}-${L}${D>0?'-'+D:''}`;
       
       const formListHtml = matches.slice(-5).reverse().map(m => {
-          const isWin = m.homeTeam === _scoutRival ? Number(m.scoreHome) > Number(m.scoreAway) : Number(m.scoreAway) > Number(m.scoreHome);
+          const myScore = Number(m.homeTeam === _scoutRival ? m.scoreHome : m.scoreAway);
+          const opScore = Number(m.homeTeam === _scoutRival ? m.scoreAway : m.scoreHome);
+          const isWin = myScore > opScore;
+          const isDraw = myScore === opScore;
           const rivalName = m.homeTeam === _scoutRival ? m.awayTeam : m.homeTeam;
-          const myScore = m.homeTeam === _scoutRival ? m.scoreHome : m.scoreAway;
-          const opScore = m.homeTeam === _scoutRival ? m.scoreAway : m.scoreHome;
           const dateStr = m.date ? m.date.slice(0,5) : '';
+          
+          let resultBadge = `<span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:${isWin?'#16a34a':'#dc2626'}; color:#fff; font-size:9px; font-weight:900">${isWin?'W':'L'}</span>`;
+          if (isDraw) resultBadge = `<span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:#94a3b8; color:#fff; font-size:9px; font-weight:900">D</span>`;
+
           return `<div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; margin-bottom:5px">
              <div style="display:flex; align-items:center; gap:8px">
-                <span style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:${isWin?'#16a34a':'#dc2626'}; color:#fff; font-size:9px; font-weight:900">${isWin?'W':'L'}</span>
+                ${resultBadge}
                 <span style="color:var(--t3); width:32px; font-weight:600">${dateStr}</span>
                 <b style="color:var(--nv); width:40px; text-align:center">${myScore}-${opScore}</b>
              </div>
@@ -9731,8 +9772,8 @@ function renderScouting() {
           </div>`;
       }).join('');
       
-      const ptA = advData.pts / advData.n;
-      const ptC = advData.opp / advData.n;
+      const ptA = advData.n ? advData.pts / advData.n : 0;
+      const ptC = advData.n ? advData.opp / advData.n : 0;
       const t2p = advData.t2a ? advData.t2m / advData.t2a * 100 : 0;
       const t3p = advData.t3a ? advData.t3m / advData.t3a * 100 : 0;
       const tlp = advData.fta ? advData.ftm / advData.fta * 100 : 0;
@@ -9789,7 +9830,7 @@ function renderScouting() {
                       <div style="color:var(--t3)">1º: <b style="color:var(--nv)">${rank.bestVal}%</b> <span style="font-size:9px">(${rank.bestName})</span></div>
                       <div style="color:var(--nv);font-weight:900;margin:4px 0;font-size:11px">${rank.pos}º de ${rank.N}</div>
                       <div style="color:var(--t3)">Últ: <b style="color:var(--nv)">${rank.worstVal}%</b> <span style="font-size:9px">(${rank.worstName})</span></div>
-                      ` : '<div style="color:var(--t3);text-align:center">Sin datos</div>'}
+                      ` : '<div style="color:var(--t3);text-align:center">Sin datos comparativos</div>'}
                   </div>
               </div>
           </div>`;
@@ -9799,7 +9840,7 @@ function renderScouting() {
           <div style="height:100%; box-sizing:border-box; background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:12px;display:flex;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
               <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;border-right:1px solid var(--bd);padding-right:10px">
                   <div style="font-size:12px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:6px">Balance</div>
-                  <div style="font-size:36px;font-weight:900;color:var(--nv);line-height:1">${W}-${L}</div>
+                  <div style="font-size:36px;font-weight:900;color:var(--nv);line-height:1">${balanceStr}</div>
                   ${ranks.diff ? `<div style="font-size:11px;font-weight:800;color:var(--t3);margin-top:8px">${ranks.diff.pos}º de ${ranks.diff.N} en la liga</div>` : ''}
               </div>
               <div style="flex:1.2;padding-left:16px;display:flex;flex-direction:column;justify-content:center">
@@ -9828,10 +9869,11 @@ function renderScouting() {
 
   if (typeof _renderScoutPossessionClocksSeguro === 'function') setTimeout(_renderScoutPossessionClocksSeguro, 50);
 
+  // 🚀 Aseguramos que los tiros del mapa de calor SÓLO vengan de la lista "matches" filtrada
   let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
   shots = shots.filter(s => {
-    const m = S.matches.find(m => m.id === (s.mId || s.matchId));
-    if (!m || (sfEff && m.season !== sfEff)) return false;
+    const m = matches.find(mx => mx.id === (s.mId || s.matchId));
+    if (!m) return false;
     const rivalSide = m.homeTeam === _scoutRival ? 'home' : m.awayTeam === _scoutRival ? 'away' : null;
     return rivalSide && s.team === rivalSide;
   });
@@ -9860,7 +9902,6 @@ function renderScouting() {
       </div>` : '<div class="empty">Sin tiros ubicados</div>';
   }
 
-  // ── 6. JUGADORES Y MAPAS INDIVIDUALES (CON ORDENACIÓN INTERACTIVA) ──
   if (!window._scSort) window._scSort = { col: 'pts', dir: -1 };
   window.scSort = function(col) {
       if (window._scSort.col === col) window._scSort.dir *= -1;
@@ -9985,7 +10026,6 @@ function renderScouting() {
           
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               
-              <!-- 1. MOMENTUM -->
               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
                      <span style="font-size:14px">📊</span> Momentum (Tendencia Neta de Rachas por Cuarto)
@@ -9993,7 +10033,6 @@ function renderScouting() {
                   <div style="flex:1; display:flex; align-items:center">${runSvg}</div>
               </div>
 
-              <!-- 2. SEGUNDAS OPORTUNIDADES -->
               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
                      <span style="font-size:14px; color:#2563eb">🔄</span> Segundas Oportunidades
@@ -10002,7 +10041,6 @@ function renderScouting() {
                   
                   <div style="flex:1; display:flex; justify-content:space-around; align-items:center; background:#fff; border-radius:8px; border:1px solid #e2e8f0; padding:16px">
                       
-                      <!-- Bloque Izquierdo -->
                       <div style="display:flex; flex-direction:column; justify-content:center">
                           <div style="display:flex; align-items:baseline; gap:4px">
                               <span style="font-size:32px; font-weight:900; color:var(--nv); line-height:1">${avgScPts}</span>
@@ -10014,7 +10052,6 @@ function renderScouting() {
                           </div>
                       </div>
 
-                      <!-- Bloque Derecho -->
                       <div style="display:flex; align-items:center; gap:14px">
                           <div style="text-align:right; display:flex; flex-direction:column; gap:6px">
                               <div style="font-size:12px; font-weight:900; color:#0ea5e9">${advFCBQ.scPts > 0 ? scPctT3 : 0}% <span style="font-size:10px; color:var(--t3); font-weight:700">T3</span></div>
@@ -10026,7 +10063,6 @@ function renderScouting() {
                   </div>
               </div>
 
-              <!-- 3. FALTAS RECIBIDAS -->
               <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px">
                   <div style="font-size:11px; font-weight:800; color:var(--nv); margin-bottom:16px; text-transform:uppercase; display:flex; align-items:center; gap:6px">
                      <span style="font-size:14px; color:#3b82f6">🛡️</span> Faltas Recibidas (Top 5)
@@ -10034,7 +10070,6 @@ function renderScouting() {
                   ${htmlFD}
               </div>
               
-              <!-- 4. IMPACTO PÉRDIDAS -->
               <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="font-size:11px; font-weight:800; color:var(--nv); margin-bottom:0; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-shrink:0">
                      <span style="font-size:14px; color:#f59e0b">⚡</span> Impacto de las Pérdidas
@@ -15016,18 +15051,21 @@ function _renderAdvancedPlayerTable(scope){
     [['home', m.homeTeam, m.homePlayers], ['away', m.awayTeam, m.awayPlayers]].forEach(([, team, players]) => {
       if(scope === 'cl' && !isOurTeam(team)) return;
 
-      // 🚀 RECOLECTAMOS LOS DATOS DEL EQUIPO PARA BLINDAR EL USG% EN DIRECTO
+      const tPts = Number(team === m.homeTeam ? m.scoreHome : m.scoreAway) || 0;
+      const oppPts = Number(team === m.homeTeam ? m.scoreAway : m.scoreHome) || 0;
       const tFga = (players || []).reduce((s, pl) => s + (pl.t2Att || 0) + (pl.t3Att || 0), 0);
       const tFta = (players || []).reduce((s, pl) => s + (pl.tlAtt || 0), 0);
       const tTov = (players || []).reduce((s, pl) => s + (pl.to || 0), 0);
-      const tMin = (players || []).reduce((s, pl) => s + (pl.min || 0), 0);
+      const tMin = (players || []).reduce((s, pl) => s + (pl.min || 0), 0) || 200;
+      const tPoss = tFga + 0.44 * tFta + tTov;
 
       (players || []).forEach(p => {
         const key = norm(p.name).trim(); 
         if(!people.has(key)) {
            people.set(key, { 
                name: p.name, teams: new Set([team]), seasons: new Set([seasonStr]), dorsal: p.dorsal, 
-               pts: 0, fga: 0, fta: 0, tov: 0, min: 0, tmFga: 0, tmFta: 0, tmTov: 0, tmMin: 0 
+               pts: 0, fga: 0, fta: 0, tov: 0, min: 0, tmFga: 0, tmFta: 0, tmTov: 0, tmMin: 0,
+               onCourtPts: 0, onCourtPoss: 0 
            });
         } else {
            people.get(key).teams.add(team);
@@ -15042,11 +15080,25 @@ function _renderAdvancedPlayerTable(scope){
         obj.tov += (p.to || 0);
         obj.min += (p.min || 0);
         
-        // Sumamos estadísticas de su equipo mientras estaba en pista
+        // Sumamos estadísticas de equipo
         obj.tmFga += tFga;
         obj.tmFta += tFta;
         obj.tmTov += tTov;
         obj.tmMin += tMin;
+
+        // 🚀 MAGIA ANALÍTICA: Estimación del On-Court ORtg usando el +/-
+        if (p.min > 0) {
+            const minShare = p.min / (tMin / 5);
+            const expectedPm = (tPts - oppPts) * minShare;
+            const residualPm = (p.pm || 0) - expectedPm;
+            
+            // Repartimos el impacto residual entre ataque y defensa
+            const ptsOn = (tPts * minShare) + (residualPm / 2);
+            const possOn = tPoss * minShare;
+
+            obj.onCourtPts += ptsOn;
+            obj.onCourtPoss += possOn;
+        }
       });
     });
   });
@@ -15059,7 +15111,6 @@ function _renderAdvancedPlayerTable(scope){
   let list = [...people.values()].map(p => {
     const a = _advancedPlayer(p.name, '__ALL__', source);
     
-    // 🚀 FÓRMULA MATEMÁTICA ANTI-ERRORES PARA EL USG% EN PARTIDOS EN DIRECTO
     let safeUsg = a.usg || 0;
     if (safeUsg === 0 && p.min > 0) {
         const teamPoss = p.tmFga + 0.44 * p.tmFta + p.tmTov;
@@ -15067,17 +15118,19 @@ function _renderAdvancedPlayerTable(scope){
         if (teamPoss > 0 && p.tmMin > 0) {
             safeUsg = 100 * (myPoss * (p.tmMin / 5)) / (p.min * teamPoss);
         } else if (myPoss > 0) {
-            safeUsg = 100; // Si es el único que ha tirado, 100% de Uso
+            safeUsg = 100;
         }
     }
-    // Limitamos a 100% por si los redondeos del directo se vuelven locos
     safeUsg = Math.min(100, Math.max(0, safeUsg));
+
+    // 🚀 NUEVO PPP: Puntos del equipo por posesión en pista
+    const onCourtPPP = (p.min > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtPts / p.onCourtPoss) : 0;
 
     return {
       name: p.name, team: [...p.teams].join(' / '), dorsal: p.dorsal || '—',
       pj: a.g || 0, pts: a.pts || 0, ppg: a.ppg || 0, mpg: a.mpg || 0, ptsShot: a.ptsShot || 0, efg: a.efg || 0, ts: a.ts || 0, 
       usg: safeUsg, 
-      astTo: a.astTo || 0, ppp: a.ppp || 0,
+      astTo: a.astTo || 0, ppp: onCourtPPP,
       eff: a.eff || 0, pir: a.pir || 0
     };
   });
@@ -15099,7 +15152,7 @@ function _renderAdvancedPlayerTable(scope){
       <td style="font-weight:700;color:var(--t2);text-align:center">${p.pj}</td>
       <td style="font-weight:700;color:var(--t2);text-align:center">${num1(p.mpg)}</td>
       <td style="font-weight:900;color:var(--ac);text-align:center">${num1(p.ppg)}</td>
-      <td style="font-weight:800;color:var(--nv);text-align:center" title="Puntos por posesión finalizada">${num(p.ppp)}</td>
+      <td style="font-weight:800;color:var(--nv);text-align:center" title="Puntos del equipo por posesión (On-Court)">${num(p.ppp)}</td>
       <td style="font-weight:800;color:var(--nv);text-align:center" title="Puntos por intento de campo">${num(p.ptsShot)}</td>
       <td style="color:#15803d;font-weight:800;text-align:center">${pc(p.efg)}</td>
       <td style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
@@ -15118,7 +15171,7 @@ function _renderAdvancedPlayerTable(scope){
         <th onclick="advSort('pj','${scope}')" style="cursor:pointer;text-align:center">PJ${arrIcon('pj')}</th>
         <th onclick="advSort('mpg','${scope}')" style="cursor:pointer;text-align:center" title="Minutos por Partido">MIN/P${arrIcon('mpg')}</th>
         <th onclick="advSort('ppg','${scope}')" style="cursor:pointer;text-align:center">PTS/P${arrIcon('ppg')}</th>
-        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos por posesión finalizada">PTS/POS${arrIcon('ppp')}</th>
+        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo por posesión mientras está en pista">PTS/POS${arrIcon('ppp')}</th>
         <th onclick="advSort('ptsShot','${scope}')" style="cursor:pointer;text-align:center" title="Puntos por intento de campo">PTS/TIRO${arrIcon('ptsShot')}</th>
         <th onclick="advSort('efg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro ajustado">eFG%${arrIcon('efg')}</th>
         <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
@@ -15136,7 +15189,7 @@ function _renderAdvancedPlayerTable(scope){
       <div><b>Pj:</b> partidos jugados.</div>
       <div><b>Min/P:</b> minutos por partido = Min / Pj (sin límite; puede llegar a 40).</div>
       <div><b>Pts/P:</b> puntos por partido = Pts / Pj.</div>
-      <div><b>Pts/Pos:</b> puntos por posesión finalizada = Pts / (FGA + 0.44 x FTA + Per).</div>
+      <div><b>Pts/Pos (On-Court):</b> puntos anotados por el equipo por cada posesión mientras el jugador está en pista.</div>
       <div><b>Pts/Tiro:</b> puntos por intento de campo = Pts / FGA.</div>
       <div><b>Efg%:</b> eficacia ajustada = (T2M + 1.5 x T3M) / FGA.</div>
       <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
@@ -15148,7 +15201,6 @@ function _renderAdvancedPlayerTable(scope){
     </div>
   </div>`;
 }
-
 const _baseRenderDash=renderDash;
 renderDash=function(){
   _baseRenderDash();

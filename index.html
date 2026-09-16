@@ -14177,37 +14177,59 @@ async function svL() {
   }, 2000); 
 }
 
-// ── Vincular Acta FCBQ ──
+// ── Vincular Acta FCBQ (SISTEMA NUEVO CON SEGURIDAD JWT) ──
 async function linkFCBQ(matchId) {
-    const url = prompt('🔗 Pega el enlace de estadísticas de la FCBQ para este partido:\n(Añadirá la cronología oficial para analizar posesiones y tipos de pérdidas. TUS TIROS se mantendrán intactos)');
+    const url = prompt('🔗 Pega el enlace de estadísticas de la FCBQ para este partido:');
     if (!url) return;
     
-    const id = _fcbqExtractId(url);
-    if (!id) { toast('Enlace no válido. Asegúrate de que es el link de la FCBQ.', 'err'); return; }
+    console.log("🛠️ DEBUG [Paso 1] - Analizando URL:", url);
+    let id = null;
+    const uuidMatch = url.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+    if (uuidMatch) id = uuidMatch[0];
+    else if (typeof _fcbqExtractId === 'function') id = _fcbqExtractId(url);
+    
+    console.log("🛠️ DEBUG [Paso 2] - ID extraído:", id);
+    if (!id) { toast('Enlace no válido.', 'err'); return; }
 
-    toast('Descargando cronología oficial...', 'ok');
+    toast('Obteniendo llave de seguridad...', 'ok');
     try {
-        const fetchJSON = async (path) => {
-            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://msstats.optimalwayconsulting.com/v1/fcbq/${path}/${id}?currentSeason=false`)}`);
-            const data = await res.json();
-            return JSON.parse(data.contents);
+        console.log("🛠️ DEBUG [Paso 3] - Pidiendo Token a FCBQ...");
+        const tokenUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.basquetcatala.cat/jwt.php');
+        const tRes = await fetch(tokenUrl);
+        const tData = await tRes.json();
+        console.log("🛠️ DEBUG [Paso 4] - Token recibido con éxito:", !!tData.token);
+
+        toast('Descargando datos oficiales...', 'ok');
+        const fetchJSON = async (endpoint) => {
+            const targetUrl = `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${id}/${endpoint}?currentSeason=true`;
+            console.log(`🛠️ DEBUG [Paso 5] - Descargando ${endpoint}...`);
+            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(targetUrl), {
+                headers: { 'Authorization': `Bearer ${tData.token}` }
+            });
+            console.log(`🛠️ DEBUG [Paso 6] - Respuesta ${endpoint} HTTP:`, res.status);
+            return await res.json();
         };
 
-        const [moves, stats] = await Promise.all([fetchJSON('getJsonWithMatchMoves'), fetchJSON('getJsonWithMatchStats')]);
+        const [pbpData, statsData] = await Promise.all([fetchJSON('pbp'), fetchJSON('stats')]);
+        
+        console.log("🛠️ DEBUG [Paso 7] - JSON JUGADAS (pbpData):", pbpData);
+        console.log("🛠️ DEBUG [Paso 8] - JSON STATS (statsData):", statsData);
         
         const m = S.matches.find(x => x.id === matchId);
         if (!m) throw new Error("Partido no encontrado en memoria");
 
-        m.fcbqMoves = moves;
-        m.localId = stats.localId;
-        m.visitId = stats.visitId;
-        
+        m.fcbqMoves = pbpData.playByPlay || []; 
+        if (statsData.header) {
+            m.localId = statsData.header.localTeam?.uuid || null; 
+            m.visitId = statsData.header.visitorTeam?.uuid || null;
+        }
+
         svL(); 
         rAll(); 
-        toast('✅ Acta FCBQ vinculada. ¡Posesiones y pérdidas actualizadas!');
+        toast('✅ Proceso terminado (revisa la consola)');
     } catch (e) {
-        console.error(e);
-        toast('❌ Error al vincular: ' + e.message, 'err');
+        console.error("🛠️ DEBUG [ERROR GRAVE]:", e);
+        toast('❌ Error: ' + e.message, 'err');
     }
 }
 

@@ -7944,8 +7944,15 @@ function injectOriginData(containerClass, eventsArray, matchFn){
 function _renderStTeamStats(scoped,m,tf){
   const el=document.getElementById('st-team-body');if(!el)return;
   let A,B,nameA,nameB;
+  let evA = [], evB = []; // Arrays para guardar las jugadas de origen
+
   if(m){
     A=_teamTotals([m],'home');B=_teamTotals([m],'away');nameA=m.homeTeam;nameB=m.awayTeam;
+    // Extraemos los eventos de este partido suelto
+    if (m.events) {
+        evA = m.events.filter(e => e.team === 'home');
+        evB = m.events.filter(e => e.team === 'away');
+    }
   }else{
     // Acumulado: el equipo filtrado contra todos sus rivales
     if(!tf){el.innerHTML='<div class="card"><div class="empty">Elige un partido concreto, o un equipo, para comparar estadísticas.</div></div>';return;}
@@ -7955,10 +7962,16 @@ function _renderStTeamStats(scoped,m,tf){
       const side=x.homeTeam===tf?'home':x.awayTeam===tf?'away':null;if(!side)return;
       const a=_teamTotals([x],side), b=_teamTotals([x],side==='home'?'away':'home');
       Object.keys(A).forEach(k=>{A[k]+=a[k];B[k]+=b[k];});
+      // Sumamos también los eventos para la vista acumulada
+      if (x.events) {
+          evA = evA.concat(x.events.filter(e => e.team === side));
+          evB = evB.concat(x.events.filter(e => e.team === (side==='home'?'away':'home')));
+      }
     });
     nameA=tf;nameB='Rivales';
     if(!A.t2a&&!A.t3a&&!A.tla){el.innerHTML='<div class="card"><div class="empty">Sin datos para ese equipo con estos filtros</div></div>';return;}
   }
+
   const pct=(mk,at)=>at?mk/at*100:0;
   const ring=(label,am,aa,bm,ba)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)">
       <div style="width:58px;text-align:right;font-size:11px;color:var(--t3);flex-shrink:0">${am}/${aa}</div>
@@ -7967,6 +7980,7 @@ function _renderStTeamStats(scoped,m,tf){
       ${_ringSvg(pct(bm,ba),'#3b82f6')}
       <div style="width:58px;font-size:11px;color:var(--t3);flex-shrink:0">${bm}/${ba}</div>
     </div>`;
+
   const bar=(label,va,vb,invert)=>{
     const tot=(va+vb)||1, pa=va/tot*100;
     const aWins=invert?va<vb:va>vb, tie=va===vb;
@@ -7979,7 +7993,21 @@ function _renderStTeamStats(scoped,m,tf){
       <div class="statbar"><div style="width:${pa}%;background:#16a34a;opacity:${!tie&&aWins?1:.45}"></div><div style="flex:1;background:#3b82f6;opacity:${!tie&&!aWins?1:.45}"></div></div>
     </div>`;
   };
+
   const noExtra=!(A.reb||B.reb||A.ast||B.ast||A.stl||B.stl);
+
+  // 🚀 Generamos el HTML de tu caja de Origen Táctico (si la función existe)
+  let originBoxHtml = '';
+  if (typeof generateOriginDualCard === 'function') {
+      let titleA = m ? nameA : 'A FAVOR';
+      let titleB = m ? nameB : 'EN CONTRA';
+      originBoxHtml = `
+      <div class="card">
+        <div class="ct">📋 Origen de los Puntos ${m ? '' : '(Acumulado)'}</div>
+        ${generateOriginDualCard(evA, evB, titleA.toUpperCase(), titleB.toUpperCase())}
+      </div>`;
+  }
+
   el.innerHTML=`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:7px">
         <span style="color:#15803d">${_esc(nameA)}</span><span style="color:#1e40af">${_esc(nameB)}</span>
@@ -7989,7 +8017,7 @@ function _renderStTeamStats(scoped,m,tf){
       ${ring('Canastas de 3',A.t3m,A.t3a,B.t3m,B.t3a)}
       ${ring('Tiros de campo',A.t2m+A.t3m,A.t2a+A.t3a,B.t2m+B.t3m,B.t2a+B.t3a)}
     </div>
-    <div class="card">
+    <div class="card" style="${originBoxHtml ? 'margin-bottom:10px' : ''}">
       <div class="ct">📊 Otras estadísticas</div>
       ${bar('Puntos',A.pts,B.pts)}
       ${(A.reb||B.reb)?bar('Rebotes',A.reb,B.reb):''}
@@ -8001,7 +8029,8 @@ function _renderStTeamStats(scoped,m,tf){
       ${(A.to||B.to)?bar('Pérdidas',A.to,B.to,true):''}
       ${bar('Faltas',A.fc,B.fc,true)}
       ${noExtra?'<div style="font-size:10px;color:var(--t3);margin-top:7px">Los rebotes, asistencias, robos y tapones no vienen en los datos de la FCBQ. Puedes rellenarlos con ✏️ en el historial de partidos, o registrarlos en directo.</div>':''}
-    </div>`;
+    </div>
+    ${originBoxHtml}`;
 }
 
 // ── 4. +/- POR TRAMOS ───────────────────────────────────────────────────────
@@ -10820,7 +10849,6 @@ function generateOriginDualCard(evFor, evAgainst, titleFor, titleAgainst) {
   </div>`;
 }
 
-// ── Modal del Directo Renovado (Pop-up real, Doble Scroll y X arreglada) ──
 function renderLiveStatsModal() {
   const modalWrapper = document.getElementById('live-stats-modal');
   if(!modalWrapper) return;
@@ -10864,18 +10892,16 @@ function renderLiveStatsModal() {
   window._lvStatsSide = window._lvStatsSide || 'home';
   window.setLvStatsSide = function(side) { window._lvStatsSide = side; renderLiveStatsModal(); };
   
-  // 🚀 LÓGICA DE SELECCIÓN DE CUARTOS (SIN BOTÓN TOTAL)
-  if (!Array.isArray(window._lvStatsQ)) window._lvStatsQ = []; // Array vacío = Total
+  if (!Array.isArray(window._lvStatsQ)) window._lvStatsQ = []; 
   
   window.toggleLvStatsQ = function(q) {
       const p = parseInt(q, 10);
       const idx = window._lvStatsQ.indexOf(p);
       if (idx > -1) {
-          window._lvStatsQ.splice(idx, 1); // Deseleccionar
+          window._lvStatsQ.splice(idx, 1); 
       } else {
-          window._lvStatsQ.push(p); // Seleccionar
+          window._lvStatsQ.push(p); 
       }
-      // Si todos los cuartos están seleccionados, reseteamos a TOTAL (array vacío)
       if (window._lvStatsQ.length === pKeys.length) {
           window._lvStatsQ = []; 
       }
@@ -10887,28 +10913,110 @@ function renderLiveStatsModal() {
   const aTeam = sH ? 'home' : 'away';
   const oppTeam = sH ? 'away' : 'home'; 
 
-  // 🚀 MOTOR HEURÍSTICO DE TIEMPO POR CUARTOS
-  const estimateQMin = (pName) => {
-      let totalEst = 0;
-      window._lvStatsQ.forEach(q => {
-         const qEvs = lv.events.filter(e => e.period === q && e.oc && e.oc[aTeam]);
-         let qDur = q > 4 ? 5 : 10;
-         let elapsed = (q === lv.period && lv.timer) ? (qDur - (lv.timer.seconds || 0)/60) : qDur;
-         
-         if (qEvs.length === 0) {
-             if (lv.onCourt[aTeam].has(pName) && q === lv.period) totalEst += elapsed;
-         } else {
-             let presences = qEvs.filter(e => e.oc[aTeam].includes(pName)).length;
-             totalEst += (presences / qEvs.length) * elapsed; // Estimación proporcional
-         }
+  // 🚀 EL ÁRBITRO DE MESA (Motor Cronológico Continuo)
+  const exactMinsMap = {};
+  lv.pl[aTeam].forEach(p => exactMinsMap[p.name] = 0);
+
+  if (!isAll && window._lvStatsQ.length > 0) {
+      const activeQs = new Set(window._lvStatsQ);
+      
+      const getSecs = (ev) => {
+          if (ev.timer && typeof ev.timer.seconds === 'number') return ev.timer.seconds;
+          if (typeof ev.minute === 'number') return (ev.minute * 60) + (ev.second || 0);
+          if (typeof ev.m === 'number') return (ev.m * 60) + (ev.s || 0);
+          if (typeof ev.clock === 'string') {
+             let p = ev.clock.split(':');
+             if (p.length === 2) return parseInt(p[0], 10)*60 + parseInt(p[1], 10);
+          }
+          return null;
+      };
+
+      // Ordenar TODOS los eventos del partido de inicio a fin (como una película)
+      let globalEvs = lv.events.slice().sort((a, b) => {
+          if (a.period !== b.period) return a.period - b.period;
+          let tA = getSecs(a); tA = tA !== null ? tA : 0;
+          let tB = getSecs(b); tB = tB !== null ? tB : 0;
+          return tB - tA; // 600 segundos hacia 0
       });
-      return totalEst;
-  };
+
+      let currentLineup = [];
+      let currentQ = 1;
+      let lastT = 600;
+
+      // Buscar quién sale de titular en la primera acción de la app
+      if (globalEvs.length > 0 && globalEvs[0].oc && globalEvs[0].oc[aTeam]) {
+          currentLineup = globalEvs[0].oc[aTeam];
+      } else if (lv.onCourt && lv.onCourt[aTeam]) {
+          currentLineup = Array.from(lv.onCourt[aTeam]);
+      }
+
+      // Reproducir el partido evento a evento
+      globalEvs.forEach((e) => {
+          let t = getSecs(e);
+          if (t === null) t = lastT; 
+          
+          if (t > lastT && e.period === currentQ) t = lastT; // Evitar fallos de FCBQ
+
+          if (e.period !== currentQ) {
+              // 1. Terminar el cuarto anterior hasta que suene la bocina (segundo 0)
+              let delta = lastT;
+              if (delta > 0 && activeQs.has(currentQ)) {
+                  currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + delta; });
+              }
+              
+              // 2. Por si hay cuartos vacíos sin jugadas registradas en medio
+              for (let pq = currentQ + 1; pq < e.period; pq++) {
+                  if (activeQs.has(pq)) {
+                      let pqDur = pq > 4 ? 5 : 10;
+                      currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + (pqDur * 60); });
+                  }
+              }
+
+              // 3. Arrancar el nuevo cuarto manteniendo el quinteto que acabó el anterior
+              currentQ = e.period;
+              let qDur = currentQ > 4 ? 5 : 10;
+              lastT = qDur * 60;
+              
+              // 4. Bajar el reloj hasta esta primera jugada
+              if (t > lastT) t = lastT;
+              let startDelta = lastT - t;
+              if (startDelta > 0 && activeQs.has(currentQ)) {
+                  currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + startDelta; });
+              }
+          } else {
+              // Misma jugada en el mismo cuarto, simplemente restar los segundos
+              let delta = lastT - t;
+              if (delta > 0 && activeQs.has(currentQ)) {
+                  currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + delta; });
+              }
+          }
+
+          // Refrescar quién está jugando para el siguiente tramo
+          if (e.oc && e.oc[aTeam]) {
+              currentLineup = e.oc[aTeam];
+          }
+          lastT = t;
+      });
+
+      // Bajar el reloj desde el último evento hasta donde se haya parado el cronómetro en vivo
+      let liveRem = 0;
+      if (currentQ === lv.period && lv.timer && typeof lv.timer.seconds === 'number') {
+          liveRem = lv.timer.seconds;
+      }
+      let finalDelta = lastT - liveRem;
+      if (finalDelta > 0 && activeQs.has(currentQ)) {
+          currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + finalDelta; });
+      }
+  }
 
   const qStats = {};
   if (!isAll) {
       lv.pl[aTeam].forEach(p => {
-          qStats[p.name] = { pts:0, t2m:0, t2a:0, t3m:0, t3a:0, tlm:0, tla:0, ro:0, rd:0, ast:0, stl:0, blk:0, to:0, fc:0, fr:0, pm:0, min:estimateQMin(p.name) };
+          qStats[p.name] = { 
+              pts:0, t2m:0, t2a:0, t3m:0, t3a:0, tlm:0, tla:0, 
+              ro:0, rd:0, ast:0, stl:0, blk:0, to:0, fc:0, fr:0, pm:0, 
+              min: (exactMinsMap[p.name] || 0) / 60 
+          };
       });
       
       lv.events.filter(e => window._lvStatsQ.includes(e.period)).forEach(e => {
@@ -11003,7 +11111,6 @@ function renderLiveStatsModal() {
       <td style="font-weight:900; text-align:center; color:${t_pm>0?'var(--gn)':t_pm<0?'#dc2626':'inherit'}">${t_pm>0?'+':''}${t_pm}</td>
   </tr>`;
 
-  // 🚀 CABECERA DE LA TABLA: EQUIPOS (IZQ) Y CUARTOS (DER)
   const qBtn = (q, lbl) => {
       const act = window._lvStatsQ.includes(parseInt(q, 10));
       return `<button onclick="toggleLvStatsQ('${q}')" style="flex-shrink:0; padding:6px 12px; border-radius:6px; font-weight:800; font-size:11px; border:1px solid ${act?'var(--ac)':'var(--bd)'}; background:${act?'var(--ac)':'#fff'}; color:${act?'#fff':'var(--t2)'}; cursor:pointer; transition:all 0.15s">${lbl}</button>`;
@@ -13526,7 +13633,7 @@ async function importFromFCBQ() {
         
         if (successCount > 0) document.getElementById('i-fcbq-url').value = "";
         
-        statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ¡Importación lista! ${successCount} subidos. ${failCount > 0 ? `(${failCount} errores - Súbelo a GitHub para solucionarlos)` : ''}</span>`;
+        statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ¡Importación lista! ${successCount} subidos. ${failCount > 0 ? `(${failCount} errores)` : ''}</span>`;
         if (successCount > 0) toast(`Partidos importados correctamente.`, 'ok');
 
     } catch (globalErr) {

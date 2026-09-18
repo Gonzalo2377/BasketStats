@@ -8994,124 +8994,6 @@ function stAggSort(field){
   renderStatsAggregated();
 }
 
-// ── Stats Agregadas: Une al jugador si cambia de equipo o año ──
-function renderStatsAggregated(){
-  const ctx = window._stCtx || {};
-  const tf = ctx.tf || '', gf = ctx.gf || '', pf = ctx.pf || '';
-  const fuente = ctx.scoped || S.matches;
-  const norm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const q = ''; // Manejado por sbFilter
-  
-  // 🚀 CONVERSOR DE MINUTOS (MM:SS) INYECTADO AQUÍ
-  const fmtMin = (val) => {
-      if (!val) return '0:00';
-      let mm = Math.floor(val);
-      let ss = Math.round((val - mm) * 60);
-      if (ss >= 60) { mm++; ss -= 60; }
-      return `${mm}:${String(ss).padStart(2, '0')}`;
-  };
-
-  const playerMap = {};
-  fuente.forEach(m => {
-    const seasonStr = m.season || 'Sin temporada';
-    [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id,mName:m.name,season:seasonStr})),
-     ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id,mName:m.name,season:seasonStr}))]
-    .forEach(p => {
-      if(tf && p.team !== tf) return;
-      if(gf && !_inGroup(p.team, gf)) return;
-      if(pf && p.name !== pf) return;
-      if(q && !(norm(p.name).includes(q) || String(p.dorsal||'').includes(q))) return;
-      
-      const key = norm(p.name).trim();
-      if(!playerMap[key]){
-        playerMap[key] = {
-            name: p.name, dorsal: p.dorsal, 
-            teams: new Set([p.team]), seasons: new Set([p.season]),
-            pts:0, t2Made:0, t2Att:0, t3Made:0, t3Att:0, tlMade:0, tlAtt:0,
-            reb:0, ast:0, stl:0, blk:0, to:0, fr:0, fc:0, pm:0, val:0, min:0, games:[]
-        };
-      } else {
-        playerMap[key].teams.add(p.team);
-        playerMap[key].seasons.add(p.season);
-      }
-      
-      const agg = playerMap[key];
-      agg.pts += (p.pts||0); agg.t2Made += (p.t2Made||0); agg.t2Att += (p.t2Att||0);
-      agg.t3Made += (p.t3Made||0); agg.t3Att += (p.t3Att||0);
-      agg.tlMade += (p.tlMade||0); agg.tlAtt += (p.tlAtt||0);
-      agg.reb += (p.reb||0); agg.ast += (p.ast||0); agg.stl += (p.stl||0); agg.blk += (p.blk||0);
-      agg.to += (p.to||0); agg.fr += (p.fr||0); agg.fc += (p.fc||0);
-      agg.pm += (p.pm||0); agg.val += (p.val||0); agg.min += (p.min||0);
-      agg.games.push(p);
-    });
-  });
-
-  const players = Object.values(playerMap);
-  const el = document.getElementById('st-tb-agg');
-  if(!el) return;
-  if(!players.length){ el.innerHTML=`<tr><td colspan="21" class="no-d">Sin datos</td></tr>`; return; }
-
-  const sf = _stAggSort.field, dir = _stAggSort.dir;
-  const val = (p) => {
-    switch(sf){
-      case 'dorsal': return parseInt(p.dorsal)||0;
-      case 'name': return p.name.toLowerCase();
-      case 'team': return [...p.teams].join(' ').toLowerCase();
-      case 'min': return p.min||0;
-      case 'pts': return p.pts||0;
-      case 'ppg': return p.games.length ? p.pts/p.games.length : 0;
-      case 'tl': return p.tlAtt ? p.tlMade/p.tlAtt : -1;
-      case 't2': return p.t2Att ? p.t2Made/p.t2Att : -1;
-      case 't3': return p.t3Att ? p.t3Made/p.t3Att : -1;
-      case 'pm': return p.pm||0;
-      default: return p.pts||0;
-    }
-  };
-  
-  players.sort((a,b) => typeof val(a)==='string' ? dir*val(a).localeCompare(val(b)) : dir*(val(a)-val(b)));
-  const pc = (m,a) => a ? Math.round(m/a*100)+'%' : '—';
-  
-  el.innerHTML = players.map(p => {
-    const valC = p.val>0 ? 'var(--gn)' : p.val<0 ? '#dc2626' : 'inherit';
-    const pmC = p.pm>0 ? 'var(--gn)' : p.pm<0 ? '#dc2626' : 'inherit';
-    const teamLabels = [...p.teams].join(' / ');
-    const seasonLabels = [...p.seasons].join(', ');
-    
-    // 🚀 LÍNEA CORREGIDA: Forzamos el color 'inherit' en el td de 'to' (Pérdidas)
-    return `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" data-n="${_esc(p.name)}" data-t="__ALL__" onclick="openPlayerProfile(this.dataset.n, this.dataset.t, '')">
-      <td style="padding:5px 6px">#${p.dorsal}</td>
-      <td style="padding:5px 6px;font-weight:700">${_esc(p.name)} <span style="color:var(--t3);font-size:9px">(${p.games.length}P)</span></td>
-      <td style="padding:5px 6px"><span class="chip cgr">${_esc(teamLabels)}</span> <div style="font-size:9px;color:var(--t3);margin-top:2px">${_esc(seasonLabels)}</div></td>
-      <td style="padding:5px 6px;font-weight:700;color:var(--t2)">${p.min ? fmtMin(p.min) : '—'}</td>
-      <td style="padding:5px 6px;font-weight:700">${p.pts}</td>
-      <td style="padding:5px 6px;font-weight:700;color:var(--ac)">${p.games.length ? (p.pts/p.games.length).toFixed(1) : '—'}</td>
-      <td style="padding:5px 6px">${p.tlMade}/${p.tlAtt}</td><td style="padding:5px 6px">${pc(p.tlMade,p.tlAtt)}</td>
-      <td style="padding:5px 6px">${p.t2Made}/${p.t2Att}</td><td style="padding:5px 6px">${pc(p.t2Made,p.t2Att)}</td>
-      <td style="padding:5px 6px">${p.t3Made}/${p.t3Att}</td><td style="padding:5px 6px">${pc(p.t3Made,p.t3Att)}</td>
-      <td style="padding:5px 6px">${p.reb||'—'}</td><td style="padding:5px 6px">${p.ast||'—'}</td>
-      <td style="padding:5px 6px">${p.stl||'—'}</td><td style="padding:5px 6px">${p.blk||'—'}</td>
-      <td style="padding:5px 6px;color:inherit!important;">${p.to||'—'}</td><td style="padding:5px 6px">${p.fc}</td>
-      <td style="padding:5px 6px">${p.fr||'—'}</td>
-      <td style="padding:5px 6px;color:${valC}">${p.val}</td>
-      <td style="padding:5px 6px;font-weight:700;color:${pmC}">${p.pm>0?'+':''}${p.pm}</td>
-      <td style="padding:5px 6px;color:var(--t3);font-size:11px" title="Ver perfil del jugador">👤</td>
-    </tr>`;
-  }).join('');
-
-  // Indicadores de orden (▲▼) en la cabecera
-  const head=document.getElementById('st-agg-head');
-  if(head){
-    const map={name:1,team:2,min:3,pts:4,ppg:5,tlm:6,tl:7,t2m:8,t2:9,t3m:10,t3:11,reb:12,ast:13,stl:14,blk:15,to:16,fc:17,fr:18,val:19,pm:20};
-    [...head.children].forEach(th=>{th.querySelector('.sar')?.remove();});
-    const idx=map[_stAggSort.field];
-    if(idx!=null&&head.children[idx]){
-      const arrow=document.createElement('span');arrow.className='sar';
-      arrow.textContent=_stAggSort.dir<0?' ▼':' ▲';
-      arrow.style.cssText='font-size:9px;color:var(--ac)';
-      head.children[idx].appendChild(arrow);
-    }
-  }
-}
 
 function togglePlayerGames(id){
   const el=document.getElementById(id);if(!el)return;
@@ -11368,26 +11250,62 @@ function _renderStBox(m){
 
 function openPlayerProfile(name, team, targetSeason){
  try{
+  const getRealMinSecs = (mObj, pObj, side) => {
+      if (mObj.events && mObj.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const sData = _playerStints(mObj, pObj.name, side);
+              const sArr = sData && sData.stints ? sData.stints : [];
+              const decMins = sArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+              return Math.round(decMins * 60);
+          } catch(e) {}
+      }
+      if (!pObj || !pObj.min) return 0;
+      if (typeof pObj.min === 'number') return Math.round(pObj.min * 60);
+      let str = String(pObj.min).trim();
+      if (str.includes(':')) {
+          let pts = str.split(':');
+          const mP = parseInt(pts[0], 10);
+          const sP = parseInt(pts[1], 10);
+          return (isNaN(mP) ? 0 : mP * 60) + (isNaN(sP) ? 0 : sP);
+      }
+      const flt = parseFloat(str);
+      return isNaN(flt) ? 0 : Math.round(flt * 60);
+  };
+
+  const fmtMin = (secs) => {
+      if (secs === null || secs === undefined || isNaN(secs)) return '0:00';
+      let mm = Math.floor(secs / 60);
+      let ss = Math.round(secs % 60);
+      if (ss >= 60) { mm++; ss -= 60; }
+      return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
   let allGames=[];
   S.matches.forEach(m=>{
-    const sides=[['home',m.homeTeam,m.homePlayers,m.scoreHome,m.scoreAway,m.awayTeam],
-                 ['away',m.awayTeam,m.awayPlayers,m.scoreAway,m.scoreHome,m.homeTeam]];
-    for(const [side,tName,players,my,op,oppName] of sides){
-      const p=(players||[]).find(x=>x.name===name);
+    const iterData = [
+        ['home', m.homeTeam, m.homePlayers, m.scoreHome, m.scoreAway, m.awayTeam],
+        ['away', m.awayTeam, m.awayPlayers, m.scoreAway, m.scoreHome, m.homeTeam]
+    ];
+    for(const data of iterData){
+      const side = data[0]; const tName = data[1]; const players = data[2] ? data[2] : [];
+      const my = data[3]; const op = data[4]; const oppName = data[5];
+      
+      const p = players.find(x => x.name === name);
       if(p) {
           let realTs = _parseDMY(m.date);
-          if (!realTs) realTs = m.id || 0;
+          if (!realTs) realTs = m.id ? m.id : 0;
+          const resL = my > op ? 'W' : (my < op ? 'L' : 'E');
           allGames.push({
-              ...p, side, mId:m.id, date:m.date||'', ts:realTs, opp:oppName, my, op, 
-              res:my>op?'W':my<op?'L':'E', 
-              tn: tName, 
-              season: m.season || 'Sin temporada'
+              ...p, 
+              _secs: getRealMinSecs(m, p, side), 
+              side: side, mId: m.id, date: m.date ? m.date : '', ts: realTs, opp: oppName, my: my, op: op, 
+              res: resL, tn: tName, season: m.season ? m.season : 'Sin temporada'
           });
       }
     }
   });
 
-  if(!allGames.length){toast('Sin partidos de este jugador en la base de datos','err');return;}
+  if(!allGames.length){ if(typeof toast === 'function') toast('Sin partidos de este jugador en la base de datos','err'); return; }
 
   let effectiveTargetSeason = targetSeason;
   let games = [];
@@ -11395,11 +11313,13 @@ function openPlayerProfile(name, team, targetSeason){
   if (targetSeason && targetSeason !== 'Sin temporada') {
       games = allGames.filter(g => g.season === targetSeason);
       if (games.length === 0) {
-          const past = [...new Set(allGames.map(g=>g.season).filter(Boolean))].sort().reverse();
+          const pastArr = allGames.map(g => g.season).filter(Boolean);
+          const pastSet = new Set(pastArr);
+          const past = [...pastSet].sort().reverse();
           if (past.length > 0) {
               effectiveTargetSeason = past[0];
               games = allGames.filter(g => g.season === effectiveTargetSeason);
-              if(games.length > 0) toast(`Mostrando stats de ${effectiveTargetSeason} (Pretemporada)`, 'info');
+              if(games.length > 0 && typeof toast === 'function') toast(`Mostrando stats de ${effectiveTargetSeason} (Pretemporada)`, 'info');
           }
       }
   } else if (targetSeason === 'Sin temporada') {
@@ -11408,7 +11328,6 @@ function openPlayerProfile(name, team, targetSeason){
       games = allGames; 
   }
 
-  // 🚀 RESTRICCIÓN: Solo obligamos a que coincida la camiseta si NO estamos en pretemporada
   if (effectiveTargetSeason === targetSeason) {
       if (team !== '__ALL__' && team !== '__CLARET__') {
           games = games.filter(g => g.tn === team);
@@ -11417,7 +11336,7 @@ function openPlayerProfile(name, team, targetSeason){
       }
   }
 
-  if(!games.length){toast('Sin partidos en esta selección','err');return;}
+  if(!games.length){ if(typeof toast === 'function') toast('Sin partidos en esta selección','err'); return; }
   
   const url = new URL(window.location);
   url.searchParams.set('jugador', name);
@@ -11427,16 +11346,20 @@ function openPlayerProfile(name, team, targetSeason){
   
   games.sort((a,b)=>a.ts-b.ts);
   
-  const G=games.length;
-  const sum=f=>games.reduce((s,g)=>s+(g[f]||0),0);
-  const pts=sum('pts'),t2m=sum('t2Made'),t2a=sum('t2Att'),t3m=sum('t3Made'),t3a=sum('t3Att'),
-        tlm=sum('tlMade'),tla=sum('tlAtt'),fc=sum('fc'),pm=sum('pm'),min=sum('min'),
-        reb=sum('reb'),ast=sum('ast'),starts=games.filter(g=>g.starter).length;
-  const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
-  const dorsal=games[games.length-1].dorsal;
+  const G = games.length;
+  const sum = (f) => games.reduce((s, g) => s + (g[f] ? g[f] : 0), 0);
+  
+  const pts = sum('pts'); const t2m = sum('t2Made'); const t2a = sum('t2Att'); const t3m = sum('t3Made'); const t3a = sum('t3Att');
+  const tlm = sum('tlMade'); const tla = sum('tlAtt'); const fc = sum('fc'); const pm = sum('pm'); 
+  const minTotSecs = games.reduce((s, g) => s + (g._secs ? g._secs : 0), 0);
+  const reb = sum('reb'); const ast = sum('ast'); const starts = games.filter(g => g.starter).length;
+  
+  const pct = (m, a) => a ? Math.round(m / a * 100) + '%' : '—';
+  const dorsal = games[games.length-1].dorsal;
 
-  const uniqueTeams = [...new Set(games.map(g => g.tn))];
-  const teamLabel = uniqueTeams.length > 1 ? uniqueTeams.join(' ➔ ') : (uniqueTeams[0] || 'Desconocido');
+  const tnArr = games.map(g => g.tn);
+  const uniqueTeams = [...new Set(tnArr)];
+  const teamLabel = uniqueTeams.length > 1 ? uniqueTeams.join(' ➔ ') : (uniqueTeams[0] ? uniqueTeams[0] : 'Desconocido');
 
   let _cg = "";
   const chartGroups = games.map((g, i) => {
@@ -11451,53 +11374,74 @@ function openPlayerProfile(name, team, targetSeason){
       return _cg;
   });
 
-  const allShots=[...S.shots,...S.matches.flatMap(m=>(m.shots||[]).map(s=>({...s,mId:m.id})))];
-  const myShots=allShots.filter(s=>{
-    if(s.player!==name)return false;
-    const m=S.matches.find(mm=>mm.id==(s.mId||s.matchId));if(!m)return false;
+  const mShotsFilter = S.matches.flatMap(m => {
+      const shArr = m.shots ? m.shots : [];
+      return shArr.map(s => ({...s, mId: m.id}));
+  });
+  const allShots = [...S.shots, ...mShotsFilter];
+  
+  const myShots = allShots.filter(s => {
+    if(s.player !== name) return false;
+    const m = S.matches.find(mm => String(mm.id) === String(s.mId ? s.mId : s.matchId)); 
+    if(!m) return false;
     if(effectiveTargetSeason && effectiveTargetSeason !== 'Sin temporada' && m.season !== effectiveTargetSeason) return false;
     
     if (effectiveTargetSeason === targetSeason) {
-        const shotTeam=s.team==='home'?m.homeTeam:m.awayTeam;
+        const shotTeam = s.team === 'home' ? m.homeTeam : m.awayTeam;
         if (team !== '__ALL__' && team !== '__CLARET__') return shotTeam === team;
         if (team === '__CLARET__') return isOurTeam(shotTeam);
     }
     return true; 
   });
 
-  window._ppCtx={name,team,dorsal,games,G,pts,t2m,t2a,t3m,t3a,tlm,tla,fc,pm,min,reb,ast,starts,myShots};
+  window._ppCtx = {name,team,dorsal,games,G,pts,t2m,t2a,t3m,t3a,tlm,tla,fc,pm,min: minTotSecs,reb,ast,starts,myShots};
+
+  const strDor = dorsal ? dorsal : '';
+  const strSt = starts > 0 ? '<span style="color:#fbbf24" title="Titular">★</span>' : '';
+  const strSeas = effectiveTargetSeason ? '· ' + effectiveTargetSeason : '';
+  const strPl = G !== 1 ? 's' : '';
+  const strMinG = minTotSecs > 0 ? fmtMin(minTotSecs / G) + ' min/p' : '';
 
   document.getElementById('pp-header').innerHTML=`
-    <div style="width:52px;height:52px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0">#${dorsal}</div>
+    <div style="width:52px;height:52px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0">#${strDor}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:18px;font-weight:900">${name} ${starts>0?'<span style="color:#fbbf24" title="Titular">★</span>':''}</div>
-      <div style="font-size:11px;opacity:.75">${teamLabel} ${effectiveTargetSeason?'· '+effectiveTargetSeason:''} · ${G} partido${G!==1?'s':''} · titular ${starts}/${G} · ${min?Math.round(min/G)+' min/p':''}</div>
+      <div style="font-size:18px;font-weight:900">${name} ${strSt}</div>
+      <div style="font-size:11px;opacity:.75">${teamLabel} ${strSeas} · ${G} partido${strPl} · titular ${starts}/${G} · ${strMinG}</div>
     </div>
     <button onclick="exportPlayerPDF()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;margin-right:5px">📄 PDF</button>
     <button onclick="closePlayerProfile()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;flex-shrink:0">✕</button>`;
 
-  const labels=games.map((g,i)=>g.date?g.date.slice(0,5):('P'+(i+1)));
-  const kpi=(v,l,s2)=>`<div class="kpi" style="padding:9px 6px"><div class="kv" style="font-size:19px">${v}</div><div class="kl">${l}</div>${s2?`<div class="ks">${s2}</div>`:''}</div>`;
-  const chart=(title,inner)=>`<div style="border:1px solid var(--bd);border-radius:10px;padding:10px;overflow:hidden;min-width:0"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div class="pp-scroll">${inner}</div></div>`;
+  const labels = games.map((g, i) => g.date ? g.date.slice(0,5) : ('P' + (i + 1)));
+  const kpi = (v, l, s2) => {
+      const ksHtml = s2 ? `<div class="ks">${s2}</div>` : '';
+      return `<div class="kpi" style="padding:9px 6px"><div class="kv" style="font-size:19px">${v}</div><div class="kl">${l}</div>${ksHtml}</div>`;
+  };
+  const chart = (title, inner) => `<div style="border:1px solid var(--bd);border-radius:10px;padding:10px;overflow:hidden;min-width:0"><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${title}</div><div class="pp-scroll">${inner}</div></div>`;
+
+  const pmSig = pm > 0 ? '+' : '';
+  const ptsG = G > 0 ? (pts / G).toFixed(1) : 0;
+  
+  // 🚀 ARREGLO: Redondeamos los minutos para que no se superpongan en la gráfica "20.26666"
+  const minArrGraph = games.map(g => Math.round((g._secs ? g._secs : 0) / 60));
 
   document.getElementById('pp-body').innerHTML=`
     <div class="pp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
-      ${kpi((pts/G).toFixed(1),'Pts/partido',pts+' tot')}
-      ${kpi(pct(t2m,t2a),'T2%',t2m+'/'+t2a)}
-      ${kpi(pct(t3m,t3a),'T3%',t3m+'/'+t3a)}
-      ${kpi(pct(tlm,tla),'TL%',tlm+'/'+tla)}
-      ${kpi((pm>0?'+':'')+pm,'+/- total','')}
-      ${kpi(fc,'Faltas','')}
+      ${kpi(ptsG, 'Pts/partido', pts + ' tot')}
+      ${kpi(pct(t2m, t2a), 'T2%', t2m + '/' + t2a)}
+      ${kpi(pct(t3m, t3a), 'T3%', t3m + '/' + t3a)}
+      ${kpi(pct(tlm, tla), 'TL%', tlm + '/' + tla)}
+      ${kpi(pmSig + pm, '+/- total', '')}
+      ${kpi(fc, 'Faltas', '')}
     </div>
     <div class="pp-charts" style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px">
-      ${chart('🏀 Puntos por partido',_svgBars(games.map(g=>g.pts||0),labels, {groups: chartGroups}))}
+      ${chart('🏀 Puntos por partido', _svgBars(games.map(g => g.pts ? g.pts : 0), labels, {groups: chartGroups}))}
       ${chart('🎯 % de tiro por partido <span style="font-weight:600;text-transform:none;letter-spacing:0">· <span style="color:#e8402a">●</span> T2 <span style="color:#0ea5e9">●</span> T3</span>',
         _svgLines([
-          {name:'T2',color:'#e8402a',values:games.map(g=>g.t2Att?Math.round(g.t2Made/g.t2Att*100):null)},
-          {name:'T3',color:'#0ea5e9',values:games.map(g=>g.t3Att?Math.round(g.t3Made/g.t3Att*100):null)}
-        ],labels, {groups: chartGroups}))}
-      ${chart('⏱ Minutos por partido',_svgBars(games.map(g=>Math.round(g.min||0)),labels,{color:'#0f1f3d', groups: chartGroups}))}
-      ${chart('📈 +/- por partido',_svgBars(games.map(g=>g.pm||0),labels,{neg:true, groups: chartGroups}))}
+          {name:'T2', color:'#e8402a', values:games.map(g => g.t2Att ? Math.round(g.t2Made / g.t2Att * 100) : null)},
+          {name:'T3', color:'#0ea5e9', values:games.map(g => g.t3Att ? Math.round(g.t3Made / g.t3Att * 100) : null)}
+        ], labels, {groups: chartGroups}))}
+      ${chart('⏱ Minutos por partido', _svgBars(minArrGraph, labels, {color:'#0f1f3d', groups: chartGroups}))}
+      ${chart('📈 +/- por partido', _svgBars(games.map(g => g.pm ? g.pm : 0), labels, {neg:true, groups: chartGroups}))}
     </div>
     <div class="pp-maps" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px" id="pp-map-grid">
       <div><div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">🗺 Mapa de tiro</div><div class="cw"><canvas id="pp-cv"></canvas></div></div>
@@ -11507,36 +11451,346 @@ function openPlayerProfile(name, team, targetSeason){
       <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;margin-bottom:6px">📋 Partido a partido <span style="font-weight:600;text-transform:none">(desliza →)</span></div>
       <div class="pp-games tw" style="max-height:340px;overflow-x:auto;overflow-y:auto"><table style="min-width:760px;border-collapse:collapse;font-size:11px;table-layout:auto">
         <thead><tr style="position:sticky;top:0;z-index:2">${['Fecha','Rival','Res','MIN','PTS','TL','T2','T3','REB','AST','FC','+/-'].map(h=>`<th style="background:#0f172a !important;padding:7px 9px;text-align:left;color:#ffffff !important;font-size:10px;white-space:nowrap;min-width:48px;border:none;">${h}</th>`).join('')}</tr></thead>
-        <tbody>${games.map(g=>`<tr style="border-top:1px solid #eef2f7">
-          <td style="padding:7px 9px;color:var(--t3);font-size:10px;white-space:nowrap">${g.date ? _esc(g.date.slice(0,10)) : '—'}</td>
-          <td style="padding:7px 9px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-             ${g.opp}${g.starter?' <span style="color:#f59e0b">★</span>':''}
-             ${uniqueTeams.length>1||g.season?`<br><span style="font-size:8px;color:var(--ac);font-weight:700">${g.tn} ${g.season&&g.season!=='Sin temporada'?'('+g.season+')':''}</span>`:''}
-          </td>
-          <td style="padding:7px 9px;white-space:nowrap"><span style="font-weight:800;color:${g.res==='W'?'#15803d':g.res==='L'?'#dc2626':'#64748b'}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
-          <td style="padding:7px 9px">${Math.round(g.min)||'—'}</td>
-          <td style="padding:7px 9px;font-weight:800">${g.pts||0}</td>
-          <td style="padding:7px 9px;white-space:nowrap">${(g.tlMade||0)}/${(g.tlAtt||0)}</td>
-          <td style="padding:7px 9px;white-space:nowrap">${(g.t2Made||0)}/${(g.t2Att||0)}</td>
-          <td style="padding:7px 9px;white-space:nowrap">${(g.t3Made||0)}/${(g.t3Att||0)}</td>
-          <td style="padding:7px 9px">${g.reb||0}</td>
-          <td style="padding:7px 9px">${g.ast||0}</td>
-          <td style="padding:7px 9px">${g.fc||0}</td>
-          <td style="padding:7px 9px;font-weight:800;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
-        </tr>`).join('')}</tbody>
+        <tbody>${games.map(g => {
+            const dtStr = g.date ? _esc(g.date.slice(0, 10)) : '—';
+            const stIcon = g.starter ? ' <span style="color:#f59e0b">★</span>' : '';
+            const tInfo = (uniqueTeams.length > 1 || g.season) ? `<br><span style="font-size:8px;color:var(--ac);font-weight:700">${g.tn}${g.season && g.season !== 'Sin temporada' ? '(' + g.season + ')' : ''}</span>` : '';
+            const resCol = g.res === 'W' ? '#15803d' : (g.res === 'L' ? '#dc2626' : '#64748b');
+            const gPts = g.pts ? g.pts : 0;
+            const tlmG = g.tlMade ? g.tlMade : 0; const tlaG = g.tlAtt ? g.tlAtt : 0;
+            const t2mG = g.t2Made ? g.t2Made : 0; const t2aG = g.t2Att ? g.t2Att : 0;
+            const t3mG = g.t3Made ? g.t3Made : 0; const t3aG = g.t3Att ? g.t3Att : 0;
+            const rG = g.reb ? g.reb : 0; const aG = g.ast ? g.ast : 0; const fG = g.fc ? g.fc : 0;
+            const pG = g.pm ? g.pm : 0;
+            const pmC = pG > 0 ? '#15803d' : (pG < 0 ? '#dc2626' : 'inherit');
+            const pmS = pG > 0 ? '+' : '';
+            
+            const gMinSecs = g._secs ? g._secs : 0;
+            const mStrHtml = gMinSecs > 0 ? fmtMin(gMinSecs) : '—';
+
+            return `<tr style="border-top:1px solid #eef2f7">
+              <td style="padding:7px 9px;color:var(--t3);font-size:10px;white-space:nowrap">${dtStr}</td>
+              <td style="padding:7px 9px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                 ${g.opp}${stIcon}${tInfo}
+              </td>
+              <td style="padding:7px 9px;white-space:nowrap"><span style="font-weight:800;color:${resCol}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
+              <td style="padding:7px 9px;font-weight:700">${mStrHtml}</td>
+              <td style="padding:7px 9px;font-weight:800">${gPts}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${tlmG}/${tlaG}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${t2mG}/${t2aG}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${t3mG}/${t3aG}</td>
+              <td style="padding:7px 9px">${rG}</td>
+              <td style="padding:7px 9px">${aG}</td>
+              <td style="padding:7px 9px">${fG}</td>
+              <td style="padding:7px 9px;font-weight:800;color:${pmC}">${pmS}${pG}</td>
+            </tr>`;
+        }).join('')}</tbody>
       </table></div>
     </div>`;
 
-  const cv=document.getElementById('pp-cv');
+  const cv = document.getElementById('pp-cv');
   if(cv){
-    if(myShots.length>=5)drawHeatmap('pp-cv',myShots);
-    else{cv.width=CW;cv.height=CH;drawCourt(cv.getContext('2d'));drawShots(cv.getContext('2d'),myShots);}
-    drawZoneMap('pp-cv2',myShots);
+    if(myShots.length >= 5) drawHeatmap('pp-cv', myShots);
+    else{ cv.width = 500; cv.height = 470; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), myShots); }
+    drawZoneMap('pp-cv2', myShots);
   }
   document.getElementById('player-modal').style.display='flex';
- }catch(e){console.error('openPlayerProfile:',e);toast('Error abriendo el perfil: '+e.message,'err');}
+ }catch(e){
+    console.error('openPlayerProfile:',e);
+    if(typeof toast === 'function') toast('Error abriendo el perfil: ' + e.message, 'err');
+ }
 }
 
+function renderClub(){
+  const getRealMinSecs = (mObj, pObj, side) => {
+      if (mObj.events && mObj.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const sData = _playerStints(mObj, pObj.name, side);
+              const sArr = sData && sData.stints ? sData.stints : [];
+              const decMins = sArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+              return Math.round(decMins * 60);
+          } catch(e) {}
+      }
+      if (!pObj || !pObj.min) return 0;
+      if (typeof pObj.min === 'number') return Math.round(pObj.min * 60);
+      let str = String(pObj.min).trim();
+      if (str.includes(':')) {
+          let pts = str.split(':');
+          const mP = parseInt(pts[0], 10);
+          const sP = parseInt(pts[1], 10);
+          return (isNaN(mP) ? 0 : mP * 60) + (isNaN(sP) ? 0 : sP);
+      }
+      const flt = parseFloat(str);
+      return isNaN(flt) ? 0 : Math.round(flt * 60);
+  };
+
+  const ssel = document.getElementById('cl-sf');
+  const sf = ssel ? ssel.value : '';
+  if(ssel){
+    const sMap = S.matches.filter(m => isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)).map(m => m.season).filter(Boolean);
+    const seasons = [...new Set(sMap)].sort().reverse();
+    const ok = !sf || seasons.includes(sf);
+    
+    let opts = '<option value="">Acumulado (todo)</option>';
+    seasons.forEach(x => {
+        const sHtml = (x === sf && ok) ? ' selected' : '';
+        opts += `<option value="${_esc(x)}"${sHtml}>${_esc(x)}</option>`;
+    });
+    ssel.innerHTML = opts;
+    if(!ok) ssel.value = '';
+  }
+  const sfEff = ssel ? ssel.value : '';
+
+  const ours = [];
+  S.matches.forEach(m => {
+    if(sfEff && m.season !== sfEff) return;
+    if(isOurTeam(m.homeTeam)) {
+        const hp = m.homePlayers ? m.homePlayers : [];
+        ours.push({m: m, side: 'home', tName: m.homeTeam, my: m.scoreHome, op: m.scoreAway, opp: m.awayTeam, players: hp});
+    }
+    else if(isOurTeam(m.awayTeam)) {
+        const ap = m.awayPlayers ? m.awayPlayers : [];
+        ours.push({m: m, side: 'away', tName: m.awayTeam, my: m.scoreAway, op: m.scoreHome, opp: m.homeTeam, players: ap});
+    }
+  });
+  
+  const G = ours.length;
+  const kEl = document.getElementById('cl-kpis');
+  if(!G){
+    if(kEl) kEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Sin partidos del Claret todavía. Importa cronologías o juega partidos en Directo (el nombre del equipo debe contener "Claret").</div>';
+    ['cl-players','cl-lineups','cl-impact','cl-league','cl-astpairs'].forEach(id => { 
+        const e = document.getElementById(id); 
+        if(e) e.innerHTML = ''; 
+    });
+    return;
+  }
+  
+  const W = ours.filter(o => o.my > o.op).length;
+  const L = ours.filter(o => o.my < o.op).length;
+  const ptsF = ours.reduce((s, o) => s + o.my, 0);
+  const ptsA = ours.reduce((s, o) => s + o.op, 0);
+
+  const pm = {};
+  ours.forEach(o => {
+      o.players.forEach(p => {
+        if(!pm[p.name]) {
+            pm[p.name] = {
+                name: p.name, dorsal: p.dorsal, g: 0, _secs: 0, pts: 0, 
+                t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, 
+                ro: 0, rd: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0, fc: 0, fr: 0, pm: 0, 
+                starts: 0, tName: o.tName
+            };
+        }
+        const a = pm[p.name];
+        a.g++; 
+        
+        a._secs += getRealMinSecs(o.m, p, o.side);
+        
+        a.pts += (p.pts ? p.pts : 0);
+        a.t2m += (p.t2Made ? p.t2Made : 0); 
+        a.t2a += (p.t2Att ? p.t2Att : 0); 
+        a.t3m += (p.t3Made ? p.t3Made : 0); 
+        a.t3a += (p.t3Att ? p.t3Att : 0);
+        a.tlm += (p.tlMade ? p.tlMade : 0); 
+        a.tla += (p.tlAtt ? p.tlAtt : 0);
+        a.ro += (p.ro ? p.ro : 0); 
+        a.rd += (p.rd ? p.rd : 0); 
+        a.reb += (p.reb ? p.reb : 0); 
+        a.ast += (p.ast ? p.ast : 0); 
+        a.stl += (p.stl ? p.stl : 0); 
+        a.blk += (p.blk ? p.blk : 0); 
+        a.to += (p.to ? p.to : 0); 
+        a.fc += (p.fc ? p.fc : 0); 
+        a.fr += (p.fr ? p.fr : 0); 
+        a.pm += (p.pm ? p.pm : 0);
+        if(p.starter) a.starts++;
+      });
+  });
+  
+  const players = Object.values(pm).sort((a, b) => b.pts - a.pts);
+  const teamReb = players.reduce((s, p) => s + p.reb, 0);
+  const teamAst = players.reduce((s, p) => s + p.ast, 0);
+  const t2m = players.reduce((s, p) => s + p.t2m, 0);
+  const t2a = players.reduce((s, p) => s + p.t2a, 0);
+  const t3m = players.reduce((s, p) => s + p.t3m, 0);
+  const t3a = players.reduce((s, p) => s + p.t3a, 0);
+  const tlm = players.reduce((s, p) => s + p.tlm, 0);
+  const tla = players.reduce((s, p) => s + p.tla, 0);
+  const pct = (m, a) => a ? Math.round(m / a * 100) + '%' : '—';
+
+  if(kEl) {
+      const balC = W >= L ? 'var(--gn)' : '#dc2626';
+      const pF = Math.round(ptsF / G);
+      const pA = Math.round(ptsA / G);
+      const dif = ptsF - ptsA;
+      const difS = dif > 0 ? '+' : '';
+      const difR = Math.round(dif / G);
+      const rP = teamReb ? Math.round(teamReb / G) : '—';
+      
+      kEl.innerHTML = `
+        <div class="kpi"><div class="kv" style="color:${balC}">${W}-${L}</div><div class="kl">Balance</div></div>
+        <div class="kpi"><div class="kv">${pF}</div><div class="kl">Pts a favor/p</div></div>
+        <div class="kpi"><div class="kv">${pA}</div><div class="kl">Pts en contra/p</div></div>
+        <div class="kpi"><div class="kv">${difS}${difR}</div><div class="kl">Dif/partido</div></div>
+        <div class="kpi"><div class="kv">${pct(t2m, t2a)}</div><div class="kl">T2%</div><div class="ks">${t2m}/${t2a}</div></div>
+        <div class="kpi"><div class="kv">${pct(t3m, t3a)}</div><div class="kl">T3%</div><div class="ks">${t3m}/${t3a}</div></div>
+        <div class="kpi"><div class="kv">${pct(tlm, tla)}</div><div class="kl">TL%</div><div class="ks">${tlm}/${tla}</div></div>
+        <div class="kpi"><div class="kv">${rP}</div><div class="kl">Reb/p</div></div>`;
+  }
+
+  _clPlayers = players.map(p => {
+      const pTotMinDec = p._secs / 60; 
+      return {
+          ...p,
+          t2p: p.t2a ? p.t2m / p.t2a : -1,
+          t3p: p.t3a ? p.t3m / p.t3a : -1,
+          tlp: p.tla ? p.tlm / p.tla : -1,
+          per10: pTotMinDec > 0 ? Math.round(p.pm / pTotMinDec * 100) / 10 : 0
+      };
+  });
+  
+  _clRenderRows();
+  if(typeof renderClubLineups === 'function') renderClubLineups(ours);
+
+  const imp = _clPlayers.filter(p => (p._secs / 60) >= 15).sort((a, b) => b.per10 - a.per10).slice(0, 8);
+  const ie = document.getElementById('cl-impact');
+  
+  if(ie){
+      if(imp.length){
+          let impHtml = '';
+          imp.forEach((p, i) => {
+              const bg = i < 3 ? 'var(--gn)' : 'var(--nv)';
+              const dName = p.name.split(' ')[0];
+              const pMinDec = Math.round(p._secs / 60);
+              const p10 = p.per10;
+              const p10C = p10 > 0 ? 'var(--gn)' : '#dc2626';
+              const p10S = p10 > 0 ? '+' : '';
+              impHtml += `
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">
+                  <span style="width:18px;height:18px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span>
+                  <span style="flex:1;font-weight:600">${dName}</span>
+                  <span style="font-size:10px;color:var(--t3)">${pMinDec}min</span>
+                  <b style="color:${p10C}">${p10S}${p10.toFixed(1)}/10min</b>
+                </div>`;
+          });
+          impHtml += '<div style="font-size:9px;color:var(--t3);margin-top:5px">+/- por cada 10 minutos en pista (mín. 15 min jugados)</div>';
+          ie.innerHTML = impHtml;
+      } else {
+          ie.innerHTML = '<div class="empty">Faltan minutos jugados</div>';
+      }
+  }
+
+  if(typeof renderClubLeague === 'function') renderClubLeague();
+  if(typeof renderClubAstPairs === 'function') renderClubAstPairs();
+  if(typeof renderClubOrigins === 'function') renderClubOrigins(ours);
+}
+
+function _clRenderRows(){
+  const tb = document.getElementById('cl-players');
+  const thead = document.querySelector('#t-club thead tr');
+  if(!tb) return;
+
+  const pctMA = (m, a) => a ? `${Math.round(m / a * 100)}% <span style="color:var(--t3);font-weight:400;font-size:10px">${m}/${a}</span>` : '—';
+  const arr = [..._clPlayers];
+
+  const valOf = (p) => {
+    switch(_clSortF){
+      case 'dorsal': return parseInt(p.dorsal) || 0;
+      case 'name': return p.name.toLowerCase();
+      case 'g': return p.g || 0;
+      case 'min': return p._secs || 0; 
+      case 'pts': return p.pts || 0;
+      case 'ppg': return p.g ? (p.pts || 0) / p.g : 0;
+      case 't2m': return p.t2a ? p.t2m / p.t2a : -1;
+      case 't3m': return p.t3a ? p.t3m / p.t3a : -1;
+      case 'tlm': return p.tla ? p.tlm / p.tla : -1;
+      case 'ro': return p.ro || 0;
+      case 'rd': return p.rd || 0;
+      case 'reb': return p.reb || 0;
+      case 'ast': return p.ast || 0;
+      case 'stl': return p.stl || 0;
+      case 'blk': return p.blk || 0;
+      case 'to': return p.to || 0;
+      case 'fc': return p.fc || 0;
+      case 'fr': return p.fr || 0;
+      case 'pm': return p.pm || 0;
+      case 'per10': return p.per10 || 0;
+      default: return p[_clSortF] ? p[_clSortF] : 0;
+    }
+  };
+
+  arr.sort((a, b) => {
+    const va = valOf(a), vb = valOf(b);
+    if (typeof va === 'string') return _clSortDir * va.localeCompare(vb);
+    return _clSortDir * (va - vb);
+  });
+
+  const getSortIcon = (f) => _clSortF === f ? (_clSortDir > 0 ? ' ▲' : ' ▼') : '';
+
+  if(thead){
+    thead.innerHTML = `
+      <th onclick="clSort('dorsal')" style="cursor:pointer">#${getSortIcon('dorsal')}</th>
+      <th onclick="clSort('name')" style="cursor:pointer">Jugador${getSortIcon('name')}</th>
+      <th onclick="clSort('g')" style="cursor:pointer">Pj${getSortIcon('g')}</th>
+      <th onclick="clSort('min')" style="cursor:pointer">Min${getSortIcon('min')}</th>
+      <th onclick="clSort('pts')" style="cursor:pointer">Pts${getSortIcon('pts')}</th>
+      <th onclick="clSort('t2m')" style="cursor:pointer">T2%${getSortIcon('t2m')}</th>
+      <th onclick="clSort('t3m')" style="cursor:pointer">T3%${getSortIcon('t3m')}</th>
+      <th onclick="clSort('tlm')" style="cursor:pointer">Tl%${getSortIcon('tlm')}</th>
+      <th onclick="clSort('ro')" style="cursor:pointer">Ro${getSortIcon('ro')}</th>
+      <th onclick="clSort('rd')" style="cursor:pointer">Rd${getSortIcon('rd')}</th>
+      <th onclick="clSort('reb')" style="cursor:pointer">Rt${getSortIcon('reb')}</th>
+      <th onclick="clSort('ast')" style="cursor:pointer">Ast${getSortIcon('ast')}</th>
+      <th onclick="clSort('stl')" style="cursor:pointer">Stl${getSortIcon('stl')}</th>
+      <th onclick="clSort('blk')" style="cursor:pointer">Blk${getSortIcon('blk')}</th>
+      <th onclick="clSort('to')" style="cursor:pointer">Per${getSortIcon('to')}</th>
+      <th onclick="clSort('fc')" style="cursor:pointer">Fc${getSortIcon('fc')}</th>
+      <th onclick="clSort('fr')" style="cursor:pointer">Fr${getSortIcon('fr')}</th>
+      <th onclick="clSort('pm')" style="cursor:pointer">+/-${getSortIcon('pm')}</th>
+      <th onclick="clSort('per10')" style="cursor:pointer">+/-/Min${getSortIcon('per10')}</th>
+    `;
+  }
+
+  const fmtMin = (secs) => {
+      if (secs === null || secs === undefined || isNaN(secs)) return '0:00';
+      let mm = Math.floor(secs / 60);
+      let ss = Math.round(secs % 60);
+      if (ss >= 60) { mm++; ss -= 60; }
+      return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
+  let rowsHtml = '';
+  arr.forEach(p => {
+      const st = p.starts > 0 ? ' <span style="color:#f59e0b">★</span>' : '';
+      const pMins = p._secs > 0 ? fmtMin(p._secs) : '—'; 
+      const pRo = p.ro ? p.ro : 0; const pRd = p.rd ? p.rd : 0; const pReb = p.reb ? p.reb : 0;
+      const pAst = p.ast ? p.ast : 0; const pStl = p.stl ? p.stl : 0; const pBlk = p.blk ? p.blk : 0;
+      const pTo = p.to ? p.to : 0; const pFc = p.fc ? p.fc : 0; const pFr = p.fr ? p.fr : 0;
+      const pPm = p.pm ? p.pm : 0;
+      const pmC = pPm > 0 ? 'var(--gn)' : (pPm < 0 ? '#dc2626' : 'inherit');
+      const pmS = pPm > 0 ? '+' : '';
+      const p10 = p.per10 ? p.per10 : 0;
+      const p10C = p10 > 0 ? 'var(--gn)' : (p10 < 0 ? '#dc2626' : 'inherit');
+      const p10S = p10 > 0 ? '+' : '';
+      
+      rowsHtml += `<tr style="cursor:pointer" data-n="${_esc(p.name)}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
+        <td>#${p.dorsal}</td>
+        <td><b>${p.name}</b>${st}</td>
+        <td>${p.g}</td>
+        <td style="font-weight:700;color:var(--t2)">${pMins}</td>
+        <td><b>${p.pts}</b></td>
+        <td style="white-space:nowrap">${pctMA(p.t2m, p.t2a)}</td>
+        <td style="white-space:nowrap">${pctMA(p.t3m, p.t3a)}</td>
+        <td style="white-space:nowrap">${pctMA(p.tlm, p.tla)}</td>
+        <td>${pRo}</td><td>${pRd}</td><td>${pReb}</td><td>${pAst}</td><td>${pStl}</td><td>${pBlk}</td><td>${pTo}</td>
+        <td>${pFc}</td><td>${pFr}</td>
+        <td style="font-weight:700;color:${pmC}">${pmS}${pPm}</td>
+        <td style="font-weight:700;color:${p10C}">${p10S}${p10}</td>
+      </tr>`;
+  });
+  
+  tb.innerHTML = rowsHtml;
+}
 function _esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _playerNote(name){return (S.playerNotes||{})[name]||'';}
 function savePlayerNote(){
@@ -12694,172 +12948,12 @@ function renderLiveOrigins(){
 }
 
 
-function renderClub(){
-  const ssel=document.getElementById('cl-sf');
-  const sf=ssel?ssel.value:'';
-  if(ssel){
-    const seasons=[...new Set(S.matches.filter(m=>isOurTeam(m.homeTeam)||isOurTeam(m.awayTeam))
-      .map(m=>m.season).filter(Boolean))].sort().reverse();
-    const ok=!sf||seasons.includes(sf);
-    ssel.innerHTML='<option value="">Acumulado (todo)</option>'+
-      seasons.map(x=>`<option value="${_esc(x)}"${x===sf&&ok?' selected':''}>${_esc(x)}</option>`).join('');
-    if(!ok)ssel.value='';
-  }
-  const sfEff=ssel?ssel.value:'';
-
-  const ours=[];
-  S.matches.forEach(m=>{
-    if(sfEff&&m.season!==sfEff)return;
-    if(isOurTeam(m.homeTeam))ours.push({m,side:'home',tName:m.homeTeam,my:m.scoreHome,op:m.scoreAway,opp:m.awayTeam,players:m.homePlayers||[]});
-    else if(isOurTeam(m.awayTeam))ours.push({m,side:'away',tName:m.awayTeam,my:m.scoreAway,op:m.scoreHome,opp:m.homeTeam,players:m.awayPlayers||[]});
-  });
-  const G=ours.length;
-  const kEl=document.getElementById('cl-kpis');
-  if(!G){
-    if(kEl)kEl.innerHTML='<div class="empty" style="grid-column:1/-1">Sin partidos del Claret todavía. Importa cronologías o juega partidos en Directo (el nombre del equipo debe contener "Claret").</div>';
-    ['cl-players','cl-lineups','cl-impact','cl-league','cl-astpairs'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='';});
-    return;
-  }
-  const W=ours.filter(o=>o.my>o.op).length,L=ours.filter(o=>o.my<o.op).length;
-  const ptsF=ours.reduce((s,o)=>s+o.my,0),ptsA=ours.reduce((s,o)=>s+o.op,0);
-
-  const pm={};
-  ours.forEach(o=>o.players.forEach(p=>{
-    if(!pm[p.name])pm[p.name]={name:p.name,dorsal:p.dorsal,g:0,min:0,pts:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,ro:0,rd:0,reb:0,ast:0,stl:0,blk:0,to:0,fc:0,fr:0,pm:0,starts:0,tName:o.tName};
-    const a=pm[p.name];
-    a.g++;a.min+=p.min||0;a.pts+=p.pts||0;
-    a.t2m+=p.t2Made||0;a.t2a+=p.t2Att||0;a.t3m+=p.t3Made||0;a.t3a+=p.t3Att||0;
-    a.tlm+=p.tlMade||0;a.tla+=p.tlAtt||0;
-    a.ro+=p.ro||0;a.rd+=p.rd||0;a.reb+=p.reb||0;a.ast+=p.ast||0;a.stl+=p.stl||0;a.blk+=p.blk||0;a.to+=p.to||0;a.fc+=p.fc||0;a.fr+=p.fr||0;a.pm+=p.pm||0;
-    if(p.starter)a.starts++;
-  }));
-  const players=Object.values(pm).sort((a,b)=>b.pts-a.pts);
-  const teamReb=players.reduce((s,p)=>s+p.reb,0),teamAst=players.reduce((s,p)=>s+p.ast,0);
-  const t2m=players.reduce((s,p)=>s+p.t2m,0),t2a=players.reduce((s,p)=>s+p.t2a,0);
-  const t3m=players.reduce((s,p)=>s+p.t3m,0),t3a=players.reduce((s,p)=>s+p.t3a,0);
-  const tlm=players.reduce((s,p)=>s+p.tlm,0),tla=players.reduce((s,p)=>s+p.tla,0);
-  const pct=(m,a)=>a?Math.round(m/a*100)+'%':'—';
-
-  if(kEl)kEl.innerHTML=`
-    <div class="kpi"><div class="kv" style="color:${W>=L?'var(--gn)':'#dc2626'}">${W}-${L}</div><div class="kl">Balance</div></div>
-    <div class="kpi"><div class="kv">${Math.round(ptsF/G)}</div><div class="kl">Pts a favor/p</div></div>
-    <div class="kpi"><div class="kv">${Math.round(ptsA/G)}</div><div class="kl">Pts en contra/p</div></div>
-    <div class="kpi"><div class="kv">${(ptsF-ptsA>0?'+':'')+Math.round((ptsF-ptsA)/G)}</div><div class="kl">Dif/partido</div></div>
-    <div class="kpi"><div class="kv">${pct(t2m,t2a)}</div><div class="kl">T2%</div><div class="ks">${t2m}/${t2a}</div></div>
-    <div class="kpi"><div class="kv">${pct(t3m,t3a)}</div><div class="kl">T3%</div><div class="ks">${t3m}/${t3a}</div></div>
-    <div class="kpi"><div class="kv">${pct(tlm,tla)}</div><div class="kl">TL%</div><div class="ks">${tlm}/${tla}</div></div>
-    <div class="kpi"><div class="kv">${teamReb?Math.round(teamReb/G):'—'}</div><div class="kl">Reb/p</div></div>`;
-
-  _clPlayers=players.map(p=>({...p,
-    t2p:p.t2a?p.t2m/p.t2a:-1,t3p:p.t3a?p.t3m/p.t3a:-1,tlp:p.tla?p.tlm/p.tla:-1,
-    per10:p.min?Math.round(p.pm/p.min*100)/10:0}));
-  _clRenderRows();
-
-  renderClubLineups(ours);
-
-  const imp=players.filter(p=>p.min>=15).map(p=>({...p,per10:p.min?p.pm/p.min*10:0}))
-    .sort((a,b)=>b.per10-a.per10).slice(0,8);
-  const ie=document.getElementById('cl-impact');
-  if(ie)ie.innerHTML=imp.length?imp.map((p,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">
-      <span style="width:18px;height:18px;border-radius:50%;background:${i<3?'var(--gn)':'var(--nv)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span>
-      <span style="flex:1;font-weight:600">${p.name.split(' ')[0]}</span>
-      <span style="font-size:10px;color:var(--t3)">${Math.round(p.min)}min</span>
-      <b style="color:${p.per10>0?'var(--gn)':'#dc2626'}">${p.per10>0?'+':''}${p.per10.toFixed(1)}/10min</b>
-    </div>`).join('')+'<div style="font-size:9px;color:var(--t3);margin-top:5px">+/- por cada 10 minutos en pista (mín. 15 min jugados)</div>'
-    : '<div class="empty">Faltan minutos jugados</div>';
-
-  renderClubLeague();
-  renderClubAstPairs();
-  renderClubOrigins(ours);
-}
-
 let _clPlayers=[],_clSortF='pts',_clSortDir=-1;
 function clSort(f){
   if(_clSortF===f)_clSortDir*=-1;else{_clSortF=f;_clSortDir=-1;}
   _clRenderRows();
 }
-// --- Ordenación en pestaña Claret (Tabla Clásica) ---
-function _clRenderRows(){
-  const tb = document.getElementById('cl-players');
-  const thead = document.querySelector('#t-club thead tr');
-  if(!tb) return;
 
-  const pctMA = (m, a) => a ? `${Math.round(m/a*100)}% <span style="color:var(--t3);font-weight:400;font-size:10px">${m}/${a}</span>` : '—';
-  const arr = [..._clPlayers];
-
-  const valOf = (p) => {
-    switch(_clSortF){
-      case 'dorsal': return parseInt(p.dorsal) || 0;
-      case 'name': return p.name.toLowerCase();
-      case 'g': return p.g || 0;
-      case 'min': return p.min || 0;
-      case 'pts': return p.pts || 0;
-      case 'ppg': return p.g ? (p.pts || 0) / p.g : 0;
-      case 't2m': return p.t2a ? p.t2m / p.t2a : -1;
-      case 't3m': return p.t3a ? p.t3m / p.t3a : -1;
-      case 'tlm': return p.tla ? p.tlm / p.tla : -1;
-      case 'ro': return p.ro || 0;
-      case 'rd': return p.rd || 0;
-      case 'reb': return p.reb || 0;
-      case 'ast': return p.ast || 0;
-      case 'stl': return p.stl || 0;
-      case 'blk': return p.blk || 0;
-      case 'to': return p.to || 0;
-      case 'fc': return p.fc || 0;
-      case 'fr': return p.fr || 0;
-      case 'pm': return p.pm || 0;
-      case 'per10': return p.per10 || 0;
-      default: return p[_clSortF] ?? 0;
-    }
-  };
-
-  arr.sort((a, b) => {
-    const va = valOf(a), vb = valOf(b);
-    if (typeof va === 'string') return _clSortDir * va.localeCompare(vb);
-    return _clSortDir * (va - vb);
-  });
-
-  // Indicador visual en la cabecera clickeable
-  if(thead){
-    thead.innerHTML = `
-      <th onclick="clSort('dorsal')" style="cursor:pointer">#${_clSortF==='dorsal'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('name')" style="cursor:pointer">Jugador${_clSortF==='name'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('g')" style="cursor:pointer">Pj${_clSortF==='g'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('min')" style="cursor:pointer">Min${_clSortF==='min'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('pts')" style="cursor:pointer">Pts${_clSortF==='pts'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('t2m')" style="cursor:pointer">T2%${_clSortF==='t2m'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('t3m')" style="cursor:pointer">T3%${_clSortF==='t3m'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('tlm')" style="cursor:pointer">Tl%${_clSortF==='tlm'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('ro')" style="cursor:pointer">Ro${_clSortF==='ro'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('rd')" style="cursor:pointer">Rd${_clSortF==='rd'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('reb')" style="cursor:pointer">Rt${_clSortF==='reb'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('ast')" style="cursor:pointer">Ast${_clSortF==='ast'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('stl')" style="cursor:pointer">Stl${_clSortF==='stl'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('blk')" style="cursor:pointer">Blk${_clSortF==='blk'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('to')" style="cursor:pointer">Per${_clSortF==='to'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('fc')" style="cursor:pointer">Fc${_clSortF==='fc'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('fr')" style="cursor:pointer">Fr${_clSortF==='fr'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('pm')" style="cursor:pointer">+/-${_clSortF==='pm'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-      <th onclick="clSort('per10')" style="cursor:pointer">+/-/Min${_clSortF==='per10'?(_clSortDir>0?' ▲':' ▼'):''}</th>
-    `;
-  }
-
-  tb.innerHTML = arr.map(p => `<tr style="cursor:pointer" data-n="${_esc(p.name)}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
-      <td>#${p.dorsal}</td>
-      <td><b>${p.name}</b>${p.starts > 0 ? ' <span style="color:#f59e0b">★</span>' : ''}</td>
-      <td>${p.g}</td>
-      <td>${Math.round(p.min) || '—'}</td>
-      <td><b>${p.pts}</b></td>
-      <td style="white-space:nowrap">${pctMA(p.t2m, p.t2a)}</td>
-      <td style="white-space:nowrap">${pctMA(p.t3m, p.t3a)}</td>
-      <td style="white-space:nowrap">${pctMA(p.tlm, p.tla)}</td>
-      <td>${p.ro || 0}</td><td>${p.rd || 0}</td><td>${p.reb || 0}</td><td>${p.ast || 0}</td><td>${p.stl || 0}</td><td>${p.blk || 0}</td><td>${p.to || 0}</td>
-      <td>${p.fc}</td><td>${p.fr || 0}</td>
-      <td style="font-weight:700;color:${p.pm > 0 ? 'var(--gn)' : p.pm < 0 ? '#dc2626' : 'inherit'}">${p.pm > 0 ? '+' : ''}${p.pm}</td>
-      <td style="font-weight:700;color:${p.per10 > 0 ? 'var(--gn)' : p.per10 < 0 ? '#dc2626' : 'inherit'}">${p.per10 > 0 ? '+' : ''}${p.per10}</td>
-    </tr>`).join('');
-}
 
 // 🚀 INICIALIZAMOS EL TAMAÑO POR DEFECTO A 5
 window._clComboSize = window._clComboSize || 5;
@@ -15488,10 +15582,594 @@ function _generateSplitInsights(A, B, lblA, lblB) {
 }
 
 
-function _renderAdvancedStats(){
-  const ctx=window._stCtx||{},matches=ctx.scoped||S.matches,team=ctx.tf||'';
+function _renderAdvancedPlayerTable(scope){
+  const classicEl = scope === 'st' ? document.getElementById('st-agg-wrap') : document.getElementById('cl-players')?.closest('.tw');
+  if(!classicEl) return;
+
+  let box = document.getElementById(scope === 'st' ? 'st-advanced-players' : 'cl-advanced-players');
+  if(!box){
+    box = document.createElement('div');
+    box.id = scope === 'st' ? 'st-advanced-players' : 'cl-advanced-players';
+    box.className = 'tw tsk';
+    classicEl.parentNode.insertBefore(box, classicEl);
+  }
+
+  if(!_advancedMode[scope]){
+    box.style.display = 'none';
+    classicEl.style.display = 'block';
+    if(scope === 'cl'){
+      const legend = document.getElementById('cl-classic-legend');
+      if(legend) legend.style.display = 'block';
+    }
+    return;
+  }
   
-  // Asegurarnos de que el contenedor existe
+  box.style.display = 'block';
+  classicEl.style.display = 'none';
+  if(scope === 'cl'){
+    const legend = document.getElementById('cl-classic-legend');
+    if(legend) legend.style.display = 'none';
+  }
+
+  let source = [];
+  if(scope === 'st') {
+    const ctx = window._stCtx ? window._stCtx : {};
+    source = ctx.scoped ? ctx.scoped : S.matches;
+  } else {
+    const clSeasonEl = document.getElementById('cl-sf');
+    const clSeason = clSeasonEl ? clSeasonEl.value : '';
+    source = S.matches.filter(m => {
+      const isCl = isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam);
+      return isCl && (!clSeason || m.season === clSeason);
+    });
+  }
+
+  const norm = t => String(t ? t : '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const people = new Map();
+  
+  // 🚀 Recupera los minutos reales para el análisis avanzado
+  const getRealMinSecs = (mObj, pObj, side) => {
+      if (mObj.events && mObj.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const sData = _playerStints(mObj, pObj.name, side);
+              const sArr = sData && sData.stints ? sData.stints : [];
+              const decMins = sArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+              return Math.round(decMins * 60);
+          } catch(e) {}
+      }
+      if (!pObj || !pObj.min) return 0;
+      if (typeof pObj.min === 'number') return Math.round(pObj.min * 60);
+      let str = String(pObj.min).trim();
+      if (str.includes(':')) {
+          let pts = str.split(':');
+          const mP = parseInt(pts[0], 10);
+          const sP = parseInt(pts[1], 10);
+          return (isNaN(mP) ? 0 : mP * 60) + (isNaN(sP) ? 0 : sP);
+      }
+      const flt = parseFloat(str);
+      return isNaN(flt) ? 0 : Math.round(flt * 60);
+  };
+  
+  source.forEach(m => {
+    const seasonStr = m.season ? m.season : 'Sin temporada';
+    const iterData = [
+        ['home', m.homeTeam, m.homePlayers], 
+        ['away', m.awayTeam, m.awayPlayers]
+    ];
+    
+    iterData.forEach((data) => {
+      const side = data[0];
+      const team = data[1];
+      const players = data[2];
+      
+      if(scope === 'cl' && !isOurTeam(team)) return;
+
+      const tPts = Number(team === m.homeTeam ? m.scoreHome : m.scoreAway) || 0;
+      const oppPts = Number(team === m.homeTeam ? m.scoreAway : m.scoreHome) || 0;
+      const plsArr = players ? players : [];
+      
+      // Asegurar variables estrictamente numéricas (evita el Infinity y NaN)
+      const tFga = plsArr.reduce((s, pl) => s + (Number(pl.t2Att)||0) + (Number(pl.t3Att)||0), 0);
+      const tFta = plsArr.reduce((s, pl) => s + (Number(pl.tlAtt)||0), 0);
+      const tTov = plsArr.reduce((s, pl) => s + (Number(pl.to)||0), 0);
+      
+      const tSecs = plsArr.reduce((s, pl) => s + getRealMinSecs(m, pl, side), 0);
+      const tMin = tSecs > 0 ? (tSecs / 60) : 200; 
+      const tPoss = tFga + 0.44 * tFta + tTov;
+
+      plsArr.forEach(p => {
+        const key = norm(p.name).trim(); 
+        if(!people.has(key)) {
+           people.set(key, { 
+               name: p.name, teams: new Set([team]), seasons: new Set([seasonStr]), dorsal: p.dorsal, 
+               pts: 0, fga: 0, fta: 0, tov: 0, minSecs: 0, tmFga: 0, tmFta: 0, tmTov: 0, tmMin: 0,
+               onCourtPts: 0, onCourtOppPts: 0, onCourtPoss: 0, val: 0
+           });
+        } else {
+           people.get(key).teams.add(team);
+           people.get(key).seasons.add(seasonStr);
+        }
+        
+        const obj = people.get(key);
+        obj.pts += (Number(p.pts) || 0);
+        obj.fga += (Number(p.t2Att)||0) + (Number(p.t3Att)||0);
+        obj.fta += (Number(p.tlAtt)||0);
+        obj.tov += (Number(p.to)||0);
+        
+        const pSecs = getRealMinSecs(m, p, side);
+        obj.minSecs += pSecs;
+        
+        const pFga = (Number(p.t2Att)||0) + (Number(p.t3Att)||0);
+        const pFgm = (Number(p.t2Made)||0) + (Number(p.t3Made)||0);
+        const miss = (pFga - pFgm) + ((Number(p.tlAtt)||0) - (Number(p.tlMade)||0));
+        
+        const rAst = (Number(p.reb)||0) + (Number(p.ast)||0);
+        const sBlk = (Number(p.stl)||0) + (Number(p.blk)||0);
+        const fFr = (Number(p.fr)||0) - (Number(p.to)||0) - (Number(p.fc)||0);
+        
+        obj.val += (Number(p.pts)||0) + rAst + sBlk - miss + fFr;
+        
+        obj.tmFga += tFga;
+        obj.tmFta += tFta;
+        obj.tmTov += tTov;
+        obj.tmMin += tMin;
+
+        const pMinDec = pSecs / 60;
+        if (pMinDec > 0) {
+            const minShare = pMinDec / (tMin / 5);
+            const expectedPm = (tPts - oppPts) * minShare;
+            const residualPm = (Number(p.pm)||0) - expectedPm;
+            
+            const ptsOn = (tPts * minShare) + (residualPm / 2);
+            const oppPtsOn = (oppPts * minShare) - (residualPm / 2);
+            const possOn = tPoss * minShare;
+
+            obj.onCourtPts += ptsOn;
+            obj.onCourtOppPts += oppPtsOn;
+            obj.onCourtPoss += possOn;
+        }
+      });
+    });
+  });
+
+  const pc = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
+  const num = x => Number.isFinite(x) ? x.toFixed(2) : '—';
+  const num1 = x => Number.isFinite(x) ? x.toFixed(1) : '—';
+  const num0 = x => Number.isFinite(x) ? Math.round(x) : '—'; 
+
+  let list = [...people.values()].map(p => {
+    const a = _advancedPlayer(p.name, '__ALL__', source);
+    const pTotMinDec = p.minSecs / 60;
+    
+    let safeUsg = a.usg ? a.usg : 0;
+    if (safeUsg === 0 && pTotMinDec > 0) {
+        const teamPoss = p.tmFga + 0.44 * p.tmFta + p.tmTov;
+        const myPoss = p.fga + 0.44 * p.fta + p.tov;
+        if (teamPoss > 0 && p.tmMin > 0) {
+            safeUsg = 100 * (myPoss * (p.tmMin / 5)) / (pTotMinDec * teamPoss);
+        } else if (myPoss > 0) {
+            safeUsg = 100;
+        }
+    }
+    safeUsg = Math.min(100, Math.max(0, safeUsg));
+
+    // 🚀 AHORA EL PPP SERÁ EXACTO
+    const onCourtPPP = (pTotMinDec > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtPts / p.onCourtPoss) : 0;
+    const onCourtDefPPP = (pTotMinDec > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtOppPts / p.onCourtPoss) : 0;
+    const netPPP = onCourtPPP - onCourtDefPPP;
+
+    return {
+      name: p.name, 
+      team: [...p.teams].join(' / '), 
+      dorsal: p.dorsal ? p.dorsal : '—',
+      pj: a.g ? a.g : 0, 
+      pts: a.pts ? a.pts : 0, 
+      ppg: a.ppg ? a.ppg : 0, 
+      mpg: a.mpg ? a.mpg : 0, 
+      ptsShot: a.ptsShot ? a.ptsShot : 0, 
+      efg: a.efg ? a.efg : 0, 
+      ts: a.ts ? a.ts : 0, 
+      usg: safeUsg, 
+      astTo: a.astTo ? a.astTo : 0, 
+      ppp: onCourtPPP, 
+      dppp: onCourtDefPPP, 
+      net: netPPP,
+      eff: a.eff ? a.eff : 0, 
+      pir: a.pir ? a.pir : 0, 
+      val: p.val ? p.val : 0
+    };
+  });
+
+  const sc = _advSort.col;
+  const sdir = _advSort.dir;
+  
+  list.sort((a, b) => {
+    let va = a[sc];
+    let vb = b[sc];
+    if (sc === 'dorsal') { 
+        va = parseInt(va); if(isNaN(va)) va = 0;
+        vb = parseInt(vb); if(isNaN(vb)) vb = 0;
+    }
+    if (typeof va === 'string') return sdir * va.localeCompare(vb);
+    const numA = va !== undefined && va !== null ? va : 0;
+    const numB = vb !== undefined && vb !== null ? vb : 0;
+    return sdir * (numA - numB);
+  });
+
+  const arrIcon = col => sc === col ? (sdir > 0 ? ' ▲' : ' ▼') : '';
+
+  let rowsHtml = '';
+  list.forEach(p => {
+    const netC = p.net > 0 ? 'var(--gn)' : (p.net < 0 ? '#dc2626' : 'inherit');
+    const netS = p.net > 0 ? '+' : '';
+    const pirC = p.pir > 0 ? 'var(--gn)' : (p.pir < 0 ? '#dc2626' : 'var(--t3)');
+    const effC = p.eff > 0 ? 'var(--gn)' : (p.eff < 0 ? '#dc2626' : 'var(--t3)');
+    const valC = p.val > 0 ? 'var(--gn)' : (p.val < 0 ? '#dc2626' : 'var(--t3)');
+      
+    rowsHtml += `<tr onclick="openPlayerProfile(this.dataset.n, '__ALL__', '')" data-n="${_esc(p.name)}" style="cursor:pointer; border-bottom:1px solid var(--bd);">
+      <td style="color:var(--t3); padding:8px">#${p.dorsal}</td>
+      <td style="white-space:nowrap"><b>${_esc(p.name)}</b></td>
+      <td style="font-weight:700;color:var(--t2);text-align:center">${p.pj}</td>
+      <td style="font-weight:700;color:var(--t2);text-align:center">${num1(p.mpg)}</td>
+      <td style="font-weight:900;color:var(--ac);text-align:center">${num1(p.ppg)}</td>
+      <td style="font-weight:800;color:var(--nv);text-align:center" title="Puntos por intento de campo">${num(p.ptsShot)}</td>
+      <td style="font-weight:800;text-align:center" title="Puntos del equipo a favor por posesión">${num(p.ppp)}</td>
+      <td style="font-weight:800;text-align:center" title="Puntos del equipo en contra por posesión">${num(p.dppp)}</td>
+      <td style="font-weight:900;text-align:center;color:${netC}" title="Diferencial Neto por posesión">${netS}${num(p.net)}</td>
+      <td style="color:#15803d;font-weight:800;text-align:center">${pc(p.efg)}</td>
+      <td style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
+      <td style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
+      <td style="font-weight:700;text-align:center">${num(p.astTo)}</td>
+      <td style="font-weight:900;font-size:13px;text-align:center;color:${pirC}">${num0(p.pir)}</td>
+      <td style="font-weight:900;font-size:13px;text-align:center;color:${effC}">${num0(p.eff)}</td>
+      <td style="font-weight:900;font-size:13px;text-align:center;color:${valC}">${p.val}</td>
+    </tr>`;
+  });
+
+  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="16" class="no-d">Sin datos</td></tr>';
+
+  box.innerHTML = `<div class="tw" style="overflow-x:auto;"><table style="min-width:1000px; font-size:12px">
+    <thead>
+      <tr>
+        <th onclick="advSort('dorsal','${scope}')" style="cursor:pointer;text-align:left;padding:8px">#${arrIcon('dorsal')}</th>
+        <th onclick="advSort('name','${scope}')" style="cursor:pointer;text-align:left">JUGADOR${arrIcon('name')}</th>
+        <th onclick="advSort('pj','${scope}')" style="cursor:pointer;text-align:center">PJ${arrIcon('pj')}</th>
+        <th onclick="advSort('mpg','${scope}')" style="cursor:pointer;text-align:center" title="Minutos por Partido">MIN/P${arrIcon('mpg')}</th>
+        <th onclick="advSort('ppg','${scope}')" style="cursor:pointer;text-align:center">PTS/P${arrIcon('ppg')}</th>
+        <th onclick="advSort('ptsShot','${scope}')" style="cursor:pointer;text-align:center" title="Puntos por intento de campo">PTS/TIRO${arrIcon('ptsShot')}</th>
+        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo a favor por posesión en pista">O-PPP${arrIcon('ppp')}</th>
+        <th onclick="advSort('dppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo en contra por posesión en pista">D-PPP${arrIcon('dppp')}</th>
+        <th onclick="advSort('net','${scope}')" style="cursor:pointer;text-align:center" title="Diferencial Neto de puntos por posesión">NET${arrIcon('net')}</th>
+        <th onclick="advSort('efg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro ajustado">eFG%${arrIcon('efg')}</th>
+        <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
+        <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
+        <th onclick="advSort('astTo','${scope}')" style="cursor:pointer;text-align:center">AST/TO${arrIcon('astTo')}</th>
+        <th onclick="advSort('pir','${scope}')" style="cursor:pointer;text-align:center" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
+        <th onclick="advSort('eff','${scope}')" style="cursor:pointer;text-align:center" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
+        <th onclick="advSort('val','${scope}')" style="cursor:pointer;text-align:center" title="Valoración clásica (ACB)">VAL${arrIcon('val')}</th>
+      </tr>
+    </thead>
+    <tbody>${finalRows}</tbody>
+  </table></div>
+  <div style="margin-top:8px;padding:10px 12px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.55">
+    <div style="font-weight:800;color:var(--nv);font-size:11px;margin-bottom:6px">Leyenda de estadísticas avanzadas</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px">
+      <div><b>Pj:</b> partidos jugados.</div>
+      <div><b>Min/P:</b> minutos por partido = Min / Pj.</div>
+      <div><b>Pts/P:</b> puntos por partido = Pts / Pj.</div>
+      <div><b>Pts/Tiro:</b> puntos por intento de campo = Pts / FGA.</div>
+      <div><b>O-PPP:</b> puntos anotados por el equipo por cada posesión mientras el jugador está en pista.</div>
+      <div><b>D-PPP:</b> puntos encajados por el equipo por cada posesión mientras el jugador está en pista.</div>
+      <div><b>NET:</b> diferencial neto (O-PPP menos D-PPP).</div>
+      <div><b>Efg%:</b> eficacia ajustada = (T2M + 1.5 x T3M) / FGA.</div>
+      <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
+      <div><b>Usg%:</b> uso estimado = 100 x (FGA + 0.44 x FTA + Per) x (Min equipo / 5) / (Min jugador x Posesiones equipo).</div>
+      <div><b>Ast/To:</b> asistencias por pérdida = Ast / Per; si no hay pérdidas, muestra las asistencias.</div>
+      <div><b>Pir:</b> valoración FIBA = Eff + Fr - Fc.</div>
+      <div><b>Eff:</b> eficiencia NBA = Pts + Rt + Ast + Stl + Blk - tiros fallados - TL fallados - Per.</div>
+      <div><b>Val:</b> valoración clásica ACB.</div>
+    </div>
+  </div>`;
+}
+
+function _advancedPlayer(name, targetTeam, matches){
+  const p = {pts:0, t2m:0, t2a:0, t3m:0, t3a:0, ftm:0, fta:0, to:0, ast:0, _secs:0, g:0, ro:0, rd:0, stl:0, blk:0, fc:0, fr:0};
+  let tmPoss = 0, tmMin = 0;
+  
+  const getRealMinSecs = (mObj, pObj, side) => {
+      if (mObj.events && mObj.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const sData = _playerStints(mObj, pObj.name, side);
+              const sArr = sData && sData.stints ? sData.stints : [];
+              const decMins = sArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+              return Math.round(decMins * 60);
+          } catch(e) {}
+      }
+      if (!pObj || !pObj.min) return 0;
+      if (typeof pObj.min === 'number') return Math.round(pObj.min * 60);
+      let str = String(pObj.min).trim();
+      if (str.includes(':')) {
+          let pts = str.split(':');
+          const mP = parseInt(pts[0], 10);
+          const sP = parseInt(pts[1], 10);
+          return (isNaN(mP) ? 0 : mP * 60) + (isNaN(sP) ? 0 : sP);
+      }
+      const flt = parseFloat(str);
+      return isNaN(flt) ? 0 : Math.round(flt * 60);
+  };
+
+  const src = matches ? matches : S.matches;
+  src.forEach(m => {
+    let played = false;
+    if (targetTeam === '__ALL__' || m.homeTeam === targetTeam) {
+        const hp = m.homePlayers ? m.homePlayers : [];
+        const x = hp.find(pl => pl.name === name);
+        if(x){
+            p.g++; 
+            p.pts += (x.pts ? x.pts : 0); 
+            p.t2m += (x.t2Made ? x.t2Made : 0); 
+            p.t2a += (x.t2Att ? x.t2Att : 0); 
+            p.t3m += (x.t3Made ? x.t3Made : 0); 
+            p.t3a += (x.t3Att ? x.t3Att : 0); 
+            p.ftm += (x.tlMade ? x.tlMade : 0); 
+            p.fta += (x.tlAtt ? x.tlAtt : 0); 
+            p.to += (x.to ? x.to : 0); 
+            p.ast += (x.ast ? x.ast : 0); 
+            p.ro += (x.ro ? x.ro : 0); 
+            p.rd += (x.rd ? x.rd : 0); 
+            p.stl += (x.stl ? x.stl : 0); 
+            p.blk += (x.blk ? x.blk : 0); 
+            p.fc += (x.fc ? x.fc : 0); 
+            p.fr += (x.fr ? x.fr : 0);
+            
+            p._secs += getRealMinSecs(m, x, 'home');
+            
+            const tm = _advancedTeam([m], m.homeTeam);
+            tmPoss += tm.poss; 
+            tmMin += (tm.min ? tm.min : 200);
+            played = true;
+        }
+    }
+    if (!played && (targetTeam === '__ALL__' || m.awayTeam === targetTeam)) {
+        const ap = m.awayPlayers ? m.awayPlayers : [];
+        const x = ap.find(pl => pl.name === name);
+        if(x){
+            p.g++; 
+            p.pts += (x.pts ? x.pts : 0); 
+            p.t2m += (x.t2Made ? x.t2Made : 0); 
+            p.t2a += (x.t2Att ? x.t2Att : 0); 
+            p.t3m += (x.t3Made ? x.t3Made : 0); 
+            p.t3a += (x.t3Att ? x.t3Att : 0); 
+            p.ftm += (x.tlMade ? x.tlMade : 0); 
+            p.fta += (x.tlAtt ? x.tlAtt : 0); 
+            p.to += (x.to ? x.to : 0); 
+            p.ast += (x.ast ? x.ast : 0); 
+            p.ro += (x.ro ? x.ro : 0); 
+            p.rd += (x.rd ? x.rd : 0); 
+            p.stl += (x.stl ? x.stl : 0); 
+            p.blk += (x.blk ? x.blk : 0); 
+            p.fc += (x.fc ? x.fc : 0); 
+            p.fr += (x.fr ? x.fr : 0);
+            
+            p._secs += getRealMinSecs(m, x, 'away');
+            
+            const tm = _advancedTeam([m], m.awayTeam);
+            tmPoss += tm.poss; 
+            tmMin += (tm.min ? tm.min : 200);
+        }
+    }
+  });
+
+  const pMinDec = p._secs / 60; 
+  const fga = p.t2a + p.t3a;
+  const den = fga + 0.44 * p.fta;
+  const pppDenom = fga + 0.44 * p.fta + p.to;
+  const reb = p.ro + p.rd;
+  const miss = (fga - (p.t2m + p.t3m)) + (p.fta - p.ftm);
+  
+  const eff = (p.pts + reb + p.ast + p.stl + p.blk) - miss - p.to;
+  const pir = eff + p.fr - p.fc;
+
+  return {
+    g: p.g, pts: p.pts, 
+    ppg: p.g ? (p.pts / p.g) : 0, 
+    mpg: p.g ? (pMinDec / p.g) : 0, 
+    ptsShot: fga ? p.pts / fga : 0, 
+    efg: fga ? (p.t2m + p.t3m + 0.5 * p.t3m) / fga : 0, 
+    ts: den ? p.pts / (2 * den) : 0,
+    t3Rate: fga ? (p.t3a / fga) * 100 : 0, 
+    astTo: p.to ? p.ast / p.to : p.ast,
+    usg: pMinDec && tmPoss ? 100 * (den + p.to) * (tmMin / 5) / (pMinDec * tmPoss) : 0,
+    ppp: pppDenom > 0 ? (p.pts / pppDenom) : 0, 
+    ro: p.ro, rd: p.rd, reb: reb,
+    eff: eff, pir: pir
+  };
+}
+
+function renderStatsAggregated(){
+  const getRealMinSecs = (mObj, pObj, side) => {
+      if (mObj.events && mObj.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const sData = _playerStints(mObj, pObj.name, side);
+              const sArr = sData && sData.stints ? sData.stints : [];
+              const decMins = sArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+              return Math.round(decMins * 60);
+          } catch(e) {}
+      }
+      if (!pObj || !pObj.min) return 0;
+      if (typeof pObj.min === 'number') return Math.round(pObj.min * 60);
+      let str = String(pObj.min).trim();
+      if (str.includes(':')) {
+          let pts = str.split(':');
+          const mP = parseInt(pts[0], 10);
+          const sP = parseInt(pts[1], 10);
+          return (isNaN(mP) ? 0 : mP * 60) + (isNaN(sP) ? 0 : sP);
+      }
+      const flt = parseFloat(str);
+      return isNaN(flt) ? 0 : Math.round(flt * 60);
+  };
+
+  const fmtMin = (secs) => {
+      if (secs === null || secs === undefined || isNaN(secs)) return '0:00';
+      let mm = Math.floor(secs / 60);
+      let ss = Math.round(secs % 60);
+      if (ss >= 60) { mm++; ss -= 60; }
+      return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
+  const ctx = window._stCtx ? window._stCtx : {};
+  const tf = ctx.tf ? ctx.tf : '';
+  const gf = ctx.gf ? ctx.gf : '';
+  const pf = ctx.pf ? ctx.pf : '';
+  const fuente = ctx.scoped ? ctx.scoped : S.matches;
+  const norm = t => String(t ? t : '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const q = ''; 
+  
+  const playerMap = {};
+  fuente.forEach(m => {
+    const seasonStr = m.season ? m.season : 'Sin temporada';
+    const hp = m.homePlayers ? m.homePlayers : [];
+    const ap = m.awayPlayers ? m.awayPlayers : [];
+    
+    let comb = [];
+    hp.forEach(p => comb.push({...p, team: m.homeTeam, mId: m.id, mName: m.name, season: seasonStr, side: 'home'}));
+    ap.forEach(p => comb.push({...p, team: m.awayTeam, mId: m.id, mName: m.name, season: seasonStr, side: 'away'}));
+
+    comb.forEach(p => {
+      if(tf && p.team !== tf) return;
+      if(gf && !_inGroup(p.team, gf)) return;
+      if(pf && p.name !== pf) return;
+      const pD = p.dorsal ? String(p.dorsal) : '';
+      if(q && !(norm(p.name).includes(q) || pD.includes(q))) return;
+      
+      const key = norm(p.name).trim();
+      if(!playerMap[key]){
+        playerMap[key] = {
+            name: p.name, dorsal: p.dorsal, 
+            teams: new Set([p.team]), seasons: new Set([p.season]),
+            pts:0, t2Made:0, t2Att:0, t3Made:0, t3Att:0, tlMade:0, tlAtt:0,
+            reb:0, ast:0, stl:0, blk:0, to:0, fr:0, fc:0, pm:0, val:0, 
+            _totalSecs:0, games:[]
+        };
+      } else {
+        playerMap[key].teams.add(p.team);
+        playerMap[key].seasons.add(p.season);
+      }
+      
+      const agg = playerMap[key];
+      agg.pts += (p.pts ? p.pts : 0); 
+      agg.t2Made += (p.t2Made ? p.t2Made : 0); 
+      agg.t2Att += (p.t2Att ? p.t2Att : 0);
+      agg.t3Made += (p.t3Made ? p.t3Made : 0); 
+      agg.t3Att += (p.t3Att ? p.t3Att : 0);
+      agg.tlMade += (p.tlMade ? p.tlMade : 0); 
+      agg.tlAtt += (p.tlAtt ? p.tlAtt : 0);
+      agg.reb += (p.reb ? p.reb : 0); 
+      agg.ast += (p.ast ? p.ast : 0); 
+      agg.stl += (p.stl ? p.stl : 0); 
+      agg.blk += (p.blk ? p.blk : 0);
+      agg.to += (p.to ? p.to : 0); 
+      agg.fr += (p.fr ? p.fr : 0); 
+      agg.fc += (p.fc ? p.fc : 0);
+      agg.pm += (p.pm ? p.pm : 0); 
+      agg.val += (p.val ? p.val : 0); 
+      
+      agg._totalSecs += getRealMinSecs(m, p, p.side);
+      
+      agg.games.push(p);
+    });
+  });
+
+  const players = Object.values(playerMap);
+  const el = document.getElementById('st-tb-agg');
+  if(!el) return;
+  if(!players.length){ el.innerHTML=`<tr><td colspan="21" class="no-d">Sin datos</td></tr>`; return; }
+
+  const sf = _stAggSort.field;
+  const dir = _stAggSort.dir;
+  const valFn = (p) => {
+    switch(sf){
+      case 'dorsal': return parseInt(p.dorsal) ? parseInt(p.dorsal) : 0;
+      case 'name': return p.name.toLowerCase();
+      case 'team': return [...p.teams].join(' ').toLowerCase();
+      case 'min': return p._totalSecs; 
+      case 'pts': return p.pts ? p.pts : 0;
+      case 'ppg': return p.games.length ? p.pts/p.games.length : 0;
+      case 'tl': return p.tlAtt ? p.tlMade/p.tlAtt : -1;
+      case 't2': return p.t2Att ? p.t2Made/p.t2Att : -1;
+      case 't3': return p.t3Att ? p.t3Made/p.t3Att : -1;
+      case 'pm': return p.pm ? p.pm : 0;
+      default: return p.pts ? p.pts : 0;
+    }
+  };
+  
+  players.sort((a,b) => typeof valFn(a) === 'string' ? dir * valFn(a).localeCompare(valFn(b)) : dir * (valFn(a)-valFn(b)));
+  const pc = (m,a) => a ? Math.round(m/a*100)+'%' : '—';
+  
+  let rowsHtml = '';
+  players.forEach(p => {
+      const valC = p.val > 0 ? 'var(--gn)' : (p.val < 0 ? '#dc2626' : 'inherit');
+      const pmC = p.pm > 0 ? 'var(--gn)' : (p.pm < 0 ? '#dc2626' : 'inherit');
+      const pmS = p.pm > 0 ? '+' : '';
+      const teamLabels = [...p.teams].join(' / ');
+      const seasonLabels = [...p.seasons].join(', ');
+      
+      const gl = p.games.length;
+      const ptA = gl ? (p.pts / gl).toFixed(1) : '—';
+      const mStr = p._totalSecs > 0 ? fmtMin(p._totalSecs) : '—';
+      const pD = p.dorsal ? p.dorsal : '';
+      const pReb = p.reb !== undefined && p.reb !== null ? p.reb : '—';
+      const pAst = p.ast !== undefined && p.ast !== null ? p.ast : '—';
+      const pStl = p.stl !== undefined && p.stl !== null ? p.stl : '—';
+      const pBlk = p.blk !== undefined && p.blk !== null ? p.blk : '—';
+      const pTo = p.to !== undefined && p.to !== null ? p.to : '—';
+      const pFr = p.fr !== undefined && p.fr !== null ? p.fr : '—';
+      
+      rowsHtml += `<tr style="cursor:pointer;border-top:1px solid #f0f4f8" data-n="${_esc(p.name)}" data-t="__ALL__" onclick="openPlayerProfile(this.dataset.n, this.dataset.t, '')">
+        <td style="padding:5px 6px">#${pD}</td>
+        <td style="padding:5px 6px;font-weight:700">${_esc(p.name)} <span style="color:var(--t3);font-size:9px">(${gl}P)</span></td>
+        <td style="padding:5px 6px"><span class="chip cgr">${_esc(teamLabels)}</span> <div style="font-size:9px;color:var(--t3);margin-top:2px">${_esc(seasonLabels)}</div></td>
+        <td style="padding:5px 6px;font-weight:700;color:var(--t2)">${mStr}</td>
+        <td style="padding:5px 6px;font-weight:700">${p.pts}</td>
+        <td style="padding:5px 6px;font-weight:700;color:var(--ac)">${ptA}</td>
+        <td style="padding:5px 6px">${p.tlMade}/${p.tlAtt}</td><td style="padding:5px 6px">${pc(p.tlMade,p.tlAtt)}</td>
+        <td style="padding:5px 6px">${p.t2Made}/${p.t2Att}</td><td style="padding:5px 6px">${pc(p.t2Made,p.t2Att)}</td>
+        <td style="padding:5px 6px">${p.t3Made}/${p.t3Att}</td><td style="padding:5px 6px">${pc(p.t3Made,p.t3Att)}</td>
+        <td style="padding:5px 6px">${pReb}</td><td style="padding:5px 6px">${pAst}</td>
+        <td style="padding:5px 6px">${pStl}</td><td style="padding:5px 6px">${pBlk}</td>
+        <td style="padding:5px 6px;color:inherit!important;">${pTo}</td><td style="padding:5px 6px">${p.fc}</td>
+        <td style="padding:5px 6px">${pFr}</td>
+        <td style="padding:5px 6px;color:${valC}">${p.val}</td>
+        <td style="padding:5px 6px;font-weight:700;color:${pmC}">${pmS}${p.pm}</td>
+        <td style="padding:5px 6px;color:var(--t3);font-size:11px" title="Ver perfil del jugador">👤</td>
+      </tr>`;
+  });
+
+  el.innerHTML = rowsHtml;
+
+  const head=document.getElementById('st-agg-head');
+  if(head){
+    const map={name:1,team:2,min:3,pts:4,ppg:5,tlm:6,tl:7,t2m:8,t2:9,t3m:10,t3:11,reb:12,ast:13,stl:14,blk:15,to:16,fc:17,fr:18,val:19,pm:20};
+    const headChildren = Array.from(head.children);
+    headChildren.forEach(th => {
+        const arrEl = th.querySelector('.sar');
+        if (arrEl) arrEl.remove();
+    });
+    const idx = map[_stAggSort.field];
+    if(idx !== undefined && headChildren[idx]){
+      const arrow = document.createElement('span');
+      arrow.className = 'sar';
+      arrow.textContent = _stAggSort.dir < 0 ? ' ▼' : ' ▲';
+      arrow.style.cssText = 'font-size:9px;color:var(--ac)';
+      headChildren[idx].appendChild(arrow);
+    }
+  }
+}
+
+
+function _renderAdvancedStats(){
+  const ctx = window._stCtx || {}, matches = ctx.scoped || S.matches, team = ctx.tf || '';
+  
   let el = document.getElementById('stv-adv');
   if (!el) {
       el = document.createElement('div');
@@ -15504,7 +16182,17 @@ function _renderAdvancedStats(){
 
   if(!team){el.innerHTML='<div class="card"><div class="empty">Selecciona un equipo arriba para ver sus estadísticas avanzadas.</div></div>';return;}
   
-  const splits=_v4AnalyzeTeamSplits(matches.filter(m=>m.homeTeam===team||m.awayTeam===team), team);
+  const splits = _v4AnalyzeTeamSplits(matches.filter(m => m.homeTeam === team || m.awayTeam === team), team);
+  
+  let htmlInsights = '';
+  if (splits.insights && splits.insights.length > 0) {
+      splits.insights.forEach(i => {
+          htmlInsights += `<div style="padding:7px 10px;background:var(--bg);border-left:3px solid var(--ac);border-radius:0 7px 7px 0;font-size:12px">• ${i}</div>`;
+      });
+  } else {
+      htmlInsights = '<div style="color:var(--t3);font-size:11px;font-style:italic">No hay suficientes datos para generar insights.</div>';
+  }
+
   el.innerHTML=`
     <div class="card" style="margin-bottom:12px">
       <div class="ct">⚖️ Patrones: Victorias vs Derrotas · <span style="text-transform:none;font-weight:500">${_esc(team)}</span></div>
@@ -15513,7 +16201,7 @@ function _renderAdvancedStats(){
     <div class="card" style="margin-bottom:12px">
       <div class="ct">💡 Insights automáticos del Staff</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        ${splits.insights.map(i => `<div style="padding:7px 10px;background:var(--bg);border-left:3px solid var(--ac);border-radius:0 7px 7px 0;font-size:12px">• ${i}</div>`).join('')}
+        ${htmlInsights}
       </div>
     </div>
     <div style="font-size:10px;color:var(--t3);line-height:1.55;margin:7px 0 10px;padding:7px 9px;background:#f8fafc;border:1px solid var(--bd);border-radius:7px"><b>Guía:</b> Pace = posesiones por partido · ORtg/DRtg = puntos anotados/recibidos por 100 posesiones · eFG% = eficacia de tiro ajustada por el valor del triple · TS% = eficacia total incluyendo tiros libres · USG% = porcentaje de posesiones finalizadas por el jugador · AST/TO = asistencias por pérdida · ORB%/DRB% = rebote ofensivo/defensivo.</div>
@@ -15674,263 +16362,6 @@ function advSort(col, scope){
     _advSort.dir = (col === 'name' || col === 'team') ? 1 : -1; // Texto asc, números desc
   }
   _renderAdvancedPlayerTable(scope);
-}
-
-function _advancedPlayer(name, targetTeam, matches){
-  const p={pts:0,t2m:0,t2a:0,t3m:0,t3a:0,ftm:0,fta:0,to:0,ast:0,min:0,g:0, ro:0, rd:0, stl:0, blk:0, fc:0, fr:0};
-  let tmPoss = 0, tmMin = 0;
-  
-  (matches||S.matches).forEach(m=>{
-    let played = false;
-    // Miramos si jugó como local
-    if (targetTeam === '__ALL__' || m.homeTeam === targetTeam) {
-        const x = (m.homePlayers||[]).find(pl=>pl.name===name);
-        if(x){
-            p.g++; p.pts+=x.pts||0; p.t2m+=x.t2Made||0; p.t2a+=x.t2Att||0; p.t3m+=x.t3Made||0; p.t3a+=x.t3Att||0; p.ftm+=x.tlMade||0; p.fta+=x.tlAtt||0; p.to+=x.to||0; p.ast+=x.ast||0; p.min+=x.min||0;
-            p.ro+=x.ro||0; p.rd+=x.rd||0; p.stl+=x.stl||0; p.blk+=x.blk||0; p.fc+=x.fc||0; p.fr+=x.fr||0;
-            const tm = _advancedTeam([m], m.homeTeam);
-            tmPoss += tm.poss; tmMin += tm.min || 200;
-            played = true;
-        }
-    }
-    // Si no lo encontramos, miramos si jugó como visitante
-    if (!played && (targetTeam === '__ALL__' || m.awayTeam === targetTeam)) {
-        const x = (m.awayPlayers||[]).find(pl=>pl.name===name);
-        if(x){
-            p.g++; p.pts+=x.pts||0; p.t2m+=x.t2Made||0; p.t2a+=x.t2Att||0; p.t3m+=x.t3Made||0; p.t3a+=x.t3Att||0; p.ftm+=x.tlMade||0; p.fta+=x.tlAtt||0; p.to+=x.to||0; p.ast+=x.ast||0; p.min+=x.min||0;
-            p.ro+=x.ro||0; p.rd+=x.rd||0; p.stl+=x.stl||0; p.blk+=x.blk||0; p.fc+=x.fc||0; p.fr+=x.fr||0;
-            const tm = _advancedTeam([m], m.awayTeam);
-            tmPoss += tm.poss; tmMin += tm.min || 200;
-        }
-    }
-  });
-
-  const fga = p.t2a+p.t3a, den = fga+.44*p.fta;
-  const pppDenom = fga+0.44*p.fta+p.to; // Tiros + Libres + Pérdidas
-  const reb = p.ro + p.rd;
-  const miss = (fga - (p.t2m+p.t3m)) + (p.fta - p.ftm);
-  
-  // Fórmulas oficiales
-  const eff = (p.pts + reb + p.ast + p.stl + p.blk) - miss - p.to;
-  const pir = eff + p.fr - p.fc;
-
-  return {
-    g:p.g, pts:p.pts, ppg:p.g?(p.pts/p.g):0, mpg:p.g?(p.min/p.g):0, ptsShot:fga?p.pts/fga:0, efg:fga?(p.t2m+p.t3m+.5*p.t3m)/fga:0, ts:den?p.pts/(2*den):0,
-    t3Rate:fga?(p.t3a/fga)*100:0, astTo:p.to?p.ast/p.to:p.ast,
-    usg:p.min&&tmPoss?100*(den+p.to)*(tmMin/5)/(p.min*tmPoss):0,
-    ppp:pppDenom>0?(p.pts/pppDenom):0, // Puntos por Posesión Finalizada
-    ro: p.ro, rd: p.rd, reb: reb,
-    eff: eff, pir: pir
-  };
-}
-
-function _renderAdvancedPlayerTable(scope){
-  const classic = scope === 'st' ? document.getElementById('st-agg-wrap') : document.getElementById('cl-players')?.closest('.tw');
-  if(!classic) return;
-
-  let box = document.getElementById(scope === 'st' ? 'st-advanced-players' : 'cl-advanced-players');
-  if(!box){
-    box = document.createElement('div');
-    box.id = scope === 'st' ? 'st-advanced-players' : 'cl-advanced-players';
-    box.className = 'tw tsk';
-    classic.parentNode.insertBefore(box, classic);
-  }
-
-  if(!_advancedMode[scope]){
-    box.style.display = 'none';
-    classic.style.display = 'block';
-    if(scope === 'cl'){
-      const legend = document.getElementById('cl-classic-legend');
-      if(legend) legend.style.display = 'block';
-    }
-    return;
-  }
-  box.style.display = 'block';
-  classic.style.display = 'none';
-  if(scope === 'cl'){
-    const legend = document.getElementById('cl-classic-legend');
-    if(legend) legend.style.display = 'none';
-  }
-
-  let source = [];
-  if(scope === 'st') {
-    source = window._stCtx?.scoped || S.matches;
-  } else {
-    const clSeason = document.getElementById('cl-sf')?.value || '';
-    source = S.matches.filter(m => {
-      const isCl = isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam);
-      return isCl && (!clSeason || m.season === clSeason);
-    });
-  }
-
-  const norm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const people = new Map();
-  
-  source.forEach(m => {
-    const seasonStr = m.season || 'Sin temporada';
-    [['home', m.homeTeam, m.homePlayers], ['away', m.awayTeam, m.awayPlayers]].forEach(([, team, players]) => {
-      if(scope === 'cl' && !isOurTeam(team)) return;
-
-      const tPts = Number(team === m.homeTeam ? m.scoreHome : m.scoreAway) || 0;
-      const oppPts = Number(team === m.homeTeam ? m.scoreAway : m.scoreHome) || 0;
-      const tFga = (players || []).reduce((s, pl) => s + (pl.t2Att || 0) + (pl.t3Att || 0), 0);
-      const tFta = (players || []).reduce((s, pl) => s + (pl.tlAtt || 0), 0);
-      const tTov = (players || []).reduce((s, pl) => s + (pl.to || 0), 0);
-      const tMin = (players || []).reduce((s, pl) => s + (pl.min || 0), 0) || 200;
-      const tPoss = tFga + 0.44 * tFta + tTov;
-
-      (players || []).forEach(p => {
-        const key = norm(p.name).trim(); 
-        if(!people.has(key)) {
-           people.set(key, { 
-               name: p.name, teams: new Set([team]), seasons: new Set([seasonStr]), dorsal: p.dorsal, 
-               pts: 0, fga: 0, fta: 0, tov: 0, min: 0, tmFga: 0, tmFta: 0, tmTov: 0, tmMin: 0,
-               onCourtPts: 0, onCourtOppPts: 0, onCourtPoss: 0 
-           });
-        } else {
-           people.get(key).teams.add(team);
-           people.get(key).seasons.add(seasonStr);
-        }
-        const obj = people.get(key);
-        obj.pts += p.pts || 0;
-        
-        // Sumamos estadísticas individuales
-        obj.fga += (p.t2Att || 0) + (p.t3Att || 0);
-        obj.fta += (p.tlAtt || 0);
-        obj.tov += (p.to || 0);
-        obj.min += (p.min || 0);
-        
-        // Sumamos estadísticas de equipo
-        obj.tmFga += tFga;
-        obj.tmFta += tFta;
-        obj.tmTov += tTov;
-        obj.tmMin += tMin;
-
-        // 🚀 MAGIA ANALÍTICA: Estimación del On-Court ORtg y DRtg usando el +/-
-        if (p.min > 0) {
-            const minShare = p.min / (tMin / 5);
-            const expectedPm = (tPts - oppPts) * minShare;
-            const residualPm = (p.pm || 0) - expectedPm;
-            
-            // Repartimos el impacto residual entre ataque y defensa
-            const ptsOn = (tPts * minShare) + (residualPm / 2);
-            const oppPtsOn = (oppPts * minShare) - (residualPm / 2);
-            const possOn = tPoss * minShare;
-
-            obj.onCourtPts += ptsOn;
-            obj.onCourtOppPts += oppPtsOn;
-            obj.onCourtPoss += possOn;
-        }
-      });
-    });
-  });
-
-  const pc = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
-  const num = x => Number.isFinite(x) ? x.toFixed(2) : '—';
-  const num1 = x => Number.isFinite(x) ? x.toFixed(1) : '—';
-  const num0 = x => Number.isFinite(x) ? Math.round(x) : '—'; 
-
-  let list = [...people.values()].map(p => {
-    const a = _advancedPlayer(p.name, '__ALL__', source);
-    
-    let safeUsg = a.usg || 0;
-    if (safeUsg === 0 && p.min > 0) {
-        const teamPoss = p.tmFga + 0.44 * p.tmFta + p.tmTov;
-        const myPoss = p.fga + 0.44 * p.fta + p.tov;
-        if (teamPoss > 0 && p.tmMin > 0) {
-            safeUsg = 100 * (myPoss * (p.tmMin / 5)) / (p.min * teamPoss);
-        } else if (myPoss > 0) {
-            safeUsg = 100;
-        }
-    }
-    safeUsg = Math.min(100, Math.max(0, safeUsg));
-
-    // 🚀 NUEVAS MÉTRICAS: O-PPP, D-PPP y NET PPP
-    const onCourtPPP = (p.min > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtPts / p.onCourtPoss) : 0;
-    const onCourtDefPPP = (p.min > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtOppPts / p.onCourtPoss) : 0;
-    const netPPP = onCourtPPP - onCourtDefPPP;
-
-    return {
-      name: p.name, team: [...p.teams].join(' / '), dorsal: p.dorsal || '—',
-      pj: a.g || 0, pts: a.pts || 0, ppg: a.ppg || 0, mpg: a.mpg || 0, ptsShot: a.ptsShot || 0, efg: a.efg || 0, ts: a.ts || 0, 
-      usg: safeUsg, 
-      astTo: a.astTo || 0, 
-      ppp: onCourtPPP, dppp: onCourtDefPPP, net: netPPP,
-      eff: a.eff || 0, pir: a.pir || 0
-    };
-  });
-
-  const sc = _advSort.col, sdir = _advSort.dir;
-  list.sort((a, b) => {
-    let va = a[sc], vb = b[sc];
-    if (sc === 'dorsal') { va = parseInt(va) || 0; vb = parseInt(vb) || 0; }
-    if (typeof va === 'string') return sdir * va.localeCompare(vb);
-    return sdir * ((va ?? 0) - (vb ?? 0));
-  });
-
-  const arrIcon = col => sc === col ? (sdir > 0 ? ' ▲' : ' ▼') : '';
-
-  const rows = list.map(p => {
-    return `<tr onclick="openPlayerProfile(this.dataset.n, '__ALL__', '')" data-n="${_esc(p.name)}" style="cursor:pointer; border-bottom:1px solid var(--bd);">
-      <td style="color:var(--t3); padding:8px">#${p.dorsal}</td>
-      <td style="white-space:nowrap"><b>${_esc(p.name)}</b></td>
-      <td style="font-weight:700;color:var(--t2);text-align:center">${p.pj}</td>
-      <td style="font-weight:700;color:var(--t2);text-align:center">${num1(p.mpg)}</td>
-      <td style="font-weight:900;color:var(--ac);text-align:center">${num1(p.ppg)}</td>
-      <td style="font-weight:800;color:var(--nv);text-align:center" title="Puntos por intento de campo">${num(p.ptsShot)}</td>
-      <td style="font-weight:800;text-align:center" title="Puntos del equipo a favor por posesión">${num(p.ppp)}</td>
-      <td style="font-weight:800;text-align:center" title="Puntos del equipo en contra por posesión">${num(p.dppp)}</td>
-      <td style="font-weight:900;text-align:center;color:${p.net>0?'var(--gn)':p.net<0?'#dc2626':'inherit'}" title="Diferencial Neto por posesión">${p.net>0?'+':''}${num(p.net)}</td>
-      <td style="color:#15803d;font-weight:800;text-align:center">${pc(p.efg)}</td>
-      <td style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
-      <td style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
-      <td style="font-weight:700;text-align:center">${num(p.astTo)}</td>
-      <td style="font-weight:900;font-size:13px;text-align:center;color:${p.pir>0?'var(--gn)':p.pir<0?'#dc2626':'var(--t3)'}">${num0(p.pir)}</td>
-      <td style="font-weight:900;font-size:13px;text-align:center;color:${p.eff>0?'var(--gn)':p.eff<0?'#dc2626':'var(--t3)'}">${num0(p.eff)}</td>
-    </tr>`;
-  }).join('');
-
-  box.innerHTML = `<div class="tw" style="overflow-x:auto;"><table style="min-width:1000px; font-size:12px">
-    <thead>
-      <tr>
-        <th onclick="advSort('dorsal','${scope}')" style="cursor:pointer;text-align:left;padding:8px">#${arrIcon('dorsal')}</th>
-        <th onclick="advSort('name','${scope}')" style="cursor:pointer;text-align:left">JUGADOR${arrIcon('name')}</th>
-        <th onclick="advSort('pj','${scope}')" style="cursor:pointer;text-align:center">PJ${arrIcon('pj')}</th>
-        <th onclick="advSort('mpg','${scope}')" style="cursor:pointer;text-align:center" title="Minutos por Partido">MIN/P${arrIcon('mpg')}</th>
-        <th onclick="advSort('ppg','${scope}')" style="cursor:pointer;text-align:center">PTS/P${arrIcon('ppg')}</th>
-        <th onclick="advSort('ptsShot','${scope}')" style="cursor:pointer;text-align:center" title="Puntos por intento de campo">PTS/TIRO${arrIcon('ptsShot')}</th>
-        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo a favor por posesión en pista">O-PPP${arrIcon('ppp')}</th>
-        <th onclick="advSort('dppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo en contra por posesión en pista">D-PPP${arrIcon('dppp')}</th>
-        <th onclick="advSort('net','${scope}')" style="cursor:pointer;text-align:center" title="Diferencial Neto de puntos por posesión">NET${arrIcon('net')}</th>
-        <th onclick="advSort('efg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro ajustado">eFG%${arrIcon('efg')}</th>
-        <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
-        <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
-        <th onclick="advSort('astTo','${scope}')" style="cursor:pointer;text-align:center">AST/TO${arrIcon('astTo')}</th>
-        <th onclick="advSort('pir','${scope}')" style="cursor:pointer;text-align:center" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
-        <th onclick="advSort('eff','${scope}')" style="cursor:pointer;text-align:center" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
-      </tr>
-    </thead>
-    <tbody>${rows || '<tr><td colspan="15" class="no-d">Sin datos</td></tr>'}</tbody>
-  </table></div>
-  <div style="margin-top:8px;padding:10px 12px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.55">
-    <div style="font-weight:800;color:var(--nv);font-size:11px;margin-bottom:6px">Leyenda de estadísticas avanzadas</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px">
-      <div><b>Pj:</b> partidos jugados.</div>
-      <div><b>Min/P:</b> minutos por partido = Min / Pj.</div>
-      <div><b>Pts/P:</b> puntos por partido = Pts / Pj.</div>
-      <div><b>Pts/Tiro:</b> puntos por intento de campo = Pts / FGA.</div>
-      <div><b>O-PPP:</b> puntos anotados por el equipo por cada posesión mientras el jugador está en pista.</div>
-      <div><b>D-PPP:</b> puntos encajados por el equipo por cada posesión mientras el jugador está en pista.</div>
-      <div><b>NET:</b> diferencial neto (O-PPP menos D-PPP).</div>
-      <div><b>Efg%:</b> eficacia ajustada = (T2M + 1.5 x T3M) / FGA.</div>
-      <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
-      <div><b>Usg%:</b> uso estimado = 100 x (FGA + 0.44 x FTA + Per) x (Min equipo / 5) / (Min jugador x Posesiones equipo).</div>
-      <div><b>Ast/To:</b> asistencias por pérdida = Ast / Per; si no hay pérdidas, muestra las asistencias.</div>
-      <div><b>Pir:</b> valoración FIBA = Eff + Fr - Fc.</div>
-      <div><b>Eff:</b> eficiencia NBA = Pts + Rt + Ast + Stl + Blk - tiros fallados - TL fallados - Per.</div>
-      <div><b>FGA:</b> intentos de campo = T2A + T3A. <b>FTA:</b> tiros libres intentados.</div>
-    </div>
-  </div>`;
 }
 
 

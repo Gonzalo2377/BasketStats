@@ -7722,172 +7722,7 @@ function boxSort(col) {
   renderStats();
 }
 
-function _renderStBox(m){
-  const wrap = document.getElementById('st-box-match');
-  const tog = document.getElementById('st-side-toggle');
-  const aggWrap = document.getElementById('st-agg-wrap'), allWrap = document.getElementById('st-all-wrap');
-  const viewBtns = document.getElementById('st-view-btns');
-  if(!wrap) return;
-  const kpis = document.getElementById('st-kpis'), lineups = document.getElementById('st-lineups');
-  if(!m){
-    wrap.style.display = 'none';
-    if(tog) tog.innerHTML = '';
-    if(viewBtns) viewBtns.style.display = 'flex';
-    if(kpis) kpis.style.display = '';
-    if(lineups) lineups.style.display = '';
-    if(aggWrap) aggWrap.style.display = (document.getElementById('st-view-all')?.dataset.on === '1') ? 'none' : 'block';
-    return;
-  }
-  wrap.style.display = 'block';
-  if(viewBtns) viewBtns.style.display = 'none';
-  if(kpis) kpis.style.display = 'none';
-  if(lineups) lineups.style.display = 'none';
-  if(aggWrap) aggWrap.style.display = 'none';
-  if(allWrap) allWrap.style.display = 'none';
 
-  if(tog) tog.innerHTML = [['home',m.homeTeam],['away',m.awayTeam]].map(([k,n])=>
-    `<button onclick="setStBoxSide('${k}')" style="padding:7px 14px;border-radius:8px;border:2px solid ${_stBoxSide===k?'var(--nv)':'var(--b2)'};background:${_stBoxSide===k?'var(--nv)':'#fff'};color:${_stBoxSide===k?'#fff':'var(--t2)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis">${_esc(n||k)}</button>`).join('');
-  
-  const fmtMin = (val) => {
-      if (!val) return '0:00';
-      let mm = Math.floor(val);
-      let ss = Math.round((val - mm) * 60);
-      if (ss >= 60) { mm++; ss -= 60; }
-      return `${mm}:${String(ss).padStart(2, '0')}`;
-  };
-
-  const pl = (_stBoxSide==='home' ? m.homePlayers : m.awayPlayers) || [];
-  const tName = _stBoxSide==='home' ? m.homeTeam : m.awayTeam;
-  const pc = (mk,at) => at ? Math.round(mk/at*100)+'%' : '—';
-  const fgM = p => (p.t2Made||0)+(p.t3Made||0), fgA = p => (p.t2Att||0)+(p.t3Att||0);
-
-  const isHome = _stBoxSide === 'home';
-  const teamScore = Number(isHome ? m.scoreHome : m.scoreAway) || 0;
-  const oppScore = Number(isHome ? m.scoreAway : m.scoreHome) || 0;
-  const diff = teamScore - oppScore;
-  const won = diff > 0;
-
-  const calcVal = (p) => (p.pts||0) + (p.reb||0) + (p.ast||0) + (p.stl||0) + (p.blk||0) + (p.fr||0) - (fgA(p)-fgM(p)) - ((p.tlAtt||0)-(p.tlMade||0)) - (p.to||0) - (p.fc||0);
-
-  const calcNota = (p) => {
-      if (!p.min && !p.pts && !p.reb && !p.ast && !(p.fc||0) && !(p.t2Att||0) && !(p.t3Att||0)) return null;
-      const val = calcVal(p);
-      let base = 6.0;
-      if (won) base += Math.min(0.6, 0.2 + (diff * 0.015)); 
-      else base -= Math.min(0.4, 0.1 + (Math.abs(diff) * 0.015)); 
-      let n = base + (val * 0.14) + ((p.pm||0) * 0.02); 
-      n = Math.max(1.0, Math.min(10.0, n));
-      return n.toFixed(1);
-  };
-
-  const getNotaBadge = (n) => {
-      if (!n) return `<div style="background:#cbd5e1; color:#fff; font-weight:900; font-size:11px; padding:4px 0; border-radius:2px; display:inline-block; width:28px; text-align:center">-</div>`;
-      const v = parseFloat(n);
-      let bg = '#cc0000'; 
-      if (v >= 9.0) bg = '#354ce6'; 
-      else if (v >= 8.0) bg = '#00a3bd'; 
-      else if (v >= 7.0) bg = '#00cc18'; 
-      else if (v >= 6.5) bg = '#d4a100'; 
-      else if (v >= 6.0) bg = '#e87500'; 
-      return `<div style="background:${bg}; color:#fff; font-weight:900; font-size:11.5px; padding:4px 0; border-radius:2px; display:inline-block; width:28px; text-align:center">${n}</div>`;
-  };
-  
-  const valOf = (p) => {
-    switch(_boxSort.col){
-      case 'name': return p.name.toLowerCase();
-      case 'nota': return parseFloat(calcNota(p)) || 0;
-      case 'min': return p.min || 0;
-      case 'pts': return p.pts || 0;
-      case 'val': return calcVal(p);
-      case 'reb': return p.reb || 0;
-      case 'ast': return p.ast || 0;
-      case 'to': return p.to || 0; 
-      case 'stl': return p.stl || 0;
-      case 'blk': return p.blk || 0;
-      case 'fc': return p.fc || 0;
-      case 'pm': return p.pm || 0;
-      case 'tc': return fgM(p);
-      case 't2': return p.t2Made || 0;
-      case 't3': return p.t3Made || 0;
-      case 'tl': return p.tlMade || 0;
-      default: return p.pts || 0;
-    }
-  };
-  
-  const rows = [...pl].sort((a,b) => {
-    const va = valOf(a), vb = valOf(b);
-    if(typeof va === 'string') return _boxSort.dir * va.localeCompare(vb);
-    return _boxSort.dir * (va - vb);
-  });
-  
-  const tot = pl.reduce((t,p)=>{
-      ['min','pts','reb','ro','rd','ast','stl','blk','to','fc','fr','pm','tlMade','tlAtt','t3Made','t3Att','t2Made','t2Att'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
-      return t;
-  },{});
-  const arrIcon = col => _boxSort.col === col ? (_boxSort.dir > 0 ? ' ▲' : ' ▼') : '';
-
-  wrap.innerHTML=`
-    <div class="tw" style="margin-bottom:8px"><table style="min-width:940px; font-size:12px">
-      <thead><tr>
-        <th onclick="boxSort('name')" style="text-align:left;cursor:pointer">Jugador${arrIcon('name')}</th>
-        <th onclick="boxSort('nota')" style="text-align:center;cursor:pointer;color:#354ce6">SR${arrIcon('nota')}</th>
-        <th onclick="boxSort('min')" style="text-align:center;cursor:pointer">MIN${arrIcon('min')}</th>
-        <th onclick="boxSort('pts')" style="text-align:center;cursor:pointer">PTS${arrIcon('pts')}</th>
-        <th onclick="boxSort('tc')" style="text-align:center;cursor:pointer">TC${arrIcon('tc')}</th>
-        <th onclick="boxSort('t2')" style="text-align:center;cursor:pointer">T2${arrIcon('t2')}</th>
-        <th onclick="boxSort('t3')" style="text-align:center;cursor:pointer">3P${arrIcon('t3')}</th>
-        <th onclick="boxSort('tl')" style="text-align:center;cursor:pointer">TL${arrIcon('tl')}</th>
-        <th onclick="boxSort('reb')" style="text-align:center;cursor:pointer">R (O/D)${arrIcon('reb')}</th>
-        <th onclick="boxSort('ast')" style="text-align:center;cursor:pointer">AST${arrIcon('ast')}</th>
-        <th onclick="boxSort('to')" style="text-align:center;cursor:pointer">PER${arrIcon('to')}</th>
-        <th onclick="boxSort('blk')" style="text-align:center;cursor:pointer">BLK${arrIcon('blk')}</th>
-        <th onclick="boxSort('stl')" style="text-align:center;cursor:pointer">STL${arrIcon('stl')}</th>
-        <th onclick="boxSort('fc')" style="text-align:center;cursor:pointer">F (C/R)${arrIcon('fc')}</th>
-        <th onclick="boxSort('pm')" style="text-align:center;cursor:pointer">+/-${arrIcon('pm')}</th>
-        <th onclick="boxSort('val')" style="text-align:center;cursor:pointer">VAL${arrIcon('val')}</th>
-      </tr></thead>
-      <tbody>
-        ${rows.map(p=>{
-          const cv = calcVal(p);
-          return `<tr style="cursor:pointer; border-bottom:1px solid var(--bd)" data-n="${_esc(p.name)}" data-t="${_esc(tName)}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)">
-          <td style="white-space:nowrap; padding:8px"><b>${p.dorsal?'#'+_esc(p.dorsal)+' ':''}</b>${_esc(p.name)}${p.starter?' <span style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' 📝':''}</td>
-          <td style="text-align:center">${getNotaBadge(calcNota(p))}</td>
-          <td style="text-align:center; color:var(--t2); font-weight:700">${fmtMin(p.min)}</td>
-          <td style="text-align:center;font-weight:900;font-size:14px;color:var(--nv)">${p.pts||0}</td>
-          <td style="white-space:nowrap;text-align:center"><b>${fgM(p)}/${fgA(p)}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(fgM(p),fgA(p))}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${p.t2Made||0}/${p.t2Att||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p.t2Made,p.t2Att)}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${p.t3Made||0}/${p.t3Att||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p.t3Made,p.t3Att)}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${p.tlMade||0}/${p.tlAtt||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p.tlMade,p.tlAtt)}</span></td>
-          <td style="text-align:center"><b>${p.reb||0}</b> <span style="font-size:10px;color:var(--t3)">(${p.ro||0}/${p.rd||0})</span></td>
-          <td style="text-align:center">${p.ast||0}</td>
-          <td style="text-align:center">${p.to||0}</td>
-          <td style="text-align:center">${p.blk||0}</td>
-          <td style="text-align:center">${p.stl||0}</td>
-          <td style="text-align:center"><b>${p.fc||0}</b> <span style="font-size:10px;color:var(--t3)">(${p.fc||0}/${p.fr||0})</span></td>
-          <td style="text-align:center;font-weight:800;color:${(p.pm||0)>0?'var(--gn)':(p.pm||0)<0?'#dc2626':'inherit'}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
-          <td style="text-align:center;font-weight:800;color:${cv>0?'var(--gn)':cv<0?'#dc2626':'inherit'}">${cv>0?'+':''}${cv}</td>
-        </tr>`;}).join('')||'<tr><td colspan="16" class="no-d">Sin jugadores</td></tr>'}
-      </tbody>
-      <tfoot><tr style="border-top:2px solid var(--bd);background:var(--bg)">
-        <td colspan="2" style="white-space:nowrap; padding:10px 8px; text-align:right"><b>TOTAL</b></td>
-        <td style="text-align:center;font-weight:700">${fmtMin(tot.min)}</td>
-        <td style="text-align:center;font-weight:900;font-size:15px">${tot.pts||0}</td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${(tot.t2Made||0)+(tot.t3Made||0)}/${(tot.t2Att||0)+(tot.t3Att||0)}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc((tot.t2Made||0)+(tot.t3Made||0),(tot.t2Att||0)+(tot.t3Att||0))}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tot.t2Made||0}/${tot.t2Att||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tot.t2Made||0,tot.t2Att||0)}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tot.t3Made||0}/${tot.t3Att||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tot.t3Made||0,tot.t3Att||0)}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tot.tlMade||0}/${tot.tlAtt||0}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tot.tlMade||0,tot.tlAtt||0)}</span></td>
-        <td style="text-align:center;font-weight:800"><b>${tot.reb||0}</b> <span style="font-size:10px;color:var(--t3)">(${tot.ro||0}/${tot.rd||0})</span></td>
-        <td style="text-align:center;font-weight:800">${tot.ast||0}</td>
-        <td style="text-align:center;font-weight:800">${tot.to||0}</td>
-        <td style="text-align:center;font-weight:800">${tot.blk||0}</td>
-        <td style="text-align:center;font-weight:800">${tot.stl||0}</td>
-        <td style="text-align:center;font-weight:800"><b>${tot.fc||0}</b> <span style="font-size:10px;color:var(--t3)">(${tot.fc||0}/${tot.fr||0})</span></td>
-        <td></td>
-        ${(()=>{const cv=calcVal(tot); return `<td style="text-align:center;font-weight:900;color:${cv>0?'var(--gn)':cv<0?'#dc2626':'inherit'}">${cv>0?'+':''}${cv}</td>`;})()}
-      </tr></tfoot>
-    </table></div>
-    <div style="font-size:10px;color:var(--t3)">Toca en el título de la columna para ordenar. Toca a cualquier jugador para ver su ficha.</div>`;
-}
 
 // Función universal para inyectar los orígenes
 function injectOriginData(containerClass, eventsArray, matchFn){
@@ -8373,234 +8208,7 @@ let _stCacheFilters = null;
 let _stCacheData = { all: [], teams: new Set(), scoped: [], mfEff: '' };
 let _stRenderLimit = 50; // Límite de jugadores en tabla para no congelar la pantalla
 
-function renderStats(){
-  const val=id=>document.getElementById(id)?.value||'';
-  let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
-      gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
 
-  const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
-  let all, teams, scoped, mfEff;
-  
-  let fallbackBanner = '';
-
-  if (_stCacheFilters !== currentFilters) {
-      const cy = new Date().getFullYear();
-      const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
-      
-      let effectiveSf = sf;
-      let fallbackSfActivado = false;
-      
-      // 🚀 FALLBACK GLOBAL DE SCOUTING: Si la temporada seleccionada tiene 0 partidos en toda la DB
-      if (sf) {
-          const hasMatchesGlobally = S.matches.some(m => m.season === sf);
-          if (!hasMatchesGlobally) {
-              const past = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
-              if (past.length > 0) {
-                  effectiveSf = past[0];
-                  fallbackSfActivado = true;
-              }
-          }
-      }
-
-      let activeRosterNamesNorm = null;
-      let tDefActual = null;
-      if (fallbackSfActivado && tf) {
-          tDefActual = S.teams.find(x => x.name === tf && x.season === sf);
-          if (!tDefActual) tDefActual = S.teams.find(x => x.name === tf);
-          if (tDefActual && tDefActual.players) {
-              activeRosterNamesNorm = tDefActual.players.map(x => x.name.trim().toLowerCase());
-          }
-      }
-
-      const okL =m=>!lf ||m.competition===lf;
-      const okS =m=>!sf ||m.season===effectiveSf;
-      const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
-      
-      const okT =m=>{
-          if (!tf) return true;
-          // 🚀 BUSCAMOS CON NOMBRES LIMPIOS
-          if (activeRosterNamesNorm) {
-              return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNamesNorm.includes((p.name||'').trim().toLowerCase()));
-          }
-          return m.homeTeam===tf||m.awayTeam===tf;
-      };
-      
-      const okM =m=>!mf ||String(m.id)===String(mf);
-      const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
-      const okW =m=>teamsOf(m).length>0;
-
-      const pool=(excepto)=>S.matches.filter(m=>
-        (excepto==='L'||okL(m))&&(excepto==='S'||okS(m))&&(excepto==='G'||okG(m))&&
-        (excepto==='T'||okT(m))&&(excepto==='M'||okM(m))&&okW(m));
-
-      const fill=(id,opciones,actual,ph)=>{
-        const e=document.getElementById(id);if(!e)return actual;
-        const ok=!actual||opciones.includes(actual);
-        e.innerHTML=`<option value="">${ph}</option>`+
-          opciones.map(o=>`<option value="${_esc(o)}"${o===actual&&ok?' selected':''}>${_esc(o)}</option>`).join('');
-        if(!ok){e.value='';return '';}
-        return actual;
-      };
-      const uniq=(arr,fn)=>[...new Set(arr.map(fn).filter(Boolean))].sort();
-
-      lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
-      
-      const allSeasons = [...new Set([...S.matches.map(m=>m.season), ...(S.teams||[]).map(t=>t.season), curSeason].filter(s => s && s !== 'Sin temporada'))].sort().reverse();
-      sf = fill('st-sf', allSeasons, sf, 'Todos');
-      
-      grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
-
-      const teamsAvail = [...new Set([...pool('T').flatMap(teamsOf), ...(S.teams||[]).map(t=>t.name)])].sort();
-      const tsel=document.getElementById('st-tf');
-      if(tsel){
-        const ok=!tf||teamsAvail.includes(tf);
-        tsel.innerHTML=_teamSelectOptions(ok?tf:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail});
-        if(!ok){tsel.value='';tf='';}
-      }
-
-      const playerLabels=new Map();
-      pool('P').forEach(m=>{
-        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
-          if(!_inGroup(p.team,gf))return;
-          const norm = (p.name||'').trim().toLowerCase();
-          if(activeRosterNamesNorm){ if(!activeRosterNamesNorm.includes(norm))return; } else { if(tf&&p.team!==tf)return; }
-          const key=String(p.name||'').trim();
-          if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
-        });
-      });
-      
-      const psel=document.getElementById('st-pf');
-      if(psel){
-        const available=[...playerLabels.keys()].sort((a,b)=>a.localeCompare(b,'es'));
-        const ok=!pf||available.includes(pf);
-        psel.innerHTML='<option value="">Todos los jugadores</option>'+available.map(name=>`<option value="${_esc(name)}"${name===pf&&ok?' selected':''}>${_esc(playerLabels.get(name))}</option>`).join('');
-        if(!ok){psel.value='';pf='';}
-      }
-
-      const msel=document.getElementById('st-mf');
-      mfEff=mf;
-      if(msel){
-        const avail=pool('M').sort((a,b)=>(b.id||0)-(a.id||0));
-        const ok=!mf||avail.some(m=>String(m.id)===String(mf));
-        msel.innerHTML='<option value="">Todos (acumulado)</option>'+
-          avail.map(m=>`<option value="${m.id}"${String(m.id)===String(mf)&&ok?' selected':''}>${_esc(m.name)}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
-        if(!ok){msel.value='';mfEff='';}
-      }
-
-      const normStr=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      const q=''; 
-      all=[]; teams=new Set();
-      scoped=S.matches.filter(m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&(okT(m))&&(!mfEff||String(m.id)===String(mfEff)));
-      
-      scoped.forEach(m=>{
-        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam})),
-         ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam}))].forEach(p=>{
-          if(!_inGroup(p.team,gf))return;
-          
-          const normName = (p.name||'').trim().toLowerCase();
-          
-          if (activeRosterNamesNorm) {
-              if (!activeRosterNamesNorm.includes(normName)) return;
-              p.team = tf; 
-              p.mN = `${p.mN} (con ${p.origT})`; 
-              teams.add(tf);
-              if(pf&&p.name!==pf)return;
-              all.push(p);
-          } else {
-              teams.add(p.team);
-              if(tf&&p.team!==tf)return;
-              if(pf&&p.name!==pf)return;
-              if(q&&!(normStr(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
-              all.push(p);
-          }
-        });
-      });
-
-      if (activeRosterNamesNorm && tDefActual && tDefActual.players) {
-          const foundNorms = new Set(all.map(x => (x.name||'').trim().toLowerCase()));
-          tDefActual.players.forEach(p => {
-              const n = (p.name||'').trim().toLowerCase();
-              if (!foundNorms.has(n) && (!pf || p.name === pf)) {
-                  all.push({...p, team: tf, mN: 'Fichaje (0 partidos)', pts:0, min:0, t2Pct:null, t3Pct:null, tlPct:null, reb:0, ast:0, fc:0, pm:0, val:0});
-              }
-          });
-      }
-
-      _stCacheData = { all, teams, scoped, mfEff, fallbackSfActivado, effectiveSf };
-      _stCacheFilters = currentFilters;
-      _stRenderLimit = 50; 
-      
-  } else {
-      all = _stCacheData.all;
-      teams = _stCacheData.teams;
-      scoped = _stCacheData.scoped;
-      mfEff = _stCacheData.mfEff;
-  }
-
-  if (_stCacheData.fallbackSfActivado) {
-      fallbackBanner = `<div style="grid-column: 1 / -1; background:#fef3c7; color:#92400e; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${_stCacheData.effectiveSf} para los jugadores de la plantilla actual.</div>`;
-  }
-
-  const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
-  window._stCtx={scoped,selMatch,tf,gf,pf};
-  const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
-  const kpi=document.getElementById('st-kpis');
-  if(kpi)kpi.innerHTML= fallbackBanner + `
-    <div class="kpi"><div class="kv">${all.length}</div><div class="kl">Jugadors</div></div>
-    <div class="kpi"><div class="kv">${top?top.pts:'—'}</div><div class="kl">Màxim</div><div class="ks">${top?top.name.split(' ')[0]:''}</div></div>
-    <div class="kpi"><div class="kv">${scoped.length}</div><div class="kl">Partits</div></div>
-    <div class="kpi"><div class="kv">${[...teams].length}</div><div class="kl">Equips</div></div>`;
-  
-  const pdfBtn=document.getElementById('st-pdf-btn');
-  if(pdfBtn)pdfBtn.style.display=selMatch?'inline-block':'none';
-  
-  const luEl=document.getElementById('st-lineups');
-  if(luEl){
-    const mSel=selMatch;
-    const hasStarters=mSel&&[...(mSel.homePlayers||[]),...(mSel.awayPlayers||[])].some(p=>p.starter);
-    if(mSel&&hasStarters){
-      const five=(arr)=>(arr||[]).filter(p=>p.starter).map(p=>`<span style="display:inline-block;background:#fff;border:1.5px solid var(--b2);border-radius:20px;padding:3px 10px;margin:2px;font-size:11px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]}</span>`).join('');
-      luEl.innerHTML=`<div style="background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px">
-        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">⭐ Quintetos iniciales</div>
-        <div style="font-size:11px;margin-bottom:4px"><b style="color:var(--nv)">${mSel.homeTeam}:</b> ${five(mSel.homePlayers)||'<i style="color:var(--t3)">sin datos</i>'}</div>
-        <div style="font-size:11px"><b style="color:var(--nv)">${mSel.awayTeam}:</b> ${five(mSel.awayPlayers)||'<i style="color:var(--t3)">sin datos</i>'}</div>
-      </div>`;
-    } else luEl.innerHTML='';
-  }
-
-  const cols=['#','Jugador','Equip','Partit','PTS','MIN','TL','TL%','T2','T2%','T3','T3%','REB','AST','FC','VAL','+/-'];
-  const th=document.getElementById('st-th');
-  if(th)th.innerHTML='<tr>'+cols.map((col,i)=>`<th class="${stSort.col===i?(stSort.dir>0?'asc':'desc'):''}" onclick="ssort(${i})">${col}</th>`).join('')+'</tr>';
-  const sk=[null,'name','team','mN','pts','min',null,'tlPct',null,'t2Pct',null,'t3Pct','reb','ast','fc','val','pm'];
-  const sorted=[...all].sort((a,b)=>{const k=sk[stSort.col];if(!k)return 0;const va=a[k],vb=b[k];if(va==null)return 1;if(vb==null)return-1;return(typeof va==='number'?va-vb:String(va).localeCompare(String(vb)))*stSort.dir;});
-  
-  const tb=document.getElementById('st-tb');
-  if(tb) {
-      const shown = sorted.slice(0, _stRenderLimit);
-      const hidden = sorted.length - shown.length;
-      
-      let html = shown.map(p=>{
-        const vc=p.val>0?'vp':p.val<0?'vn':'',pc=p.pm>0?'pp':p.pm<0?'pn':'';
-        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t, '${sf}')"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${p.mN||'—'}</td><td><b>${p.pts}</b></td><td>${p.min||'—'}</td><td>${p.tl||'—'}</td><td>${p.tlPct!=null?Math.round(p.tlPct*100)+'%':'—'}</td><td>${p.t2||'—'}</td><td>${p.t2Pct!=null?Math.round(p.t2Pct*100)+'%':'—'}</td><td>${p.t3||'—'}</td><td>${p.t3Pct!=null?Math.round(p.t3Pct*100)+'%':'—'}</td><td>${p.reb||'—'}</td><td>${p.ast||'—'}</td><td>${p.fc}</td><td class="${vc}">${p.val}</td><td class="${pc}">${p.pm>0?'+':''}${p.pm}</td></tr>`;
-      }).join('');
-      
-      if (hidden > 0) {
-          html += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px;background:#f8fafc"><button onclick="_stRenderLimit += 50; renderStats()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">▼ Mostrar 50 jugadores más (Quedan ${hidden} ocultos)</button></td></tr>`;
-      } else if (!sorted.length) {
-          html = `<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
-      }
-      tb.innerHTML = html;
-  }
-
-  if(_stSub==='box')renderStatsAggregated();
-  _renderStMatchHead(selMatch);
-  _renderStDetalles(scoped,selMatch);
-  if(_stSub==='box')_renderStBox(selMatch);
-  if(_stSub==='team')_renderStTeamStats(scoped,selMatch,tf);
-  if(_stSub==='pm')_renderStPlusMinus(scoped,selMatch);
-  if(_stSub==='map')_renderStMaps(scoped,selMatch,tf,gf);
-  if(_stSub==='adv')_renderAdvancedStats();
-}
 
 function ssort(ci){if(stSort.col===ci)stSort.dir*=-1;else{stSort.col=ci;stSort.dir=-1;}renderStats();}
 
@@ -10849,6 +10457,9 @@ function generateOriginDualCard(evFor, evAgainst, titleFor, titleAgainst) {
   </div>`;
 }
 
+// =========================================================================
+// 1. MOTOR DEL MODAL EN DIRECTO (Corregido para el acumulado total)
+// =========================================================================
 function renderLiveStatsModal() {
   const modalWrapper = document.getElementById('live-stats-modal');
   if(!modalWrapper) return;
@@ -10913,13 +10524,13 @@ function renderLiveStatsModal() {
   const aTeam = sH ? 'home' : 'away';
   const oppTeam = sH ? 'away' : 'home'; 
 
-  // 🚀 EL ÁRBITRO DE MESA (Motor Cronológico Continuo)
+  // 🚀 EL ÁRBITRO DE MESA: Ahora actúa SIEMPRE, incluso en el acumulado total
   const exactMinsMap = {};
   lv.pl[aTeam].forEach(p => exactMinsMap[p.name] = 0);
 
-  if (!isAll && window._lvStatsQ.length > 0) {
-      const activeQs = new Set(window._lvStatsQ);
-      
+  const activeQs = isAll ? new Set(pKeys) : new Set(window._lvStatsQ);
+  
+  if (activeQs.size > 0) {
       const getSecs = (ev) => {
           if (ev.timer && typeof ev.timer.seconds === 'number') return ev.timer.seconds;
           if (typeof ev.minute === 'number') return (ev.minute * 60) + (ev.second || 0);
@@ -10931,40 +10542,34 @@ function renderLiveStatsModal() {
           return null;
       };
 
-      // Ordenar TODOS los eventos del partido de inicio a fin (como una película)
       let globalEvs = lv.events.slice().sort((a, b) => {
           if (a.period !== b.period) return a.period - b.period;
           let tA = getSecs(a); tA = tA !== null ? tA : 0;
           let tB = getSecs(b); tB = tB !== null ? tB : 0;
-          return tB - tA; // 600 segundos hacia 0
+          return tB - tA; 
       });
 
       let currentLineup = [];
       let currentQ = 1;
       let lastT = 600;
 
-      // Buscar quién sale de titular en la primera acción de la app
       if (globalEvs.length > 0 && globalEvs[0].oc && globalEvs[0].oc[aTeam]) {
           currentLineup = globalEvs[0].oc[aTeam];
       } else if (lv.onCourt && lv.onCourt[aTeam]) {
           currentLineup = Array.from(lv.onCourt[aTeam]);
       }
 
-      // Reproducir el partido evento a evento
       globalEvs.forEach((e) => {
           let t = getSecs(e);
           if (t === null) t = lastT; 
-          
-          if (t > lastT && e.period === currentQ) t = lastT; // Evitar fallos de FCBQ
+          if (t > lastT && e.period === currentQ) t = lastT; 
 
           if (e.period !== currentQ) {
-              // 1. Terminar el cuarto anterior hasta que suene la bocina (segundo 0)
               let delta = lastT;
               if (delta > 0 && activeQs.has(currentQ)) {
                   currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + delta; });
               }
               
-              // 2. Por si hay cuartos vacíos sin jugadas registradas en medio
               for (let pq = currentQ + 1; pq < e.period; pq++) {
                   if (activeQs.has(pq)) {
                       let pqDur = pq > 4 ? 5 : 10;
@@ -10972,33 +10577,28 @@ function renderLiveStatsModal() {
                   }
               }
 
-              // 3. Arrancar el nuevo cuarto manteniendo el quinteto que acabó el anterior
               currentQ = e.period;
               let qDur = currentQ > 4 ? 5 : 10;
               lastT = qDur * 60;
               
-              // 4. Bajar el reloj hasta esta primera jugada
               if (t > lastT) t = lastT;
               let startDelta = lastT - t;
               if (startDelta > 0 && activeQs.has(currentQ)) {
                   currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + startDelta; });
               }
           } else {
-              // Misma jugada en el mismo cuarto, simplemente restar los segundos
               let delta = lastT - t;
               if (delta > 0 && activeQs.has(currentQ)) {
                   currentLineup.forEach(p => { exactMinsMap[p] = (exactMinsMap[p] || 0) + delta; });
               }
           }
 
-          // Refrescar quién está jugando para el siguiente tramo
           if (e.oc && e.oc[aTeam]) {
               currentLineup = e.oc[aTeam];
           }
           lastT = t;
       });
 
-      // Bajar el reloj desde el último evento hasta donde se haya parado el cronómetro en vivo
       let liveRem = 0;
       if (currentQ === lv.period && lv.timer && typeof lv.timer.seconds === 'number') {
           liveRem = lv.timer.seconds;
@@ -11014,8 +10614,7 @@ function renderLiveStatsModal() {
       lv.pl[aTeam].forEach(p => {
           qStats[p.name] = { 
               pts:0, t2m:0, t2a:0, t3m:0, t3a:0, tlm:0, tla:0, 
-              ro:0, rd:0, ast:0, stl:0, blk:0, to:0, fc:0, fr:0, pm:0, 
-              min: (exactMinsMap[p.name] || 0) / 60 
+              ro:0, rd:0, ast:0, stl:0, blk:0, to:0, fc:0, fr:0, pm:0
           };
       });
       
@@ -11064,7 +10663,9 @@ function renderLiveStatsModal() {
     const pm=s.pm||0;
     const ro=s.ro||0, rd=s.rd||0, rt=ro+rd;
     const fc=s.fc||0, fr=s.fr||0;
-    const min = isAll ? window._getLiveExactMin(aTeam, p.name) : s.min;
+    
+    // 🔥 CORRECCIÓN CLAVE: El acumulado también usa el cronómetro exacto
+    const min = (exactMinsMap[p.name] || 0) / 60;
     
     const t2m = s.t2Made || s.t2m || 0; const t2a = s.t2Att || s.t2a || 0;
     const t3m = s.t3Made || s.t3m || 0; const t3a = s.t3Att || s.t3a || 0;
@@ -11199,6 +10800,571 @@ function renderLiveStatsModal() {
     </div>
   `;
 }
+
+// =========================================================================
+// 1. MOTOR HISTÓRICO (Extraído directamente de tu lógica de +/-)
+// =========================================================================
+function _getHistoricalExactMins(m, teamSide) {
+    let exactMins = {};
+    let players = teamSide === 'home' ? m.homePlayers : m.awayPlayers;
+    if (!players) return exactMins;
+    
+    players.forEach(p => {
+        // Usamos tu función nativa que clava los minutos en el +/-
+        const stintsData = typeof _playerStints === 'function' ? _playerStints(m, p.name, teamSide) : null;
+        if (stintsData && stintsData.stints) {
+            // Sumamos los tramos exactos
+            let totalOn = stintsData.stints.reduce((acc, sg) => acc + (sg.b - sg.a), 0);
+            exactMins[p.name] = totalOn; 
+        } else {
+            exactMins[p.name] = 0;
+        }
+    });
+
+    return exactMins;
+}
+
+function renderStats(){
+  const val=id=>document.getElementById(id)?.value||'';
+  let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
+      gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
+
+  const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  let all, teams, scoped, mfEff;
+  
+  let fallbackBanner = '';
+
+  if (_stCacheFilters !== currentFilters) {
+      const cy = new Date().getFullYear();
+      const curSeason = new Date().getMonth() >= 7 ? cy + '-' + String(cy+1).slice(-2) : (cy-1) + '-' + String(cy).slice(-2);
+      
+      let effectiveSf = sf;
+      let fallbackSfActivado = false;
+      
+      if (sf) {
+          const hasMatchesGlobally = S.matches.some(m => m.season === sf);
+          if (!hasMatchesGlobally) {
+              const past = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+              if (past.length > 0) {
+                  effectiveSf = past[0];
+                  fallbackSfActivado = true;
+              }
+          }
+      }
+
+      let activeRosterNamesNorm = null;
+      let tDefActual = null;
+      if (fallbackSfActivado && tf) {
+          tDefActual = S.teams.find(x => x.name === tf && x.season === sf);
+          if (!tDefActual) tDefActual = S.teams.find(x => x.name === tf);
+          if (tDefActual && tDefActual.players) {
+              activeRosterNamesNorm = tDefActual.players.map(x => x.name.trim().toLowerCase());
+          }
+      }
+
+      const okL =m=>!lf ||m.competition===lf;
+      const okS =m=>!sf ||m.season===effectiveSf;
+      const okG =m=>!grf||('Grupo '+(m.group||''))===grf;
+      
+      const okT =m=>{
+          if (!tf) return true;
+          if (activeRosterNamesNorm) {
+              return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNamesNorm.includes((p.name||'').trim().toLowerCase()));
+          }
+          return m.homeTeam===tf||m.awayTeam===tf;
+      };
+      
+      const okM =m=>!mf ||String(m.id)===String(mf);
+      const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
+      const okW =m=>teamsOf(m).length>0;
+
+      const pool=(excepto)=>S.matches.filter(m=>
+        (excepto==='L'||okL(m))&&(excepto==='S'||okS(m))&&(excepto==='G'||okG(m))&&
+        (excepto==='T'||okT(m))&&(excepto==='M'||okM(m))&&okW(m));
+
+      const fill=(id,opciones,actual,ph)=>{
+        const e=document.getElementById(id);if(!e)return actual;
+        const ok=!actual||opciones.includes(actual);
+        e.innerHTML=`<option value="">${ph}</option>`+
+          opciones.map(o=>`<option value="${_esc(o)}"${o===actual&&ok?' selected':''}>${_esc(o)}</option>`).join('');
+        if(!ok){e.value='';return '';}
+        return actual;
+      };
+      const uniq=(arr,fn)=>[...new Set(arr.map(fn).filter(Boolean))].sort();
+
+      lf =fill('st-lf', uniq(pool('L'),m=>m.competition), lf, 'Todas');
+      
+      const allSeasons = [...new Set([...S.matches.map(m=>m.season), ...(S.teams||[]).map(t=>t.season), curSeason].filter(s => s && s !== 'Sin temporada'))].sort().reverse();
+      sf = fill('st-sf', allSeasons, sf, 'Todos');
+      
+      grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
+
+      const teamsAvail = [...new Set([...pool('T').flatMap(teamsOf), ...(S.teams||[]).map(t=>t.name)])].sort();
+      const tsel=document.getElementById('st-tf');
+      if(tsel){
+        const ok=!tf||teamsAvail.includes(tf);
+        tsel.innerHTML=_teamSelectOptions(ok?tf:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail});
+        if(!ok){tsel.value='';tf='';}
+      }
+
+      const playerLabels=new Map();
+      pool('P').forEach(m=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
+          if(!_inGroup(p.team,gf))return;
+          const norm = (p.name||'').trim().toLowerCase();
+          if(activeRosterNamesNorm){ if(!activeRosterNamesNorm.includes(norm))return; } else { if(tf&&p.team!==tf)return; }
+          const key=String(p.name||'').trim();
+          if(key&&!playerLabels.has(key))playerLabels.set(key,`#${p.dorsal||''} ${key}`.trim());
+        });
+      });
+      
+      const psel=document.getElementById('st-pf');
+      if(psel){
+        const available=[...playerLabels.keys()].sort((a,b)=>a.localeCompare(b,'es'));
+        const ok=!pf||available.includes(pf);
+        psel.innerHTML='<option value="">Todos los jugadores</option>'+available.map(name=>`<option value="${_esc(name)}"${name===pf&&ok?' selected':''}>${_esc(playerLabels.get(name))}</option>`).join('');
+        if(!ok){psel.value='';pf='';}
+      }
+
+      const msel=document.getElementById('st-mf');
+      mfEff=mf;
+      if(msel){
+        const avail=pool('M').sort((a,b)=>(b.id||0)-(a.id||0));
+        const ok=!mf||avail.some(m=>String(m.id)===String(mf));
+        msel.innerHTML='<option value="">Todos (acumulado)</option>'+
+          avail.map(m=>`<option value="${m.id}"${String(m.id)===String(mf)&&ok?' selected':''}>${_esc(m.name)}${m.date?' · '+m.date.slice(0,10):''}</option>`).join('');
+        if(!ok){msel.value='';mfEff='';}
+      }
+
+      const normStr=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const q=''; 
+      all=[]; teams=new Set();
+      scoped=S.matches.filter(m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&(okT(m))&&(!mfEff||String(m.id)===String(mfEff)));
+      
+      scoped.forEach(m=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam, side:'home'})),
+         ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam, side:'away'}))].forEach(p=>{
+          if(!_inGroup(p.team,gf))return;
+          
+          // 🔥 EXTRAEMOS LOS MINUTOS IGUAL QUE EN EL +/-
+          if (m.events && m.events.length > 0 && typeof _playerStints === 'function') {
+              try {
+                  const {stints} = _playerStints(m, p.name, p.side);
+                  p._trueMinDec = (stints || []).reduce((acc, st) => acc + (st.b - st.a), 0);
+              } catch(e) { p._trueMinDec = 0; }
+          } else {
+              // Rescate para partidos manuales sin acciones
+              if (typeof p.min === 'number') { p._trueMinDec = p.min; }
+              else if (typeof p.min === 'string' && p.min.includes(':')) {
+                  let pts = p.min.split(':');
+                  p._trueMinDec = (parseInt(pts[0], 10) || 0) + ((parseInt(pts[1], 10) || 0) / 60);
+              } else { p._trueMinDec = parseFloat(p.min) || 0; }
+          }
+
+          const normName = (p.name||'').trim().toLowerCase();
+          if (activeRosterNamesNorm) {
+              if (!activeRosterNamesNorm.includes(normName)) return;
+              p.team = tf; 
+              p.mN = `${p.mN} (con ${p.origT})`; 
+              teams.add(tf);
+              if(pf&&p.name!==pf)return;
+              all.push(p);
+          } else {
+              teams.add(p.team);
+              if(tf&&p.team!==tf)return;
+              if(pf&&p.name!==pf)return;
+              if(q&&!(normStr(p.name).includes(q)||String(p.dorsal||'').includes(q)))return;
+              all.push(p);
+          }
+        });
+      });
+
+      if (activeRosterNamesNorm && tDefActual && tDefActual.players) {
+          const foundNorms = new Set(all.map(x => (x.name||'').trim().toLowerCase()));
+          tDefActual.players.forEach(p => {
+              const n = (p.name||'').trim().toLowerCase();
+              if (!foundNorms.has(n) && (!pf || p.name === pf)) {
+                  all.push({...p, team: tf, mN: 'Fichaje (0 partidos)', pts:0, _trueMinDec:0, t2Pct:null, t3Pct:null, tlPct:null, reb:0, ast:0, fc:0, pm:0, val:0});
+              }
+          });
+      }
+
+      _stCacheData = { all, teams, scoped, mfEff, fallbackSfActivado, effectiveSf };
+      _stCacheFilters = currentFilters;
+      _stRenderLimit = 50; 
+      
+  } else {
+      all = _stCacheData.all;
+      teams = _stCacheData.teams;
+      scoped = _stCacheData.scoped;
+      mfEff = _stCacheData.mfEff;
+  }
+
+  if (_stCacheData.fallbackSfActivado) {
+      fallbackBanner = `<div style="grid-column: 1 / -1; background:#fef3c7; color:#92400e; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; margin-bottom:12px; border:1px solid #fde68a;">⚠️ MODO PRETEMPORADA: Mostrando datos de la temp. ${_stCacheData.effectiveSf} para los jugadores de la plantilla actual.</div>`;
+  }
+
+  const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
+  window._stCtx={scoped,selMatch,tf,gf,pf};
+  const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
+  const kpi=document.getElementById('st-kpis');
+  if(kpi)kpi.innerHTML= fallbackBanner + `
+    <div class="kpi"><div class="kv">${all.length}</div><div class="kl">Jugadors</div></div>
+    <div class="kpi"><div class="kv">${top?top.pts:'—'}</div><div class="kl">Màxim</div><div class="ks">${top?top.name.split(' ')[0]:''}</div></div>
+    <div class="kpi"><div class="kv">${scoped.length}</div><div class="kl">Partits</div></div>
+    <div class="kpi"><div class="kv">${[...teams].length}</div><div class="kl">Equips</div></div>`;
+  
+  const pdfBtn=document.getElementById('st-pdf-btn');
+  if(pdfBtn)pdfBtn.style.display=selMatch?'inline-block':'none';
+  
+  const luEl=document.getElementById('st-lineups');
+  if(luEl){
+    const mSel=selMatch;
+    const hasStarters=mSel&&[...(mSel.homePlayers||[]),...(mSel.awayPlayers||[])].some(p=>p.starter);
+    if(mSel&&hasStarters){
+      const five=(arr)=>(arr||[]).filter(p=>p.starter).map(p=>`<span style="display:inline-block;background:#fff;border:1.5px solid var(--b2);border-radius:20px;padding:3px 10px;margin:2px;font-size:11px;font-weight:700">#${p.dorsal} ${p.name.split(' ')[0]}</span>`).join('');
+      luEl.innerHTML=`<div style="background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">⭐ Quintetos iniciales</div>
+        <div style="font-size:11px;margin-bottom:4px"><b style="color:var(--nv)">${mSel.homeTeam}:</b> ${five(mSel.homePlayers)||'<i style="color:var(--t3)">sin datos</i>'}</div>
+        <div style="font-size:11px"><b style="color:var(--nv)">${mSel.awayTeam}:</b> ${five(mSel.awayPlayers)||'<i style="color:var(--t3)">sin datos</i>'}</div>
+      </div>`;
+    } else luEl.innerHTML='';
+  }
+
+  const fmtMinDec = (val) => {
+      if (!val) return '0:00';
+      let mm = Math.floor(val);
+      let ss = Math.round((val - mm) * 60);
+      if (ss >= 60) { mm++; ss -= 60; }
+      return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
+  const cols=['#','Jugador','Equip','Partit','PTS','MIN','TL','TL%','T2','T2%','T3','T3%','REB','AST','FC','VAL','+/-'];
+  const th=document.getElementById('st-th');
+  if(th)th.innerHTML='<tr>'+cols.map((col,i)=>`<th class="${stSort.col===i?(stSort.dir>0?'asc':'desc'):''}" onclick="ssort(${i})">${col}</th>`).join('')+'</tr>';
+  const sk=[null,'name','team','mN','pts','min',null,'tlPct',null,'t2Pct',null,'t3Pct','reb','ast','fc','val','pm'];
+  
+  const sorted=[...all].sort((a,b)=>{
+      const k=sk[stSort.col];
+      if(!k)return 0;
+      if (k === 'min') return ((a._trueMinDec || 0) - (b._trueMinDec || 0)) * stSort.dir;
+      
+      let va=a[k],vb=b[k];
+      if(va==null)return 1;if(vb==null)return-1;
+      return(typeof va==='number'?va-vb:String(va).localeCompare(String(vb)))*stSort.dir;
+  });
+  
+  const tb=document.getElementById('st-tb');
+  if(tb) {
+      const shown = sorted.slice(0, _stRenderLimit);
+      const hidden = sorted.length - shown.length;
+      
+      let t_pts=0, t_t2m=0, t_t2a=0, t_t3m=0, t_t3a=0, t_tlm=0, t_tla=0;
+      let t_ro=0, t_rd=0, t_ast=0, t_stl=0, t_blk=0, t_to=0, t_fc=0, t_fr=0, t_pm=0;
+      let t_totalDecMins = 0;
+
+      let html = shown.map(p=>{
+        const pts = p.pts || 0;
+        const t2m = p.t2Made || p.t2m || 0; const t2a = p.t2Att || p.t2a || 0;
+        const t3m = p.t3Made || p.t3m || 0; const t3a = p.t3Att || p.t3a || 0;
+        const tlm = p.tlMade || p.tlm || 0; const tla = p.tlAtt || p.tla || 0;
+        const reb = p.reb || 0; const ast = p.ast || 0; const fc = p.fc || 0;
+        const val = p.val || 0; const pm = p.pm || 0;
+        const mN = p.mN || '—';
+        
+        const vcC = val > 0 ? 'vp' : (val < 0 ? 'vn' : '');
+        const pcC = pm > 0 ? 'pp' : (pm < 0 ? 'pn' : '');
+        const pmS = pm > 0 ? '+' + pm : pm;
+        const tlPct = p.tlPct != null ? Math.round(p.tlPct*100)+'%' : '—';
+        const t2Pct = p.t2Pct != null ? Math.round(p.t2Pct*100)+'%' : '—';
+        const t3Pct = p.t3Pct != null ? Math.round(p.t3Pct*100)+'%' : '—';
+        
+        t_pts += pts;
+        t_t2m += t2m; t_t2a += t2a;
+        t_t3m += t3m; t_t3a += t3a;
+        t_tlm += tlm; t_tla += tla;
+        t_ro += (p.ro || 0); t_rd += (p.rd || 0); t_ast += ast;
+        t_stl += (p.stl || 0); t_blk += (p.blk || 0); t_to += (p.to || 0);
+        t_fc += fc; t_pm += pm; 
+        
+        // Sumamos los minutos reales sin redondear
+        t_totalDecMins += (p._trueMinDec || 0);
+
+        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t, '${sf}')"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${mN}</td><td><b>${pts}</b></td><td>${fmtMinDec(p._trueMinDec)}</td><td>${tlm}/${tla}</td><td>${tlPct}</td><td>${t2m}/${t2a}</td><td>${t2Pct}</td><td>${t3m}/${t3a}</td><td>${t3Pct}</td><td>${reb}</td><td>${ast}</td><td>${fc}</td><td class="${vcC}">${val}</td><td class="${pcC}">${pmS}</td></tr>`;
+      }).join('');
+      
+      if (hidden > 0) {
+          html += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px;background:#f8fafc"><button onclick="_stRenderLimit += 50; renderStats()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">▼ Mostrar 50 jugadores más (Quedan ${hidden} ocultos)</button></td></tr>`;
+      } else if (!sorted.length) {
+          html = `<tr><td colspan="${cols.length}" class="no-d">Cap dada. Importa un partit primer.</td></tr>`;
+      }
+
+      const tMins = fmtMinDec(t_totalDecMins);
+      const tlP = t_tla > 0 ? Math.round((t_tlm/t_tla)*100)+'%' : '0%';
+      const t2P = t_t2a > 0 ? Math.round((t_t2m/t_t2a)*100)+'%' : '0%';
+      const t3P = t_t3a > 0 ? Math.round((t_t3m/t_t3a)*100)+'%' : '0%';
+      const tRebT = t_ro + t_rd;
+      const tPmC = t_pm > 0 ? 'var(--gn)' : (t_pm < 0 ? '#dc2626' : 'inherit');
+      const tPmS = t_pm > 0 ? '+' : '';
+
+      html += `<tr style="background:#e2e8f0; border-top: 2px solid var(--bd); font-size:11px;">
+        <td colspan="4" style="position:sticky; left:0; z-index:11; background:#e2e8f0; font-weight:900; text-align:right; padding:10px 10px; box-sizing:border-box; border-right:1px solid var(--bd);">TOTAL EQUIPO</td>
+        <td style="text-align:center"><b style="font-size:15px; color:var(--nv)">${t_pts}</b></td>
+        <td style="font-weight:800; text-align:center; color:var(--nv)">${tMins}</td>
+        <td style="white-space:nowrap; font-weight:800; text-align:center">${t_tlm}/${t_tla}</td>
+        <td style="font-weight:800; text-align:center; color:var(--t3)">${tlP}</td>
+        <td style="white-space:nowrap; font-weight:800; text-align:center">${t_t2m}/${t_t2a}</td>
+        <td style="font-weight:800; text-align:center; color:var(--t3)">${t2P}</td>
+        <td style="white-space:nowrap; font-weight:800; text-align:center">${t_t3m}/${t_t3a}</td>
+        <td style="font-weight:800; text-align:center; color:var(--t3)">${t3P}</td>
+        <td style="font-weight:900; text-align:center">${tRebT}</td>
+        <td style="font-weight:800; text-align:center">${t_ast}</td>
+        <td style="font-weight:800; text-align:center">${t_fc}</td>
+        <td></td>
+        <td style="font-weight:900; text-align:center; color:${tPmC}">${tPmS}${t_pm}</td>
+      </tr>`;
+
+      tb.innerHTML = html;
+  }
+
+  if(_stSub==='box')renderStatsAggregated();
+  _renderStMatchHead(selMatch);
+  _renderStDetalles(scoped,selMatch);
+  if(_stSub==='box')_renderStBox(selMatch);
+  if(_stSub==='team')_renderStTeamStats(scoped,selMatch,tf);
+  if(_stSub==='pm')_renderStPlusMinus(scoped,selMatch);
+  if(_stSub==='map')_renderStMaps(scoped,selMatch,tf,gf);
+  if(_stSub==='adv')_renderAdvancedStats();
+}
+
+function _renderStBox(m){
+  const wrap = document.getElementById('st-box-match');
+  const tog = document.getElementById('st-side-toggle');
+  const aggWrap = document.getElementById('st-agg-wrap');
+  const allWrap = document.getElementById('st-all-wrap');
+  const viewBtns = document.getElementById('st-view-btns');
+  if(!wrap) return;
+  
+  const kpis = document.getElementById('st-kpis');
+  const lineups = document.getElementById('st-lineups');
+  
+  if(!m){
+    wrap.style.display = 'none';
+    if(tog) tog.innerHTML = '';
+    if(viewBtns) viewBtns.style.display = 'flex';
+    if(kpis) kpis.style.display = '';
+    if(lineups) lineups.style.display = '';
+    if(aggWrap) aggWrap.style.display = (document.getElementById('st-view-all')?.dataset.on === '1') ? 'none' : 'block';
+    return;
+  }
+  
+  wrap.style.display = 'block';
+  if(viewBtns) viewBtns.style.display = 'none';
+  if(kpis) kpis.style.display = 'none';
+  if(lineups) lineups.style.display = 'none';
+  if(aggWrap) aggWrap.style.display = 'none';
+  if(allWrap) allWrap.style.display = 'none';
+
+  if(tog) tog.innerHTML = [['home',m.homeTeam],['away',m.awayTeam]].map(([k,n])=>
+    `<button onclick="setStBoxSide('${k}')" style="padding:7px 14px;border-radius:8px;border:2px solid ${_stBoxSide===k?'var(--nv)':'var(--b2)'};background:${_stBoxSide===k?'var(--nv)':'#fff'};color:${_stBoxSide===k?'#fff':'var(--t2)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis">${_esc(n||k)}</button>`).join('');
+
+  const pl = (_stBoxSide==='home' ? m.homePlayers : m.awayPlayers) || [];
+  const tName = _stBoxSide==='home' ? m.homeTeam : m.awayTeam;
+
+  // 🔥 LA SOLUCIÓN: Sobreescribimos los minutos corruptos usando TU función _playerStints
+  pl.forEach(p => {
+      if (m.events && m.events.length > 0 && typeof _playerStints === 'function') {
+          try {
+              const {stints} = _playerStints(m, p.name, _stBoxSide);
+              p._trueMinDec = (stints || []).reduce((acc, st) => acc + (st.b - st.a), 0);
+          } catch(e) { 
+              p._trueMinDec = 0; 
+          }
+      } else {
+          // Si no hay jugadas (partido manual), rescatamos el valor viejo
+          if (typeof p.min === 'number') { p._trueMinDec = p.min; }
+          else if (typeof p.min === 'string' && p.min.includes(':')) {
+              let pts = p.min.split(':');
+              p._trueMinDec = (parseInt(pts[0], 10) || 0) + ((parseInt(pts[1], 10) || 0) / 60);
+          } else { 
+              p._trueMinDec = parseFloat(p.min) || 0; 
+          }
+      }
+  });
+
+  const fmtMinDec = (val) => {
+      if (!val) return '0:00';
+      let mm = Math.floor(val);
+      let ss = Math.round((val - mm) * 60);
+      if (ss >= 60) { mm++; ss -= 60; }
+      return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
+  const pc = (mk,at) => at ? Math.round(mk/at*100)+'%' : '—';
+  const fgM = p => (p.t2Made||0)+(p.t3Made||0);
+  const fgA = p => (p.t2Att||0)+(p.t3Att||0);
+
+  const isHome = _stBoxSide === 'home';
+  const teamScore = Number(isHome ? m.scoreHome : m.scoreAway) || 0;
+  const oppScore = Number(isHome ? m.scoreAway : m.scoreHome) || 0;
+  const diff = teamScore - oppScore;
+  const won = diff > 0;
+
+  const calcVal = (p) => (p.pts||0) + (p.reb||0) + (p.ast||0) + (p.stl||0) + (p.blk||0) + (p.fr||0) - (fgA(p)-fgM(p)) - ((p.tlAtt||0)-(p.tlMade||0)) - (p.to||0) - (p.fc||0);
+
+  const calcNota = (p) => {
+      if (!p._trueMinDec && !p.pts && !p.reb && !p.ast && !(p.fc||0) && !(p.t2Att||0) && !(p.t3Att||0)) return null;
+      const val = calcVal(p);
+      let base = 6.0;
+      if (won) base += Math.min(0.6, 0.2 + (diff * 0.015)); 
+      else base -= Math.min(0.4, 0.1 + (Math.abs(diff) * 0.015)); 
+      let n = base + (val * 0.14) + ((p.pm||0) * 0.02); 
+      n = Math.max(1.0, Math.min(10.0, n));
+      return n.toFixed(1);
+  };
+
+  const getNotaBadge = (n) => {
+      if (!n) return `<div style="background:#cbd5e1; color:#fff; font-weight:900; font-size:11px; padding:4px 0; border-radius:2px; display:inline-block; width:28px; text-align:center">-</div>`;
+      const v = parseFloat(n);
+      let bg = '#cc0000'; 
+      if (v >= 9.0) bg = '#354ce6'; 
+      else if (v >= 8.0) bg = '#00a3bd'; 
+      else if (v >= 7.0) bg = '#00cc18'; 
+      else if (v >= 6.5) bg = '#d4a100'; 
+      else if (v >= 6.0) bg = '#e87500'; 
+      return `<div style="background:${bg}; color:#fff; font-weight:900; font-size:11.5px; padding:4px 0; border-radius:2px; display:inline-block; width:28px; text-align:center">${n}</div>`;
+  };
+  
+  const valOf = (p) => {
+    switch(_boxSort.col){
+      case 'name': return p.name.toLowerCase();
+      case 'nota': return parseFloat(calcNota(p)) || 0;
+      case 'min': return p._trueMinDec || 0;
+      case 'pts': return p.pts || 0;
+      case 'val': return calcVal(p);
+      case 'reb': return p.reb || 0;
+      case 'ast': return p.ast || 0;
+      case 'to': return p.to || 0; 
+      case 'stl': return p.stl || 0;
+      case 'blk': return p.blk || 0;
+      case 'fc': return p.fc || 0;
+      case 'pm': return p.pm || 0;
+      case 'tc': return fgM(p);
+      case 't2': return p.t2Made || 0;
+      case 't3': return p.t3Made || 0;
+      case 'tl': return p.tlMade || 0;
+      default: return p.pts || 0;
+    }
+  };
+  
+  const rows = [...pl].sort((a,b) => {
+    const va = valOf(a), vb = valOf(b);
+    if(typeof va === 'string') return _boxSort.dir * va.localeCompare(vb);
+    return _boxSort.dir * (va - vb);
+  });
+  
+  let totMinsDec = 0;
+  const tot = pl.reduce((t,p)=>{
+      totMinsDec += (p._trueMinDec || 0);
+      ['pts','reb','ro','rd','ast','stl','blk','to','fc','fr','pm','tlMade','tlAtt','t3Made','t3Att','t2Made','t2Att'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
+      return t;
+  },{});
+  
+  const arrIcon = col => _boxSort.col === col ? (_boxSort.dir > 0 ? ' ▲' : ' ▼') : '';
+
+  const tMinsStr = fmtMinDec(totMinsDec);
+  const tPts = tot.pts || 0;
+  const tFm = (tot.t2Made||0) + (tot.t3Made||0);
+  const tFa = (tot.t2Att||0) + (tot.t3Att||0);
+  const t2m = tot.t2Made || 0; const t2a = tot.t2Att || 0;
+  const t3m = tot.t3Made || 0; const t3a = tot.t3Att || 0;
+  const tlm = tot.tlMade || 0; const tla = tot.tlAtt || 0;
+  const tReb = tot.reb || 0; const tRo = tot.ro || 0; const tRd = tot.rd || 0;
+  const tAst = tot.ast || 0; const tTo = tot.to || 0; const tBlk = tot.blk || 0;
+  const tStl = tot.stl || 0; const tFc = tot.fc || 0; const tFr = tot.fr || 0;
+  const tCv = calcVal(tot);
+  const tCvCol = tCv > 0 ? 'var(--gn)' : (tCv < 0 ? '#dc2626' : 'inherit');
+  const tCvSig = tCv > 0 ? '+' : '';
+
+  wrap.innerHTML=`
+    <div class="tw" style="margin-bottom:8px"><table style="min-width:940px; font-size:12px">
+      <thead><tr>
+        <th onclick="boxSort('name')" style="text-align:left;cursor:pointer">Jugador${arrIcon('name')}</th>
+        <th onclick="boxSort('nota')" style="text-align:center;cursor:pointer;color:#354ce6">SR${arrIcon('nota')}</th>
+        <th onclick="boxSort('min')" style="text-align:center;cursor:pointer">MIN${arrIcon('min')}</th>
+        <th onclick="boxSort('pts')" style="text-align:center;cursor:pointer">PTS${arrIcon('pts')}</th>
+        <th onclick="boxSort('tc')" style="text-align:center;cursor:pointer">TC${arrIcon('tc')}</th>
+        <th onclick="boxSort('t2')" style="text-align:center;cursor:pointer">T2${arrIcon('t2')}</th>
+        <th onclick="boxSort('t3')" style="text-align:center;cursor:pointer">3P${arrIcon('t3')}</th>
+        <th onclick="boxSort('tl')" style="text-align:center;cursor:pointer">TL${arrIcon('tl')}</th>
+        <th onclick="boxSort('reb')" style="text-align:center;cursor:pointer">R (O/D)${arrIcon('reb')}</th>
+        <th onclick="boxSort('ast')" style="text-align:center;cursor:pointer">AST${arrIcon('ast')}</th>
+        <th onclick="boxSort('to')" style="text-align:center;cursor:pointer">PER${arrIcon('to')}</th>
+        <th onclick="boxSort('blk')" style="text-align:center;cursor:pointer">BLK${arrIcon('blk')}</th>
+        <th onclick="boxSort('stl')" style="text-align:center;cursor:pointer">STL${arrIcon('stl')}</th>
+        <th onclick="boxSort('fc')" style="text-align:center;cursor:pointer">F (C/R)${arrIcon('fc')}</th>
+        <th onclick="boxSort('pm')" style="text-align:center;cursor:pointer">+/-${arrIcon('pm')}</th>
+        <th onclick="boxSort('val')" style="text-align:center;cursor:pointer">VAL${arrIcon('val')}</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(p=>{
+          const cv = calcVal(p);
+          const pts = p.pts || 0;
+          const fm = fgM(p); const fa = fgA(p);
+          const p2m = p.t2Made || 0; const p2a = p.t2Att || 0;
+          const p3m = p.t3Made || 0; const p3a = p.t3Att || 0;
+          const plm = p.tlMade || 0; const pla = p.tlAtt || 0;
+          const reb = p.reb || 0; const ro = p.ro || 0; const rd = p.rd || 0;
+          const ast = p.ast || 0; const to = p.to || 0; const blk = p.blk || 0;
+          const stl = p.stl || 0; const fc = p.fc || 0; const fr = p.fr || 0;
+          const pm = p.pm || 0;
+          const pmC = pm > 0 ? 'var(--gn)' : (pm < 0 ? '#dc2626' : 'inherit');
+          const cvC = cv > 0 ? 'var(--gn)' : (cv < 0 ? '#dc2626' : 'inherit');
+          const pmS = pm > 0 ? '+' : '';
+          const cvS = cv > 0 ? '+' : '';
+          const notaB = getNotaBadge(calcNota(p));
+          const pMins = fmtMinDec(p._trueMinDec);
+
+          return `<tr style="cursor:pointer; border-bottom:1px solid var(--bd)" data-n="${_esc(p.name)}" data-t="${_esc(tName)}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)">
+          <td style="white-space:nowrap; padding:8px"><b>${p.dorsal?'#'+_esc(p.dorsal)+' ':''}</b>${_esc(p.name)}${p.starter?' <span style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' 📝':''}</td>
+          <td style="text-align:center">${notaB}</td>
+          <td style="text-align:center; color:var(--t2); font-weight:700">${pMins}</td>
+          <td style="text-align:center;font-weight:900;font-size:14px;color:var(--nv)">${pts}</td>
+          <td style="white-space:nowrap;text-align:center"><b>${fm}/${fa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(fm,fa)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${p2m}/${p2a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p2m,p2a)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${p3m}/${p3a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p3m,p3a)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${plm}/${pla}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(plm,pla)}</span></td>
+          <td style="text-align:center"><b>${reb}</b> <span style="font-size:10px;color:var(--t3)">(${ro}/${rd})</span></td>
+          <td style="text-align:center">${ast}</td>
+          <td style="text-align:center">${to}</td>
+          <td style="text-align:center">${blk}</td>
+          <td style="text-align:center">${stl}</td>
+          <td style="text-align:center"><b>${fc}</b> <span style="font-size:10px;color:var(--t3)">(${fc}/${fr})</span></td>
+          <td style="text-align:center;font-weight:800;color:${pmC}">${pmS}${pm}</td>
+          <td style="text-align:center;font-weight:800;color:${cvC}">${cvS}${cv}</td>
+        </tr>`;}).join('')||'<tr><td colspan="16" class="no-d">Sin jugadores</td></tr>'}
+      </tbody>
+      <tfoot><tr style="border-top:2px solid var(--bd);background:var(--bg)">
+        <td colspan="2" style="white-space:nowrap; padding:10px 8px; text-align:right"><b>TOTAL</b></td>
+        <td style="text-align:center;font-weight:700">${tMinsStr}</td>
+        <td style="text-align:center;font-weight:900;font-size:15px">${tPts}</td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tFm}/${tFa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tFm,tFa)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${t2m}/${t2a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t2m,t2a)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${t3m}/${t3a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t3m,t3a)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tlm}/${tla}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tlm,tla)}</span></td>
+        <td style="text-align:center;font-weight:800"><b>${tReb}</b> <span style="font-size:10px;color:var(--t3)">(${tRo}/${tRd})</span></td>
+        <td style="text-align:center;font-weight:800">${tAst}</td>
+        <td style="text-align:center;font-weight:800">${tTo}</td>
+        <td style="text-align:center;font-weight:800">${tBlk}</td>
+        <td style="text-align:center;font-weight:800">${tStl}</td>
+        <td style="text-align:center;font-weight:800"><b>${tFc}</b> <span style="font-size:10px;color:var(--t3)">(${tFc}/${tFr})</span></td>
+        <td></td>
+        <td style="text-align:center;font-weight:900;color:${tCvCol}">${tCvSig}${tCv}</td>
+      </tr></tfoot>
+    </table></div>
+    <div style="font-size:10px;color:var(--t3)">Toca en el título de la columna para ordenar. Toca a cualquier jugador para ver su ficha.</div>`;
+}
+
 
 function openPlayerProfile(name, team, targetSeason){
  try{
@@ -11508,86 +11674,194 @@ ${(heatImg||zoneImg)?`<div class="sec">
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ✏️ EDITAR ESTADÍSTICAS DE UN PARTIDO GUARDADO
-// Permite corregir cualquier estadística y rellenar rebotes/asistencias (que la
-// FCBQ no da). Los puntos, porcentajes y el marcador se recalculan solos.
 // ═══════════════════════════════════════════════════════════════════════════
-let _meditId=null;
-const _MEDIT_COLS=[
-  {k:'min',  label:'MIN'},
+let _meditId = null;
+const _MEDIT_COLS = [
+  {k:'min',   label:'MIN'},
   {k:'tlMade',label:'TL✓'},{k:'tlAtt',label:'TLi'},
   {k:'t2Made',label:'T2✓'},{k:'t2Att',label:'T2i'},
   {k:'t3Made',label:'T3✓'},{k:'t3Att',label:'T3i'},
-  {k:'reb',  label:'REB'},{k:'ast',label:'AST'},
-  {k:'fc',   label:'FC'}, {k:'fr', label:'FR'}, {k:'pm', label:'+/-'},
+  {k:'reb',   label:'REB'},{k:'ast',label:'AST'},
+  {k:'fc',    label:'FC'}, {k:'fr', label:'FR'}, {k:'pm', label:'+/-'},
 ];
 
 function openMatchEdit(id){
-  const m=S.matches.find(x=>x.id===id);
-  if(!m){toast('Partido no encontrado','err');return;}
-  _meditId=id;
-  const sub=document.getElementById('medit-sub');
-  if(sub)sub.textContent=`${m.homeTeam} ${m.scoreHome}—${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date:''}`;
+  const m = S.matches.find(x => x.id === id);
+  if(!m) { if(typeof toast==='function') toast('Partido no encontrado','err'); return; }
+  _meditId = id;
+  const sub = document.getElementById('medit-sub');
+  const mDate = m.date ? ' · ' + m.date : '';
+  if(sub) sub.textContent = `${m.homeTeam} ${m.scoreHome}—${m.scoreAway} ${m.awayTeam}${mDate}`;
   renderMatchEditBody();
-  const md=document.getElementById('medit-modal');if(md)md.style.display='flex';
+  const md = document.getElementById('medit-modal');
+  if(md) md.style.display = 'flex';
 }
-function closeMatchEdit(){const md=document.getElementById('medit-modal');if(md)md.style.display='none';_meditId=null;}
+
+function closeMatchEdit(){
+  const md = document.getElementById('medit-modal');
+  if(md) md.style.display = 'none';
+  _meditId = null;
+}
+
+// 🚀 Asignado al objeto window para evitar bugs de scope. Sincroniza datos antes de borrar.
+window.removePlayerFromMatchEdit = function(side, idx) {
+    if(!confirm('¿Seguro que quieres borrar a este jugador del partido?')) return;
+    
+    const m = S.matches.find(x => x.id === _meditId);
+    if(!m) return;
+    
+    const body = document.getElementById('medit-body');
+    if(body) {
+        body.querySelectorAll('tr[data-side]').forEach(row => {
+            const s = row.dataset.side;
+            const i = parseInt(row.dataset.i, 10);
+            const arr = s === 'home' ? m.homePlayers : m.awayPlayers;
+            const p = arr ? arr[i] : null; 
+            if(!p) return;
+            
+            _MEDIT_COLS.forEach(c => {
+                const inp = row.querySelector('.me-' + c.k);
+                if(inp) {
+                    if(c.k === 'min') p[c.k] = inp.value;
+                    else p[c.k] = parseFloat(inp.value) || 0;
+                }
+            });
+        });
+    }
+    
+    if (side === 'home' && m.homePlayers) m.homePlayers.splice(idx, 1);
+    else if (side === 'away' && m.awayPlayers) m.awayPlayers.splice(idx, 1);
+    
+    renderMatchEditBody();
+};
 
 function renderMatchEditBody(){
-  const el=document.getElementById('medit-body');if(!el)return;
-  const m=S.matches.find(x=>x.id===_meditId);if(!m)return;
-  const block=(side,tName,players)=>`
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${_esc(tName||side)}</div>
-      <div class="tw medit-tw"><table style="min-width:${150+_MEDIT_COLS.length*60}px">
-        <thead><tr><th style="text-align:left">Jugador</th>${_MEDIT_COLS.map(c=>`<th style="text-align:center">${c.label}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${(players||[]).map((p,i)=>`<tr data-side="${side}" data-i="${i}">
-            <td style="white-space:nowrap"><b>#${_esc(p.dorsal)}</b> ${_esc((p.name||'').split(' ').slice(0,2).join(' '))}</td>
-            ${_MEDIT_COLS.map(c=>`<td style="text-align:center;padding:3px">
-              <input type="number" class="me-${c.k}" value="${p[c.k]!=null?p[c.k]:0}" step="1"
-                style="width:52px;text-align:center;font-size:11px;padding:4px 2px">
-            </td>`).join('')}
-          </tr>`).join('')}
-        </tbody>
-      </table></div>
-    </div>`;
-  el.innerHTML=block('home',m.homeTeam,m.homePlayers)+block('away',m.awayTeam,m.awayPlayers);
+  const el = document.getElementById('medit-body');
+  if(!el) return;
+  const m = S.matches.find(x => x.id === _meditId);
+  if(!m) return;
+  
+  const block = (side, tName, players) => {
+      let colsHtml = '';
+      _MEDIT_COLS.forEach(c => {
+          colsHtml += `<th style="text-align:center">${c.label}</th>`;
+      });
+      
+      let rowsHtml = '';
+      const pls = players ? players : [];
+      pls.forEach((p, i) => {
+          const pName = p.name ? p.name : '';
+          const dName = pName.split(' ').slice(0, 2).join(' ');
+          const pDor = p.dorsal ? p.dorsal : '';
+          
+          let cellsHtml = '';
+          _MEDIT_COLS.forEach(c => {
+              const isMin = c.k === 'min';
+              const inpType = isMin ? 'text' : 'number';
+              const step = isMin ? '' : 'step="1"';
+              let val = p[c.k];
+              if (val === undefined || val === null) {
+                  val = isMin ? '0:00' : 0;
+              }
+              const w = isMin ? '54px' : '52px';
+              cellsHtml += `<td style="text-align:center;padding:3px">
+                <input type="${inpType}" class="me-${c.k}" value="${val}" ${step}
+                  style="width:${w};text-align:center;font-size:11px;padding:4px 2px">
+              </td>`;
+          });
+          
+          rowsHtml += `<tr data-side="${side}" data-i="${i}">
+            <td style="white-space:nowrap"><b>#${_esc(pDor)}</b> ${_esc(dName)}</td>
+            ${cellsHtml}
+            <td style="text-align:center;padding:3px">
+               <button type="button" onclick="window.removePlayerFromMatchEdit('${side}', ${i})" style="background:#fee2e2; border:none; color:#ef4444; border-radius:4px; padding:4px 6px; cursor:pointer; font-size:12px;" title="Eliminar jugador">🗑️</button>
+            </td>
+          </tr>`;
+      });
+      
+      const tN = tName ? tName : side;
+      return `<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${_esc(tN)}</div>
+        <div class="tw medit-tw"><table style="min-width:900px">
+          <thead><tr><th style="text-align:left">Jugador</th>${colsHtml}<th></th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table></div>
+      </div>`;
+  };
+  
+  const bH = block('home', m.homeTeam, m.homePlayers);
+  const bA = block('away', m.awayTeam, m.awayPlayers);
+  el.innerHTML = bH + bA;
 }
 
 function saveMatchEdit(){
-  const m=S.matches.find(x=>x.id===_meditId);if(!m){closeMatchEdit();return;}
-  const body=document.getElementById('medit-body');if(!body)return;
-  const num=(v)=>{const n=parseInt(v,10);return isNaN(n)?0:Math.max(-999,n);};
-  body.querySelectorAll('tr[data-side]').forEach(row=>{
-    const side=row.dataset.side,i=parseInt(row.dataset.i);
-    const arr=side==='home'?m.homePlayers:m.awayPlayers;
-    const p=arr&&arr[i];if(!p)return;
-    _MEDIT_COLS.forEach(c=>{
-      const inp=row.querySelector('.me-'+c.k);
-      if(inp)p[c.k]=num(inp.value);
+  const m = S.matches.find(x => x.id === _meditId);
+  if(!m){ closeMatchEdit(); return; }
+  const body = document.getElementById('medit-body');
+  if(!body) return;
+  
+  const num = (v) => {
+      const n = parseInt(v, 10);
+      return isNaN(n) ? 0 : Math.max(-999, n);
+  };
+  
+  body.querySelectorAll('tr[data-side]').forEach(row => {
+    const side = row.dataset.side;
+    const i = parseInt(row.dataset.i, 10);
+    const arr = side === 'home' ? m.homePlayers : m.awayPlayers;
+    const p = arr ? arr[i] : null; 
+    if(!p) return;
+    
+    _MEDIT_COLS.forEach(c => {
+      const inp = row.querySelector('.me-' + c.k);
+      if(inp) {
+         if (c.k === 'min') p[c.k] = inp.value;
+         else p[c.k] = num(inp.value);
+      }
     });
-    // Coherencia: los aciertos no pueden superar los intentos
-    [['tlMade','tlAtt'],['t2Made','t2Att'],['t3Made','t3Att']].forEach(([mk,ak])=>{
-      if(p[mk]>p[ak])p[ak]=p[mk];
-    });
-    // Recalcular puntos, cadenas y porcentajes
-    p.pts=(p.tlMade||0)+2*(p.t2Made||0)+3*(p.t3Made||0);
-    p.tl=`${p.tlMade||0}/${p.tlAtt||0}`;p.t2=`${p.t2Made||0}/${p.t2Att||0}`;p.t3=`${p.t3Made||0}/${p.t3Att||0}`;
-    p.tlPct=p.tlAtt?p.tlMade/p.tlAtt:null;
-    p.t2Pct=p.t2Att?p.t2Made/p.t2Att:null;
-    p.t3Pct=p.t3Att?p.t3Made/p.t3Att:null;
-    // Valoración estándar simple: pts + reb + ast − fallos − faltas
-    const miss=(p.tlAtt-p.tlMade)+(p.t2Att-p.t2Made)+(p.t3Att-p.t3Made);
-    p.val=p.pts+(p.reb||0)+(p.ast||0)-miss-(p.fc||0);
+    
+    const pt1 = p.tlMade ? p.tlMade : 0;
+    const pt2 = p.t2Made ? p.t2Made : 0;
+    const pt3 = p.t3Made ? p.t3Made : 0;
+    let at1 = p.tlAtt ? p.tlAtt : 0;
+    let at2 = p.t2Att ? p.t2Att : 0;
+    let at3 = p.t3Att ? p.t3Att : 0;
+
+    if(pt1 > at1) { at1 = pt1; p.tlAtt = pt1; }
+    if(pt2 > at2) { at2 = pt2; p.t2Att = pt2; }
+    if(pt3 > at3) { at3 = pt3; p.t3Att = pt3; }
+    
+    p.pts = pt1 + (2 * pt2) + (3 * pt3);
+    p.tl = `${pt1}/${at1}`;
+    p.t2 = `${pt2}/${at2}`;
+    p.t3 = `${pt3}/${at3}`;
+    p.tlPct = at1 ? (pt1 / at1) : null;
+    p.t2Pct = at2 ? (pt2 / at2) : null;
+    p.t3Pct = at3 ? (pt3 / at3) : null;
+    
+    const reb = p.reb ? p.reb : 0;
+    const ast = p.ast ? p.ast : 0;
+    const fc = p.fc ? p.fc : 0;
+    const miss = (at1 - pt1) + (at2 - pt2) + (at3 - pt3);
+    p.val = p.pts + reb + ast - miss - fc;
   });
-  // Recalcular el marcador desde los jugadores
-  const sum=(arr)=>(arr||[]).reduce((a,p)=>a+(p.pts||0),0);
-  const nh=sum(m.homePlayers),na=sum(m.awayPlayers);
-  if(nh||na){m.scoreHome=nh;m.scoreAway=na;m.name=`${m.homeTeam} vs ${m.awayTeam}`;}
-  m.editedAt=Date.now();
-  svL();rAll();renderMatchHistory();
+  
+  let nh = 0;
+  if (m.homePlayers) { m.homePlayers.forEach(p => { nh += (p.pts ? p.pts : 0); }); }
+  let na = 0;
+  if (m.awayPlayers) { m.awayPlayers.forEach(p => { na += (p.pts ? p.pts : 0); }); }
+  
+  m.scoreHome = nh;
+  m.scoreAway = na;
+  m.name = `${m.homeTeam} vs ${m.awayTeam}`;
+  m.editedAt = Date.now();
+  
+  if(typeof svL === 'function') svL();
+  if(typeof rAll === 'function') rAll();
+  if(typeof renderMatchHistory === 'function') renderMatchHistory();
+  
   closeMatchEdit();
-  toast(`✅ Partido actualizado · ${nh}-${na}`);
+  if(typeof toast === 'function') toast(`✅ Partido actualizado · ${nh}-${na}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -13097,82 +13371,266 @@ function _mapsToImages(shots){
 }
 
 function exportMatchPDF(matchId){
-  const mf=matchId ?? (document.getElementById('st-mf')?.value || '');
-  const m=S.matches.find(x=>x.id==mf);
-  if(!m){if(typeof toast==='function')toast('Selecciona un partido primero','err');return;}
+  const mfEl = document.getElementById('st-mf');
+  const mfVal = mfEl ? mfEl.value : '';
+  const mf = matchId !== undefined && matchId !== null ? matchId : mfVal;
   
-  const tf=matchId==null?(document.getElementById('st-tf')?.value||'').trim():'';
-  let onlySide=null;
+  const m = S.matches.find(x => String(x.id) === String(mf));
+  if(!m) { if(typeof toast==='function') toast('Selecciona un partido primero','err'); return; }
+  
+  const tfEl = document.getElementById('st-tf');
+  const tfVal = tfEl ? tfEl.value : '';
+  const tf = (matchId === undefined || matchId === null) ? tfVal.trim() : '';
+  
+  let onlySide = null;
   if(tf){
-    if(m.homeTeam===tf)onlySide='home';
-    else if(m.awayTeam===tf)onlySide='away';
+    if(m.homeTeam === tf) onlySide = 'home';
+    else if(m.awayTeam === tf) onlySide = 'away';
   }
 
-  const fmtMin = (val) => {
-      if (!val) return '0:00';
+  const fmtMinDec = (val) => {
+      if (!val || isNaN(val)) return '0:00';
       let mm = Math.floor(val);
       let ss = Math.round((val - mm) * 60);
       if (ss >= 60) { mm++; ss -= 60; }
-      return `${mm}:${String(ss).padStart(2, '0')}`;
+      const sStr = String(ss).padStart(2, '0');
+      return `${mm}:${sStr}`;
   };
 
-  const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
-  const won=m.scoreHome>m.scoreAway?'home':m.scoreAway>m.scoreHome?'away':'';
+  const pc = (a, b) => b ? Math.round((a / b) * 100) + '%' : '—';
+  const won = m.scoreHome > m.scoreAway ? 'home' : (m.scoreAway > m.scoreHome ? 'away' : '');
 
-  const quarterRows=_matchQuarters(m)||[];
-  const maxQ=Math.max(4,quarterRows.reduce((max,q)=>Math.max(max,q.p||0),0));
-  const perQ={home:Array(maxQ).fill(0),away:Array(maxQ).fill(0)};
-  quarterRows.forEach(q=>{const index=Math.max(0,(q.p||1)-1);perQ.home[index]=q.h;perQ.away[index]=q.a;});
-  const hasQ=quarterRows.length>0;
+  const quarterRows = _matchQuarters(m) ? _matchQuarters(m) : [];
+  let maxQ = 4;
+  quarterRows.forEach(q => { if(q.p > maxQ) maxQ = q.p; });
+  const perQ = { home: Array(maxQ).fill(0), away: Array(maxQ).fill(0) };
+  quarterRows.forEach(q => {
+      const index = Math.max(0, (q.p ? q.p : 1) - 1);
+      perQ.home[index] = q.h;
+      perQ.away[index] = q.a;
+  });
+  const hasQ = quarterRows.length > 0;
 
-  const everyone=[...(m.homePlayers||[]),...(m.awayPlayers||[])];
-  const anyMin=everyone.some(p=>p.min);
+  const homePls = m.homePlayers ? m.homePlayers : [];
+  const awayPls = m.awayPlayers ? m.awayPlayers : [];
+  const everyone = [...homePls, ...awayPls];
+  const anyMin = everyone.some(p => p.min);
 
-  const matchShots=[
-    ...S.shots.filter(s=>(s.mId||s.matchId)==m.id),
-    ...(m.shots||[])
-  ];
-  const shotsOf=sd=>matchShots.filter(s=>s.team===sd);
-  const maps={home:_mapsToImages(shotsOf('home')),away:_mapsToImages(shotsOf('away'))};
+  const mShots = m.shots ? m.shots : [];
+  const filterShots = S.shots.filter(s => String(s.mId ? s.mId : s.matchId) === String(m.id));
+  const matchShots = [...filterShots, ...mShots];
+  const shotsOf = sd => matchShots.filter(s => s.team === sd);
+  const maps = { home: _mapsToImages(shotsOf('home')), away: _mapsToImages(shotsOf('away')) };
 
-  const qTable=()=>hasQ?`<div class="qt">
-      <div class="qt-row qt-head"><div class="qt-team">PARCIALES</div>
-        ${Array.from({length:maxQ},(_,i)=>`<div>${i<4?'Q'+(i+1):'PR'}</div>`).join('')}
-        <div>TOTAL</div></div>
-      ${['home','away'].map(sd=>`<div class="qt-row">
-        <div class="qt-team">${sd==='home'?m.homeTeam:m.awayTeam}</div>
-        ${Array.from({length:maxQ},(_,i)=>{
-          const mine=perQ[sd][i],other=perQ[sd==='home'?'away':'home'][i];
-          return `<div${mine>other?' class="w"':''}>${mine}</div>`;}).join('')}
-        <div class="qt-total">${sd==='home'?m.scoreHome:m.scoreAway}</div>
-      </div>`).join('')}</div>`:'';
-
-  const header=(withQ)=>`<div class="head">
-    <div>
-      <div class="brand">BasketApp · INFORME DEL PARTIDO</div>
-      <div class="sc"><span class="team-name">${m.homeTeam}</span><strong>${m.scoreHome}</strong><i>—</i><strong>${m.scoreAway}</strong><span class="team-name">${m.awayTeam}</span></div>
-      <div class="dt">${m.date||''}</div>
-    </div>
-    ${withQ?qTable():''}
-  </div>`;
-
-  const teamPage=(side)=>{
-    const name=side==='home'?m.homeTeam:m.awayTeam;
-    const score=side==='home'?m.scoreHome:m.scoreAway;
-    const opp=side==='home'?m.scoreAway:m.scoreHome;
-    
-    const pls=[...(side==='home'?m.homePlayers:m.awayPlayers)||[]].sort((a,b)=>(parseInt(a.dorsal)||0)-(parseInt(b.dorsal)||0));
-    
-    const fgM = p => (p.t2Made||0)+(p.t3Made||0), fgA = p => (p.t2Att||0)+(p.t3Att||0);
-    const calcVal = (p) => (p.pts||0) + (p.reb||0) + (p.ast||0) + (p.stl||0) + (p.blk||0) + (p.fr||0) - (fgA(p)-fgM(p)) - ((p.tlAtt||0)-(p.tlMade||0)) - (p.to||0) - (p.fc||0);
-
-    const T=pls.reduce((t,p)=>{
-      ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','ro','rd','reb','ast','to','blk','stl','fc','fr','min','pm'].forEach(k=>t[k]=(t[k]||0)+(p[k]||0));
-      return t;},{});
+  const qTable = () => {
+      if(!hasQ) return '';
+      let heads = '';
+      for(let i=0; i<maxQ; i++) {
+          const lbl = i < 4 ? 'Q' + (i + 1) : 'PR';
+          heads += `<div>${lbl}</div>`;
+      }
       
-    return `<div class="page">
-      <div class="tname">${name} <b>${score}</b>–${opp}
-        ${won===side?'<span class="win">GUANYADOR</span>':won?'<span class="lose">DERROTA</span>':''}</div>
+      let rowsHtml = '';
+      ['home', 'away'].forEach(sd => {
+          const tName = sd === 'home' ? m.homeTeam : m.awayTeam;
+          const tScore = sd === 'home' ? m.scoreHome : m.scoreAway;
+          const otherSd = sd === 'home' ? 'away' : 'home';
+          let cells = '';
+          for(let i=0; i<maxQ; i++){
+              const mine = perQ[sd][i];
+              const other = perQ[otherSd][i];
+              const cls = mine > other ? ' class="w"' : '';
+              cells += `<div${cls}>${mine}</div>`;
+          }
+          rowsHtml += `<div class="qt-row"><div class="qt-team">${tName}</div>${cells}<div class="qt-total">${tScore}</div></div>`;
+      });
+      
+      return `<div class="qt"><div class="qt-row qt-head"><div class="qt-team">PARCIALES</div>${heads}<div>TOTAL</div></div>${rowsHtml}</div>`;
+  };
+
+  const mDate = m.date ? m.date : '';
+  const header = (withQ) => {
+    const qT = withQ ? qTable() : '';
+    return `<div class="head">
+      <div>
+        <div class="brand">BasketApp · INFORME DEL PARTIDO</div>
+        <div class="sc"><span class="team-name">${m.homeTeam}</span><strong>${m.scoreHome}</strong><i>—</i><strong>${m.scoreAway}</strong><span class="team-name">${m.awayTeam}</span></div>
+        <div class="dt">${mDate}</div>
+      </div>
+      ${qT}
+    </div>`;
+  };
+
+  // 🚀 LA CAJA COMPACTADA AL 88% PARA QUE ENTRE EN LA MISMA HOJA
+  const getOriginBox = () => {
+      if (m.events && m.events.length > 0 && typeof generateOriginDualCard === 'function') {
+          const evLocal = m.events.filter(e => e.team === 'home');
+          const evVisit = m.events.filter(e => e.team === 'away');
+          const htName = m.homeTeam.toUpperCase();
+          const atName = m.awayTeam.toUpperCase();
+          const genCard = generateOriginDualCard(evLocal, evVisit, htName, atName);
+          return `
+          <div style="margin-top:8px; page-break-inside: avoid; background:#fff; border-radius:8px;">
+             <div style="font-size:9.5px;font-weight:800;color:#0f1f3d;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">📋 ORIGEN DE LOS PUNTOS</div>
+             <div style="transform: scale(0.88); transform-origin: top left; width: 113%;">
+                 ${genCard}
+             </div>
+          </div>`;
+      }
+      return '';
+  };
+
+  const mapsContent = (side) => {
+      if (!maps[side]) return '';
+      const name = side === 'home' ? m.homeTeam : m.awayTeam;
+      const sLen = shotsOf(side).length;
+      const sMade = shotsOf(side).filter(s=>s.made).length;
+      const sPc = pc(sMade, sLen);
+      return `
+        <div class="tname" style="margin-top:4px;">${name} — Mapes de tir <span style="font-size:11px;font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">${sLen} tirs ubicats · ${sPc} d'encert</span></div>
+        <div class="maps">
+          <div class="mapbox">
+            <div class="ml">🔥 Mapa de calor <span>on més es tira</span></div>
+            <img src="${maps[side].heat}">
+          </div>
+          <div class="mapbox">
+            <div class="ml">🎯 Percentatge per zona <span>blau = fluix · vermell = bo</span></div>
+            <img src="${maps[side].zones}">
+          </div>
+        </div>
+      `;
+  };
+
+  const teamTable = (side) => {
+    const name = side === 'home' ? m.homeTeam : m.awayTeam;
+    const score = side === 'home' ? m.scoreHome : m.scoreAway;
+    const opp = side === 'home' ? m.scoreAway : m.scoreHome;
+    
+    const rawPls = side === 'home' ? m.homePlayers : m.awayPlayers;
+    const plsRaw = rawPls ? rawPls : [];
+    const pls = [...plsRaw].sort((a, b) => {
+        const da = parseInt(a.dorsal) ? parseInt(a.dorsal) : 0;
+        const db = parseInt(b.dorsal) ? parseInt(b.dorsal) : 0;
+        return da - db;
+    });
+    
+    pls.forEach(p => {
+        if (m.events && m.events.length > 0 && typeof _playerStints === 'function') {
+            try {
+                const stintsData = _playerStints(m, p.name, side);
+                const stArr = stintsData.stints ? stintsData.stints : [];
+                p._trueMinDec = stArr.reduce((acc, st) => acc + (st.b - st.a), 0);
+            } catch(e) { p._trueMinDec = 0; }
+        } else {
+            if (typeof p.min === 'number') { p._trueMinDec = p.min; }
+            else if (typeof p.min === 'string' && p.min.includes(':')) {
+                let pts = p.min.split(':');
+                const minP = parseInt(pts[0], 10) ? parseInt(pts[0], 10) : 0;
+                const secP = parseInt(pts[1], 10) ? parseInt(pts[1], 10) : 0;
+                p._trueMinDec = minP + (secP / 60);
+            } else { 
+                const flt = parseFloat(p.min);
+                p._trueMinDec = flt ? flt : 0; 
+            }
+        }
+    });
+
+    const fgM = p => (p.t2Made ? p.t2Made : 0) + (p.t3Made ? p.t3Made : 0);
+    const fgA = p => (p.t2Att ? p.t2Att : 0) + (p.t3Att ? p.t3Att : 0);
+    const calcVal = p => {
+        const pt = p.pts ? p.pts : 0;
+        const rb = p.reb ? p.reb : 0;
+        const as = p.ast ? p.ast : 0;
+        const st = p.stl ? p.stl : 0;
+        const bk = p.blk ? p.blk : 0;
+        const fr = p.fr ? p.fr : 0;
+        const tlm = p.tlMade ? p.tlMade : 0;
+        const tla = p.tlAtt ? p.tlAtt : 0;
+        const to = p.to ? p.to : 0;
+        const fc = p.fc ? p.fc : 0;
+        return pt + rb + as + st + bk + fr - (fgA(p) - fgM(p)) - (tla - tlm) - to - fc;
+    };
+
+    let totMinsDec = 0;
+    const T = pls.reduce((t, p) => {
+      totMinsDec += (p._trueMinDec ? p._trueMinDec : 0);
+      ['pts','t2Made','t2Att','t3Made','t3Att','tlMade','tlAtt','ro','rd','reb','ast','to','blk','stl','fc','fr','pm'].forEach(k => {
+          t[k] = (t[k] ? t[k] : 0) + (p[k] ? p[k] : 0);
+      });
+      return t;
+    }, {});
+    
+    const totalMinStr = fmtMinDec(totMinsDec);
+
+    let resultBadge = '';
+    if (won === side) resultBadge = '<span class="win">GUANYADOR</span>';
+    else if (won) resultBadge = '<span class="lose">DERROTA</span>';
+
+    let rowsHtml = pls.map(p => {
+        const cv = calcVal(p);
+        const dor = p.dorsal ? p.dorsal : '';
+        const stIcon = p.starter ? '<span class="st">★</span>' : '';
+        const pMins = fmtMinDec(p._trueMinDec);
+        const minStr = anyMin ? `<td>${pMins}</td>` : '';
+        const pts = p.pts ? p.pts : 0;
+        const fM = fgM(p); const fA = fgA(p);
+        const pcF = pc(fM, fA);
+        const t2m = p.t2Made ? p.t2Made : 0; const t2a = p.t2Att ? p.t2Att : 0;
+        const pc2 = pc(t2m, t2a);
+        const t3m = p.t3Made ? p.t3Made : 0; const t3a = p.t3Att ? p.t3Att : 0;
+        const pc3 = pc(t3m, t3a);
+        const tlm = p.tlMade ? p.tlMade : 0; const tla = p.tlAtt ? p.tlAtt : 0;
+        const pcl = pc(tlm, tla);
+        const reb = p.reb ? p.reb : 0; const ro = p.ro ? p.ro : 0; const rd = p.rd ? p.rd : 0;
+        const ast = p.ast ? p.ast : 0; const to = p.to ? p.to : 0; const blk = p.blk ? p.blk : 0; const stl = p.stl ? p.stl : 0;
+        const fc = p.fc ? p.fc : 0; const fr = p.fr ? p.fr : 0;
+        const pm = p.pm ? p.pm : 0;
+        
+        const pmCls = pm > 0 ? 'pos' : (pm < 0 ? 'neg' : '');
+        const pmSig = pm > 0 ? '+' : '';
+        const cvCls = cv > 0 ? 'pos' : (cv < 0 ? 'neg' : '');
+        const cvSig = cv > 0 ? '+' : '';
+
+        return `<tr>
+          <td class="l dim">${dor}</td>
+          <td class="l nm">${p.name}${stIcon}</td>
+          ${minStr}
+          <td class="b big">${pts}</td>
+          <td class="sg"><b>${fM}/${fA}</b> <span>${pcF}</span></td>
+          <td class="sg"><b>${t2m}/${t2a}</b> <span>${pc2}</span></td>
+          <td class="sg"><b>${t3m}/${t3a}</b> <span>${pc3}</span></td>
+          <td class="sg"><b>${tlm}/${tla}</b> <span>${pcl}</span></td>
+          <td class="sg"><b>${reb}</b> <span>(${ro}/${rd})</span></td>
+          <td>${ast}</td><td>${to}</td><td>${blk}</td><td>${stl}</td>
+          <td class="sg"><b>${fc}</b> <span>(${fc}/${fr})</span></td>
+          <td class="b ${pmCls}">${pmSig}${pm}</td>
+          <td class="b ${cvCls}">${cvSig}${cv}</td>
+        </tr>`;
+    }).join('');
+
+    const T_fM = fgM(T); const T_fA = fgA(T);
+    const T_pcF = pc(T_fM, T_fA);
+    const T_t2m = T.t2Made ? T.t2Made : 0; const T_t2a = T.t2Att ? T.t2Att : 0;
+    const T_pc2 = pc(T_t2m, T_t2a);
+    const T_t3m = T.t3Made ? T.t3Made : 0; const T_t3a = T.t3Att ? T.t3Att : 0;
+    const T_pc3 = pc(T_t3m, T_t3a);
+    const T_tlm = T.tlMade ? T.tlMade : 0; const T_tla = T.tlAtt ? T.tlAtt : 0;
+    const T_pcl = pc(T_tlm, T_tla);
+    const T_reb = T.reb ? T.reb : 0; const T_ro = T.ro ? T.ro : 0; const T_rd = T.rd ? T.rd : 0;
+    const T_ast = T.ast ? T.ast : 0; const T_to = T.to ? T.to : 0; const T_blk = T.blk ? T.blk : 0; const T_stl = T.stl ? T.stl : 0;
+    const T_fc = T.fc ? T.fc : 0; const T_fr = T.fr ? T.fr : 0;
+    const T_pm = T.pm ? T.pm : 0;
+    
+    const T_cv = calcVal(T);
+    const T_cvCls = T_cv > 0 ? 'pos' : (T_cv < 0 ? 'neg' : '');
+    const T_cvSig = T_cv > 0 ? '+' : '';
+    const tMinCell = anyMin ? `<td>${totalMinStr}</td>` : '';
+    const T_pts = T.pts ? T.pts : 0;
+    const T_pmCls = T_pm > 0 ? 'pos' : (T_pm < 0 ? 'neg' : '');
+    const T_pmSig = T_pm > 0 ? '+' : '';
+
+    return `
+      <div class="tname" style="margin-top:6px; margin-bottom:4px;">${name} <b>${score}</b>–${opp} ${resultBadge}</div>
       <table class="stats-table">
         <thead><tr>
           <th class="l">#</th><th class="l">Jugador</th>
@@ -13180,71 +13638,86 @@ function exportMatchPDF(matchId){
           <th>TC</th><th>T2</th><th>T3</th><th>TL</th>
           <th>R (O/D)</th><th>AST</th><th>PER</th><th>BLK</th><th>STL</th><th>F (C/R)</th><th>+/-</th><th>VAL</th>
         </tr></thead>
-        <tbody>
-        ${pls.map((p)=>{
-          const cv = calcVal(p);
-          return `<tr>
-          <td class="l dim">${p.dorsal}</td>
-          <td class="l nm">${p.name}${p.starter?'<span class="st">★</span>':''}</td>
-          ${anyMin?`<td>${fmtMin(p.min)}</td>`:''}
-          <td class="b big">${p.pts||0}</td>
-          <td class="sg"><b>${fgM(p)}/${fgA(p)}</b> <span>${pc(fgM(p),fgA(p))}</span></td>
-          <td class="sg"><b>${p.t2Made||0}/${p.t2Att||0}</b> <span>${pc(p.t2Made,p.t2Att)}</span></td>
-          <td class="sg"><b>${p.t3Made||0}/${p.t3Att||0}</b> <span>${pc(p.t3Made,p.t3Att)}</span></td>
-          <td class="sg"><b>${p.tlMade||0}/${p.tlAtt||0}</b> <span>${pc(p.tlMade,p.tlAtt)}</span></td>
-          <td class="sg"><b>${p.reb||0}</b> <span>(${p.ro||0}/${p.rd||0})</span></td>
-          <td>${p.ast||0}</td><td>${p.to||0}</td><td>${p.blk||0}</td><td>${p.stl||0}</td>
-          <td class="sg"><b>${p.fc||0}</b> <span>(${p.fc||0}/${p.fr||0})</span></td>
-          <td class="b ${(p.pm||0)>0?'pos':(p.pm||0)<0?'neg':''}">${(p.pm||0)>0?'+':''}${p.pm||0}</td>
-          <td class="b ${cv>0?'pos':cv<0?'neg':''}">${cv>0?'+':''}${cv}</td>
-        </tr>`;}).join('')}
-        </tbody>
+        <tbody>${rowsHtml}</tbody>
         <tfoot>
           <tr class="tot">
             <td colspan="2" class="l">TOTAL</td>
-            ${anyMin?`<td>${fmtMin(T.min)}</td>`:''}
-            <td class="big">${T.pts}</td>
-            <td class="sg"><b>${fgM(T)}/${fgA(T)}</b> <span>${pc(fgM(T),fgA(T))}</span></td>
-            <td class="sg"><b>${T.t2Made}/${T.t2Att}</b> <span>${pc(T.t2Made,T.t2Att)}</span></td>
-            <td class="sg"><b>${T.t3Made}/${T.t3Att}</b> <span>${pc(T.t3Made,T.t3Att)}</span></td>
-            <td class="sg"><b>${T.tlMade}/${T.tlAtt}</b> <span>${pc(T.tlMade,T.tlAtt)}</span></td>
-            <td class="sg"><b>${T.reb}</b> <span>(${T.ro}/${T.rd})</span></td>
-            <td>${T.ast}</td><td>${T.to}</td><td>${T.blk}</td><td>${T.stl}</td>
-            <td class="sg"><b>${T.fc}</b> <span>(${T.fc}/${T.fr})</span></td><td></td>
-            ${(()=>{const cvT=calcVal(T); return `<td class="${cvT>0?'pos':cvT<0?'neg':''}">${cvT>0?'+':''}${cvT}</td>`;})()}
+            ${tMinCell}
+            <td class="big">${T_pts}</td>
+            <td class="sg"><b>${T_fM}/${T_fA}</b> <span>${T_pcF}</span></td>
+            <td class="sg"><b>${T_t2m}/${T_t2a}</b> <span>${T_pc2}</span></td>
+            <td class="sg"><b>${T_t3m}/${T_t3a}</b> <span>${T_pc3}</span></td>
+            <td class="sg"><b>${T_tlm}/${T_tla}</b> <span>${T_pcl}</span></td>
+            <td class="sg"><b>${T_reb}</b> <span>(${T_ro}/${T_rd})</span></td>
+            <td>${T_ast}</td><td>${T_to}</td><td>${T_blk}</td><td>${T_stl}</td>
+            <td class="sg"><b>${T_fc}</b> <span>(${T_fc}/${T_fr})</span></td>
+            <td class="${T_pmCls}">${T_pmSig}${T_pm}</td>
+            <td class="${T_cvCls}">${T_cvSig}${T_cv}</td>
           </tr>
         </tfoot>
       </table>
-      <div class="foot"><span>★ = quintet inicial</span><span>BasketApp · ${new Date().toLocaleDateString('es-ES')}</span></div>
-    </div>
-    ${maps[side]?`<div class="page">
-      <div class="tname">${name} — Mapes de tir <span style="font-size:11px;font-weight:600;color:#64748b;text-transform:none;letter-spacing:0">${shotsOf(side).length} tirs ubicats · ${pc(shotsOf(side).filter(s=>s.made).length,shotsOf(side).length)} d'encert</span></div>
-      <div class="maps">
-        <div class="mapbox">
-          <div class="ml">🔥 Mapa de calor <span>on més es tira</span></div>
-          <img src="${maps[side].heat}">
-        </div>
-        <div class="mapbox">
-          <div class="ml">🎯 Percentatge per zona <span>blau = fluix · vermell = bo</span></div>
-          <img src="${maps[side].zones}">
-        </div>
-      </div>
-      <div class="foot"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}${m.date?' · '+m.date:''}</span><span>BasketApp</span></div>
-    </div>`:''}`;
+    `;
   };
 
-  const w=window.open('','_blank');
-  if(!w){if(typeof toast==='function')toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err');return;}
+  let finalHtml = '';
+  const ds = new Date().toLocaleDateString('es-ES');
+  
+  if (onlySide === 'home' || !onlySide) {
+      // PÁGINA 1: CABECERA + TABLA + ORIGEN PUNTOS
+      finalHtml += `
+      <div class="page" style="display:flex; flex-direction:column;">
+          ${header(true)}
+          ${teamTable('home')}
+          ${getOriginBox()}
+          <div class="foot" style="margin-top:auto;"><span>★ = quintet inicial</span><span>BasketApp · ${ds}</span></div>
+      </div>`;
+      
+      // PÁGINA 2: MAPAS LOCAL
+      if (maps['home']) {
+          finalHtml += `
+          <div class="page" style="display:flex; flex-direction:column;">
+              ${header(false)}
+              ${mapsContent('home')}
+              <div class="foot" style="margin-top:auto;"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}</span><span>BasketApp</span></div>
+          </div>`;
+      }
+  }
+  
+  if (onlySide === 'away' || !onlySide) {
+      // PÁGINA 3: CABECERA + TABLA + ORIGEN PUNTOS
+      finalHtml += `
+      <div class="page" style="display:flex; flex-direction:column;">
+          ${header(false)}
+          ${teamTable('away')}
+          ${getOriginBox()}
+          <div class="foot" style="margin-top:auto;"><span>★ = quintet inicial</span><span>BasketApp · ${ds}</span></div>
+      </div>`;
+      
+      // PÁGINA 4: MAPAS VISITANTE
+      if (maps['away']) {
+          finalHtml += `
+          <div class="page" style="display:flex; flex-direction:column;">
+              ${header(false)}
+              ${mapsContent('away')}
+              <div class="foot" style="margin-top:auto;"><span>${m.homeTeam} ${m.scoreHome}–${m.scoreAway} ${m.awayTeam}</span><span>BasketApp</span></div>
+          </div>`;
+      }
+  }
+
+  const w = window.open('','_blank');
+  if(!w) { if(typeof toast==='function') toast('El navegador bloqueó la ventana. Permite las ventanas emergentes.','err'); return; }
+
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>${m.homeTeam} ${m.scoreHome}-${m.scoreAway} ${m.awayTeam}</title>
   <style>
-    @page{size:A4 landscape;margin:7mm}
+    :root { --gn: #16a34a; --bd: #e2e8f0; --bg: #f8fafc; --t2: #334155; --t3: #64748b; --nv: #0f172a; }
+    @page{size:A4 landscape;margin:5mm}
     *{box-sizing:border-box}
     @media print { body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
     body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;margin:0;padding:0}
-    .page{padding:7px 12px;page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page}
+    .page{padding:0px 12px;page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page;min-height:95vh;}
     .page:last-of-type{page-break-after:auto;break-after:auto}
-    .head{display:grid;grid-template-columns:minmax(360px,34%) minmax(0,66%);align-items:center;gap:16px;border-bottom:2.5px solid #0f1f3d;padding-bottom:7px;margin-bottom:8px}
+    .head{display:grid;grid-template-columns:minmax(360px,34%) minmax(0,66%);align-items:center;gap:16px;border-bottom:2.5px solid #0f1f3d;padding-bottom:5px;margin-bottom:4px}
     .brand{font-size:9px;color:#64748b;font-weight:700;letter-spacing:.09em}
     .sc{display:flex;align-items:center;gap:7px;font-size:19px;font-weight:900;line-height:1.05;margin-top:2px;white-space:nowrap;min-width:0}
     .sc .team-name{color:#0f172a;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis}
@@ -13259,14 +13732,14 @@ function exportMatchPDF(matchId){
     .qt-head>div{border-bottom:0}
     .qt-row>div.w{font-weight:800;color:#15803d}
     .qt-row>.qt-total{font-weight:900}
-    .tname{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+    .tname{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;margin-top:4px}
     .tname b{color:#e8402a;font-size:18px}
     .win{color:#15803d;font-size:11px;margin-left:8px;border:1.5px solid #15803d;border-radius:10px;padding:1px 9px}
     .lose{color:#94a3b8;font-size:11px;margin-left:8px;border:1.5px solid #cbd5e1;border-radius:10px;padding:1px 9px}
     table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;page-break-inside:avoid;break-inside:avoid}
-    th{background:#0f1f3d;color:#fff;padding:3px 3px;text-align:center;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em}
+    th{background:#0f1f3d;color:#fff;padding:2px 2px;text-align:center;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em}
     th.l{text-align:left;padding-left:10px}
-    td{padding:4px 3px;text-align:center;border-bottom:1px solid #eef2f7}
+    td{padding:2px 2px;text-align:center;border-bottom:1px solid #eef2f7}
     td.l{text-align:left;padding-left:10px}
     td.b{font-weight:800}
     td.big{font-size:13px}
@@ -13277,20 +13750,18 @@ function exportMatchPDF(matchId){
     .sg span{font-size:8px;color:#64748b;margin-left:2px}
     tbody tr:nth-child(even) td {background-color:#f8fafc !important;}
     .pos{color:#15803d}.neg{color:#dc2626}
-    tfoot .tot td{background:#e2e8f0 !important;font-weight:800;border-top:2px solid #0f1f3d;padding:4px 3px;font-size:10.5px}
+    tfoot .tot td{background:#e2e8f0 !important;font-weight:800;border-top:2px solid #0f1f3d;padding:4px 2px;font-size:10.5px}
     th:first-child,td:first-child{width:3%}
     th:nth-child(2),td:nth-child(2){width:18%}
     th:not(:first-child):not(:nth-child(2)){width:5.3%}
     .foot{border-top:1px solid #e2e8f0;margin-top:6px;padding-top:4px;font-size:8.5px;color:#94a3b8;display:flex;justify-content:space-between}
-    
-    /* 🚀 CSS RESTAURADO PARA LOS MAPAS */
     .maps{display:flex;gap:16px;align-items:flex-start;justify-content:center}
     .mapbox{flex:1;max-width:47%}
     .ml{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;color:#0f1f3d}
     .ml span{font-weight:500;text-transform:none;letter-spacing:0;color:#64748b;font-size:10px;margin-left:5px}
     .mapbox img{width:100%;height:auto;max-height:132mm;object-fit:contain;border:1.5px solid #e2e8f0;border-radius:8px;display:block}
   </style></head><body>
-  ${header(true)}${onlySide?teamPage(onlySide):teamPage('home')+teamPage('away')}
+  ${finalHtml}
   <script>window.onload=function(){var i=document.images,n=0;if(!i.length){setTimeout(function(){window.print()},200);return;}for(var k=0;k<i.length;k++){if(i[k].complete){if(++n===i.length)setTimeout(function(){window.print()},250);}else{i[k].onload=i[k].onerror=function(){if(++n===i.length)setTimeout(function(){window.print()},250);};}}};<\/script>
   </body></html>`);
   w.document.close();

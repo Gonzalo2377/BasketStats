@@ -1,52 +1,60 @@
-// netlify/functions/fcbq-proxy.js
-//
-// Proxy server-side para los endpoints públicos de la FCBQ. El navegador no
-// puede llamar directamente a msstats.optimalwayconsulting.com desde un
-// origen distinto (CORS), pero una Netlify Function corre en el servidor,
-// no en el navegador, así que no tiene esa restricción.
-//
-// Uso desde el frontend:
-//   /.netlify/functions/fcbq-proxy?endpoint=moves&id=68d825ab74669700015ddb2f
-//   /.netlify/functions/fcbq-proxy?endpoint=stats&id=68d825ab74669700015ddb2f
- 
 const BASE = 'https://msstats.optimalwayconsulting.com/v1/fcbq';
- 
-const ENDPOINTS = {
-  moves: 'getJsonWithMatchMoves',
-  stats: 'getJsonWithMatchStats',
-};
- 
-exports.handler = async (event) => {
-  const { endpoint, id } = event.queryStringParameters || {};
- 
+const LEGACY_ENDPOINTS = { moves: 'getJsonWithMatchMoves', stats: 'getJsonWithMatchStats' };
+const ALLOWED_HOSTS = new Set(['www.basquetcatala.cat', 'msstats.optimalwayconsulting.com']);
+
+exports.handler = async function(event) {
   const headers = {
-    'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
   };
- 
-  if (!id || !/^[a-f0-9]{24}$/i.test(id)) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Falta o es inválido el parámetro "id" (hex de 24 caracteres).' }) };
-  }
-  const path = ENDPOINTS[endpoint];
-  if (!path) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Parámetro "endpoint" debe ser "moves" o "stats".' }) };
-  }
- 
-  const url = `${BASE}/${path}/${id}?currentSeason=false`;
- 
+
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
+
   try {
-    const upstream = await fetch(url);
-    const text = await upstream.text();
+    const query = event.queryStringParameters || {};
+    let target;
+    let suppliedToken = '';
+
+    if (event.httpMethod === 'GET' && query.endpoint && query.id) {
+      const id = query.id;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const isLegacy = /^[a-f0-9]{24}$/i.test(id);
+      if (!isUuid && !isLegacy) return { statusCode: 400, headers, body: JSON.stringify({ error: 'ID FCBQ inválido' }) };
+      if (!['moves', 'stats'].includes(query.endpoint)) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Endpoint FCBQ inválido' }) };
+      if (isUuid) {
+        target = new URL(`${BASE}/${query.endpoint === 'moves' ? 'matches/' + id + '/pbp' : 'matches/' + id + '/stats'}?currentSeason=true`);
+        try {
+          const jwt = await fetch('https://www.basquetcatala.cat/jwt.php');
+          if (jwt.ok) suppliedToken = (await jwt.json()).token || '';
+        } catch (e) {}
+      } else {
+        target = new URL(`${BASE}/${LEGACY_ENDPOINTS[query.endpoint]}/${id}?currentSeason=false`);
+      }
+    } else if (event.httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
+      target = new URL(body.url || '');
+      suppliedToken = body.token || '';
+    } else {
+      return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+    }
+
+    if (!['https:', 'http:'].includes(target.protocol) || !ALLOWED_HOSTS.has(target.hostname)) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Target not allowed' }) };
+    }
+
+    const upstreamHeaders = { Accept: 'application/json' };
+    if (suppliedToken) upstreamHeaders.Authorization = `Bearer ${suppliedToken}`;
+    const response = await fetch(target, { headers: upstreamHeaders });
+    const text = await response.text();
+
     return {
-      statusCode: upstream.status,
-      headers,
-      body: text,
+      statusCode: response.status,
+      headers: { ...headers, 'Content-Type': response.headers.get('content-type') || 'application/json' },
+      body: text
     };
-  } catch (err) {
-    return {
-      statusCode: 502,
-      headers,
-      body: JSON.stringify({ error: 'No se pudo contactar con la FCBQ', detail: String(err && err.message || err) }),
-    };
+  } catch (error) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: error.message || 'Invalid request' }) };
   }
 };

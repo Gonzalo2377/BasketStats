@@ -14391,7 +14391,7 @@ function _fcbqTimeouts(moves,stats){
 }
 
 // ── Importar Masivamente desde la FCBQ (NUEVA ESTRUCTURA + LLAVE MAESTRA) ──
-async function _fcbqRequest(targetUrl, token='') {
+async function _fcbqRequest(targetUrl) {
   const modern = targetUrl.match(/\/matches\/([^/]+)\/(pbp|stats)(?:\?|$)/i);
   if (modern) {
     const endpoint = modern[2].toLowerCase() === 'pbp' ? 'moves' : 'stats';
@@ -14404,38 +14404,6 @@ async function _fcbqRequest(targetUrl, token='') {
     }
   }
 
-  const proxyBody = { url: targetUrl, token };
-  try {
-    const proxyRes = await fetch(FCBQ_PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(proxyBody)
-    });
-    if (proxyRes.ok) return await proxyRes.json();
-  } catch (e) {
-    console.warn('Proxy FCBQ no disponible:', e);
-  }
-
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const directRes = await fetch(targetUrl, { headers });
-  if (!directRes.ok) throw new Error(`FCBQ HTTP ${directRes.status}`);
-  return await directRes.json();
-}
-
-async function _fcbqGetToken() {
-  const jwtTargets = [
-    'https://www.basquetcatala.cat/jwt.php',
-    'https://www.basquetcatala.cat/api/jwt.php'
-  ];
-  for (const target of jwtTargets) {
-    try {
-      const data = await _fcbqRequest(target);
-      if (data?.token) return data.token;
-    } catch (e) {
-      console.warn('No se pudo obtener token FCBQ:', target, e);
-    }
-  }
-  throw new Error('No se pudo obtener un token actualizado de la FCBQ.');
 }
 
 async function importFromFCBQ() {
@@ -14458,8 +14426,6 @@ async function importFromFCBQ() {
     statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Iniciando conexión segura con FCBQ...</span>`;
 
     try {
-      const token = await _fcbqGetToken();
-
         // Procesar todos los enlaces pegados
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
@@ -14478,7 +14444,7 @@ async function importFromFCBQ() {
             try {
                 const fetchJSON = async (endpoint) => {
                     const targetUrl = `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${id}/${endpoint}?currentSeason=true`;
-                  return _fcbqRequest(targetUrl, token);
+                  return _fcbqRequest(targetUrl);
                 };
 
                 const [pbpData, statsData] = await Promise.all([fetchJSON('pbp'), fetchJSON('stats')]);
@@ -15206,11 +15172,10 @@ async function linkFCBQ(matchId) {
 
     toast('Obteniendo llave de seguridad...', 'ok');
     try {
-      const token = await _fcbqGetToken();
         toast('Descargando datos oficiales...', 'ok');
         const fetchJSON = async (endpoint) => {
             const targetUrl = `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${id}/${endpoint}?currentSeason=true`;
-        return _fcbqRequest(targetUrl, token);
+            return _fcbqRequest(targetUrl);
         };
 
         const [pbpData, statsData] = await Promise.all([fetchJSON('pbp'), fetchJSON('stats')]);

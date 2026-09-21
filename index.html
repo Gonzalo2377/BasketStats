@@ -12547,38 +12547,70 @@ function renderCompare() {
     const rSeason = S.nextMatch.rivalSeason;
     const mSeason = S.nextMatch.mySeason;
     const isMyTeamHome = S.nextMatch.venue !== 'away';
+
+    const inferredMatchSeason = m => {
+      if (m.season && m.season !== 'Sin temporada') return m.season;
+      const raw = String(m.date || '').trim();
+      let year = 0, month = 0;
+      let hit = raw.match(/^(\d{4})[-/.](\d{1,2})/);
+      if (hit) { year = Number(hit[1]); month = Number(hit[2]); }
+      else {
+        hit = raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+        if (hit) { year = Number(hit[3]); month = Number(hit[2]); }
+      }
+      if (!year || !month) return '';
+      const start = month >= 8 ? year : year - 1;
+      return `${start}-${String(start + 1).slice(-2)}`;
+    };
+    const isFriendlyMatch = m => /amistoso|friendly|pretemporada/i.test(String(m.competition || ''));
+    const officialPreferred = (matches, season) => {
+      if (!season) return matches;
+      const seasonMatches = matches.filter(m => inferredMatchSeason(m) === season);
+      const official = seasonMatches.filter(m => !isFriendlyMatch(m));
+      return official.length ? official : seasonMatches;
+    };
     
-    let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || m.season === rSeason));
-    let myMatchesThisSeason = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || m.season === mSeason));
+    let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || inferredMatchSeason(m) === rSeason));
+    let myMatchesThisSeason = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || inferredMatchSeason(m) === mSeason));
+    if (mSeason) myMatchesThisSeason = officialPreferred(myMatchesThisSeason, mSeason);
+    if (rSeason) rivMatchesThisSeason = officialPreferred(rivMatchesThisSeason, rSeason);
     
     let isPreseason = false;
     let effectiveRivalSeason = rSeason;
-    if (rSeason && rivMatchesThisSeason.length === 0) {
-        isPreseason = true; 
-        const pastGlobalSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
-        effectiveRivalSeason = pastGlobalSeasons.find(s => s !== rSeason) || pastGlobalSeasons[0] || rSeason;
+    const rivalSeasonHasStats = rivMatchesThisSeason.some(m => {
+      const players = m.homeTeam === rival ? (m.homePlayers || []) : (m.awayPlayers || []);
+      return players.some(p => (Number(p.pts) || 0) > 0 || (Number(p.t2Att) || 0) > 0 || (Number(p.t3Att) || 0) > 0 || (Number(p.tlAtt) || 0) > 0 || (Number(p.min) || 0) > 0);
+    });
+    if (rSeason && !rivalSeasonHasStats) {
+      isPreseason = true;
+      const rivalPastSeasons = [...new Set(S.matches
+        .filter(m => m.homeTeam === rival || m.awayTeam === rival)
+        .map(inferredMatchSeason).filter(Boolean))].sort().reverse();
+      effectiveRivalSeason = rivalPastSeasons.find(s => s !== rSeason) || rSeason;
     }
 
     let isMyPreseason = false;
     let effectiveMySeason = mSeason;
     if (mSeason && myMatchesThisSeason.length === 0) {
         isMyPreseason = true;
-        const pastGlobalSeasons = [...new Set(S.matches.map(m=>m.season).filter(Boolean))].sort().reverse();
+        const pastGlobalSeasons = [...new Set(S.matches.map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         effectiveMySeason = pastGlobalSeasons.find(s => s !== mSeason) || pastGlobalSeasons[0] || mSeason;
     }
 
-    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || m.season === effectiveRivalSeason));
-    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || m.season === effectiveMySeason));
+    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || inferredMatchSeason(m) === effectiveRivalSeason));
+    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason));
+    if (effectiveRivalSeason) rivMatches = officialPreferred(rivMatches, effectiveRivalSeason);
+    if (effectiveMySeason) myMatches = officialPreferred(myMatches, effectiveMySeason);
 
     if (isPreseason && rivMatches.length === 0) {
-        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(m=>m.season).filter(Boolean))].sort().reverse();
+        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         const lastTeamSeason = pastTeamSeasons.find(s => s !== rSeason);
-        if (lastTeamSeason) rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && m.season === lastTeamSeason);
+        if (lastTeamSeason) rivMatches = officialPreferred(S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
     if (isMyPreseason && myMatches.length === 0) {
-        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(m=>m.season).filter(Boolean))].sort().reverse();
+        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         const lastTeamSeason = pastTeamSeasons.find(s => s !== mSeason);
-        if (lastTeamSeason) myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && m.season === lastTeamSeason);
+        if (lastTeamSeason) myMatches = officialPreferred(S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
 
     const getL5 = (tName, matchesArray) => {
@@ -12636,28 +12668,46 @@ function renderCompare() {
             });
             
             const activeNormNames = Object.keys(rivalPlayers);
-            const matchesToScan = effectiveRivalSeason ? S.matches.filter(m => m.season === effectiveRivalSeason) : S.matches;
+            const matchesToScan = effectiveRivalSeason
+              ? officialPreferred(S.matches.filter(m => inferredMatchSeason(m) === effectiveRivalSeason), effectiveRivalSeason)
+              : S.matches;
+            const addPlayerStats = (rp, pMatch) => {
+              rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0;
+              rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
+              rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0;
+              rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
+              rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
+            };
             
             matchesToScan.forEach(m => {
                 const isHomeMatch = m.homeTeam === rival;
                 const isAwayMatch = m.awayTeam === rival;
+              if (!isHomeMatch && !isAwayMatch) return;
 
-                [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(pMatch => {
+              const rivalMatchPlayers = isHomeMatch ? (m.homePlayers || []) : (m.awayPlayers || []);
+              rivalMatchPlayers.forEach(pMatch => {
                     const norm = normName(pMatch.name);
                     if (rivalPlayers[norm]) {
                         const rp = rivalPlayers[norm];
-                        rp.pts += pMatch.pts || 0; rp.t2m += pMatch.t2Made || 0; rp.t2a += pMatch.t2Att || 0; 
-                        rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
-                        rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0; 
-                        rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
-                        rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
-                        
+                      addPlayerStats(rp, pMatch);
                         // 🚀 Si este partido lo está jugando con el rival, marcamos que YA estaba en el club
-                        if (isHomeMatch && (m.homePlayers||[]).some(x => normName(x.name) === norm)) rp.playedForRival = true;
-                        if (isAwayMatch && (m.awayPlayers||[]).some(x => normName(x.name) === norm)) rp.playedForRival = true;
+                        rp.playedForRival = true;
                     }
                 });
             });
+
+                // Los fichajes conservan sus estadísticas personales del mismo año
+                // aunque las consiguieran con otro equipo. No contaminamos las
+                // estadísticas colectivas del rival: solo rellenamos jugadores que
+                // todavía no hayan jugado para el rival.
+                matchesToScan.forEach(m => {
+                  const allPlayers = [...(m.homePlayers || []), ...(m.awayPlayers || [])];
+                  allPlayers.forEach(pMatch => {
+                    const norm = normName(pMatch.name);
+                    const rp = rivalPlayers[norm];
+                    if (rp && !rp.playedForRival) addPlayerStats(rp, pMatch);
+                  });
+                });
 
             rivalShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
                 const norm = normName(s.player);

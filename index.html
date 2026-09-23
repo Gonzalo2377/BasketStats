@@ -15260,7 +15260,17 @@ const w=window.open(APP+'/?fcbqBridge=1','bascat_fcbq');
 if(!w){alert('Permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar el marcador');return;}
 window.__bascatBridge={focus:()=>w.focus()};
 const API='https://msstats.optimalwayconsulting.com/v1/fcbq/matches/';
-const get=async(id,ep)=>{const r=await fetch(API+id+'/'+ep+'?currentSeason=true');if(!r.ok)throw new Error(ep+' HTTP '+r.status);return r.json();};
+const toks=()=>{const out=new Set();const add=v=>{if(typeof v!=='string')return;(v.match(/eyJ[\\w-]+\\.[\\w-]+\\.[\\w-]+/g)||[]).forEach(t=>out.add(t));};
+[localStorage,sessionStorage].forEach(st=>{try{for(let i=0;i<st.length;i++)add(st.getItem(st.key(i)));}catch(e){}});
+try{document.cookie.split(';').forEach(c=>add(decodeURIComponent(c.split('=').slice(1).join('='))));}catch(e){}return[...out];};
+let good=null,seen=null;
+try{const oS=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(k,v){if(/^authorization$/i.test(k)&&/^Bearer /.test(v))seen=v.slice(7);return oS.apply(this,arguments);};
+const oF=window.fetch;window.fetch=function(u,o){try{const h=o&&o.headers;const v=h&&(h.get?h.get('authorization'):(h.Authorization||h.authorization));if(v&&/^Bearer /.test(v))seen=v.slice(7);}catch(e){}return oF.apply(this,arguments);};}catch(e){}
+const get=async(id,ep)=>{const url=API+id+'/'+ep+'?currentSeason=true';const F={federation:'fcbq',Accept:'application/json, text/plain, */*'};
+const tk=[...new Set([seen,...toks()].filter(Boolean))];
+const opts=good?[good]:[...tk.map(t=>({headers:{...F,Authorization:'Bearer '+t}})),{headers:F}];
+let last=0;for(const o of opts){try{const r=await fetch(url,o);last=r.status;if(r.ok){good=o;return r.json();}}catch(e){last='red';}}
+good=null;throw new Error(ep+' HTTP '+last+' · tokens encontrados: '+tk.length+(tk.length?' (puede haber caducado: recarga la página de la FCBQ y vuelve a pulsar el marcador)':' (recarga la página de la FCBQ, cambia de pestaña dentro del partido y reintenta)'));};
 window.addEventListener('message',async e=>{if(e.source!==w||!OK.includes(e.origin))return;const d=e.data||{};
 if(d.type==='bascat-ready'){w.postMessage({type:'bascat-bridge',current:cur},e.origin);}
 if(d.type==='bascat-fetch'){try{const[pbp,stats]=await Promise.all([get(d.id,'pbp'),get(d.id,'stats')]);w.postMessage({type:'bascat-data',req:d.req,id:d.id,pbp,stats},e.origin);}

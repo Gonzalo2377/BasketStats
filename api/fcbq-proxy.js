@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Preflight CORS
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -12,14 +11,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan endpoint o id' });
   }
 
-  // Convierte 'moves' a 'pbp' para la API
   const fcbqEndpoint = endpoint === 'moves' ? 'pbp' : 'stats';
-  const url =
-    `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/` +
-    `${encodeURIComponent(id)}/${fcbqEndpoint}?currentSeason=true`;
+  const url = `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${encodeURIComponent(id)}/${fcbqEndpoint}?currentSeason=true`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://www.basquetcatala.cat/',
+        'Origin': 'https://www.basquetcatala.cat',
+        'Accept': 'application/json',
+      }
+    });
+
     const body = await response.text();
 
     res.setHeader('Access-Control-Allow-Origin', '*');

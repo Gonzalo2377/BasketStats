@@ -2941,6 +2941,12 @@ body.zen-mode {
           <button onclick="importFromFCBQ()" id="i-fcbq-btn" class="btn bp" style="font-size:12px;white-space:nowrap">⬇ Cargar del link</button>
         </div>
         <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #86efac;font-size:11px;color:var(--t3)">
+          <div id="i-fcbq-bridge-state" style="margin-bottom:4px"></div>
+          Instalar una vez: arrastra este botón a la barra de marcadores 👉
+          <a id="i-fcbq-bookmarklet" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#15803d;color:#fff;font-weight:800;text-decoration:none;cursor:grab">→ BascatApp</a>
+          <div style="margin-top:4px">Luego, en la página de un partido de basquetcatala.cat, pulsa el marcador: se abre la app y lo importa sola. Con el puente activo, la caja de links de arriba también funciona.</div>
+        </div>
       </div>
 
       <div style="background:linear-gradient(135deg,#fff7ed,#fefce8);border:1.5px solid #fdba74;border-radius:10px;padding:12px;margin-bottom:10px">
@@ -9344,6 +9350,7 @@ async function deleteMatch(id){ // 👈 Añadido async aquí
   try {
     const { error } = await supabase.from('matches').delete().eq('id', id);
     if(error) throw error;
+    if (window._cacheDb) _IDB.del(window._cacheDb, [String(id)]).catch(() => {});
   } catch(e) {
     console.warn('Error borrando en nube:', e);
   }
@@ -10461,7 +10468,7 @@ function renderScoutTimeout(matches) {
             if (mv.period && mv.period !== currentPeriod) { currentPeriod = mv.period; activeQuarterStart = true; activeTO = false; }
             const text = (mv.move || '').toLowerCase();
             const isRival = mv.idTeam === rId;
-            const isShot = (text.includes('cistella') || text.includes('esmaixada') || text.includes('intent fallat')) && !text.includes('lliure');
+            const isShot = (text.includes('cistella') || text.includes('esmaixada') || text.includes('intent fallat')) && !text.includes('lliure') && !/de 1\b/.test(text);
             if (mv.idMove === 113 || /temps?\s*mort|tiempo\s*muerto/i.test(text)) { if (isRival) { activeTO = true; activeQuarterStart = false; } }
             if (isShot) {
                 if (isRival) {
@@ -14820,145 +14827,361 @@ function _fcbqTimeouts(moves,stats){
 }
 
 // ── Importar Masivamente desde la FCBQ (NUEVA ESTRUCTURA + LLAVE MAESTRA) ──
+// ── Petición al proxy FCBQ (ahora lanza error claro si falla) ──
 async function _fcbqRequest(targetUrl) {
   const modern = targetUrl.match(/\/matches\/([^/]+)\/(pbp|stats)(?:\?|$)/i);
-  if (modern) {
-    const endpoint = modern[2].toLowerCase() === 'pbp' ? 'moves' : 'stats';
-    try {
-      return await _fcbqFetchProxy(endpoint, modern[1]);
-    } catch (e) {
-      console.warn('Proxy FCBQ moderno no disponible:', e);
+  if (!modern) throw new Error('URL FCBQ no reconocida');
+  const endpoint = modern[2].toLowerCase() === 'pbp' ? 'moves' : 'stats';
+  const data = await _fcbqFetchProxy(endpoint, modern[1]);
+  if (!data) throw new Error(`El proxy no devolvió datos (${endpoint})`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔁 NORMALIZADOR ÚNICO DE JUGADAS FCBQ
+// Convierte cualquier formato de play-by-play (el antiguo del link o el nuevo
+// de los JSON descargados: eventTypeCode, teamUuid, minute, second...) al
+// formato "legacy" que usa TODA la app: { idMove, idTeam, move:'Cistella de 2',
+// min, sec (cuenta atrás), period, actorShirtNumber, actorName, score }.
+// Así posesiones, ATO, rachas, +/- y cambios leen igual un partido del link
+// que uno de archivos.
+// ═══════════════════════════════════════════════════════════════════════════
+const _FCBQ_CODE_TXT = {
+  // eventTypeId 524 · tiros (confirmado con un PBP real de la FCBQ)
+  D1:'Cistella de 1', D2:'Cistella de 2', D3:'Cistella de 3',
+  F1:'Intent fallat de 1', F2:'Intent fallat de 2', F3:'Intent fallat de 3',
+  // 531 · faltas (entre paréntesis los tiros libres que conceden)
+  P:'Personal (0 TL)', P1:'Personal (1 TL)', P2:'Personal (2 TL)', P3:'Personal (3 TL)',
+  FL1:'Falta antiesportiva (1 TL)', FL2:'Falta antiesportiva (2 TL)', FL3:'Falta antiesportiva (3 TL)',
+  AT:'Falta en atac', T11:'Falta tècnica (1 TL)', C1:'Falta tècnica a la banqueta (1 TL)',
+  FR:'Falta rebuda',
+  // 525 · rebotes · resto
+  RD:'Rebot defensiu', RO:'Rebot ofensiu',
+  REC:'Recuperació', PER:'Pèrdua', AS:'Assistència',
+  TP:'Tap', TR:'Tap rebut',
+  IN:'Entra al camp', OUT:'Surt del camp', TM:'Temps mort',
+  INIPER:'Inici de període', FINPER:'Final de període'
+};
+
+const _FCBQ_VOCAB = /cistella|esmaixada|intent fallat|entra al camp|surt del camp|temps mort|personal|falta|t[èe]cnica|antiesportiva|rebot|robatori|recuperaci|p[èe]rdua|assist|tap|salt|inici de|final de/i;
+const _fcbqNum = (v, fb = 0) => _fcbqNumber(v, fb);
+const _fcbqIds = (o) => o ? [o.teamIdIntern, o.uuid, o.id, o.teamId, o.teamUuid].filter(v => v !== undefined && v !== null && v !== '').map(String) : [];
+const _fcbqLooksText = (v) => typeof v === 'string' && v.trim() !== '' && (/\s/.test(v.trim()) || /[a-zàèéíòóúç]/.test(v));
+
+function _fcbqMoveScore(mv) {
+  if (typeof mv.score === 'string') {
+    const sc = mv.score.match(/(\d+)\s*-\s*(\d+)/);
+    if (sc) return { h: +sc[1], a: +sc[2] };
+  }
+  const h = mv.localScore ?? mv.homeScore ?? mv.score?.local ?? mv.score?.home ?? mv.score?.h;
+  const a = mv.visitorScore ?? mv.awayScore ?? mv.score?.visitor ?? mv.score?.away ?? mv.score?.a;
+  if (h === undefined && a === undefined) return null;
+  return { h: _fcbqNum(h), a: _fcbqNum(a) };
+}
+
+function _fcbqIsLegacyMoves(moves) {
+  if (!moves.length) return true;
+  const hasNew = moves.some(m => m && (m.eventTypeCode !== undefined || m.teamUuid !== undefined || m.minute !== undefined));
+  const hasOld = moves.some(m => m && m.idTeam !== undefined && _fcbqLooksText(m.move));
+  return hasOld && !hasNew;
+}
+
+// El reloj de la FCBQ es cuenta atrás (10→0). Si un JSON viniera en tiempo
+// transcurrido lo detectamos por la relación reloj/marcador del 1er cuarto.
+function _fcbqDetectCountdown(moves) {
+  const pts = [];
+  moves.forEach(mv => {
+    if (_fcbqNum(mv.period ?? mv.quarter, 1) !== 1) return;
+    const sc = _fcbqMoveScore(mv); if (!sc) return;
+    const t = _fcbqNum(mv.min ?? mv.minute) * 60 + _fcbqNum(mv.sec ?? mv.second ?? mv.seconds);
+    pts.push([t, sc.h + sc.a]);
+  });
+  if (pts.length < 6) return true;
+  const mt = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const ms = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  const cov = pts.reduce((s, p) => s + (p[0] - mt) * (p[1] - ms), 0);
+  return cov <= 0; // el marcador sube mientras el reloj baja → cuenta atrás
+}
+
+function _fcbqNormalizeMoves(rawMoves, ctx) {
+  const unknown = {};
+  const countdown = _fcbqDetectCountdown(rawMoves);
+  const pLen = p => (p > 4 ? 5 : 10) * 60;
+  const rosterIdx = { home: {}, away: {} };
+  ['home', 'away'].forEach(side => (ctx.rosters[side] || []).forEach(p => {
+    if (p.dorsal !== '') rosterIdx[side]['#' + String(Number(p.dorsal))] = p.name;
+    rosterIdx[side]['n:' + String(p.name || '').toLowerCase()] = p.name;
+  }));
+  let last = { h: 0, a: 0 };
+
+  const out = rawMoves.map((mv, idx) => {
+    const code = String(mv.eventTypeCode ?? mv.code ?? mv.eventCode ?? '').toUpperCase().trim();
+    let txt = [mv.move, mv.description, mv.eventTypeName, mv.eventTypeDescription, mv.eventName, mv.text, mv.action]
+      .find(_fcbqLooksText);
+    if (txt && !_FCBQ_VOCAB.test(txt)) {
+      const k = 'texto: ' + txt.trim().slice(0, 40);
+      if (!unknown[k]) unknown[k] = { n: 0, sample: mv };
+      unknown[k].n++;
     }
+    if (!txt) {
+      txt = _FCBQ_CODE_TXT[code];
+      const failed = mv.made === false || mv.success === false || mv.isSuccessful === false || mv.scored === false;
+      if (txt && /^D[123]$/.test(code) && failed) txt = 'Intent fallat de ' + code[1];
+      if (!txt) {
+        const k = code || String(mv.move || mv.eventTypeId || '(vacío)');
+        if (!unknown[k]) unknown[k] = { n: 0, sample: mv };
+        unknown[k].n++;
+        txt = k;
+      }
+    }
+
+    const period = _fcbqNum(mv.period ?? mv.quarter ?? mv.q, 1);
+    let min = _fcbqNum(mv.min ?? mv.minute), sec = _fcbqNum(mv.sec ?? mv.second ?? mv.seconds);
+    if (!countdown) {
+      const rem = Math.max(0, pLen(period) - (min * 60 + sec));
+      min = Math.floor(rem / 60); sec = rem % 60;
+    }
+
+    const dorsal = String(mv.actorShirtNumber ?? mv.dorsal ?? mv.shirtNumber ?? '').trim();
+    let name = String(mv.actorName ?? mv.playerName ?? '').trim();
+    const rawTeam = String(mv.idTeam ?? mv.teamUuid ?? mv.teamIdIntern ?? mv.teamId ?? '');
+    let side = ctx.idToSide[rawTeam] || null;
+    if (!side && name) {
+      const ln = 'n:' + name.toLowerCase();
+      side = rosterIdx.home[ln] ? 'home' : rosterIdx.away[ln] ? 'away' : null;
+    }
+    // Nombre del acta ≠ nombre de la plantilla → usamos el de la plantilla (por dorsal)
+    if (side && dorsal !== '') {
+      const byD = rosterIdx[side]['#' + String(Number(dorsal))];
+      if (byD && !rosterIdx[side]['n:' + name.toLowerCase()]) name = byD;
+    }
+
+    const sc = _fcbqMoveScore(mv) || last; last = sc;
+    return {
+      _i: idx,
+      idMove: code === 'TM' ? 113 : (mv.idMove ?? mv.eventTypeId ?? null),
+      idTeam: side === 'home' ? ctx.homeId : side === 'away' ? ctx.awayId : (rawTeam || null),
+      move: txt, code: code || undefined,
+      min, sec, period,
+      actorShirtNumber: dorsal, actorName: name,
+      score: { local: sc.h, visitor: sc.a }
+    };
+  });
+
+  // Orden cronológico real (el JSON nuevo puede venir al revés)
+  const el = m => (m.period - 1) * 600 + (pLen(m.period) - (m.min * 60 + m.sec));
+  const dir = out.length > 1 && el(out[0]) > el(out[out.length - 1]) ? -1 : 1;
+  out.sort((a, b) => (el(a) - el(b)) || (a._i - b._i) * dir);
+  out.forEach(m => { delete m._i; if (m.code === undefined) delete m.code; });
+  return { moves: out, unknown, countdown };
+}
+
+// Rellena p.data / timePlayed con los nombres que espera _fcbqApplyMinutes
+function _fcbqStatsTeamsCompat(teams) {
+  return teams.map(t => ({
+    ...t,
+    players: (t.players || []).map(p => {
+      if (p.data && Object.keys(p.data).length) return p;
+      const a = p.accumulated || p.stats || {}, c = p.computed || {};
+      const pick = (...ks) => { for (const k of ks) { const v = a[k] ?? c[k] ?? p[k]; if (v !== undefined && v !== null) return _fcbqNum(v); } return 0; };
+      return {
+        ...p,
+        timePlayed: p.timePlayed ?? c.timePlayed ?? (typeof c.seconds === 'number' ? c.seconds / 60 : undefined) ?? c.min ?? p.minutes ?? a.timePlayed,
+        data: {
+          rebounds: pick('rebounds', 'totalRebounds', 'reb'),
+          offensiveRebound: pick('offensiveRebound', 'offensiveRebounds', 'ro', 'oreb'),
+          defensiveRebound: pick('defensiveRebound', 'defensiveRebounds', 'rd', 'dreb'),
+          assists: pick('assists', 'ast'), steals: pick('steals', 'stl', 'recoveries'),
+          block: pick('block', 'blocks', 'blk'), lost: pick('lost', 'turnovers', 'to'),
+          faultReceived: pick('faultReceived', 'foulsReceived', 'fr')
+        }
+      };
+    })
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🏗️ CONSTRUCTOR ÚNICO DE PARTIDO FCBQ (link y archivos usan lo mismo)
+// ═══════════════════════════════════════════════════════════════════════════
+function _fcbqBuildMatch(pbpInput, statsInput, opts = {}) {
+  const pbp = _fcbqParseJsonInput(pbpInput, 'PBP');
+  const stats = _fcbqParseJsonInput(statsInput, 'STATS');
+  const statsRoot = stats.data || stats;
+  const head = statsRoot.header || statsRoot.match || statsRoot;
+  const pbpRoot = pbp.data || pbp;
+  const pbpHead = pbpRoot.header || pbpRoot.match || {};
+  const teams = _fcbqStatsTeamsCompat(_fcbqTeamsFromStats(stats, pbp));
+  const info = _fcbqMatchHeader(pbp, stats);
+
+  const hdrHome = head.localTeam || head.homeTeam || pbpHead.localTeam;
+  const hdrAway = head.visitorTeam || head.awayTeam || pbpHead.visitorTeam;
+  const findTeam = (id, hdr, flag) => {
+    const want = new Set([...(id != null ? [String(id)] : []), ..._fcbqIds(typeof hdr === 'object' ? hdr : null)]);
+    return teams.find(t => _fcbqIds(t).some(v => want.has(v))) || teams.find(flag) || null;
+  };
+  let homeT = findTeam(info.homeId ?? statsRoot.localId, hdrHome, t => t.isLocal || t.home === true || t.local === true);
+  let awayT = findTeam(info.awayId ?? statsRoot.visitId, hdrAway, t => t.isVisitor || t.away === true || t.visitor === true);
+  if (teams.length === 2) {
+    if (homeT && !awayT) awayT = teams.find(t => t !== homeT);
+    if (awayT && !homeT) homeT = teams.find(t => t !== awayT);
+    if (!homeT && !awayT) { homeT = teams[0]; awayT = teams[1]; }
+  }
+  const canon = t => t ? (t.teamIdIntern ?? t.uuid ?? t.id ?? t.teamId ?? null) : null;
+  const localId = canon(homeT) ?? statsRoot.localId ?? info.homeId;
+  const visitId = canon(awayT) ?? statsRoot.visitId ?? info.awayId;
+
+  const idToSide = {};
+  [homeT, typeof hdrHome === 'object' ? hdrHome : null].forEach(o => _fcbqIds(o).forEach(v => idToSide[v] = 'home'));
+  [awayT, typeof hdrAway === 'object' ? hdrAway : null].forEach(o => _fcbqIds(o).forEach(v => idToSide[v] = 'away'));
+  [localId, statsRoot.localId, info.homeId].forEach(v => { if (v != null) idToSide[String(v)] = 'home'; });
+  [visitId, statsRoot.visitId, info.awayId].forEach(v => { if (v != null) idToSide[String(v)] = 'away'; });
+
+  const roster = t => (t?.players || []).map(p => ({
+    dorsal: String(p.dorsal ?? p.shirtNumber ?? p.number ?? ''), name: p.name ?? p.playerName ?? ''
+  })).filter(p => p.name);
+  const homeRoster = roster(homeT), awayRoster = roster(awayT);
+  if (!homeRoster.length && !awayRoster.length) throw new Error('No se encontraron jugadores en el archivo/acta de estadísticas.');
+
+  let rawMoves = _fcbqMovesList(pbp);
+  if (!rawMoves.length) rawMoves = pbp.playByPlay || pbp.moves || [];
+  let moves = rawMoves, unknown = {};
+  if (!_fcbqIsLegacyMoves(rawMoves)) {
+    const norm = _fcbqNormalizeMoves(rawMoves, { homeId: localId, awayId: visitId, idToSide, rosters: { home: homeRoster, away: awayRoster } });
+    moves = norm.moves; unknown = norm.unknown;
   }
 
+  const normalizedStats = { ...statsRoot, teams, localId, visitId };
+  const parsed = parseCrono(_fcbqMovesToCrono(moves, normalizedStats), homeRoster, awayRoster);
+  const timeoutEvents = _fcbqTimeouts(moves, normalizedStats).map(t => ({ ...t, min: t.minLeft, score: { h: 0, a: 0 } }));
+
+  // Tiro/puntos/faltas oficiales del acta si vienen (más fiables que el parseo)
+  const official = { home: {}, away: {} };
+  [['home', homeT], ['away', awayT]].forEach(([side, t]) => (t?.players || []).forEach(p => {
+    const o = _fcbqPlayerFromStats(p);
+    o._hasPm = typeof (p.computed || {}).onCourtPlusMinus === 'number';
+    official[side]['#' + String(o.dorsal)] = o; official[side]['n:' + String(o.name).toLowerCase()] = o;
+  }));
+  const applyOfficial = (list, side) => (list || []).forEach(pl => {
+    const o = official[side]['#' + String(pl.dorsal)] || official[side]['n:' + String(pl.name).toLowerCase()];
+    if (!o) return;
+    if (o._hasPm) pl.pm = o.pm;
+    if (!(o.t2Att + o.t3Att + o.tlAtt + o.pts)) return;
+    Object.assign(pl, {
+      pts: o.pts, t2Made: o.t2Made, t2Att: o.t2Att, t2: o.t2, t3Made: o.t3Made, t3Att: o.t3Att, t3: o.t3,
+      tlMade: o.tlMade, tlAtt: o.tlAtt, tl: o.tl,
+      t2Pct: o.t2Att ? o.t2Made / o.t2Att : null, t3Pct: o.t3Att ? o.t3Made / o.t3Att : null, tlPct: o.tlAtt ? o.tlMade / o.tlAtt : null
+    });
+    if (o.fc) pl.fc = o.fc;
+    if (o._hasPm) pl.pm = o.pm; // +/- oficial de la FCBQ
+    if (!pl.starter && o.starter) pl.starter = true;
+  });
+  const homePlayers = parsed.homePlayers?.length ? parsed.homePlayers : homeRoster;
+  const awayPlayers = parsed.awayPlayers?.length ? parsed.awayPlayers : awayRoster;
+  applyOfficial(homePlayers, 'home'); applyOfficial(awayPlayers, 'away');
+
+  const lastMv = moves[moves.length - 1];
+  const lastSc = lastMv ? (_fcbqMoveScore(lastMv) || { h: 0, a: 0 }) : { h: 0, a: 0 };
+  const scoreHome = Number(head.score?.local ?? head.localScore ?? head.scoreHome ?? info.scoreHome ?? 0) || lastSc.h;
+  const scoreAway = Number(head.score?.visitor ?? head.visitorScore ?? head.scoreAway ?? info.scoreAway ?? 0) || lastSc.a;
+
+  const date = String(head.date || head.matchDate || head.startDate || pbpHead.date || '').substring(0, 10) || new Date().toISOString().substring(0, 10);
+  const y = Number(date.substring(0, 4)), mo = Number(date.substring(5, 7));
+  const sy = mo >= 8 ? y : y - 1;
+  const season = String(opts.season || (y ? `${sy}-${String(sy + 1).slice(2)}` : ''));
+  const compObj = head.competition;
+  const competition = opts.competition
+    || (typeof compObj === 'object' ? compObj?.name : compObj)
+    || [head.categoryName, head.competitionName, head.groupName].filter(Boolean).join(' · ') || '';
+
+  const match = {
+    id: opts.id || Date.now(),
+    date,
+    homeTeam: homeT?.name || homeT?.teamName || info.homeTeam || 'LOCAL',
+    awayTeam: awayT?.name || awayT?.teamName || info.awayTeam || 'RIVAL',
+    scoreHome, scoreAway, localId, visitId,
+    season, competition,
+    fcbqMoves: moves,
+    events: [...(parsed.events || []), ...timeoutEvents],
+    subEvents: parsed.subEvents || [],
+    homePlayers, awayPlayers,
+    shots: _fcbqStatsToShots(normalizedStats),
+    type: 'imported'
+  };
+  if (Array.isArray(head.periods) && head.periods.length) {
+    match.qStats = head.periods.map(p => ({ p: p.period, h: p.local, a: p.visitor }));
+  }
+  _fcbqApplyMinutes(match, normalizedStats);
+  return { match, unknown };
+}
+
+function _fcbqUnknownHtml(unknown) {
+  const ks = Object.keys(unknown || {});
+  if (!ks.length) return '';
+  console.warn('[FCBQ] Códigos de jugada sin traducir (ejemplos):', unknown);
+  return `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ Códigos sin traducir: ${ks.map(k => `${_esc(k)} (${unknown[k].n})`).join(', ')}</div>`;
+}
+
+function _fcbqUpsertMatch(newMatch) {
+  const i = S.matches.findIndex(m => String(m.id) === String(newMatch.id));
+  if (i >= 0) S.matches[i] = { ...S.matches[i], ...newMatch };
+  else S.matches.unshift(newMatch);
 }
 
 async function importFromFCBQ() {
-    const text = document.getElementById('i-fcbq-url').value;
-    const urls = text.split('\n').map(x => x.trim()).filter(x => x);
-    const statusEl = document.getElementById('i-fcbq-status');
-    const btn = document.getElementById('i-fcbq-btn');
+  const text = document.getElementById('i-fcbq-url').value;
+  const urls = text.split('\n').map(x => x.trim()).filter(x => x);
+  const statusEl = document.getElementById('i-fcbq-status');
+  const btn = document.getElementById('i-fcbq-btn');
+  if (!urls.length) { toast('Pega al menos un enlace en la caja de texto.', 'err'); return; }
 
-    if (urls.length === 0) {
-        toast('Pega al menos un enlace en la caja de texto.', 'err');
-        return;
-    }
-
-    // Bloqueamos el botón temporalmente
-    btn.disabled = true;
-    btn.innerText = "⏳ Importando...";
-    let successCount = 0;
-    let failCount = 0;
-
-    statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Iniciando conexión segura con FCBQ...</span>`;
-
-    try {
-        // Procesar todos los enlaces pegados
-        for (let i = 0; i < urls.length; i++) {
-            const url = urls[i];
-            statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Descargando partido ${i + 1} de ${urls.length}...</span>`;
-            
-            // Extraer el nuevo código UUID (ej: 47050076-d36b-...)
-            let id = null;
-            const uuidMatch = url.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-            if (uuidMatch) id = uuidMatch[0];
-            
-            if (!id) {
-                failCount++;
-                continue;
-            }
-
-            try {
-                const fetchJSON = async (endpoint) => {
-                    const targetUrl = `https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${id}/${endpoint}?currentSeason=true`;
-                  return _fcbqRequest(targetUrl);
-                };
-
-                const [pbpData, statsData] = await Promise.all([fetchJSON('pbp'), fetchJSON('stats')]);
-                const rawStats = statsData.data || statsData;
-                const head = rawStats.header || rawStats.match || rawStats;
-                const teams = rawStats.teams || head.teams || [];
-                const localTeam = head.localTeam || teams.find(t => t.isLocal || t.home);
-                const visitorTeam = head.visitorTeam || teams.find(t => t.isVisitor || t.away);
-                const localId = rawStats.localId || localTeam?.uuid || localTeam?.id || head.localTeamId;
-                const visitId = rawStats.visitId || visitorTeam?.uuid || visitorTeam?.id || head.visitorTeamId;
-                const normalizedStats = { ...rawStats, teams, localId, visitId };
-                const moves = pbpData.playByPlay || pbpData.moves || pbpData.data?.playByPlay || pbpData.data?.moves || [];
-                const homePlayers = (teams.find(t => t.teamIdIntern === localId || t.uuid === localId || t.id === localId)?.players || []).map(p => ({ dorsal:String(p.dorsal ?? p.shirtNumber ?? ''), name:p.name }));
-                const awayPlayers = (teams.find(t => t.teamIdIntern === visitId || t.uuid === visitId || t.id === visitId)?.players || []).map(p => ({ dorsal:String(p.dorsal ?? p.shirtNumber ?? ''), name:p.name }));
-                const parsed = parseCrono(_fcbqMovesToCrono(moves, normalizedStats), homePlayers, awayPlayers);
-                const timeoutEvents = _fcbqTimeouts(moves, normalizedStats).map(t => ({
-                  ...t, min: t.minLeft, score: { h:0, a:0 }
-                }));
-                const scoreHome = Number(head.score?.local ?? head.localScore ?? head.scoreHome ?? 0) || 0;
-                const scoreAway = Number(head.score?.visitor ?? head.visitorScore ?? head.scoreAway ?? 0) || 0;
-
-                if (!head || (!localTeam && !homePlayers.length)) throw new Error("El acta de la FCBQ está vacía o cambió de formato.");
-
-                const newMatch = {
-                    id: 'fcbq_' + id,
-                  date: (head.date || head.matchDate || '').substring(0, 10) || new Date().toISOString().substring(0,10),
-                  homeTeam: localTeam?.name || "LOCAL",
-                  awayTeam: visitorTeam?.name || "RIVAL",
-                  scoreHome, scoreAway, localId, visitId,
-                  season: _fcbqSeasonFromUrl(url), competition: head.competition?.name || head.competition || '',
-                  fcbqMoves: moves,
-                  events: [...(parsed.events || []), ...timeoutEvents],
-                  subEvents: parsed.subEvents || [],
-                  homePlayers: parsed.homePlayers || homePlayers,
-                  awayPlayers: parsed.awayPlayers || awayPlayers,
-                  shots: _fcbqStatsToShots(normalizedStats),
-                  type: 'imported'
-                };
-
-                // Puntos por cada cuarto
-                if (head.periods && head.periods.length > 0) {
-                  newMatch.qStats = head.periods.map(p => ({
-                        p: p.period,
-                        h: p.local,
-                        a: p.visitor
-                    }));
-                }
-
-                _fcbqApplyMinutes(newMatch, normalizedStats);
-
-                // Guardamos el partido en la memoria
-                const existsIdx = S.matches.findIndex(m => m.id === newMatch.id);
-                if (existsIdx >= 0) {
-                    S.matches[existsIdx] = { ...S.matches[existsIdx], ...newMatch };
-                } else {
-                    S.matches.unshift(newMatch);
-                }
-                
-                successCount++;
-            } catch (err) {
-                console.error("Fallo al importar el ID:", id, err);
-                failCount++;
-            }
+  btn.disabled = true; btn.innerText = '⏳ Importando...';
+  let ok = 0, fail = 0, unknownAll = {};
+  statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Iniciando conexión con FCBQ...</span>`;
+  try {
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Descargando partido ${i + 1} de ${urls.length}...</span>`;
+      const uuid = url.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)?.[0];
+      if (!uuid) { fail++; continue; }
+      try {
+        let pbpData, statsData;
+        if (window._fcbqBridge) {
+          ({ pbp: pbpData, stats: statsData } = await _bridgeFetch(uuid));
+        } else {
+          const get = ep => _fcbqRequest(`https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${uuid}/${ep}?currentSeason=true`);
+          [pbpData, statsData] = await Promise.all([get('pbp'), get('stats')]);
         }
-
-        // Guardado final y refresco visual
-        svL();
-        rAll();
-        
-        if (successCount > 0) document.getElementById('i-fcbq-url').value = "";
-        
-        statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ¡Importación lista! ${successCount} subidos. ${failCount > 0 ? `(${failCount} errores)` : ''}</span>`;
-        if (successCount > 0) toast(`Partidos importados correctamente.`, 'ok');
-
-    } catch (globalErr) {
-        console.error(globalErr);
-        statusEl.innerHTML = `<span style="color:#dc2626;font-weight:800;">❌ Error crítico: ${globalErr.message}</span>`;
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "⬇ Cargar del link";
+        const { match, unknown } = _fcbqBuildMatch(pbpData, statsData, { id: 'fcbq_' + uuid, season: _fcbqSeasonFromUrl(url) });
+        Object.entries(unknown).forEach(([k, v]) => { unknownAll[k] = unknownAll[k] || { n: 0, sample: v.sample }; unknownAll[k].n += v.n; });
+        _fcbqUpsertMatch(match);
+        ok++;
+      } catch (err) { console.error('Fallo al importar', uuid, err); fail++; }
     }
+    svL(); rAll();
+    if (ok > 0) document.getElementById('i-fcbq-url').value = '';
+    statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ${ok} importados. ${fail ? `(${fail} errores — mira la consola)` : ''}</span>${_fcbqUnknownHtml(unknownAll)}`;
+    if (ok > 0) toast('Partidos importados correctamente.', 'ok');
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = `<span style="color:#dc2626;font-weight:800;">❌ Error crítico: ${_esc(e.message)}</span>`;
+  } finally {
+    btn.disabled = false; btn.innerText = '⬇ Cargar del link';
+  }
 }
 
 async function _fcbqReadFile(file) {
   if (!file) throw new Error('Falta uno de los archivos JSON');
-  const text = await file.text();
-  return _fcbqParseJsonInput(text, file.name || 'archivo FCBQ');
+  return _fcbqParseJsonInput(await file.text(), file.name || 'archivo FCBQ');
+}
+
+// Busca el UUID del partido dentro de los JSON o del nombre de archivo
+function _fcbqFindMatchUuid(pbp, stats, names) {
+  const re = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+  const sr = stats.data || stats, pr = pbp.data || pbp;
+  const hs = sr.header || sr.match || {}, hp = pr.header || pr.match || {};
+  const cands = [hs.uuid, hs.matchUuid, hs.matchId, hs.id, sr.matchUuid, sr.matchId, sr.uuid, hp.uuid, hp.matchId, pr.matchUuid, pr.matchId, ...names];
+  for (const c of cands) { const m = typeof c === 'string' && c.match(re); if (m) return m[0]; }
+  return null;
 }
 
 async function importFCBQFiles() {
@@ -14966,100 +15189,148 @@ async function importFCBQFiles() {
   const statsFile = document.getElementById('i-fcbq-stats-file')?.files?.[0];
   const status = document.getElementById('i-fcbq-files-status');
   const button = document.getElementById('i-fcbq-files-btn');
-
   if (!pbpFile || !statsFile) {
     status.innerHTML = '<span style="color:#dc2626;font-weight:700">Selecciona los dos archivos JSON del mismo partido.</span>';
     return;
   }
-
-  button.disabled = true;
-  button.textContent = '⏳ Leyendo...';
+  button.disabled = true; button.textContent = '⏳ Leyendo...';
   status.innerHTML = '<span style="color:#ca8a04;font-weight:600">Procesando PBP, plantilla, estadísticas y tiros...</span>';
-
   try {
     const [pbp, stats] = await Promise.all([_fcbqReadFile(pbpFile), _fcbqReadFile(statsFile)]);
-    const transformed = transformFCBQJson(pbp, stats, {
-      season: document.getElementById('i-season')?.value || null,
+    const uuid = _fcbqFindMatchUuid(pbp, stats, [pbpFile.name, statsFile.name]);
+    const { match, unknown } = _fcbqBuildMatch(pbp, stats, {
+      id: uuid ? 'fcbq_' + uuid : null,
+      season: document.getElementById('i-season')?.value || '',
       competition: document.getElementById('i-comp')?.value || ''
     });
-    const statsRoot = stats.data || stats;
-    const header = statsRoot.header || statsRoot.match || statsRoot;
-    const teams = _fcbqTeamsFromStats(stats, pbp);
-    const localTeam = header.localTeam || teams.find(t => t.isLocal || t.home || t.local);
-    const visitorTeam = header.visitorTeam || teams.find(t => t.isVisitor || t.away || t.visitor);
-    const localId = String(statsRoot.localId || localTeam?.teamIdIntern || localTeam?.uuid || localTeam?.id || '');
-    const visitId = String(statsRoot.visitId || visitorTeam?.teamIdIntern || visitorTeam?.uuid || visitorTeam?.id || '');
-    const normalizedStats = { ...statsRoot, teams, localId, visitId };
-    const moves = _fcbqMovesList(pbp);
-    const homePlayers = (teams.find(t => String(t.teamIdIntern ?? t.uuid ?? t.id) === localId)?.players || [])
-      .map(p => ({ dorsal: String(p.dorsal ?? p.shirtNumber ?? ''), name: p.name }));
-    const awayPlayers = (teams.find(t => String(t.teamIdIntern ?? t.uuid ?? t.id) === visitId)?.players || [])
-      .map(p => ({ dorsal: String(p.dorsal ?? p.shirtNumber ?? ''), name: p.name }));
-    if (!homePlayers.length && !awayPlayers.length) throw new Error('No se encontraron jugadores en el archivo STATS.');
-
-    const date = (header.date || header.matchDate || '').substring(0, 10) || new Date().toISOString().substring(0, 10);
-    const dateYear = Number(date.substring(0, 4));
-    const dateMonth = Number(date.substring(5, 7));
-    const inferredSeason = dateYear ? `${dateMonth >= 8 ? dateYear : dateYear - 1}-${String((dateMonth >= 8 ? dateYear : dateYear - 1) + 1).slice(2)}` : '';
-    const season = String(document.getElementById('i-season')?.value || transformed.season || inferredSeason || '');
-    const competition = document.getElementById('i-comp')?.value || transformed.competition || [header.categoryName, header.competitionName, header.groupName].filter(Boolean).join(' · ');
-    const match = {
-      id: Date.now(),
-      date,
-      homeTeam: transformed.homeTeam,
-      awayTeam: transformed.awayTeam,
-      scoreHome: transformed.scoreHome,
-      scoreAway: transformed.scoreAway,
-      season,
-      competition,
-      fcbqMoves: transformed.fcbqMoves,
-      fcbqMovesRaw: _fcbqCloneJson(pbp),
-      statsRaw: _fcbqCloneJson(stats),
-      events: transformed.events,
-      subEvents: transformed.subEvents,
-      homePlayers: transformed.homePlayers,
-      awayPlayers: transformed.awayPlayers,
-      shots: _fcbqStatsToShots(normalizedStats),
-      type: 'imported'
-    };
-    if (Array.isArray(header.periods)) {
-      match.qStats = header.periods.map(period => ({ p: period.period, h: period.local, a: period.visitor }));
+    // Si ya existe el mismo partido (misma fecha y equipos), lo sustituimos en vez de duplicarlo
+    if (!uuid) {
+      const same = S.matches.find(m => m.date === match.date &&
+        String(m.homeTeam).toLowerCase() === String(match.homeTeam).toLowerCase() &&
+        String(m.awayTeam).toLowerCase() === String(match.awayTeam).toLowerCase());
+      if (same) match.id = same.id;
     }
-    _fcbqApplyMinutes(match, normalizedStats);
+    _fcbqUpsertMatch(match);
 
-    S.matches = (S.matches || []).filter(existing => existing.id !== match.id);
-    S.matches.unshift(match);
     [[match.homeTeam, match.homePlayers], [match.awayTeam, match.awayPlayers]].forEach(([name, players]) => {
-      const matchSeason = season || 'Sin temporada';
-      let team = S.teams.find(existing => existing.name.toLowerCase() === name.toLowerCase() && existing.season === matchSeason);
+      const matchSeason = match.season || 'Sin temporada';
+      let team = S.teams.find(t => t.name.toLowerCase() === name.toLowerCase() && t.season === matchSeason);
       if (!team) {
         team = { id: Date.now() + Math.floor(Math.random() * 999), name, season: matchSeason, color: '#0f1f3d', players: [] };
         S.teams.push(team);
       }
       team.players = team.players || [];
-      (players || []).forEach(player => {
-        if (!team.players.some(existing => existing.name.toLowerCase() === String(player.name || '').toLowerCase())) {
-          team.players.push({ dorsal: String(player.dorsal ?? player.number ?? ''), name: player.name });
-        }
+      (players || []).forEach(p => {
+        if (!team.players.some(e => e.name.toLowerCase() === String(p.name || '').toLowerCase()))
+          team.players.push({ dorsal: String(p.dorsal ?? ''), name: p.name });
       });
     });
 
-    await svL();
-    rAll();
-    status.innerHTML = `<span style="color:#15803d;font-weight:800">✅ Partido importado: ${match.homeTeam} ${match.scoreHome} — ${match.scoreAway} ${match.awayTeam}. ${match.shots.length} tiros ubicados.</span>`;
+    await svL(); rAll();
+    status.innerHTML = `<span style="color:#15803d;font-weight:800">✅ ${_esc(match.homeTeam)} ${match.scoreHome} — ${match.scoreAway} ${_esc(match.awayTeam)} · ${match.fcbqMoves.length} jugadas · ${match.subEvents.length} cambios · ${match.shots.length} tiros ubicados.</span>${_fcbqUnknownHtml(unknown)}`;
     toast('Partido FCBQ importado correctamente.', 'ok');
   } catch (error) {
     console.error('[FCBQ files] Error importando partido:', error);
     status.innerHTML = `<span style="color:#dc2626;font-weight:800">❌ ${_esc(error.message)}</span>`;
   } finally {
-    button.disabled = false;
-    button.textContent = '📥 Importar archivos';
+    button.disabled = false; button.textContent = '📥 Importar archivos';
   }
 }
 
 // Los handlers usados por onclick inline deben estar disponibles en window
 // porque este HTML carga su lógica principal como módulo.
 window.importFCBQFiles = importFCBQFiles;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔗 PUENTE FCBQ (bookmarklet)
+// Los servidores (Netlify/Vercel) están bloqueados por la FCBQ, pero el
+// navegador del usuario en basquetcatala.cat sí puede pedir los JSON. El
+// marcador "→ BascatApp" se ejecuta en la web de la FCBQ, abre la app y le
+// sirve los datos por postMessage. La app los importa con _fcbqBuildMatch.
+// ═══════════════════════════════════════════════════════════════════════════
+const _FCBQ_BRIDGE_ORIGINS = ['https://www.basquetcatala.cat', 'https://basquetcatala.cat'];
+const _bridgePending = {};
+window._fcbqBridge = null;
+
+const _FCBQ_BOOKMARKLET = `(()=>{if(window.__bascatBridge){window.__bascatBridge.focus();return;}
+const APP='__APP__',OK=[APP,APP.replace('://','://www.'),APP.replace('://www.','://')];
+const re=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const cur=(location.href.match(re)||[])[0]||null;
+const w=window.open(APP+'/?fcbqBridge=1','bascat_fcbq');
+if(!w){alert('Permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar el marcador');return;}
+window.__bascatBridge={focus:()=>w.focus()};
+const API='https://msstats.optimalwayconsulting.com/v1/fcbq/matches/';
+const get=async(id,ep)=>{const r=await fetch(API+id+'/'+ep+'?currentSeason=true');if(!r.ok)throw new Error(ep+' HTTP '+r.status);return r.json();};
+window.addEventListener('message',async e=>{if(e.source!==w||!OK.includes(e.origin))return;const d=e.data||{};
+if(d.type==='bascat-ready'){w.postMessage({type:'bascat-bridge',current:cur},e.origin);}
+if(d.type==='bascat-fetch'){try{const[pbp,stats]=await Promise.all([get(d.id,'pbp'),get(d.id,'stats')]);w.postMessage({type:'bascat-data',req:d.req,id:d.id,pbp,stats},e.origin);}
+catch(err){w.postMessage({type:'bascat-data',req:d.req,id:d.id,error:String(err&&err.message||err)},e.origin);}}});
+document.title='🔗 Puente BascatApp · '+document.title;})();`;
+
+function _bridgeFetch(id) {
+  return new Promise((res, rej) => {
+    const b = window._fcbqBridge;
+    if (!b) return rej(new Error('Puente FCBQ no activo'));
+    const req = Math.random().toString(36).slice(2);
+    _bridgePending[req] = { res, rej };
+    b.win.postMessage({ type: 'bascat-fetch', id, req }, b.origin);
+    setTimeout(() => {
+      if (_bridgePending[req]) {
+        delete _bridgePending[req];
+        rej(new Error('La pestaña de la FCBQ no responde. Vuelve a pulsar el marcador en basquetcatala.cat'));
+      }
+    }, 30000);
+  });
+}
+
+function _bridgeUI() {
+  const st = document.getElementById('i-fcbq-bridge-state');
+  if (st) st.innerHTML = window._fcbqBridge
+    ? '<span style="color:#15803d;font-weight:800">🔗 Puente FCBQ activo: los links se descargan a través de tu pestaña de basquetcatala.cat</span>'
+    : '<span style="color:var(--t3)">Puente FCBQ inactivo (se intentará el proxy)</span>';
+}
+
+// Espera a que la app haya cargado la metadata y el usuario sea staff
+function _whenReadyForImport(fn, tries = 0) {
+  const role = localStorage.getItem('bascatRole');
+  if (window._metaLoaded && role === 'staff') return fn();
+  if (tries === 0 && typeof toast === 'function') toast('🔗 Datos de la FCBQ recibidos. Entra como staff para importarlos…', 'ok');
+  if (tries > 240) return; // 2 minutos
+  setTimeout(() => _whenReadyForImport(fn, tries + 1), 500);
+}
+
+window.addEventListener('message', e => {
+  if (!_FCBQ_BRIDGE_ORIGINS.includes(e.origin)) return;
+  const d = e.data || {};
+  if (d.type === 'bascat-bridge') {
+    window._fcbqBridge = { win: e.source, origin: e.origin };
+    _bridgeUI();
+    try { history.replaceState({}, '', location.pathname); } catch (err) {}
+    if (d.current) _whenReadyForImport(() => {
+      try { if (typeof ST === 'function') ST('t-imp'); else if (typeof window.ST === 'function') window.ST('t-imp'); } catch (err) {}
+      const ta = document.getElementById('i-fcbq-url');
+      if (ta) { ta.value = `https://www.basquetcatala.cat/estadistica/partit/${d.current}`; importFromFCBQ(); }
+    });
+  }
+  if (d.type === 'bascat-data' && _bridgePending[d.req]) {
+    const p = _bridgePending[d.req]; delete _bridgePending[d.req];
+    d.error ? p.rej(new Error(d.error)) : p.res(d);
+  }
+});
+
+// Si nos ha abierto el marcador, avisamos a la pestaña de la FCBQ de que ya estamos
+if (new URLSearchParams(location.search).has('fcbqBridge') && window.opener) {
+  try { window.opener.postMessage({ type: 'bascat-ready' }, '*'); } catch (err) {}
+}
+
+// Enlace arrastrable del marcador (se genera con el dominio actual de la app)
+function _installBookmarkletLink() {
+  const a = document.getElementById('i-fcbq-bookmarklet');
+  if (a) a.href = 'javascript:' + encodeURIComponent(_FCBQ_BOOKMARKLET.replace('__APP__', location.origin));
+  _bridgeUI();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _installBookmarkletLink);
+else _installBookmarkletLink();
 
 /* =========================================================
    🎬 MOTOR DE VÍDEO COMPLETO (NATIVO, SIN LAG, FORMULARIO ARREGLADO)
@@ -15412,6 +15683,149 @@ window.vCancelClip = function() {
     });
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🗄️ CACHÉ LOCAL (IndexedDB) + SINCRONIZACIÓN INCREMENTAL CON SUPABASE
+// Antes: cada apertura de la app descargaba TODOS los partidos completos
+// (con fcbqMoves) → así se fue el Egress a 7 GB. Ahora cada dispositivo guarda
+// los partidos en local y solo pide a Supabase los que han cambiado desde la
+// última vez (columna updated_at), más una lista ligera de ids para detectar
+// partidos borrados.
+// ═══════════════════════════════════════════════════════════════════════════
+const _IDB = {
+  _dbs: {},
+  open(name) {
+    if (this._dbs[name]) return this._dbs[name];
+    this._dbs[name] = new Promise((res, rej) => {
+      const r = indexedDB.open(name, 1);
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        if (!db.objectStoreNames.contains('m')) db.createObjectStore('m');
+        if (!db.objectStoreNames.contains('k')) db.createObjectStore('k');
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return this._dbs[name];
+  },
+  async _tx(name, store, mode, fn) {
+    const db = await this.open(name);
+    return new Promise((res, rej) => {
+      const tx = db.transaction(store, mode);
+      const out = fn(tx.objectStore(store));
+      tx.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+      tx.onerror = () => rej(tx.error);
+    });
+  },
+  all(name) { return this._tx(name, 'm', 'readonly', s => s.getAll()); },
+  put(name, rows) { return this._tx(name, 'm', 'readwrite', s => { rows.forEach(r => r && r.id != null && s.put(r, String(r.id))); }); },
+  del(name, ids) { return this._tx(name, 'm', 'readwrite', s => { ids.forEach(id => s.delete(String(id))); }); },
+  getK(name, k) { return this._tx(name, 'k', 'readonly', s => s.get(k)); },
+  setK(name, k, v) { return this._tx(name, 'k', 'readwrite', s => { s.put(v, k); }); }
+};
+window._IDB = _IDB;
+
+const _shotsOf = {}; // id partido → array de tiros cargados (para reemplazar sin duplicar)
+
+function _metaPayload() {
+  return {
+    teams: S.teams || [], access: S.access || null,
+    playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
+    nextMatch: S.nextMatch || null, fisio: S.fisio || {}
+  };
+}
+
+// Mismo cálculo que svL → tras cargar, svL NO vuelve a subir partidos sin cambios
+function _rehashAll() {
+  const by = {};
+  (S.shots || []).forEach(s => { const k = String(s.mId || s.matchId); (by[k] = by[k] || []).push(s); });
+  (S.matches || []).forEach(m => {
+    const k = String(m.id);
+    _matchHashes[k] = _hash(JSON.stringify({ ...m, placedShots: by[k] || [] }));
+  });
+}
+
+function _loadMatchRows(rows) {
+  if (!rows || !rows.length) return;
+  const drop = new Set();
+  rows.forEach(src => {
+    if (!src || src.id == null) return;
+    const m = JSON.parse(JSON.stringify(src));
+    const k = String(m.id);
+    const i = S.matches.findIndex(x => String(x.id) === k);
+    if (i >= 0) S.matches.splice(i, 1);
+    (_shotsOf[k] || []).forEach(s => drop.add(s));
+    const ps = m.placedShots || []; delete m.placedShots;
+    _shotsOf[k] = ps;
+    S.matches.push(m);
+    S.shots.push(...ps);
+  });
+  if (drop.size) S.shots = S.shots.filter(s => !drop.has(s));
+  S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+}
+
+function _removeMatchIds(ids) {
+  const set = new Set(ids.map(String));
+  const drop = new Set();
+  set.forEach(k => { (_shotsOf[k] || []).forEach(s => drop.add(s)); delete _shotsOf[k]; delete _matchHashes[k]; });
+  S.matches = S.matches.filter(m => !set.has(String(m.id)));
+  if (drop.size) S.shots = S.shots.filter(s => !drop.has(s));
+}
+
+// filter: (query) => query  (para modo jugador: solo Claret + rival)
+async function _syncMatches(dbName, filter = q => q, onProgress) {
+  window._cacheDb = dbName;
+  // 1) Pintar al instante lo que ya hay en el dispositivo
+  let cached = [];
+  try { cached = await _IDB.all(dbName) || []; } catch (e) { console.warn('IndexedDB no disponible', e); }
+  if (cached.length) { _loadMatchRows(cached); _rehashAll(); _refreshAfterSync(); }
+
+  // 2) Lista ligera de ids del servidor (unos pocos KB) → detectar borrados/faltantes
+  const serverIds = new Set();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await filter(supabase.from('matches').select('id')).range(from, from + 999);
+    if (error) throw error;
+    data.forEach(r => serverIds.add(String(r.id)));
+    if (data.length < 1000) break;
+  }
+  const cachedIds = new Set(cached.map(m => String(m.id)));
+  const gone = [...cachedIds].filter(id => !serverIds.has(id));
+  if (gone.length) { _removeMatchIds(gone); try { await _IDB.del(dbName, gone); } catch (e) {} }
+
+  // 3) Solo lo que ha cambiado desde la última sincronización
+  const lastSync = await _IDB.getK(dbName, 'lastSync').catch(() => null);
+  let maxTs = lastSync || null, got = 0;
+  const fetched = new Set();
+  const step = 50;
+  const keep = async (data) => {
+    const rows = data.map(r => r.match_data).filter(Boolean);
+    data.forEach(r => { if (r.updated_at && (!maxTs || r.updated_at > maxTs)) maxTs = r.updated_at; });
+    rows.forEach(m => fetched.add(String(m.id)));
+    _loadMatchRows(rows);
+    try { await _IDB.put(dbName, rows); } catch (e) {}
+    got += rows.length;
+    if (onProgress) onProgress(got);
+    _rehashAll(); _refreshAfterSync();
+  };
+  for (let from = 0; ; from += step) {
+    let q = filter(supabase.from('matches').select('match_data,updated_at'));
+    if (lastSync) q = q.gt('updated_at', lastSync);
+    const { data, error } = await q.order('updated_at', { ascending: true }).range(from, from + step - 1);
+    if (error) throw error;
+    if (data.length) await keep(data);
+    if (data.length < step) break;
+  }
+  // 4) Partidos que están en el servidor pero no en caché (p.ej. caché borrada a medias)
+  const missing = [...serverIds].filter(id => !cachedIds.has(id) && !fetched.has(id));
+  for (let i = 0; i < missing.length; i += 50) {
+    const { data, error } = await supabase.from('matches').select('match_data,updated_at').in('id', missing.slice(i, i + 50));
+    if (error) throw error;
+    if (data.length) await keep(data);
+  }
+  if (maxTs) await _IDB.setK(dbName, 'lastSync', maxTs).catch(() => {});
+  console.log(`☁️ Sync ${dbName}: ${cached.length} en caché, ${got} descargados, ${gone.length} borrados`);
+  return { cached: cached.length, downloaded: got, removed: gone.length };
+}
+
 async function ldLS() {
   // 🛑 TELÓN GLOBAL 🛑
   let telon = document.getElementById('telon-global');
@@ -15456,7 +15870,9 @@ async function ldLS() {
           S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
           S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
           S.fisio = md.fisio || {};
+          window._lastMetaStr = JSON.stringify(_metaPayload());
       }
+      if (!metaRes.error) window._metaLoaded = true;
       if (clipsRes.data) {
           const c2 = {}; clipsRes.data.forEach(r => { if(r.id !== 'legacy_clips') c2[r.data.key] = r.data; });
           S.clips2 = c2;
@@ -15465,7 +15881,7 @@ async function ldLS() {
       if (!S.matches) S.matches = []; 
       if (!S.shots) S.shots = [];
 
-      // 🚀 FUNCIÓN ANTI-COLAPSOS
+      // 🚀 CARGA ANTIGUA (solo se usa como plan B si falla la sincronización incremental)
       const fetchEnLotes = async (queryBase, step = 20) => {
           let fromRow = 0; 
           let fetching = true;
@@ -15473,15 +15889,8 @@ async function ldLS() {
               const { data, error } = await queryBase.range(fromRow, fromRow + step - 1);
               if (error) throw error;
               if (data && data.length > 0) {
-                  data.forEach(row => {
-                      const m = row.match_data;
-                      if (!S.matches.find(x => x.id === m.id)) {
-                          const ps = m.placedShots || []; delete m.placedShots;
-                          S.matches.push(m); S.shots.push(...ps);
-                          if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify({ ...m, placedShots: ps }));
-                      }
-                  });
-                  S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
+                  _loadMatchRows(data.map(r => r.match_data).filter(m => m && !S.matches.find(x => String(x.id) === String(m.id))));
+                  _rehashAll();
                   _refreshAfterSync();
                   fromRow += step;
                   if (data.length < step) fetching = false; 
@@ -15513,25 +15922,28 @@ async function ldLS() {
           
       } else if (savedRole === 'player') {
           // ==========================================
-          // 2.1 MODO JUGADOR: Solo Claret + Rival 
+          // 2.1 MODO JUGADOR: Solo Claret + Rival (con caché local)
           // ==========================================
           const tMsg = document.getElementById('telon-msg');
-          if (tMsg) tMsg.innerText = "Descargando partidos del equipo...";
+          if (tMsg) tMsg.innerText = "Cargando partidos del equipo...";
           
           let queryStr = rivalSemana 
               ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
-          
-          const { data, error } = await supabase.from('matches').select('match_data').or(queryStr).limit(1000);
-          if (!error && data) {
-              data.forEach(row => {
-                  const m = row.match_data;
-                  const ps = m.placedShots || []; delete m.placedShots;
-                  S.matches.push(m); S.shots.push(...ps);
-              });
-              S.matches.sort((a, b) => (a.id || 0) - (b.id || 0));
-              _refreshAfterSync();
+          const dbName = 'bascat_player_' + String(rivalSemana || 'none').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          try {
+              const prev = localStorage.getItem('bascat_player_db');
+              if (prev && prev !== dbName) { try { delete _IDB._dbs[prev]; indexedDB.deleteDatabase(prev); } catch (e) {} }
+              localStorage.setItem('bascat_player_db', dbName);
+          } catch (e) {}
+
+          try {
+              await _syncMatches(dbName, q => q.or(queryStr));
+          } catch (e) {
+              console.warn('Sync incremental no disponible (¿falta updated_at?). Carga completa:', e);
+              await fetchEnLotes(supabase.from('matches').select('match_data').or(queryStr), 50);
           }
+          _refreshAfterSync();
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
           
       } else {
@@ -15540,35 +15952,30 @@ async function ldLS() {
 
           setTimeout(async () => {
               try {
-                  if (typeof toast === 'function') toast('⏳ Descargando 1ª Catalana...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Primera%'), 100);
-
-                  if (typeof toast === 'function') toast('⏳ Descargando Copa y Supercopa...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data').or('competition.ilike.%Copa%,competition.ilike.%Supercopa%'), 20);
-
-                  if (typeof toast === 'function') toast('⏳ Descargando Preferente...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data').ilike('competition', '%Preferente%'), 20);
-
-                  if (typeof toast === 'function') toast('⏳ Completando histórico...', 'ok');
-                  await fetchEnLotes(supabase.from('matches').select('match_data')
-                      .not('competition', 'ilike', '%Copa%')
-                      .not('competition', 'ilike', '%Supercopa%')
-                      .not('competition', 'ilike', '%Primera%')
-                      .not('competition', 'ilike', '%Preferente%'), 20);
-
-                  if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
-              } catch(e) { console.error("Error en carga de fondo:", e); }
-          }, 500);
+                  const r = await _syncMatches('bascat_staff', q => q, n => {
+                      if (n % 50 === 0 && typeof toast === 'function') toast(`⏳ Descargando partidos nuevos/cambiados... (${n})`, 'ok');
+                  });
+                  if (typeof toast === 'function') toast(r.downloaded ? `✅ ${r.downloaded} partidos actualizados` : '✅ Todo al día (caché local)', 'ok');
+              } catch (e) {
+                  console.warn('Sync incremental no disponible (¿falta updated_at?). Carga completa:', e);
+                  try {
+                      if (typeof toast === 'function') toast('⏳ Descargando histórico completo...', 'ok');
+                      await fetchEnLotes(supabase.from('matches').select('match_data'), 50);
+                      if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
+                  } catch (e2) { console.error("Error en carga de fondo:", e2); }
+              }
+          }, 300);
       }
 
-      // 🔄 RECUPERAMOS EL REALTIME (Para que deje de decir "Conectando" y se ponga verde)
-      supabase.channel('public:db_changes')
+      // 🔄 REALTIME (una sola suscripción aunque ldLS se relance)
+      if (!window._rtChannel) window._rtChannel = supabase.channel('public:db_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'metadata' }, payload => {
               if(payload.new && payload.new.id === 'global') {
                   const md = payload.new.data;
                   S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
                   S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
                   S.fisio = md.fisio || {};
+                  window._lastMetaStr = JSON.stringify(_metaPayload());
                   _refreshAfterSync();
                   if(typeof renderCompare === 'function') renderCompare();
               }
@@ -15576,10 +15983,10 @@ async function ldLS() {
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
               if(payload.new && payload.new.match_data) {
                   const m = payload.new.match_data;
-                  if(!S.matches.find(x => x.id === m.id)) {
-                      S.matches.push(m);
-                      if(m.placedShots) S.shots.push(...m.placedShots);
-                      if (typeof _hash === 'function') _matchHashes[String(m.id)] = _hash(JSON.stringify(m));
+                  if(!S.matches.find(x => String(x.id) === String(m.id))) {
+                      _loadMatchRows([m]);
+                      _rehashAll();
+                      if (window._cacheDb) _IDB.put(window._cacheDb, [m]).catch(() => {});
                       _refreshAfterSync();
                   }
               }
@@ -15612,19 +16019,21 @@ async function ldLS() {
 
 // 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
 async function svL() {
-  const payload = {
-    teams: S.teams || [], access: S.access || null,
-    playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
-    nextMatch: S.nextMatch || null, fisio: S.fisio || {}
-  };
-  try { localStorage.setItem('bascatapp_data', JSON.stringify(payload)); } catch(e){}
+  const payload = _metaPayload();
+  const metaStr = JSON.stringify(payload);
+  try { localStorage.setItem('bascatapp_data', metaStr); } catch(e){}
 
   if (window._supabaseSyncTimer) clearTimeout(window._supabaseSyncTimer);
   if (typeof setSyncStatus === 'function') setSyncStatus('saving');
 
   window._supabaseSyncTimer = setTimeout(async () => {
     try {
-      await supabase.from('metadata').upsert({ id: 'global', data: payload });
+      // Solo sube la metadata si ha cambiado (cada subida se reenvía por Realtime a todos los dispositivos)
+      if (window._lastMetaStr !== metaStr) {
+        const { error: metaErr } = await supabase.from('metadata').upsert({ id: 'global', data: payload });
+        if (metaErr) throw metaErr;
+        window._lastMetaStr = metaStr;
+      }
 
       if (S.matches && Array.isArray(S.matches)) {
         const matchesToUpsert = [];
@@ -15662,6 +16071,7 @@ async function svL() {
             
             // Sellar en memoria para no volver a subirlos nunca más
             chunk.forEach(c => { if (c.hash !== null) _matchHashes[String(c.id)] = c.hash; });
+            if (window._cacheDb) _IDB.put(window._cacheDb, chunk.map(c => c.match_data)).catch(() => {});
             await new Promise(r => setTimeout(r, 250)); // Respiro rápido
           }
           
@@ -17359,7 +17769,7 @@ function _analyzePossessionClocks(matches, rivalTeam) {
             let periodSeen = 0;
             let pendingMiss = null;
 
-            const isShot = text => /cistella|esmaixada|fallat|fallado|errat|tiro|tir|de [23]\b/i.test(text) && !/lliure|libre/i.test(text);
+            const isShot = text => /cistella|esmaixada|fallat|fallado|errat|tiro|tir|de [23]\b/i.test(text) && !/lliure|libre|de 1\b|\(\d TL\)/i.test(text);
             const isMade = text => /cistella|esmaixada|anotat|made|convertit/i.test(text);
             const countShot = (mv, start, secondChance) => {
               if (mv.actionSide !== rivalSide || !isShot(mv.text)) return;

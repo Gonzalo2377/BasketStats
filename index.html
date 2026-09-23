@@ -8140,8 +8140,20 @@ function _renderStDetalles(scoped,m){
         const secs = tm.time ? (tm.time / 60) : (tm.min || 0);
         const timeStr = `${qName} · ${_fmtClock(_elapsedMin(m, tm.period, secs, false))}`;
         const strokeCol = tm.team === 'home' ? '#16a34a' : '#3b82f6';
-        
-        return `<line x1="${tmX.toFixed(1)}" y1="10" x2="${tmX.toFixed(1)}" y2="${H-10}" stroke="${strokeCol}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.8" style="cursor:help" 
+        const y1 = H / 2;
+        const y2 = tm.team === 'home' ? 18 : H - 18;
+        const cx = tmX.toFixed(1);
+        const cy = y2;
+
+        return `
+          <line x1="${cx}" y1="${y1}" x2="${cx}" y2="${cy}"
+            stroke="${strokeCol}" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.9"
+            style="cursor:help"
+            data-type="timeout" data-team="${tm.team}" data-time="${_esc(timeStr)}"
+            onmouseover="window.showBarTooltip(event, this)"
+            onmousemove="window.moveBarTooltip(event)"
+            onmouseout="window.hideBarTooltip()" />
+          <circle cx="${cx}" cy="${cy}" r="4" fill="${strokeCol}" opacity="0.95"
             data-type="timeout" data-team="${tm.team}" data-time="${_esc(timeStr)}"
             onmouseover="window.showBarTooltip(event, this)"
             onmousemove="window.moveBarTooltip(event)"
@@ -14241,7 +14253,28 @@ window.saveMatchNotes = async function(mId) {
 //   .../v1/fcbq/getJsonWithMatchStats/{id}   → equipos + jugadores + marcador + tiros con coords
 // ═══════════════════════════════════════════
 const FCBQ_API='https://msstats.optimalwayconsulting.com/v1/fcbq';
-const FCBQ_PROXY='/.netlify/functions/fcbq-proxy';
+const FCBQ_PROXY=(typeof window !== 'undefined' && window.__FCBQ_PROXY__) || '/api/fcbq-proxy';
+const FCBQ_PROXY_FALLBACKS=[FCBQ_PROXY,'/.netlify/functions/fcbq-proxy'];
+
+async function _fcbqFetchProxy(endpoint, id) {
+  const urls = [...new Set(FCBQ_PROXY_FALLBACKS.map(p => `${p}?endpoint=${encodeURIComponent(endpoint)}&id=${encodeURIComponent(id)}`))];
+  let lastErr = null;
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        lastErr = new Error(`Proxy ${url} respondió ${res.status}`);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  throw lastErr || new Error('No se pudo contactar con el proxy FCBQ');
+}
 
 function _fcbqExtractId(url){
   // El id es el hex de 24 chars al final del link de estadísticas
@@ -14445,10 +14478,8 @@ async function _fcbqRequest(targetUrl) {
   const modern = targetUrl.match(/\/matches\/([^/]+)\/(pbp|stats)(?:\?|$)/i);
   if (modern) {
     const endpoint = modern[2].toLowerCase() === 'pbp' ? 'moves' : 'stats';
-    const proxyUrl = `${FCBQ_PROXY}?endpoint=${endpoint}&id=${encodeURIComponent(modern[1])}`;
     try {
-      const proxyRes = await fetch(proxyUrl);
-      if (proxyRes.ok) return await proxyRes.json();
+      return await _fcbqFetchProxy(endpoint, modern[1]);
     } catch (e) {
       console.warn('Proxy FCBQ moderno no disponible:', e);
     }

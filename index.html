@@ -2943,6 +2943,17 @@ body.zen-mode {
         <div id="i-fcbq-status" style="font-size:11px;margin-top:6px"></div>
       </div>
 
+      <div style="background:linear-gradient(135deg,#fff7ed,#fefce8);border:1.5px solid #fdba74;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:#c2410c;margin-bottom:3px">📁 Importar archivos JSON de la FCBQ</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Selecciona los dos archivos del mismo partido: uno de play-by-play y otro de estadísticas.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+          <div class="fc" style="flex:1;min-width:220px"><label>Archivo PBP / play-by-play</label><input type="file" id="i-fcbq-pbp-file" accept=".json,application/json" style="width:100%;font-size:11px"></div>
+          <div class="fc" style="flex:1;min-width:220px"><label>Archivo STATS / estadísticas</label><input type="file" id="i-fcbq-stats-file" accept=".json,application/json" style="width:100%;font-size:11px"></div>
+          <button onclick="importFCBQFiles()" id="i-fcbq-files-btn" class="btn bp" style="font-size:12px;white-space:nowrap">📥 Importar archivos</button>
+        </div>
+        <div id="i-fcbq-files-status" style="font-size:11px;margin-top:6px"></div>
+      </div>
+
       <label>Cronologia completa del partit</label>
       <textarea id="i-cr" rows="10" placeholder="16/05/2026 16:00&#10;COPA CATALUNYA MASCULINA...&#10;Cronología del partido&#10;#7 GONZALO GIMENEZ IGUZQUIZA&#10;Salt guanyat&#10;Min: &#10;0&#10; Período: &#10;1&#10; Marcador: &#10;0-0&#10;..."></textarea>
       <div class="brow">
@@ -14332,6 +14343,22 @@ function recalcAllShots(){
 // que espera S.matches[].shots / renderShotMap.
 function _fcbqStatsToShots(stats){
   const shots=[];
+  const shotChart=stats.shotChart || stats.data?.shotChart;
+  if (shotChart) {
+    const addChart=(list,team)=>{
+      (list||[]).forEach(shot=>{
+        const x=_fcbqNumber(shot.x), y=_fcbqNumber(shot.y);
+        // La FCBQ entrega coordenadas centradas y escaladas; las normalizamos
+        // al canvas de media pista manteniendo la relación espacial.
+        const px=Math.max(0,Math.min(CW,Math.round(CW/2+(x/7500)*(CW/2))));
+        const py=Math.max(0,Math.min(CH,Math.round(CH/2-(y/7500)*(CH/2))));
+        shots.push({x:px,y:py,made:shot.made!==false,player:shot.actorName||'',team,period:shot.period||1,min:shot.minute||0,type:shot.type||'T2',dorsal:String(shot.dorsal||''),zone:shot.zone,xRaw:x,yRaw:y});
+      });
+    };
+    addChart(shotChart.local,'home');
+    addChart(shotChart.visitor,'away');
+    return shots;
+  }
   const teams=stats.teams||[];
   teams.forEach(t=>{
     const side=t.teamIdIntern===stats.localId?'home':(t.teamIdIntern===stats.visitId?'away':null);
@@ -14455,6 +14482,325 @@ function _fcbqMovesToCrono(moves,stats){
     lines.push(' Marcador: ');lines.push(score);
   });
   return lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Transformador independiente para JSON PBP + STATS pegados o descargados.
+// No modifica los JSON originales: fcbqMoves conserva PBP y shots conserva STATS.
+// Uso: const match = transformFCBQJson(pbpJson, statsJson);
+// ═══════════════════════════════════════════════════════════════════════════
+function _fcbqParseJsonInput(value, label) {
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); }
+    catch (error) { throw new Error(`${label} no es un JSON válido: ${error.message}`); }
+  }
+  if (value && typeof value === 'object') return value;
+  throw new Error(`${label} debe ser un objeto o un string JSON`);
+}
+
+function _fcbqCloneJson(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function _fcbqFirstValue(source, keys, fallback = null) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return fallback;
+}
+
+function _fcbqNumber(value, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value.replace(',', '.'));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function _fcbqSeasonFromDate(dateValue) {
+  const match = String(dateValue || '').match(/^(\d{4})-(\d{2})/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const start = Number(match[2]) >= 8 ? year : year - 1;
+  return start;
+}
+
+function _fcbqMovesList(pbp) {
+  const root = pbp?.data || pbp;
+  if (Array.isArray(root)) return root;
+  const moves = root?.playByPlay || root?.moves || root?.events || root?.matchMoves || root?.actions;
+  if (Array.isArray(moves)) return moves;
+  console.warn('[FCBQ] No se encontró una lista de movimientos. Claves PBP:', Object.keys(root || {}));
+  return [];
+}
+
+function _fcbqTeamId(team) {
+  const id = _fcbqFirstValue(team, ['teamIdIntern', 'teamId', 'uuid', 'id']);
+  return id == null ? '' : String(id);
+}
+
+function _fcbqTeamsFromStats(stats, pbp = {}) {
+  const root = stats?.data || stats;
+  const header = root?.header || root?.match || root || {};
+  const teams = Array.isArray(root?.teams) ? [...root.teams] : Array.isArray(header.teams) ? [...header.teams] : [];
+  const boxscore = Array.isArray(root?.boxscore) ? root.boxscore[0] : null;
+  if (!teams.length && boxscore) {
+    if (boxscore.local) teams.push({ ...boxscore.local, uuid: boxscore.local.uuid || header.localTeam?.uuid });
+    if (boxscore.visitor) teams.push({ ...boxscore.visitor, uuid: boxscore.visitor.uuid || header.visitorTeam?.uuid });
+  }
+  const localTeam = header.localTeam || header.homeTeam;
+  const visitorTeam = header.visitorTeam || header.awayTeam;
+  [localTeam, visitorTeam].forEach(team => {
+    if (!team || !team.players) return;
+    if (!_fcbqTeamId(teams.find(existing => _fcbqTeamId(existing) === _fcbqTeamId(team)))) teams.push(team);
+  });
+  if (!teams.length) console.warn('[FCBQ] No se encontraron equipos. Claves STATS:', Object.keys(root || {}));
+  return teams;
+}
+
+function _fcbqMatchHeader(pbp, stats) {
+  const statsRoot = stats.data || stats;
+  const header = statsRoot.header || statsRoot.match || statsRoot;
+  const teams = _fcbqTeamsFromStats(stats, pbp);
+  const localTeam = header.localTeam || teams.find(t => t.isLocal || t.home || t.local);
+  const visitorTeam = header.visitorTeam || teams.find(t => t.isVisitor || t.away || t.visitor);
+  const homeId = _fcbqFirstValue(statsRoot, ['localId', 'homeId', 'localTeamId'], _fcbqFirstValue(localTeam, ['teamIdIntern', 'uuid', 'id']));
+  const awayId = _fcbqFirstValue(statsRoot, ['visitId', 'awayId', 'visitorTeamId'], _fcbqFirstValue(visitorTeam, ['teamIdIntern', 'uuid', 'id']));
+  const score = header.score || {};
+
+  return {
+    header,
+    teams,
+    homeId: homeId == null ? null : String(homeId),
+    awayId: awayId == null ? null : String(awayId),
+    homeTeam: _fcbqFirstValue(localTeam, ['name', 'teamName'], _fcbqFirstValue(header, ['localTeamName', 'homeTeam'], 'LOCAL')),
+    awayTeam: _fcbqFirstValue(visitorTeam, ['name', 'teamName'], _fcbqFirstValue(header, ['visitorTeamName', 'awayTeam'], 'VISITANTE')),
+    scoreHome: _fcbqNumber(_fcbqFirstValue(header, ['scoreHome', 'localScore'], _fcbqFirstValue(score, ['local', 'home']))),
+    scoreAway: _fcbqNumber(_fcbqFirstValue(header, ['scoreAway', 'visitorScore'], _fcbqFirstValue(score, ['visitor', 'away'])))
+  };
+}
+
+function _fcbqPlayerFromStats(player) {
+  const data = player.data || player.stats || player;
+  const accumulated = player.accumulated || data.accumulated || data;
+  const computed = player.computed || data.computed || data;
+  let minutes = _fcbqFirstValue(player, ['timePlayed', 'minutes', 'min'], _fcbqFirstValue(computed, ['timePlayed', 'minutes', 'min']));
+  if (typeof minutes === 'string' && minutes.includes(':')) {
+    const [minutesPart, secondsPart] = minutes.split(':');
+    minutes = _fcbqNumber(minutesPart) + (_fcbqNumber(secondsPart) / 60);
+  } else {
+    minutes = _fcbqNumber(minutes);
+  }
+
+  const t2m=_fcbqNumber(accumulated.t2m), t2a=_fcbqNumber(accumulated.t2a);
+  const t3m=_fcbqNumber(accumulated.t3m), t3a=_fcbqNumber(accumulated.t3a);
+  const tlm=_fcbqNumber(accumulated.ftm), tla=_fcbqNumber(accumulated.fta);
+  return {
+    number: _fcbqFirstValue(player, ['dorsal', 'shirtNumber', 'number'], ''),
+    name: _fcbqFirstValue(player, ['name', 'playerName'], ''),
+    pts: _fcbqNumber(_fcbqFirstValue(accumulated, ['points', 'pts', 'score'])),
+    min: minutes,
+    reb: _fcbqNumber(_fcbqFirstValue(accumulated, ['rebounds', 'reb'])),
+    ast: _fcbqNumber(_fcbqFirstValue(accumulated, ['assists', 'ast'])),
+    pf: _fcbqNumber(_fcbqFirstValue(accumulated, ['personalFouls', 'fouls', 'faults', 'fc'])),
+    to: _fcbqNumber(_fcbqFirstValue(accumulated, ['turnovers', 'lost', 'to'])),
+    dorsal: _fcbqFirstValue(player, ['dorsal', 'shirtNumber', 'number'], ''),
+    starter: player.starting === true,
+    t2Made:t2m, t2Att:t2a, t2:`${t2m}/${t2a}`,
+    t3Made:t3m, t3Att:t3a, t3:`${t3m}/${t3a}`,
+    tlMade:tlm, tlAtt:tla, tl:`${tlm}/${tla}`,
+    fc:_fcbqNumber(accumulated.fc), pm:_fcbqNumber(computed.onCourtPlusMinus),
+    val:_fcbqNumber(accumulated.pts)-((t2a-t2m)+(t3a-t3m)+(tla-tlm))-_fcbqNumber(accumulated.fc)
+  };
+}
+
+function _fcbqPlayersByTeam(stats, matchInfo) {
+  const players = { home: [], away: [] };
+  matchInfo.teams.forEach(team => {
+    const teamId = _fcbqTeamId(team);
+    const side = teamId === matchInfo.homeId ? 'home' : teamId === matchInfo.awayId ? 'away' : null;
+    if (!side) return;
+    players[side] = (team.players || []).map(_fcbqPlayerFromStats);
+  });
+  if (!players.home.length || !players.away.length) {
+    const root = stats.data || stats;
+    const header = root.header || root.match || root;
+    const fallback = [header.localTeam || header.homeTeam, header.visitorTeam || header.awayTeam];
+    fallback.forEach((team, index) => {
+      if (team?.players?.length) players[index === 0 ? 'home' : 'away'] = team.players.map(_fcbqPlayerFromStats);
+    });
+  }
+  console.log('[FCBQ] Jugadores transformados:', { home: players.home.length, away: players.away.length });
+  return players;
+}
+
+function _fcbqEventType(moveText) {
+  const text = String(moveText || '').toLowerCase();
+  if (/temps?\s*mort|tiempo\s*muerto|time\s*out/.test(text)) return 'timeout';
+  if (/entra\s+al\s+camp|surt\s+del\s+camp|entra|sale|substitut|sustit/.test(text)) return 'substitution';
+  if (/falta|foul|personal|antiesportiva|tècnica|tecnica/.test(text)) return 'foul';
+  if (/cistella|canasta|basket|triple|tiro\s+libre|free\s+throw|encesta/.test(text)) return 'bucket';
+  return null;
+}
+
+function _fcbqPoints(moveText) {
+  const text = String(moveText || '').toLowerCase();
+  if (/cistella\s+de\s+3|canasta\s+de\s+3|triple|three/.test(text)) return 3;
+  if (/cistella\s+de\s+2|canasta\s+de\s+2|esmaixada|dunk|two/.test(text)) return 2;
+  if (/cistella\s+de\s+1|canasta\s+de\s+1|tiro\s+libre|free\s+throw|one/.test(text)) return 1;
+  return undefined;
+}
+
+function _fcbqEventsFromPbp(pbp, matchInfo) {
+  const moves = _fcbqMovesList(pbp);
+  const events = [];
+  const subEvents = [];
+
+  moves.forEach(move => {
+    const code = String(move.eventTypeCode || '').toUpperCase();
+    const text = move.move || move.description || move.action || code;
+    const type = /^D[123]$/.test(code) ? 'bucket'
+      : /^F/.test(code) || code === 'P' ? 'foul'
+      : code === 'TM' ? 'timeout'
+      : code === 'IN' || code === 'OUT' ? 'substitution'
+      : _fcbqEventType(text);
+    if (!type) return;
+    const teamId = String(_fcbqFirstValue(move, ['teamUuid', 'idTeam', 'teamId'], ''));
+    const team = teamId === matchInfo.homeId ? 'home' : teamId === matchInfo.awayId ? 'away' : null;
+    if (!team && type !== 'substitution') return;
+    const event = {
+      type,
+      team,
+      period: _fcbqNumber(_fcbqFirstValue(move, ['period', 'quarter', 'q']), 1),
+      min: _fcbqNumber(_fcbqFirstValue(move, ['min', 'minute'])),
+      sec: _fcbqNumber(_fcbqFirstValue(move, ['sec', 'second', 'seconds'])),
+      player: _fcbqFirstValue(move, ['actorName', 'playerName', 'player'], undefined)
+    };
+    const points = /^D3$/.test(code) ? 3 : /^D2$/.test(code) ? 2 : /^D1$/.test(code) ? 1 : _fcbqPoints(text);
+    if (points !== undefined) event.points = points;
+    if (move.localScore !== undefined || move.visitorScore !== undefined) {
+      event.score = { h: _fcbqNumber(move.localScore), a: _fcbqNumber(move.visitorScore) };
+    }
+    events.push(event);
+    if (type === 'substitution') subEvents.push({ ...event, type: code === 'IN' ? 'in' : 'out' });
+  });
+
+  console.log('[FCBQ] Eventos transformados:', { events: events.length, subEvents: subEvents.length });
+  return { events, subEvents };
+}
+
+function _fcbqLegacyMoves(pbp, matchInfo) {
+  return _fcbqMovesList(pbp).map(move => ({
+    ..._fcbqCloneJson(move),
+    idMove: move.eventTypeId,
+    idTeam: move.teamUuid || null,
+    move: move.eventTypeCode || '',
+    min: move.minute ?? 0,
+    sec: move.second ?? 0,
+    period: move.period || 1,
+    actorShirtNumber: move.dorsal || '',
+    actorName: move.actorName || '',
+    score: { h: _fcbqNumber(move.localScore), a: _fcbqNumber(move.visitorScore) }
+  }));
+}
+
+function _fcbqLegacyPlayer(player) {
+  const p = _fcbqPlayerFromStats(player);
+  return {
+    ...p,
+    dorsal: String(p.dorsal || p.number || ''),
+    number: undefined,
+    min: p.min || 0,
+    reb: p.reb || 0,
+    ast: p.ast || 0,
+    fc: p.fc || p.pf || 0,
+    to: p.to || 0,
+    starter: !!p.starter,
+    pm: p.pm || 0,
+    val: p.val || 0
+  };
+}
+
+function _fcbqLegacyPlayers(stats, matchInfo) {
+  const root = stats.data || stats;
+  const boxscore = Array.isArray(root.boxscore) ? root.boxscore[0] : null;
+  if (!boxscore) return _fcbqPlayersByTeam(stats, matchInfo);
+  return {
+    home: (boxscore.local?.players || []).map(_fcbqLegacyPlayer),
+    away: (boxscore.visitor?.players || []).map(_fcbqLegacyPlayer)
+  };
+}
+
+function _fcbqLegacyEvents(pbp, matchInfo) {
+  return _fcbqMovesList(pbp).reduce((events, move) => {
+    const code = String(move.eventTypeCode || '').toUpperCase();
+    const teamId = String(move.teamUuid || '');
+    const team = teamId === matchInfo.homeId ? 'home' : teamId === matchInfo.awayId ? 'away' : null;
+    if (!team) return events;
+    const base = {
+      player: move.actorName || '', team, period: move.period || 1,
+      min: move.minute ?? 0, sec: move.second ?? 0,
+      score: { h: _fcbqNumber(move.localScore), a: _fcbqNumber(move.visitorScore) }
+    };
+    if (code === 'D1' || code === 'D2' || code === 'D3') events.push({ ...base, type: `pts${code.slice(1)}` });
+    else if (code === 'F1' || code === 'F2' || code === 'F3' || code === 'FL2') events.push({ ...base, type: 'foul' });
+    else if (code === 'TM') events.push({ ...base, type: 'timeout' });
+    return events;
+  }, []);
+}
+
+function _fcbqLegacySubEvents(pbp, matchInfo) {
+  return _fcbqMovesList(pbp).reduce((subs, move) => {
+    const code = String(move.eventTypeCode || '').toUpperCase();
+    if (code !== 'IN' && code !== 'OUT') return subs;
+    const teamId = String(move.teamUuid || '');
+    const team = teamId === matchInfo.homeId ? 'home' : teamId === matchInfo.awayId ? 'away' : null;
+    if (!team) return subs;
+    subs.push({ type: code === 'IN' ? 'in' : 'out', player: move.actorName || '', team,
+      period: move.period || 1, min: ((move.period || 1) - 1) * 10 + (move.minute ?? 0) });
+    return subs;
+  }, []);
+}
+
+function transformFCBQJson(pbpInput, statsInput, options = {}) {
+  try {
+    const pbp = _fcbqParseJsonInput(pbpInput, 'PBP');
+    const stats = _fcbqParseJsonInput(statsInput, 'STATS');
+    const matchInfo = _fcbqMatchHeader(pbp, stats);
+    const players = _fcbqLegacyPlayers(stats, matchInfo);
+    const eventData = _fcbqEventsFromPbp(pbp, matchInfo);
+    const legacyEvents = _fcbqLegacyEvents(pbp, matchInfo);
+    const legacySubEvents = _fcbqLegacySubEvents(pbp, matchInfo);
+    const sourceYear = _fcbqFirstValue(stats.data || stats, ['season', 'seasonYear', 'year'], options.season ?? _fcbqSeasonFromDate(matchInfo.header.date));
+    const competition = [
+      _fcbqFirstValue(matchInfo.header, ['categoryName']),
+      _fcbqFirstValue(matchInfo.header, ['competitionName']),
+      _fcbqFirstValue(matchInfo.header, ['groupName'])
+    ].filter(Boolean).join(' · ') || options.competition || '';
+    const result = {
+      homeTeam: matchInfo.homeTeam,
+      awayTeam: matchInfo.awayTeam,
+      scoreHome: matchInfo.scoreHome,
+      scoreAway: matchInfo.scoreAway,
+      homePlayers: players.home,
+      awayPlayers: players.away,
+      events: legacyEvents,
+      subEvents: legacySubEvents,
+      shots: _fcbqCloneJson(stats),
+      fcbqMoves: _fcbqLegacyMoves(pbp, matchInfo),
+      pbpRaw: _fcbqCloneJson(pbp),
+      statsRaw: _fcbqCloneJson(stats),
+      season: sourceYear == null ? null : _fcbqNumber(sourceYear, sourceYear),
+      competition
+    };
+    console.log('[FCBQ] Transformación completada:', result);
+    return result;
+  } catch (error) {
+    console.error('[FCBQ] Error transformando JSON:', error);
+    throw error;
+  }
 }
 
 // Extrae los tiempos muertos del array de moves como eventos {type:'timeout',team,period,min,sec}.
@@ -14608,6 +14954,112 @@ async function importFromFCBQ() {
         btn.innerText = "⬇ Cargar del link";
     }
 }
+
+async function _fcbqReadFile(file) {
+  if (!file) throw new Error('Falta uno de los archivos JSON');
+  const text = await file.text();
+  return _fcbqParseJsonInput(text, file.name || 'archivo FCBQ');
+}
+
+async function importFCBQFiles() {
+  const pbpFile = document.getElementById('i-fcbq-pbp-file')?.files?.[0];
+  const statsFile = document.getElementById('i-fcbq-stats-file')?.files?.[0];
+  const status = document.getElementById('i-fcbq-files-status');
+  const button = document.getElementById('i-fcbq-files-btn');
+
+  if (!pbpFile || !statsFile) {
+    status.innerHTML = '<span style="color:#dc2626;font-weight:700">Selecciona los dos archivos JSON del mismo partido.</span>';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = '⏳ Leyendo...';
+  status.innerHTML = '<span style="color:#ca8a04;font-weight:600">Procesando PBP, plantilla, estadísticas y tiros...</span>';
+
+  try {
+    const [pbp, stats] = await Promise.all([_fcbqReadFile(pbpFile), _fcbqReadFile(statsFile)]);
+    const transformed = transformFCBQJson(pbp, stats, {
+      season: document.getElementById('i-season')?.value || null,
+      competition: document.getElementById('i-comp')?.value || ''
+    });
+    const statsRoot = stats.data || stats;
+    const header = statsRoot.header || statsRoot.match || statsRoot;
+    const teams = _fcbqTeamsFromStats(stats, pbp);
+    const localTeam = header.localTeam || teams.find(t => t.isLocal || t.home || t.local);
+    const visitorTeam = header.visitorTeam || teams.find(t => t.isVisitor || t.away || t.visitor);
+    const localId = String(statsRoot.localId || localTeam?.teamIdIntern || localTeam?.uuid || localTeam?.id || '');
+    const visitId = String(statsRoot.visitId || visitorTeam?.teamIdIntern || visitorTeam?.uuid || visitorTeam?.id || '');
+    const normalizedStats = { ...statsRoot, teams, localId, visitId };
+    const moves = _fcbqMovesList(pbp);
+    const homePlayers = (teams.find(t => String(t.teamIdIntern ?? t.uuid ?? t.id) === localId)?.players || [])
+      .map(p => ({ dorsal: String(p.dorsal ?? p.shirtNumber ?? ''), name: p.name }));
+    const awayPlayers = (teams.find(t => String(t.teamIdIntern ?? t.uuid ?? t.id) === visitId)?.players || [])
+      .map(p => ({ dorsal: String(p.dorsal ?? p.shirtNumber ?? ''), name: p.name }));
+    if (!homePlayers.length && !awayPlayers.length) throw new Error('No se encontraron jugadores en el archivo STATS.');
+
+    const date = (header.date || header.matchDate || '').substring(0, 10) || new Date().toISOString().substring(0, 10);
+    const dateYear = Number(date.substring(0, 4));
+    const dateMonth = Number(date.substring(5, 7));
+    const inferredSeason = dateYear ? `${dateMonth >= 8 ? dateYear : dateYear - 1}-${String((dateMonth >= 8 ? dateYear : dateYear - 1) + 1).slice(2)}` : '';
+    const season = String(document.getElementById('i-season')?.value || transformed.season || inferredSeason || '');
+    const competition = document.getElementById('i-comp')?.value || transformed.competition || [header.categoryName, header.competitionName, header.groupName].filter(Boolean).join(' · ');
+    const match = {
+      id: Date.now(),
+      date,
+      homeTeam: transformed.homeTeam,
+      awayTeam: transformed.awayTeam,
+      scoreHome: transformed.scoreHome,
+      scoreAway: transformed.scoreAway,
+      season,
+      competition,
+      fcbqMoves: transformed.fcbqMoves,
+      fcbqMovesRaw: _fcbqCloneJson(pbp),
+      statsRaw: _fcbqCloneJson(stats),
+      events: transformed.events,
+      subEvents: transformed.subEvents,
+      homePlayers: transformed.homePlayers,
+      awayPlayers: transformed.awayPlayers,
+      shots: _fcbqStatsToShots(normalizedStats),
+      type: 'imported'
+    };
+    if (Array.isArray(header.periods)) {
+      match.qStats = header.periods.map(period => ({ p: period.period, h: period.local, a: period.visitor }));
+    }
+    _fcbqApplyMinutes(match, normalizedStats);
+
+    S.matches = (S.matches || []).filter(existing => existing.id !== match.id);
+    S.matches.unshift(match);
+    [[match.homeTeam, match.homePlayers], [match.awayTeam, match.awayPlayers]].forEach(([name, players]) => {
+      const matchSeason = season || 'Sin temporada';
+      let team = S.teams.find(existing => existing.name.toLowerCase() === name.toLowerCase() && existing.season === matchSeason);
+      if (!team) {
+        team = { id: Date.now() + Math.floor(Math.random() * 999), name, season: matchSeason, color: '#0f1f3d', players: [] };
+        S.teams.push(team);
+      }
+      team.players = team.players || [];
+      (players || []).forEach(player => {
+        if (!team.players.some(existing => existing.name.toLowerCase() === String(player.name || '').toLowerCase())) {
+          team.players.push({ dorsal: String(player.dorsal ?? player.number ?? ''), name: player.name });
+        }
+      });
+    });
+
+    await svL();
+    rAll();
+    status.innerHTML = `<span style="color:#15803d;font-weight:800">✅ Partido importado: ${match.homeTeam} ${match.scoreHome} — ${match.scoreAway} ${match.awayTeam}. ${match.shots.length} tiros ubicados.</span>`;
+    toast('Partido FCBQ importado correctamente.', 'ok');
+  } catch (error) {
+    console.error('[FCBQ files] Error importando partido:', error);
+    status.innerHTML = `<span style="color:#dc2626;font-weight:800">❌ ${_esc(error.message)}</span>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = '📥 Importar archivos';
+  }
+}
+
+// Los handlers usados por onclick inline deben estar disponibles en window
+// porque este HTML carga su lógica principal como módulo.
+window.importFCBQFiles = importFCBQFiles;
 
 /* =========================================================
    🎬 MOTOR DE VÍDEO COMPLETO (NATIVO, SIN LAG, FORMULARIO ARREGLADO)
@@ -15697,7 +16149,7 @@ function renderTeams(){
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
   
   const lista=S.teams.filter(t=>_inGroup(t.name,gf))
-    .sort((a,b) => (b.season||'').localeCompare(a.season||'') || a.name.localeCompare(b.name));
+    .sort((a,b) => String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name));
     
   const countEl=document.getElementById('eq-count');
   if(countEl) countEl.textContent=gf?`(${lista.length} de ${S.teams.length})`:`(${S.teams.length})`;
@@ -15857,7 +16309,7 @@ function populateTeamSelects() {
     // Solo hacemos el cálculo matemático y de texto SI han cambiado los equipos
     if (_lastTeamsLength !== S.teams.length) {
         _teamSelectsCache = '<option value="">— base de datos —</option>' +
-            S.teams.sort((a,b) => (b.season||'').localeCompare(a.season||'') || a.name.localeCompare(b.name))
+            S.teams.sort((a,b) => String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name))
                  .map(t => `<option value="${t.id}">${t.name} (${t.season||'Sin temporada'})</option>`)
                  .join('');
         _lastTeamsLength = S.teams.length; // Guardamos cuántos equipos había
@@ -15870,7 +16322,7 @@ function populateTeamSelects() {
 
 function populateLvTeamSelects(){
   const opts='<option value="">— base de datos —</option>'+
-    S.teams.sort((a,b)=>(b.season||'').localeCompare(a.season||'') || a.name.localeCompare(b.name))
+    S.teams.sort((a,b)=>String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name))
     .map(t=>`<option value="${t.id}">${t.name} (${t.season||'Sin temporada'})</option>`).join('');
   const hs=document.getElementById('lv-home-sel'), as=document.getElementById('lv-away-sel');
   if(hs)hs.innerHTML=opts;

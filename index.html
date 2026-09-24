@@ -7916,6 +7916,231 @@ function toggleStQ(q){
   if(ar)ar.textContent=hidden?'▾':'▸';
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 📊 PARCIALES: puntos acumulados por equipo + tramos (≤4 min) con swing ≥6
+// ═══════════════════════════════════════════════════════════════════════════
+const _PARC_MIN_SWING = 6, _PARC_MAX_SEC = 240;
+
+function _parcSecElapsed(period, min, sec) {
+  const p = Number(period) || 1;
+  const len = p <= 4 ? 600 : 300;
+  const base = p <= 4 ? (p - 1) * 600 : 2400 + (p - 5) * 300;
+  return base + Math.max(0, len - ((Number(min) || 0) * 60 + (Number(sec) || 0)));
+}
+
+// Línea de tiempo: estados de marcador (con quién estaba en pista) y cambios
+function _parcTimeline(m) {
+  const states = [{ t: 0, h: 0, a: 0, seq: -1, oc: null }];
+  const subs = [];
+  const moves = Array.isArray(m.fcbqMoves) ? m.fcbqMoves : [];
+  const sideOf = mv => {
+    const id = String(mv.idTeam ?? '');
+    if (m.localId != null && id === String(m.localId)) return 'home';
+    if (m.visitId != null && id === String(m.visitId)) return 'away';
+    return null;
+  };
+  const useMoves = moves.length > 20 && m.localId != null && moves.some(mv => sideOf(mv));
+
+  if (useMoves) {
+    const st = { home: _scoutFindStarters(m, 'home'), away: _scoutFindStarters(m, 'away') };
+    const firstOc = (m.events || []).find(e => e.oc && e.oc.home && e.oc.away);
+    const on = {
+      home: new Set(st.home || (firstOc ? firstOc.oc.home : [])),
+      away: new Set(st.away || (firstOc ? firstOc.oc.away : []))
+    };
+    states[0].oc = { home: [...on.home], away: [...on.away] };
+    let last = { h: 0, a: 0 };
+    moves.forEach((mv, i) => {
+      const txt = String(mv.move || '').toLowerCase();
+      const t = _parcSecElapsed(mv.period, mv.min, mv.sec);
+      const side = sideOf(mv);
+      const who = String(mv.actorName || '').trim();
+      if (side && who && /entra al camp/.test(txt)) { on[side].add(who); subs.push({ t, seq: i, side, type: 'in', player: who }); }
+      else if (side && who && /surt del camp/.test(txt)) { on[side].delete(who); subs.push({ t, seq: i, side, type: 'out', player: who }); }
+      let sc = null;
+      if (typeof mv.score === 'string') { const x = mv.score.match(/(\d+)\s*-\s*(\d+)/); if (x) sc = { h: +x[1], a: +x[2] }; }
+      else if (mv.score) sc = { h: Number(mv.score.local ?? mv.score.h ?? 0), a: Number(mv.score.visitor ?? mv.score.a ?? 0) };
+      if (sc && (sc.h + sc.a) > (last.h + last.a)) {
+        states.push({ t, h: sc.h, a: sc.a, seq: i, oc: { home: [...on.home], away: [...on.away] } });
+        last = sc;
+      }
+    });
+  } else {
+    const isLive = m.type === 'live';
+    const evs = (m.events || []).filter(e => ['pts2', 'pts3', 'tl_in'].includes(e.type) && e.score)
+      .map((e, i) => ({ e, i, t: Math.round(_elapsedMin(m, e.period, e.min, false) * 60) }))
+      .sort((x, y) => x.t - y.t || x.i - y.i);
+    evs.forEach(({ e, t }) => {
+      const h = e.score.h ?? e.score.home ?? 0, a = e.score.a ?? e.score.away ?? 0;
+      states.push({ t, h, a, seq: t, oc: e.oc ? { home: e.oc.home || [], away: e.oc.away || [] } : null });
+    });
+    if (states[1] && states[1].oc) states[0].oc = states[1].oc;
+    (m.subEvents || []).forEach(s => {
+      const t = Math.round(_elapsedMin(m, s.period || 1, s.min, !isLive) * 60);
+      subs.push({ t, seq: t, side: s.team, type: s.type, player: s.player });
+    });
+    subs.sort((x, y) => x.t - y.t);
+  }
+  return { states, subs };
+}
+
+// Tramos de máximo 4 minutos con mayor cambio de diferencia, sin solaparse
+function _parcFindRuns(states) {
+  const cands = [];
+  for (let i = 0; i < states.length; i++) {
+    const di = states[i].h - states[i].a;
+    for (let j = i + 1; j < states.length; j++) {
+      if (states[j].t - states[i].t > _PARC_MAX_SEC) break;
+      const sw = (states[j].h - states[j].a) - di;
+      if (Math.abs(sw) >= _PARC_MIN_SWING) cands.push({ i, j, sw, dur: states[j].t - states[i].t });
+    }
+  }
+  cands.sort((x, y) => Math.abs(y.sw) - Math.abs(x.sw) || x.dur - y.dur);
+  const picked = [];
+  cands.forEach(c => {
+    const s = states[c.i].t, e = states[c.j].t;
+    if (picked.some(p => s < states[p.j].t && e > states[p.i].t)) return;
+    picked.push(c);
+  });
+  return picked.sort((x, y) => states[x.i].t - states[y.i].t);
+}
+
+function _parcRunDetail(m, tl, run) {
+  const { states, subs } = tl;
+  const S0 = states[run.i], S1 = states[run.j];
+  const pm = { home: {}, away: {} };
+  for (let k = run.i + 1; k <= run.j; k++) {
+    const prev = states[k - 1], cur = states[k];
+    const dh = cur.h - prev.h, da = cur.a - prev.a;
+    const oc = cur.oc || S0.oc || { home: [], away: [] };
+    (oc.home || []).forEach(n => pm.home[n] = (pm.home[n] || 0) + dh - da);
+    (oc.away || []).forEach(n => pm.away[n] = (pm.away[n] || 0) + da - dh);
+  }
+  const inRun = subs.filter(s => s.seq > S0.seq && s.seq < S1.seq);
+  return {
+    start: S0.oc || { home: [], away: [] }, subs: inRun, pm,
+    h: S1.h - S0.h, a: S1.a - S0.a, t0: S0.t, t1: S1.t,
+    fromDiff: S0.h - S0.a, toDiff: S1.h - S1.a
+  };
+}
+
+const _parcClock = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const _parcShort = n => {
+  const p = String(n || '').trim().split(/\s+/);
+  return p.length > 1 ? `${p[0].charAt(0)}. ${p.slice(1, 3).join(' ')}` : (p[0] || '-');
+};
+
+function _parcTooltipHtml(m, d) {
+  const sgn = v => v > 0 ? `+${v}` : `${v}`;
+  const pmCol = v => v > 0 ? '#4ade80' : v < 0 ? '#f87171' : '#94a3b8';
+  const col = side => {
+    const color = side === 'home' ? '#4ade80' : '#60a5fa';
+    const team = side === 'home' ? m.homeTeam : m.awayTeam;
+    const row = n => `<div style="display:flex;justify-content:space-between;gap:10px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(_parcShort(n))}</span><b style="color:${pmCol(d.pm[side][n] || 0)}">${sgn(d.pm[side][n] || 0)}</b></div>`;
+    const start = d.start[side] || [];
+    const ch = d.subs.filter(s => s.side === side);
+    return `<div style="flex:1;min-width:150px">
+      <div style="font-weight:900;color:${color};font-size:11px;text-transform:uppercase;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(team)}</div>
+      <div style="font-size:9px;color:#94a3b8;font-weight:800;margin-bottom:2px">QUINTETO INICIAL · +/-</div>
+      ${start.length ? start.map(row).join('') : '<div style="color:#64748b">—</div>'}
+      ${ch.length ? `<div style="font-size:9px;color:#94a3b8;font-weight:800;margin:6px 0 2px">CAMBIOS</div>
+        ${ch.map(s => `<div style="display:flex;justify-content:space-between;gap:10px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:#64748b">${_parcClock(s.t)}</span> ${s.type === 'in' ? '<span style="color:#4ade80">↑</span>' : '<span style="color:#f87171">↓</span>'} ${_esc(_parcShort(s.player))}</span>${s.type === 'in' ? `<b style="color:${pmCol(d.pm[side][s.player] || 0)}">${sgn(d.pm[side][s.player] || 0)}</b>` : ''}</div>`).join('')}` : ''}
+    </div>`;
+  };
+  const winner = d.h > d.a ? 'home' : 'away';
+  return `<div style="font-weight:900;font-size:17px;color:${winner === 'home' ? '#4ade80' : '#60a5fa'}">Parcial ${d.h}-${d.a}</div>
+    <div style="color:#94a3b8;font-size:10px;font-weight:700;margin:2px 0 8px">Min ${_parcClock(d.t0)} → ${_parcClock(d.t1)} · diferencia ${sgn(d.fromDiff)} → ${sgn(d.toDiff)}</div>
+    <div style="display:flex;gap:16px;text-align:left;font-size:11px;line-height:1.55">${col('home')}${col('away')}</div>`;
+}
+
+function _renderParcialesChart(m) {
+  const tl = _parcTimeline(m);
+  const { states } = tl;
+  if (states.length < 3) return '<div class="empty" style="font-size:11px">Sin datos de anotación suficientes.</div>';
+  const runs = _parcFindRuns(states);
+  const maxP = Math.max(4, ...(m.events || []).map(e => e.period || 1), ...(m.fcbqMoves || []).map(mv => Number(mv.period) || 1));
+  const totalSec = 2400 + Math.max(0, maxP - 4) * 300;
+  const last = states[states.length - 1];
+  const maxPts = Math.max(10, last.h, last.a, ...states.map(s => Math.max(s.h, s.a)));
+  const W = 580, H = 230, L = 26, R = 8, T = 16, B = 20;
+  const x = t => L + (t / totalSec) * (W - L - R);
+  const y = p => T + (1 - p / (maxPts * 1.05)) * (H - T - B);
+  const path = key => {
+    let d = `M${x(0).toFixed(1)},${y(0).toFixed(1)}`, prev = 0;
+    states.forEach(s => { d += ` H${x(s.t).toFixed(1)} V${y(s[key]).toFixed(1)}`; prev = s[key]; });
+    return d + ` H${x(totalSec).toFixed(1)}`;
+  };
+  window._parcRuns = runs.map(r => _parcTooltipHtml(m, _parcRunDetail(m, tl, r)));
+
+  const grid = [];
+  for (let t = 0; t <= totalSec; t += (t < 2400 ? 600 : 300)) grid.push(t);
+  const yStep = maxPts > 60 ? 20 : 10;
+  const yTicks = []; for (let p = 0; p <= maxPts; p += yStep) yTicks.push(p);
+
+  const bands = runs.map((r, idx) => {
+    const s0 = states[r.i], s1 = states[r.j];
+    const home = r.sw > 0, color = home ? '#16a34a' : '#3b82f6';
+    const x0 = x(s0.t), x1 = Math.max(x(s1.t), x0 + 3);
+    const lbl = `${s1.h - s0.h}-${s1.a - s0.a}`;
+    return `<g style="cursor:pointer" onmouseenter="window._parcShow(event,${idx})" onmousemove="window._parcMove(event)" onmouseleave="window._parcHide()">
+      <rect x="${x0.toFixed(1)}" y="${T}" width="${(x1 - x0).toFixed(1)}" height="${H - T - B}" fill="${color}" opacity=".13"/>
+      <rect x="${x0.toFixed(1)}" y="${T}" width="${(x1 - x0).toFixed(1)}" height="3" fill="${color}" opacity=".8"/>
+      <text x="${((x0 + x1) / 2).toFixed(1)}" y="${T - 4}" text-anchor="middle" font-size="9" font-weight="900" fill="${color}">${lbl}</text>
+    </g>`;
+  }).join('');
+
+  const legend = runs.length
+    ? runs.map((r, idx) => {
+        const s0 = states[r.i], s1 = states[r.j], home = r.sw > 0;
+        return `<span onmouseenter="window._parcShow(event,${idx})" onmousemove="window._parcMove(event)" onmouseleave="window._parcHide()" style="cursor:pointer;display:inline-block;margin:2px 6px 2px 0;padding:2px 7px;border-radius:5px;font-weight:800;background:${home ? '#dcfce7' : '#dbeafe'};color:${home ? '#15803d' : '#1e40af'}">${s1.h - s0.h}-${s1.a - s0.a} · ${_parcClock(s0.t)}–${_parcClock(s1.t)}</span>`;
+      }).join('')
+    : `<span style="color:var(--t3)">Ningún parcial de ${_PARC_MIN_SWING}+ puntos en ≤4 minutos.</span>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+      ${yTicks.map(p => `<line x1="${L}" y1="${y(p).toFixed(1)}" x2="${W - R}" y2="${y(p).toFixed(1)}" stroke="#f1f5f9"/><text x="${L - 4}" y="${(y(p) + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#94a3b8">${p}</text>`).join('')}
+      ${grid.map(t => `<line x1="${x(t).toFixed(1)}" y1="${T}" x2="${x(t).toFixed(1)}" y2="${H - B}" stroke="#e2e8f0" stroke-dasharray="3 3"/><text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="8.5" fill="#94a3b8">${t / 60}'</text>`).join('')}
+      ${bands}
+      <path d="${path('h')}" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
+      <path d="${path('a')}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
+    </svg>
+    <div style="display:flex;gap:14px;font-size:10px;font-weight:800;margin:4px 0 2px">
+      <span style="color:#15803d">━ ${_esc(m.homeTeam)} ${last.h}</span><span style="color:#1e40af">━ ${_esc(m.awayTeam)} ${last.a}</span>
+    </div>
+    <div style="font-size:10px;margin-top:4px">${legend}</div>`;
+}
+
+window._parcShow = function (e, idx) {
+  let tt = document.getElementById('parc-tooltip');
+  if (!tt) {
+    tt = document.createElement('div');
+    tt.id = 'parc-tooltip';
+    tt.style.cssText = 'position:fixed;z-index:999999;background:#0f172a;color:#fff;padding:10px 13px;border-radius:10px;font-size:12px;pointer-events:none;box-shadow:0 12px 24px rgba(0,0,0,.35);font-family:sans-serif;max-width:380px;text-align:center';
+    document.body.appendChild(tt);
+  }
+  tt.innerHTML = (window._parcRuns || [])[idx] || '';
+  tt.style.display = 'block';
+  window._parcMove(e);
+};
+window._parcMove = function (e) {
+  const tt = document.getElementById('parc-tooltip'); if (!tt) return;
+  const w = tt.offsetWidth, h = tt.offsetHeight, pad = 12;
+  let left = e.clientX + 16, top = e.clientY - h / 2;
+  if (left + w > window.innerWidth - pad) left = e.clientX - w - 16;
+  top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+  tt.style.left = Math.max(pad, left) + 'px'; tt.style.top = top + 'px';
+};
+window._parcHide = function () { const tt = document.getElementById('parc-tooltip'); if (tt) tt.style.display = 'none'; };
+window._stCronoSet = function (mode) {
+  window._stCronoView = mode;
+  const a = document.getElementById('st-cr-diff'), b = document.getElementById('st-cr-parc');
+  if (a) a.style.display = mode === 'parc' ? 'none' : 'block';
+  if (b) b.style.display = mode === 'parc' ? 'block' : 'none';
+  document.querySelectorAll('.st-cr-btn').forEach(btn => {
+    const on = btn.dataset.mode === mode;
+    btn.style.background = on ? 'var(--nv)' : '#f1f5f9'; btn.style.color = on ? '#fff' : 'var(--t2)';
+  });
+};
+
 function _renderStDetalles(scoped,m){
   const el=document.getElementById('st-det-body');if(!el)return;
   if(!m){
@@ -8177,8 +8402,13 @@ function _renderStDetalles(scoped,m){
             onmouseout="window.hideBarTooltip()" />`;
     }).join('');
 
+    const _crMode = window._stCronoView === 'parc' ? 'parc' : 'diff';
+    let _parcHtml = '';
+    try { _parcHtml = _renderParcialesChart(m); } catch (err) { console.error('Parciales:', err); _parcHtml = '<div class="empty" style="font-size:11px">No se pudieron calcular los parciales.</div>'; }
     barSvg=`<div class="card" style="margin-bottom:9px; position:relative;">
-      <div class="ct">📈 Cronograma del partido <span style="font-weight:600;text-transform:none;color:var(--t3)">· ventaja de ${_esc(m.homeTeam)} arriba</span></div>
+      <div class="ct" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">📈 Cronograma del partido <span style="font-weight:600;text-transform:none;color:var(--t3)">· ventaja de ${_esc(m.homeTeam)} arriba</span>
+        <span style="margin-left:auto;display:inline-flex;gap:4px;text-transform:none"><button class="st-cr-btn" data-mode="diff" onclick="window._stCronoSet('diff')" style="border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;font-weight:800;cursor:pointer;background:${_crMode==='diff'?'var(--nv)':'#f1f5f9'};color:${_crMode==='diff'?'#fff':'var(--t2)'}">Ventaja</button><button class="st-cr-btn" data-mode="parc" onclick="window._stCronoSet('parc')" style="border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;font-weight:800;cursor:pointer;background:${_crMode==='parc'?'var(--nv)':'#f1f5f9'};color:${_crMode==='parc'?'#fff':'var(--t2)'}">Parciales</button></span></div>
+      <div id="st-cr-diff" style="display:${_crMode==='parc'?'none':'block'}">
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
         <line x1="0" y1="${mid}" x2="${W}" y2="${mid}" stroke="#cbd5e1" stroke-width="1"/>
         ${scoring.map((e,i)=>{
@@ -8206,6 +8436,8 @@ function _renderStDetalles(scoped,m){
       <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:2px">
         <span>Inicio</span><span>${scoring.length} canastas</span><span>Final</span>
       </div>
+      </div>
+      <div id="st-cr-parc" style="display:${_crMode==='parc'?'block':'none'}">${_parcHtml}</div>
       ${leadBarHtml}
     </div>`;
   }
@@ -9841,24 +10073,64 @@ function _scoutFindStarters(m, side) {
   return new Set(candidates.slice(0, 5).map(p => p.name));
 }
 
+// Liga sin grupo: "C.C. JÚNIOR FEMENÍ · PRIMERA FASE · 05" → "c.c. júnior femení"
+function _leagueKey(comp) {
+  let c = String(comp || '').split(/\s*·\s*/)[0];
+  c = c.replace(/[\s\-–,]*(grup|grupo|group|gr\.)\s*[\w\d]+\s*$/i, '');
+  return c.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+const _playedGame = p => (Number(p.min) || 0) > 0 || (Number(p.pts) || 0) > 0 ||
+  ((p.t2Att || 0) + (p.t3Att || 0) + (p.tlAtt || 0)) > 0 || (Number(p.fc) || 0) > 0;
+
+// Puntos de titulares / suplentes de un equipo en un partido (null si no hay 5 titulares claros)
+function _starterSplit(m, side) {
+  const starters = _scoutFindStarters(m, side);
+  if (!starters) return null;
+  let st = 0, bn = 0;
+  ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => {
+    const pts = Number(p.pts) || 0;
+    if (starters.has(p.name)) st += pts; else bn += pts;
+  });
+  return { st, bn, starters };
+}
+
+// Media de la liga (todos los equipos, todos los grupos)
+function _leagueStarterAvg(key) {
+  if (!key) return null;
+  window._leagueAvgCache = window._leagueAvgCache || {};
+  const ck = key + '|' + (S.matches || []).length;
+  if (window._leagueAvgCache[ck] !== undefined) return window._leagueAvgCache[ck];
+  let st = 0, bn = 0, n = 0;
+  (S.matches || []).forEach(m => {
+    if (_leagueKey(m.competition) !== key) return;
+    ['home', 'away'].forEach(side => {
+      const r = _starterSplit(m, side);
+      if (!r || !(r.st + r.bn)) return;
+      st += r.st; bn += r.bn; n++;
+    });
+  });
+  const res = (st + bn) ? { pct: st / (st + bn) * 100, n } : null;
+  window._leagueAvgCache[ck] = res;
+  return res;
+}
+
 function _renderScoutStarterPie(matches, rival) {
   let starterPts = 0, benchPts = 0, usable = 0;
-  const benchPlayers = {};
+  const benchPlayers = {}, keys = {};
   matches.forEach(m => {
     const side = m.homeTeam === rival ? 'home' : m.awayTeam === rival ? 'away' : null;
     if (!side) return;
-    const starters = _scoutFindStarters(m, side);
-    if (!starters) return;
+    const split = _starterSplit(m, side);
+    if (!split) return;
     usable++;
+    const k = _leagueKey(m.competition); if (k) keys[k] = (keys[k] || 0) + 1;
+    starterPts += split.st; benchPts += split.bn;
     (side === 'home' ? m.homePlayers : m.awayPlayers).forEach(p => {
-      const pts = Number(p.pts) || 0;
-      if (starters.has(p.name)) starterPts += pts;
-      else {
-        benchPts += pts;
-        if (!benchPlayers[p.name]) benchPlayers[p.name] = { name:p.name, pts:0, games:0 };
-        benchPlayers[p.name].pts += pts;
-        benchPlayers[p.name].games++;
-      }
+      if (split.starters.has(p.name) || !_playedGame(p)) return;
+      if (!benchPlayers[p.name]) benchPlayers[p.name] = { name: p.name, pts: 0, games: 0 };
+      benchPlayers[p.name].pts += Number(p.pts) || 0;
+      benchPlayers[p.name].games++;
     });
   });
 
@@ -9868,13 +10140,36 @@ function _renderScoutStarterPie(matches, rival) {
   }
 
   const pct = starterPts / total * 100;
-  const sixth = Object.values(benchPlayers).sort((a,b) => b.pts-a.pts || b.pts/b.games-a.pts/a.games)[0];
+  // Sexto jugador: pts/partido solo en partidos saliendo del banquillo, mínimo el 30% de los partidos
+  const minGames = Math.max(1, Math.ceil(usable * 0.3));
+  const sixth = Object.values(benchPlayers)
+    .filter(p => p.games >= minGames)
+    .map(p => ({ ...p, ppg: p.pts / p.games }))
+    .sort((a, b) => b.ppg - a.ppg || b.games - a.games)[0];
+
+  const leagueKey = Object.entries(keys).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  const avg = _leagueStarterAvg(leagueKey);
+
   const r = 38, c = 2 * Math.PI * r, dash = c * pct / 100;
+  let tick = '';
+  if (avg) {
+    const ang = avg.pct / 100 * 2 * Math.PI;
+    const p = rr => `${(50 + rr * Math.cos(ang)).toFixed(2)},${(50 + rr * Math.sin(ang)).toFixed(2)}`;
+    const [x1, y1] = p(r - 11).split(','), [x2, y2] = p(r + 11).split(',');
+    tick = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#475569" stroke-width="2.6" stroke-linecap="round"/>
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width=".8" stroke-linecap="round" opacity=".7"/>`;
+  }
+  const diffTxt = avg ? (() => {
+    const d = Math.round(pct - avg.pct);
+    return d === 0 ? 'igual que la media' : `${d > 0 ? '+' : ''}${d} pts vs media · ${d > 0 ? 'más dependiente de titulares' : 'más reparto al banquillo'}`;
+  })() : '';
+
   return `<div style="background:#f8fafc;border:1px solid var(--bd);border-radius:10px;padding:10px 9px 8px">
     <div style="display:flex;align-items:center;justify-content:center;gap:11px;min-height:142px">
     <svg viewBox="0 0 100 100" width="132" height="132" style="display:block;flex-shrink:0;transform:rotate(-90deg)">
       <circle cx="50" cy="50" r="${r}" fill="none" stroke="#f59e0b" stroke-width="16"/>
       <circle cx="50" cy="50" r="${r}" fill="none" stroke="#0ea5e9" stroke-width="16" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(c-dash).toFixed(1)}"/>
+      ${tick}
       <circle cx="50" cy="50" r="24" fill="#fff"/>
       <g transform="rotate(90 50 50)"><text x="50" y="48" text-anchor="middle" font-size="13" font-weight="900" fill="var(--nv)">${Math.round(pct)}%</text><text x="50" y="59" text-anchor="middle" font-size="6.5" font-weight="800" fill="var(--t3)">TITULARES</text></g>
     </svg>
@@ -9882,12 +10177,14 @@ function _renderScoutStarterPie(matches, rival) {
       <div style="font-weight:900;color:var(--nv);margin-bottom:3px;font-size:10px;letter-spacing:.04em">PUNTOS</div>
       <div><span style="display:inline-block;width:9px;height:9px;background:#0ea5e9;border-radius:50%;margin-right:5px"></span>Titulares <b>${starterPts}</b> <span style="color:var(--t3)">(${Math.round(pct)}%)</span></div>
       <div><span style="display:inline-block;width:9px;height:9px;background:#f59e0b;border-radius:50%;margin-right:5px"></span>Suplentes <b>${benchPts}</b> <span style="color:var(--t3)">(${Math.round(100-pct)}%)</span></div>
+      ${avg ? `<div title="Media de todos los equipos de la liga (todos los grupos) · ${avg.n} actuaciones"><span style="display:inline-block;width:9px;height:3px;background:#475569;border-radius:2px;margin-right:5px;vertical-align:middle"></span><span style="color:#475569">Media liga <b>${Math.round(avg.pct)}%</b> tit.</span></div>
+      <div style="font-size:9px;color:#64748b;line-height:1.3;max-width:150px">${diffTxt}</div>` : ''}
       <div style="font-size:9px;color:var(--t3);margin-top:3px">${total} puntos · ${usable}/${matches.length} partidos</div>
     </div>
     </div>
     ${sixth ? `<div style="border-top:1px solid var(--bd);margin-top:6px;padding-top:8px;display:flex;align-items:center;gap:8px;font-size:10.5px">
-      <span style="font-size:17px">🏅</span><div style="flex:1;min-width:0"><div style="font-size:9px;color:var(--t3);font-weight:800;text-transform:uppercase">Mejor suplente · sexto jugador</div><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--nv)">${_esc(sixth.name)}</b></div><strong style="font-size:14px;color:#f59e0b">${sixth.pts}</strong><span style="font-size:9px;color:var(--t3)">pts</span>
-    </div>` : ''}</div>`;
+      <span style="font-size:17px">🏅</span><div style="flex:1;min-width:0"><div style="font-size:9px;color:var(--t3);font-weight:800;text-transform:uppercase">Mejor suplente · sexto jugador</div><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--nv)">${_esc(sixth.name)}</b></div><div style="text-align:right;line-height:1.1"><strong style="font-size:14px;color:#f59e0b">${sixth.ppg.toFixed(1)}</strong><span style="font-size:9px;color:var(--t3)"> pts/p</span><div style="font-size:9px;color:var(--t3)">${sixth.games} p. desde el banquillo</div></div>
+    </div>` : `<div style="border-top:1px solid var(--bd);margin-top:6px;padding-top:6px;font-size:9.5px;color:var(--t3)">Ningún suplente con ${minGames}+ partidos saliendo del banquillo.</div>`}</div>`;
 }
 
 // Generador de Insights Profundos

@@ -8452,16 +8452,21 @@ function _renderStDetalles(scoped,m){
   const qs = Object.keys(byQ).map(Number).sort((a,b) => b-a);
   
   const pbp = qs.length ? qs.map(qq => {
-    // Ordenamos cronológicamente dentro del cuarto antes de pintar
-    const evs = byQ[qq].sort((a,b) => {
-        const timeA = a.time ? (a.time/60) : (a.min || 0);
-        const timeB = b.time ? (b.time/60) : (b.min || 0);
-        return timeA - timeB; // Primero las primeras acciones
-    }).reverse(); // Damos la vuelta para que lo último salga arriba
-    
-    // Buscar el marcador final del cuarto
-    const scoringEvs = byQ[qq].filter(x => x.score);
-    const last = scoringEvs[scoringEvs.length-1];
+    // Ordenamos por tiempo TRANSCURRIDO real (sirve para importados y directo)
+    // sin modificar el array original, y con el orden de m.events como desempate
+    const allEv = m.events || [];
+    const tOf = e => _elapsedMin(m, e.period, e.time ? (e.time/60) : (e.min || 0), false);
+    const chrono = byQ[qq].map(e => ({ e, t: tOf(e), i: allEv.indexOf(e) }))
+      .sort((a, b) => (a.t - b.t) || (a.i - b.i))
+      .map(x => x.e);
+    const evs = chrono.slice().reverse(); // lo último arriba
+
+    // Marcador final del cuarto = última canasta cronológica (el mayor marcador)
+    const scoringEvs = chrono.filter(x => x.score);
+    const last = scoringEvs.reduce((best, x) => {
+      const tot = v => (v.score.h ?? v.score.home ?? 0) + (v.score.a ?? v.score.away ?? 0);
+      return !best || tot(x) >= tot(best) ? x : best;
+    }, null);
     const sh = last ? (last.score.h!=null?last.score.h:last.score.home) : '-'; 
     const sa = last ? (last.score.a!=null?last.score.a:last.score.away) : '-';
     
@@ -17139,34 +17144,83 @@ function _playerAdvancedSplitHtml(games, title, leftLabel, rightLabel, splitFn) 
   const right = games.filter(g => splitFn(g) === 'right');
   if (!left.length || !right.length) return `<div class="card"><div class="ct">${title}</div><div class="empty">No hay partidos suficientes para comparar ambos lados.</div></div>`;
 
-  const avg = (arr, key) => arr.reduce((sum, g) => sum + (Number(g.p[key]) || 0), 0) / arr.length;
+  const sum = (arr, k) => arr.reduce((s, g) => s + (Number(g.p[k]) || 0), 0);
+  const per = (arr, k) => sum(arr, k) / arr.length;
+  const pct = (arr, mk, ak) => { const a = sum(arr, ak); return a ? { v: sum(arr, mk) / a * 100, att: a } : { v: null, att: 0 }; };
+  const side = arr => ({
+    pts: per(arr, 'pts'), min: arr.reduce((s, g) => s + (Number(g._mins) || 0), 0) / arr.length,
+    t2m: per(arr, 't2Made'), t2a: per(arr, 't2Att'), t2p: pct(arr, 't2Made', 't2Att'),
+    t3m: per(arr, 't3Made'), t3a: per(arr, 't3Att'), t3p: pct(arr, 't3Made', 't3Att'),
+    tlm: per(arr, 'tlMade'), tla: per(arr, 'tlAtt'), tlp: pct(arr, 'tlMade', 'tlAtt'),
+    reb: per(arr, 'reb'), ast: per(arr, 'ast'), pm: per(arr, 'pm')
+  });
+  const L = side(left), R = side(right);
+  const f1 = n => (Math.round(n * 10) / 10).toFixed(1);
+  const sg = n => (n > 0 ? '+' : '') + f1(n);
+
+  // [etiqueta, valor izq, valor der, texto izq, texto der, tipo]
   const rows = [
-    ['PTS', 'pts'], ['MIN', '_mins'], ['T2%', '_t2pct'], ['T3%', '_t3pct'],
-    ['TL%', '_tlpct'], ['REB', 'reb'], ['AST', 'ast'], ['+/-', 'pm']
+    ['PTS', L.pts, R.pts, f1(L.pts), f1(R.pts), 'n'],
+    ['MIN', L.min, R.min, f1(L.min), f1(R.min), 'n'],
+    ['T2', L.t2m, R.t2m, `${f1(L.t2m)}/${f1(L.t2a)}`, `${f1(R.t2m)}/${f1(R.t2a)}`, 'n'],
+    ['T2%', L.t2p.v, R.t2p.v, L.t2p.v == null ? '–' : f1(L.t2p.v) + '%', R.t2p.v == null ? '–' : f1(R.t2p.v) + '%', 'p'],
+    ['T3', L.t3m, R.t3m, `${f1(L.t3m)}/${f1(L.t3a)}`, `${f1(R.t3m)}/${f1(R.t3a)}`, 'n'],
+    ['T3%', L.t3p.v, R.t3p.v, L.t3p.v == null ? '–' : f1(L.t3p.v) + '%', R.t3p.v == null ? '–' : f1(R.t3p.v) + '%', 'p'],
+    ['TL', L.tlm, R.tlm, `${f1(L.tlm)}/${f1(L.tla)}`, `${f1(R.tlm)}/${f1(R.tla)}`, 'n'],
+    ['TL%', L.tlp.v, R.tlp.v, L.tlp.v == null ? '–' : f1(L.tlp.v) + '%', R.tlp.v == null ? '–' : f1(R.tlp.v) + '%', 'p'],
+    ['REB', L.reb, R.reb, f1(L.reb), f1(R.reb), 'n'],
+    ['AST', L.ast, R.ast, f1(L.ast), f1(R.ast), 'n'],
+    ['+/-', L.pm, R.pm, sg(L.pm), sg(R.pm), 'n']
   ];
-  const value = (arr, key) => {
-    if (key === '_mins') return arr.reduce((sum, g) => sum + (Number(g._mins) || 0), 0) / arr.length;
-    if (key === '_t2pct') { const a=arr.reduce((s,g)=>s+(Number(g.p.t2Att)||0),0); return a ? arr.reduce((s,g)=>s+(Number(g.p.t2Made)||0),0)/a*100 : 0; }
-    if (key === '_t3pct') { const a=arr.reduce((s,g)=>s+(Number(g.p.t3Att)||0),0); return a ? arr.reduce((s,g)=>s+(Number(g.p.t3Made)||0),0)/a*100 : 0; }
-    if (key === '_tlpct') { const a=arr.reduce((s,g)=>s+(Number(g.p.tlAtt)||0),0); return a ? arr.reduce((s,g)=>s+(Number(g.p.tlMade)||0),0)/a*100 : 0; }
-    return avg(arr, key);
+
+  // ── Conclusiones en lenguaje claro ──
+  const ctx = lbl => ({ LOCAL: 'de local', VISITANTE: 'de visitante', VICTORIAS: 'en las victorias', DERROTAS: 'en las derrotas' }[lbl] || 'en ' + lbl.toLowerCase());
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const verb = {
+    PTS: d => `mete ${d} puntos más por partido`, MIN: d => `juega ${d} minutos más por partido`,
+    T2: d => `anota ${d} tiros de 2 más por partido`, T3: d => `anota ${d} triples más por partido`,
+    TL: d => `anota ${d} tiros libres más por partido`, REB: d => `coge ${d} rebotes más por partido`,
+    AST: d => `da ${d} asistencias más por partido`, '+/-': d => `su +/- es ${d} puntos mejor por partido`
   };
-  const fmt = (label, n) => `${n.toFixed(label.endsWith('%') ? 1 : 1)}${label.endsWith('%') ? '%' : ''}`;
-  const allValues = rows.map(([label,key]) => [label, value(left,key), value(right,key)]);
-  const conclusions = allValues.filter(([,a,b]) => Math.abs(a-b) >= (typeof a === 'number' && a > 10 ? 2 : 0.5)).sort((a,b)=>Math.abs(b[1]-b[2])-Math.abs(a[1]-a[2])).slice(0,2);
-  const conclusionHtml = conclusions.length ? conclusions.map(([label,a,b]) => {
-    const better = a > b ? leftLabel : rightLabel;
-    const diff = Math.abs(a-b).toFixed(1);
-    return `<div style="font-size:11px;padding:5px 0">• ${label}: <b>${better}</b> ${diff} ${label.endsWith('%') ? 'puntos' : 'más'}.</div>`;
-  }).join('') : '<div style="font-size:11px;color:var(--t3)">Rendimiento muy equilibrado.</div>';
+  const minDiff = { PTS: 1, MIN: 2, T2: 0.5, T3: 0.5, TL: 0.5, REB: 0.5, AST: 0.5, '+/-': 2 };
+  const att = { 'T2%': [L.t2p.att, R.t2p.att], 'T3%': [L.t3p.att, R.t3p.att], 'TL%': [L.tlp.att, R.tlp.att] };
+  const concl = [];
+  rows.forEach(([lbl, a, b, ta, tb, type]) => {
+    if (a == null || b == null) return;
+    const d = Math.abs(a - b);
+    const better = a > b ? leftLabel : rightLabel, tBest = a > b ? ta : tb, tOther = a > b ? tb : ta;
+    if (type === 'p') {
+      if (d < 5 || Math.min(...att[lbl]) < 3) return; // poco volumen → no concluimos
+      concl.push({ w: d / 20, t: `Mejora su <b>${lbl}</b> un <b>${f1(d)}%</b> ${ctx(better)} (${tBest} vs ${tOther})` });
+    } else {
+      if (d < (minDiff[lbl] || 0.5)) return;
+      const base = Math.max(Math.abs(a), Math.abs(b), 1);
+      concl.push({ w: d / base, t: `${cap(ctx(better))} ${verb[lbl](`<b>${f1(d)}</b>`)} (${tBest} vs ${tOther})` });
+    }
+  });
+  concl.sort((x, y) => y.w - x.w);
+  const conclusionHtml = concl.length
+    ? concl.slice(0, 3).map(c => `<div style="font-size:11px;padding:4px 0">• ${c.t}.</div>`).join('')
+    : '<div style="font-size:11px;color:var(--t3)">Rendimiento muy equilibrado.</div>';
+
+  // ── Barras desde el centro: la mayor llena, la otra proporcional ──
+  const bars = rows.map(([lbl, a, b, ta, tb]) => {
+    const av = Math.abs(a || 0), bv = Math.abs(b || 0), mx = Math.max(av, bv);
+    const aw = mx ? av / mx * 100 : 0, bw = mx ? bv / mx * 100 : 0;
+    const sub = lbl === 'T2' || lbl === 'T3' || lbl === 'TL';
+    return `<div style="display:grid;grid-template-columns:62px 1fr 40px 1fr 62px;gap:6px;align-items:center;font-size:10px${sub ? ';margin-top:3px' : ''}">
+      <b style="text-align:right;color:#15803d;white-space:nowrap">${ta}</b>
+      <div style="height:7px;background:#dcfce7;border-radius:5px;overflow:hidden;display:flex;justify-content:flex-end"><div style="width:${aw.toFixed(1)}%;height:100%;background:#16a34a;border-radius:5px"></div></div>
+      <span style="color:#64748b;font-weight:900;text-align:center">${lbl}</span>
+      <div style="height:7px;background:#fee2e2;border-radius:5px;overflow:hidden"><div style="width:${bw.toFixed(1)}%;height:100%;background:#ef4444;border-radius:5px"></div></div>
+      <b style="color:#dc2626;white-space:nowrap">${tb}</b></div>`;
+  }).join('');
 
   return `<div class="card" style="margin:0"><div class="ct">${title}</div>
     <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:900;margin:4px 0 8px"><span style="color:#15803d">◀ ${leftLabel} · ${left.length} PJ</span><span style="color:#dc2626">${rightLabel} · ${right.length} PJ ▶</span></div>
-    <div style="display:flex;flex-direction:column;gap:6px">${allValues.map(([label,a,b]) => {
-      const max=Math.max(a,b,1), aw=a/max*100, bw=b/max*100;
-      return `<div style="display:grid;grid-template-columns:58px 1fr 42px 58px 1fr 42px;gap:5px;align-items:center;font-size:10px"><b style="text-align:right;color:#15803d">${fmt(label,a)}</b><div style="height:7px;background:#dcfce7;border-radius:5px;overflow:hidden"><div style="width:${aw}%;height:100%;background:#16a34a;border-radius:5px"></div></div><span></span><span style="color:#64748b;font-weight:900;text-align:center">${label}</span><div style="height:7px;background:#fee2e2;border-radius:5px;overflow:hidden"><div style="width:${bw}%;height:100%;background:#ef4444;border-radius:5px"></div></div><b style="color:#dc2626">${fmt(label,b)}</b></div>`;
-    }).join('')}</div>
-    <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:7px"><div style="font-size:10px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:2px">💡 Conclusiones del jugador</div>${conclusionHtml}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${bars}</div>
+    <div style="font-size:9px;color:var(--t3);margin-top:6px">T2 / T3 / TL = anotados / intentados por partido</div>
+    <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:7px"><div style="font-size:10px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:2px">💡 Conclusiones del jugador</div>${conclusionHtml}</div>
   </div>`;
 }
 

@@ -15380,6 +15380,8 @@ const _FCBQ_CODE_TXT = {
   P:'Personal (0 TL)', P1:'Personal (1 TL)', P2:'Personal (2 TL)', P3:'Personal (3 TL)',
   FL1:'Falta antiesportiva (1 TL)', FL2:'Falta antiesportiva (2 TL)', FL3:'Falta antiesportiva (3 TL)',
   AT:'Falta en atac', T11:'Falta tècnica (1 TL)', C1:'Falta tècnica a la banqueta (1 TL)',
+  B1:'Falta tècnica a la banqueta (1 TL)', B2:'Falta tècnica a la banqueta (2 TL)',
+  DI0:'Falta desqualificant (0 TL)', DI1:'Falta desqualificant (1 TL)', DI2:'Falta desqualificant (2 TL)', DI3:'Falta desqualificant (3 TL)',
   FR:'Falta rebuda',
   // 525 · rebotes · resto
   RD:'Rebot defensiu', RO:'Rebot ofensiu',
@@ -15389,7 +15391,7 @@ const _FCBQ_CODE_TXT = {
   INIPER:'Inici de període', FINPER:'Final de període'
 };
 
-const _FCBQ_VOCAB = /cistella|esmaixada|intent fallat|entra al camp|surt del camp|temps mort|personal|falta|t[èe]cnica|antiesportiva|rebot|robatori|recuperaci|p[èe]rdua|assist|tap|salt|inici de|final de/i;
+const _FCBQ_VOCAB = /desqualificant|cistella|esmaixada|intent fallat|entra al camp|surt del camp|temps mort|personal|falta|t[èe]cnica|antiesportiva|rebot|robatori|recuperaci|p[èe]rdua|assist|tap|salt|inici de|final de/i;
 const _fcbqNum = (v, fb = 0) => _fcbqNumber(v, fb);
 const _fcbqIds = (o) => o ? [o.teamIdIntern, o.uuid, o.id, o.teamId, o.teamUuid].filter(v => v !== undefined && v !== null && v !== '').map(String) : [];
 const _fcbqLooksText = (v) => typeof v === 'string' && v.trim() !== '' && (/\s/.test(v.trim()) || /[a-zàèéíòóúç]/.test(v));
@@ -15529,6 +15531,22 @@ function _fcbqStatsTeamsCompat(teams) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🏗️ CONSTRUCTOR ÚNICO DE PARTIDO FCBQ (link y archivos usan lo mismo)
 // ═══════════════════════════════════════════════════════════════════════════
+// Fechas de partido: la app usa "dd/mm/aaaa"; convertimos las ISO "aaaa-mm-dd"
+function _fmtMatchDate(d) {
+  const t = String(d || '');
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : t;
+}
+// Clave ordenable aaaammdd para cualquier formato
+function _dateKey(d) {
+  const t = String(d || '');
+  let x = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (x) return x[1] + x[2].padStart(2, '0') + x[3].padStart(2, '0');
+  x = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (x) return x[3] + x[2].padStart(2, '0') + x[1].padStart(2, '0');
+  return '';
+}
+
 function _fcbqBuildMatch(pbpInput, statsInput, opts = {}) {
   const pbp = _fcbqParseJsonInput(pbpInput, 'PBP');
   const stats = _fcbqParseJsonInput(statsInput, 'STATS');
@@ -15619,11 +15637,14 @@ function _fcbqBuildMatch(pbpInput, statsInput, opts = {}) {
     || (typeof compObj === 'object' ? compObj?.name : compObj)
     || [head.categoryName, head.competitionName, head.groupName].filter(Boolean).join(' · ') || '';
 
+  const _hn = homeT?.name || homeT?.teamName || info.homeTeam || 'LOCAL';
+  const _an = awayT?.name || awayT?.teamName || info.awayTeam || 'RIVAL';
   const match = {
     id: opts.id || Date.now(),
-    date,
-    homeTeam: homeT?.name || homeT?.teamName || info.homeTeam || 'LOCAL',
-    awayTeam: awayT?.name || awayT?.teamName || info.awayTeam || 'RIVAL',
+    name: `${_hn} vs ${_an}`,
+    date: _fmtMatchDate(date),
+    homeTeam: _hn,
+    awayTeam: _an,
     scoreHome, scoreAway, localId, visitId,
     season, competition,
     fcbqMoves: moves,
@@ -15653,6 +15674,20 @@ function _fcbqUnknownHtml(unknown) {
   if (!ks.length) return '';
   console.warn('[FCBQ] Códigos de jugada sin traducir (ejemplos):', unknown);
   return `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ Códigos sin traducir: ${ks.map(k => `${_esc(k)} (${unknown[k].n})`).join(', ')}</div>`;
+}
+
+// Supabase guarda el id como número (bigint): el UUID de la FCBQ va aparte en fcbqUuid
+let _fcbqIdSeq = 0;
+function _fcbqMatchIdFor(uuid) {
+  if (uuid) {
+    const ex = S.matches.find(m => m.fcbqUuid === uuid && /^\d+$/.test(String(m.id)));
+    if (ex) return ex.id;
+  }
+  return Date.now() * 10 + (_fcbqIdSeq++ % 10);
+}
+function _fcbqDropLegacy(uuid) {
+  if (!uuid) return;
+  S.matches = S.matches.filter(m => String(m.id) !== 'fcbq_' + uuid);
 }
 
 function _fcbqUpsertMatch(newMatch) {
@@ -15685,7 +15720,9 @@ async function importFromFCBQ() {
           const get = ep => _fcbqRequest(`https://msstats.optimalwayconsulting.com/v1/fcbq/matches/${uuid}/${ep}?currentSeason=true`);
           [pbpData, statsData] = await Promise.all([get('pbp'), get('stats')]);
         }
-        const { match, unknown } = _fcbqBuildMatch(pbpData, statsData, { id: 'fcbq_' + uuid, season: _fcbqSeasonFromUrl(url) });
+        _fcbqDropLegacy(uuid);
+        const { match, unknown } = _fcbqBuildMatch(pbpData, statsData, { id: _fcbqMatchIdFor(uuid), season: _fcbqSeasonFromUrl(url) });
+        match.fcbqUuid = uuid;
         Object.entries(unknown).forEach(([k, v]) => { unknownAll[k] = unknownAll[k] || { n: 0, sample: v.sample }; unknownAll[k].n += v.n; });
         _fcbqUpsertMatch(match);
         ok++;
@@ -15735,10 +15772,11 @@ async function importFCBQFiles() {
     const [pbp, stats] = await Promise.all([_fcbqReadFile(pbpFile), _fcbqReadFile(statsFile)]);
     const uuid = _fcbqFindMatchUuid(pbp, stats, [pbpFile.name, statsFile.name]);
     const { match, unknown } = _fcbqBuildMatch(pbp, stats, {
-      id: uuid ? 'fcbq_' + uuid : null,
+      id: (_fcbqDropLegacy(uuid), _fcbqMatchIdFor(uuid)),
       season: document.getElementById('i-season')?.value || '',
       competition: document.getElementById('i-comp')?.value || ''
     });
+    if (uuid) match.fcbqUuid = uuid;
     // Si ya existe el mismo partido (misma fecha y equipos), lo sustituimos en vez de duplicarlo
     if (!uuid) {
       const same = S.matches.find(m => m.date === match.date &&
@@ -15858,7 +15896,7 @@ window.addEventListener('message', e => {
       try { if (typeof ST === 'function') ST('t-imp'); else if (typeof window.ST === 'function') window.ST('t-imp'); } catch (err) {}
       let todo = ids;
       if (ids.length > 1) {
-        const nuevos = ids.filter(id => !S.matches.some(m => String(m.id) === 'fcbq_' + id));
+        const nuevos = ids.filter(id => !S.matches.some(m => m.fcbqUuid === id && /^\d+$/.test(String(m.id))));
         const ya = ids.length - nuevos.length;
         if (!nuevos.length) {
           if (!confirm(`Los ${ids.length} partidos de esta página ya están importados. ¿Reimportarlos todos?`)) return;
@@ -16312,6 +16350,8 @@ function _loadMatchRows(rows) {
     const i = S.matches.findIndex(x => String(x.id) === k);
     if (i >= 0) S.matches.splice(i, 1);
     (_shotsOf[k] || []).forEach(s => drop.add(s));
+    if (!m.name && m.homeTeam && m.awayTeam) m.name = `${m.homeTeam} vs ${m.awayTeam}`;
+    if (/^\d{4}-\d{2}-\d{2}/.test(String(m.date || ''))) m.date = _fmtMatchDate(m.date);
     const ps = m.placedShots || []; delete m.placedShots;
     _shotsOf[k] = ps;
     S.matches.push(m);
@@ -16577,6 +16617,15 @@ async function ldLS() {
 
 // 💾 GUARDAR METADATA Y PARTIDOS (MOTOR INTELIGENTE SUPABASE)
 async function svL() {
+  // Ids no numéricos (p.ej. "fcbq_…") no caben en Supabase (bigint): los convertimos
+  (S.matches || []).forEach(m => {
+    if (m && m.id != null && !/^\d+$/.test(String(m.id))) {
+      const old = String(m.id);
+      if (!m.fcbqUuid && old.startsWith('fcbq_')) m.fcbqUuid = old.slice(5);
+      m.id = _fcbqMatchIdFor(null);
+      (S.shots || []).forEach(sh => { if (String(sh.mId) === old) sh.mId = m.id; if (String(sh.matchId) === old) sh.matchId = m.id; });
+    }
+  });
   const payload = _metaPayload();
   const metaStr = JSON.stringify(payload);
   try { localStorage.setItem('bascatapp_data', metaStr); } catch(e){}
@@ -16713,7 +16762,7 @@ function generateScoutingRadar() {
           const pp = pMap[k];
           pp.teams.add(team); pp.totalG++;
           (pp.bySeason[s] = pp.bySeason[s] || new Set()).add(team);
-          if ((m.date || '') > pp.lastDate) pp.lastDate = m.date || '';
+          if (_dateKey(m.date) > pp.lastDate) pp.lastDate = _dateKey(m.date);
        });
      };
      process(m.homePlayers, m.homeTeam);

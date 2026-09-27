@@ -2945,7 +2945,7 @@ body.zen-mode {
           <div id="i-fcbq-bridge-state" style="margin-bottom:4px"></div>
           Instalar una vez: arrastra este botón a la barra de marcadores 👉
           <a id="i-fcbq-bookmarklet" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#15803d;color:#fff;font-weight:800;text-decoration:none;cursor:grab">→ BascatApp</a>
-          <div style="margin-top:4px">Luego, en la página de un partido de basquetcatala.cat, pulsa el marcador: se abre la app y lo importa sola. Con el puente activo, la caja de links de arriba también funciona.</div>
+          <div style="margin-top:4px">Luego, en basquetcatala.cat pulsa el marcador: en la página de un partido importa ese partido; en la página de resultados de un grupo importa todos los partidos jugados que aparezcan. Con el puente activo, la caja de links de arriba también funciona.</div>
         </div>
       </div>
 
@@ -15689,11 +15689,13 @@ async function importFromFCBQ() {
         Object.entries(unknown).forEach(([k, v]) => { unknownAll[k] = unknownAll[k] || { n: 0, sample: v.sample }; unknownAll[k].n += v.n; });
         _fcbqUpsertMatch(match);
         ok++;
-      } catch (err) { console.error('Fallo al importar', uuid, err); fail++; }
+      } catch (err) { console.error('Fallo al importar', uuid, err); fail++; if (!window._fcbqBridge) window._fcbqNeedBridge = true; }
     }
     svL(); rAll();
     if (ok > 0) document.getElementById('i-fcbq-url').value = '';
     statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ${ok} importados. ${fail ? `(${fail} errores — mira la consola)` : ''}</span>${_fcbqUnknownHtml(unknownAll)}`;
+    if (fail && window._fcbqNeedBridge) statusEl.innerHTML += `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ La FCBQ bloquea las descargas desde servidor. Abre el partido o la página de resultados del grupo en basquetcatala.cat y pulsa el marcador <b>→ BascatApp</b>.</div>`;
+    window._fcbqNeedBridge = false;
     if (ok > 0) toast('Partidos importados correctamente.', 'ok');
   } catch (e) {
     console.error(e);
@@ -15790,6 +15792,7 @@ const _FCBQ_BOOKMARKLET = `(()=>{if(window.__bascatBridge){window.__bascatBridge
 const APP='__APP__',OK=[APP,APP.replace('://','://www.'),APP.replace('://www.','://')];
 const re=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const cur=(location.href.match(re)||[])[0]||null;
+const list=[...new Set([...document.querySelectorAll('a[href*="estadistica/partit/"]')].map(x=>(x.href.match(re)||[])[0]).filter(Boolean))];
 const w=window.open(APP+'/?fcbqBridge=1','bascat_fcbq');
 if(!w){alert('Permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar el marcador');return;}
 window.__bascatBridge={focus:()=>w.focus()};
@@ -15806,7 +15809,7 @@ const opts=good?[good]:[...tk.map(t=>({headers:{...F,Authorization:'Bearer '+t}}
 let last=0;for(const o of opts){try{const r=await fetch(url,o);last=r.status;if(r.ok){good=o;return r.json();}}catch(e){last='red';}}
 good=null;throw new Error(ep+' HTTP '+last+' · tokens encontrados: '+tk.length+(tk.length?' (puede haber caducado: recarga la página de la FCBQ y vuelve a pulsar el marcador)':' (recarga la página de la FCBQ, cambia de pestaña dentro del partido y reintenta)'));};
 window.addEventListener('message',async e=>{if(e.source!==w||!OK.includes(e.origin))return;const d=e.data||{};
-if(d.type==='bascat-ready'){w.postMessage({type:'bascat-bridge',current:cur},e.origin);}
+if(d.type==='bascat-ready'){w.postMessage({type:'bascat-bridge',current:cur,list:list},e.origin);}
 if(d.type==='bascat-fetch'){try{const[pbp,stats]=await Promise.all([get(d.id,'pbp'),get(d.id,'stats')]);w.postMessage({type:'bascat-data',req:d.req,id:d.id,pbp,stats},e.origin);}
 catch(err){w.postMessage({type:'bascat-data',req:d.req,id:d.id,error:String(err&&err.message||err)},e.origin);}}});
 document.title='🔗 Puente BascatApp · '+document.title;})();`;
@@ -15850,10 +15853,21 @@ window.addEventListener('message', e => {
     window._fcbqBridge = { win: e.source, origin: e.origin };
     _bridgeUI();
     try { history.replaceState({}, '', location.pathname); } catch (err) {}
-    if (d.current) _whenReadyForImport(() => {
+    const ids = [...new Set([...(Array.isArray(d.list) ? d.list : []), ...(d.current ? [d.current] : [])])];
+    if (ids.length) _whenReadyForImport(() => {
       try { if (typeof ST === 'function') ST('t-imp'); else if (typeof window.ST === 'function') window.ST('t-imp'); } catch (err) {}
+      let todo = ids;
+      if (ids.length > 1) {
+        const nuevos = ids.filter(id => !S.matches.some(m => String(m.id) === 'fcbq_' + id));
+        const ya = ids.length - nuevos.length;
+        if (!nuevos.length) {
+          if (!confirm(`Los ${ids.length} partidos de esta página ya están importados. ¿Reimportarlos todos?`)) return;
+        } else if (ya && confirm(`${ids.length} partidos en la página: ${nuevos.length} nuevos y ${ya} ya importados.\n\nAceptar = importar solo los ${nuevos.length} nuevos\nCancelar = reimportarlos todos`)) {
+          todo = nuevos;
+        }
+      }
       const ta = document.getElementById('i-fcbq-url');
-      if (ta) { ta.value = `https://www.basquetcatala.cat/estadistica/partit/${d.current}`; importFromFCBQ(); }
+      if (ta) { ta.value = todo.map(id => `https://www.basquetcatala.cat/estadistica/partit/${id}`).join('\n'); importFromFCBQ(); }
     });
   }
   if (d.type === 'bascat-data' && _bridgePending[d.req]) {

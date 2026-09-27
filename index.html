@@ -3686,6 +3686,9 @@ body.zen-mode {
     <!-- 8. Analítica Avanzada (Momentum, Pérdidas, Segundas Oportunidades) -->
     <div id="sc-block-8" style="margin-bottom:12px"></div>
 
+    <!-- 8b. Red de minutos compartidos -->
+    <div id="sc-block-links" style="margin-bottom:12px"></div>
+
     <!-- 9. Notas del Staff -->
     <div class="card" id="sc-block-9">
       <div class="ct">📝 Notas del staff <button onclick="saveScoutNotes()" class="btn bg bxs">💾 Guardar</button></div>
@@ -6249,7 +6252,7 @@ window.tacSideModal = function(type, team) {
                 (pls||[]).forEach(p => {
                     if(!pMap[p.name]) pMap[p.name] = { name: p.name, dorsal: p.dorsal, games: 0, min: 0, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, reb: 0, ast: 0 };
                     const rp = pMap[p.name];
-                    rp.games++; rp.min+=p.min||0; rp.pts+=p.pts||0;
+                    rp.games++; rp.min+=_minNum(p.min); rp.pts+=p.pts||0;
                     rp.t2m+=p.t2Made||0; rp.t2a+=p.t2Att||0;
                     rp.t3m+=p.t3Made||0; rp.t3a+=p.t3Att||0;
                     rp.tlm+=p.tlMade||0; rp.tla+=p.tlAtt||0;
@@ -7895,6 +7898,17 @@ function _renderStMatchHead(m){
 // Hay tres convenciones en los datos: eventos importados guardan minutos RESTANTES
 // del período; los subEvents importados guardan (período-1)*10 + restantes; y el
 // directo guarda directamente minutos transcurridos globales.
+// Minutos de un jugador a número (acepta 18, "18", "18:30", "18,5")
+function _minNum(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  if (v == null) return 0;
+  const t = String(v).trim();
+  const mm = t.match(/^(\d+):(\d{1,2})$/);
+  if (mm) return +mm[1] + (+mm[2]) / 60;
+  const n = parseFloat(t.replace(',', '.'));
+  return isFinite(n) ? n : 0;
+}
+
 function _elapsedMin(m,period,min,isGlobalCountdown){
   if(m&&m.type==='live')return min||0;
   const perLen=period<=4?10:5;
@@ -9160,7 +9174,7 @@ function renderDash(){
   const dbzs=document.getElementById('db-zs');
   if(dbzs)dbzs.innerHTML=zwd.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px">${zwd.map(z=>`<div class="kpi"><div class="kv" style="font-size:15px">${pf(zs[z].m,zs[z].a)}</div><div class="kl">${z}</div><div class="ks">${zs[z].m}/${zs[z].a}</div></div>`).join('')}</div>`:'';
 
-  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=(p.min||0);a.stl=(a.stl||0)+(p.stl||0);a.blk=(a.blk||0)+(p.blk||0);a.to=(a.to||0)+(p.to||0);a.reb=(a.reb||0)+(p.reb||0);a.ast=(a.ast||0)+(p.ast||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
+  const agg={};filt.forEach(p=>{if(!agg[p.name])agg[p.name]={name:p.name,team:p.team,g:0,pts:0,val:0,t3M:0,t3A:0,t2M:0,t2A:0,tlM:0,tlA:0,fc:0,pm:0,min:0,maxFc:0};const a=agg[p.name];a.g++;a.pts+=p.pts;a.val+=(p.val||0);a.t3M+=(p.t3Made||0);a.t3A+=(p.t3Att||0);a.t2M+=(p.t2Made||0);a.t2A+=(p.t2Att||0);a.tlM+=(p.tlMade||0);a.tlA+=(p.tlAtt||0);a.fc+=(p.fc||0);a.pm+=(p.pm||0);a.min+=_minNum(p.min);a.stl=(a.stl||0)+(p.stl||0);a.blk=(a.blk||0)+(p.blk||0);a.to=(a.to||0)+(p.to||0);a.reb=(a.reb||0)+(p.reb||0);a.ast=(a.ast||0)+(p.ast||0);if((p.fc||0)>a.maxFc)a.maxFc=(p.fc||0);});
   const topL=Object.values(agg).sort((a,b)=>b.pts-a.pts).slice(0,8);
   const dbTop=document.getElementById('db-top');
   if(dbTop)dbTop.innerHTML=topL.length?topL.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px"><span style="width:19px;height:19px;border-radius:50%;background:${i<3?'var(--gd)':'var(--bg)'};color:${i<3?'#fff':'var(--t2)'};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><div style="flex:1"><div style="font-weight:700">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.team} · ${p.g} part.</div></div><b style="color:var(--nv)">${p.pts}</b><span style="font-size:10px;color:var(--t3)">pts</span></div>`).join(''):'<div class="empty">Cap dada</div>';
@@ -10085,7 +10099,7 @@ function _leagueKey(comp) {
   return c.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-const _playedGame = p => (Number(p.min) || 0) > 0 || (Number(p.pts) || 0) > 0 ||
+const _playedGame = p => _minNum(p.min) > 0 || (Number(p.pts) || 0) > 0 ||
   ((p.t2Att || 0) + (p.t3Att || 0) + (p.tlAtt || 0)) > 0 || (Number(p.fc) || 0) > 0;
 
 // Puntos de titulares / suplentes de un equipo en un partido (null si no hay 5 titulares claros)
@@ -10322,7 +10336,7 @@ function renderScouting() {
       const rp = rivalPlayers[p.name];
       rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
       rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
-      rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
+      rp.pm += p.pm || 0; rp.games++; rp.min += _minNum(p.min);
       if (p.starter) rp.starts++;
     });
   });
@@ -10565,8 +10579,10 @@ function renderScouting() {
 
   renderScoutClutch(matches);
   renderScoutTimeout(matches);
+  try { renderScoutLinks(matches); } catch (e) { console.error('Red de minutos:', e); }
 
   const b8 = document.getElementById('sc-block-8');
+  if (b8 && !advFCBQ) b8.innerHTML = '';
   if (b8 && advFCBQ) {
       const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
       const runAvgs = [1,2,3,4].map(q => ({ q, net: getAvg(advFCBQ.runsForQ[q]) - getAvg(advFCBQ.runsAgainstQ[q]) }));
@@ -10757,15 +10773,223 @@ function renderScoutClutch(matches) {
   </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔁 Fuente play-by-play única: jugadas FCBQ si las hay; si no, los eventos del
+// directo convertidos al mismo formato (texto catalán, reloj cuenta atrás, ids).
+// Así ATO, momentum, segundas oportunidades, pérdidas… funcionan en ambos.
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// 🕸️ RED DE QUINTETOS: cuánto juega cada jugador con cada compañero
+// Nodos = jugadores (tamaño = minutos). Hilos = minutos juntos en pista
+// (grosor) y +/- juntos (color). Pasa el ratón / toca un jugador.
+// ═══════════════════════════════════════════════════════════════════════════
+function _scoutPairMinutes(matches, team) {
+  const P = {}, pairs = {};
+  const node = n => (P[n] = P[n] || { name: n, sec: 0, pm: 0, games: new Set(), dorsal: '' });
+  const key = (a, b) => a < b ? a + '|' + b : b + '|' + a;
+  const pair = (a, b) => (pairs[key(a, b)] = pairs[key(a, b)] || { a: a < b ? a : b, b: a < b ? b : a, sec: 0, pm: 0 });
+  let used = 0;
+
+  matches.forEach(m => {
+    const side = m.homeTeam === team ? 'home' : m.awayTeam === team ? 'away' : null;
+    if (!side) return;
+    let tl;
+    try { tl = _parcTimeline(m); } catch (e) { return; }
+    const starters = _scoutFindStarters(m, side) || (tl.states[0]?.oc?.[side] ? new Set(tl.states[0].oc[side]) : null);
+    if (!starters || starters.size < 4) return;
+    const roster = side === 'home' ? (m.homePlayers || []) : (m.awayPlayers || []);
+    roster.forEach(p => { if (P[p.name] && !P[p.name].dorsal) P[p.name].dorsal = p.dorsal; });
+    used++;
+
+    const maxP = Math.max(4, ...(m.events || []).map(e => e.period || 1), ...(m.fcbqMoves || []).map(mv => Number(mv.period) || 1));
+    const endT = 2400 + Math.max(0, maxP - 4) * 300;
+    const court = new Set(starters);
+    let last = 0;
+    const flush = t => {
+      const dt = Math.max(0, Math.min(t, endT) - last);
+      if (dt > 0 && court.size >= 3 && court.size <= 6) {
+        const arr = [...court];
+        arr.forEach(n => { const x = node(n); x.sec += dt; x.games.add(m.id); });
+        for (let i = 0; i < arr.length; i++) for (let j = i + 1; j < arr.length; j++) pair(arr[i], arr[j]).sec += dt;
+      }
+      last = Math.max(last, Math.min(t, endT));
+    };
+    tl.subs.filter(s => s.side === side).forEach(s => {
+      flush(s.t);
+      if (s.type === 'out') court.delete(s.player); else court.add(s.player);
+    });
+    flush(endT);
+
+    // +/- juntos: con el quinteto registrado en cada canasta
+    for (let k = 1; k < tl.states.length; k++) {
+      const prev = tl.states[k - 1], cur = tl.states[k];
+      const oc = cur.oc?.[side]; if (!oc || !oc.length) continue;
+      const d = side === 'home' ? (cur.h - prev.h) - (cur.a - prev.a) : (cur.a - prev.a) - (cur.h - prev.h);
+      oc.forEach(n => node(n).pm += d);
+      for (let i = 0; i < oc.length; i++) for (let j = i + 1; j < oc.length; j++) pair(oc[i], oc[j]).pm += d;
+    }
+    roster.forEach(p => { if (P[p.name] && !P[p.name].dorsal) P[p.name].dorsal = p.dorsal; });
+  });
+  return { players: P, pairs, used };
+}
+
+function renderScoutLinks(matches) {
+  const el = document.getElementById('sc-block-links');
+  if (!el) return;
+  const { players, pairs, used } = _scoutPairMinutes(matches, _scoutRival);
+  const nodes = Object.values(players).filter(p => p.sec >= 120).sort((a, b) => b.sec - a.sec).slice(0, 12);
+  if (!used || nodes.length < 4) {
+    el.innerHTML = `<div class="card" style="margin:0"><div class="ct">🕸️ Red de minutos compartidos</div><div class="empty" style="font-size:11px">Hacen falta partidos con quinteto inicial y cambios registrados para dibujar la red.</div></div>`;
+    return;
+  }
+  const inSet = new Set(nodes.map(n => n.name));
+  const links = Object.values(pairs).filter(l => inSet.has(l.a) && inSet.has(l.b) && l.sec >= 60);
+  const maxSec = Math.max(...links.map(l => l.sec), 1);
+  const maxNode = Math.max(...nodes.map(n => n.sec), 1);
+
+  // Orden alrededor del círculo: el que más juega arriba y cada siguiente junto a su socio más habitual
+  const order = [nodes[0]];
+  const left = new Set(nodes.slice(1).map(n => n.name));
+  while (left.size) {
+    const lastN = order[order.length - 1].name;
+    let best = null, bestSec = -1;
+    left.forEach(n => { const l = pairs[lastN < n ? lastN + '|' + n : n + '|' + lastN]; const sec = l ? l.sec : 0; if (sec > bestSec) { bestSec = sec; best = n; } });
+    order.push(players[best]); left.delete(best);
+  }
+
+  const W = 560, H = 520, cx = W / 2, cy = H / 2 + 4, R = 185;
+  const pos = {};
+  order.forEach((n, i) => {
+    const a = -Math.PI / 2 + i / order.length * 2 * Math.PI;
+    pos[n.name] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a), a, i };
+  });
+  const minFmt = s => `${Math.round(s / 60)}'`;
+  const short = n => { const p = String(n).trim().split(/\s+/); return p.length > 1 ? `${p[0].charAt(0)}. ${p[1]}` : p[0]; };
+  const pmCol = (pm, sec) => {
+    const r = sec ? pm / (sec / 60) * 10 : 0; // +/- por 10 minutos juntos
+    if (r > 1.5) return '#16a34a'; if (r > 0.3) return '#65a30d';
+    if (r < -1.5) return '#dc2626'; if (r < -0.3) return '#ea580c';
+    return '#94a3b8';
+  };
+
+  const linkSvg = links.sort((a, b) => a.sec - b.sec).map(l => {
+    const p1 = pos[l.a], p2 = pos[l.b];
+    const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+    const qx = mx + (cx - mx) * 0.55, qy = my + (cy - my) * 0.55; // curva hacia el centro
+    const w = 1 + (l.sec / maxSec) * 11, op = 0.15 + (l.sec / maxSec) * 0.6;
+    return `<path class="lk" data-a="${_esc(l.a)}" data-b="${_esc(l.b)}" data-op="${op.toFixed(2)}" d="M${p1.x.toFixed(1)},${p1.y.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}" fill="none" stroke="${pmCol(l.pm, l.sec)}" stroke-width="${w.toFixed(1)}" stroke-linecap="round" opacity="${op.toFixed(2)}" style="transition:opacity .15s"/>`;
+  }).join('');
+
+  const nodeSvg = order.map(n => {
+    const p = pos[n.name], r = 9 + (n.sec / maxNode) * 13;
+    const lx = cx + (R + r + 10) * Math.cos(p.a), ly = cy + (R + r + 10) * Math.sin(p.a);
+    const anchor = Math.abs(Math.cos(p.a)) < 0.25 ? 'middle' : Math.cos(p.a) > 0 ? 'start' : 'end';
+    const idx = order.indexOf(n);
+    return `<g class="nd" data-n="${_esc(n.name)}" style="cursor:pointer;transition:opacity .15s" onmouseenter="window._lnkFocus(${idx})" onmouseleave="window._lnkFocus(null)" onclick="window._lnkFocus(${idx},true)">
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="#0f1f3d" stroke="#fff" stroke-width="2.5"/>
+      <text x="${p.x.toFixed(1)}" y="${(p.y + 3.5).toFixed(1)}" text-anchor="middle" font-size="${r > 15 ? 10 : 8.5}" font-weight="900" fill="#fff">${_esc(String(n.dorsal || ''))}</text>
+      <text x="${lx.toFixed(1)}" y="${(ly + (Math.sin(p.a) < -0.4 ? -8 : 3.5)).toFixed(1)}" text-anchor="${anchor}" font-size="10.5" font-weight="800" fill="var(--nv)">${_esc(short(n.name))}</text>
+      <text x="${lx.toFixed(1)}" y="${(ly + (Math.sin(p.a) < -0.4 ? 3.5 : 15)).toFixed(1)}" text-anchor="${anchor}" font-size="9" fill="#94a3b8">${minFmt(n.sec)} en pista</text>
+    </g>`;
+  }).join('');
+
+  // Paneles laterales: general + por jugador
+  const sg = v => (v > 0 ? '+' : '') + v;
+  const row = (label, sec, pm, base) => `<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%">${label}</span><span>${minFmt(sec)} <b style="color:${pmCol(pm, sec)}">${sg(pm)}</b></span></div>
+      <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-top:2px"><div style="width:${Math.min(100, sec / base * 100).toFixed(1)}%;height:100%;background:${pmCol(pm, sec)};border-radius:3px"></div></div></div>`;
+  const topPairs = Object.values(pairs).filter(l => inSet.has(l.a) && inSet.has(l.b)).sort((a, b) => b.sec - a.sec).slice(0, 7);
+  const general = `<div style="font-size:10px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:8px">🤝 Parejas más habituales</div>
+    ${topPairs.map(l => row(`${_esc(short(l.a))} + ${_esc(short(l.b))}`, l.sec, l.pm, topPairs[0].sec)).join('')}
+    <div style="font-size:9.5px;color:var(--t3);margin-top:8px;line-height:1.4">Pasa el ratón o toca un jugador para ver con quién comparte pista.</div>`;
+  window._lnkPanels = order.map(n => {
+    const mates = order.filter(o => o !== n).map(o => {
+      const l = pairs[n.name < o.name ? n.name + '|' + o.name : o.name + '|' + n.name] || { sec: 0, pm: 0 };
+      return { o, sec: l.sec, pm: l.pm };
+    }).sort((a, b) => b.sec - a.sec);
+    return `<div style="font-size:10px;font-weight:900;color:var(--nv);text-transform:uppercase;margin-bottom:2px">${_esc(n.name)}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:9px">${minFmt(n.sec)} en pista · ${n.games.size} PJ · +/- ${sg(n.pm)}</div>
+      <div style="font-size:9px;font-weight:800;color:var(--t3);margin-bottom:5px">% DE SUS MINUTOS JUNTO A…</div>
+      ${mates.map(x => row(`${_esc(short(x.o.name))} <span style="color:var(--t3);font-weight:600">${Math.round(x.sec / (n.sec || 1) * 100)}%</span>`, x.sec, x.pm, n.sec)).join('')}`;
+  });
+  window._lnkGeneral = general;
+  window._lnkNames = order.map(n => n.name);
+  window._lnkLocked = null;
+
+  el.innerHTML = `<div class="card" style="margin:0;padding:16px">
+    <div class="ct" style="margin-bottom:4px">🕸️ Red de minutos compartidos <span style="font-weight:600;text-transform:none;color:var(--t3)">· ${used} partidos con cambios registrados</span></div>
+    <div style="font-size:10.5px;color:var(--t3);margin-bottom:6px">Tamaño del círculo = minutos en pista · grosor del hilo = minutos juntos · color = +/- juntos por 10 min
+      (<span style="color:#16a34a;font-weight:800">positivo</span> / <span style="color:#94a3b8;font-weight:800">neutro</span> / <span style="color:#dc2626;font-weight:800">negativo</span>)</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,1fr);gap:16px;align-items:center">
+      <svg id="lnk-svg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible">
+        <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="4 5"/>
+        ${linkSvg}${nodeSvg}
+      </svg>
+      <div id="lnk-panel" style="background:#f8fafc;border:1px solid var(--bd);border-radius:12px;padding:14px;min-height:260px">${general}</div>
+    </div>
+  </div>`;
+}
+
+window._lnkFocus = function (idx, click) {
+  if (click) window._lnkLocked = window._lnkLocked === idx ? null : idx;
+  const f = idx === null ? window._lnkLocked : idx;
+  const name = f === null || f === undefined ? null : window._lnkNames[f];
+  const svg = document.getElementById('lnk-svg'); if (!svg) return;
+  const linked = new Set(name ? [name] : []);
+  svg.querySelectorAll('.lk').forEach(p => {
+    const on = !name || p.dataset.a === name || p.dataset.b === name;
+    if (name && on) { linked.add(p.dataset.a); linked.add(p.dataset.b); }
+    p.setAttribute('opacity', !name ? p.dataset.op : on ? Math.min(1, +p.dataset.op + 0.35) : 0.04);
+  });
+  svg.querySelectorAll('.nd').forEach(g => { g.style.opacity = !name || linked.has(g.dataset.n) ? 1 : 0.25; });
+  const panel = document.getElementById('lnk-panel');
+  if (panel) panel.innerHTML = name ? window._lnkPanels[f] : window._lnkGeneral;
+};
+
+const _LIVE_TXT = {
+  pts2: 'Cistella de 2', pts3: 'Cistella de 3', tl_in: 'Cistella de 1',
+  miss2: 'Intent fallat de 2', miss3: 'Intent fallat de 3', tl_out: 'Intent fallat de 1',
+  timeout: 'Temps mort', to: 'Pèrdua', stl: 'Recuperació', ro: 'Rebot ofensiu', rd: 'Rebot defensiu',
+  ast: 'Assistència', blk: 'Tap', foul: 'Personal (falta)', tech: 'Falta tècnica', anti: 'Falta antiesportiva'
+};
+function _pbpSource(m) {
+  if (!m) return null;
+  if (Array.isArray(m.fcbqMoves) && m.fcbqMoves.length) return { moves: m.fcbqMoves, localId: m.localId, visitId: m.visitId, live: false };
+  const evs = (m.events || []).filter(e => _LIVE_TXT[e.type]);
+  if (evs.length < 5) return null;
+  const H = '__home', A = '__away';
+  const moves = [];
+  let lastP = null;
+  evs.forEach((e, i) => {
+    const period = Number(e.period) || 1;
+    if (lastP !== null && period !== lastP) moves.push({ move: 'Final de període', period: lastP, min: 0, sec: 0, idTeam: null });
+    lastP = period;
+    const len = period <= 4 ? 10 : 5;
+    const base = period <= 4 ? (period - 1) * 10 : 40 + (period - 5) * 5;
+    const el = _elapsedMin(m, period, e.time ? e.time / 60 : (e.min || 0), false);
+    const rem = Math.max(0, Math.min(len * 60, Math.round((len - (el - base)) * 60)));
+    const sc = e.score || {};
+    moves.push({
+      move: _LIVE_TXT[e.type], idMove: e.type === 'timeout' ? 113 : null,
+      idTeam: e.team === 'home' ? H : e.team === 'away' ? A : null,
+      period, min: Math.floor(rem / 60), sec: rem % 60,
+      actorName: e.player || '', score: { local: sc.h ?? sc.home ?? 0, visitor: sc.a ?? sc.away ?? 0 }
+    });
+  });
+  if (lastP !== null) moves.push({ move: 'Final de període', period: lastP, min: 0, sec: 0, idTeam: null });
+  return { moves, localId: H, visitId: A, live: true };
+}
+
 function renderScoutTimeout(matches) {
   const el = document.getElementById('sc-sit-timeout'); if (!el) return;
   const startEvents = [], afterTO = [];
   matches.forEach(m => {
     const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-    if (m.fcbqMoves && m.fcbqMoves.length > 0) {
-        const rId = rivalSide === 'home' ? m.localId : m.visitId;
+    const src = _pbpSource(m);
+    if (src) {
+        const rId = rivalSide === 'home' ? src.localId : src.visitId;
         let activeTO = false, activeQuarterStart = true, currentPeriod = 1;
-        const sortedMoves = [...m.fcbqMoves].sort((a,b) => (((a.period||1)-1)*600+(600-((a.min??0)*60+(a.sec??0)))) - (((b.period||1)-1)*600+(600-((b.min??0)*60+(b.sec??0)))));
+        const sortedMoves = [...src.moves].sort((a,b) => (((a.period||1)-1)*600+(600-((a.min??0)*60+(a.sec??0)))) - (((b.period||1)-1)*600+(600-((b.min??0)*60+(b.sec??0)))));
         sortedMoves.forEach(mv => {
             if (mv.period && mv.period !== currentPeriod) { currentPeriod = mv.period; activeQuarterStart = true; activeTO = false; }
             const text = (mv.move || '').toLowerCase();
@@ -13008,7 +13232,7 @@ function renderCompare() {
               rp.t3m += pMatch.t3Made || 0; rp.t3a += pMatch.t3Att || 0;
               rp.tlm += pMatch.tlMade || 0; rp.tla += pMatch.tlAtt || 0;
               rp.fc += pMatch.fc || 0; rp.reb += pMatch.reb || 0; rp.ast += pMatch.ast || 0;
-              rp.pm += pMatch.pm || 0; rp.games++; rp.min += pMatch.min || 0;
+              rp.pm += pMatch.pm || 0; rp.games++; rp.min += _minNum(pMatch.min);
             };
             
             matchesToScan.forEach(m => {
@@ -13059,7 +13283,7 @@ function renderCompare() {
                 const rp = rivalPlayers[norm];
                 rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
                 rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
-                rp.pm += p.pm || 0; rp.games++; rp.min += p.min || 0;
+                rp.pm += p.pm || 0; rp.games++; rp.min += _minNum(p.min);
             });
         });
 
@@ -15412,6 +15636,14 @@ function _fcbqBuildMatch(pbpInput, statsInput, opts = {}) {
   if (Array.isArray(head.periods) && head.periods.length) {
     match.qStats = head.periods.map(p => ({ p: p.period, h: p.local, a: p.visitor }));
   }
+  // Minutos reconstruidos con los cambios (si el acta trae minutos oficiales, _fcbqApplyMinutes los sobrescribe)
+  try {
+    [['homePlayers', match.homeTeam], ['awayPlayers', match.awayTeam]].forEach(([k, team]) => {
+      const pl = _scoutPairMinutes([match], team).players;
+      if (!Object.keys(pl).length) return;
+      match[k].forEach(p => { const x = pl[p.name]; p.min = x ? Math.round(x.sec / 6) / 10 : 0; });
+    });
+  } catch (e) { console.warn('[FCBQ] minutos por cambios:', e); }
   _fcbqApplyMinutes(match, normalizedStats);
   return { match, unknown };
 }
@@ -16460,116 +16692,72 @@ function generateScoutingRadar() {
    S.matches.forEach(m => {
      const s = m.season || 'Sin temporada';
      const process = (players, team) => {
-       (players||[]).forEach(p => {
-          const k = p.name.trim().toLowerCase();
-          if (!pMap[k]) pMap[k] = { 
-              name: p.name, teams: new Set(), seasons: new Set(), 
-              ptsByS: {}, rebByS: {}, astByS: {}, gByS: {}, totalPts:0, totalG:0 
-          };
-          
-          pMap[k].teams.add(team); pMap[k].seasons.add(s);
-          pMap[k].totalPts += p.pts||0; pMap[k].totalG++;
-          
-          if (!pMap[k].ptsByS[s]) { pMap[k].ptsByS[s] = 0; pMap[k].rebByS[s] = 0; pMap[k].astByS[s] = 0; pMap[k].gByS[s] = 0; }
-          pMap[k].ptsByS[s] += p.pts||0;
-          pMap[k].rebByS[s] += p.reb||0;
-          pMap[k].astByS[s] += p.ast||0;
-          pMap[k].gByS[s]++;
+       (players || []).forEach(p => {
+          const k = String(p.name || '').trim().toLowerCase();
+          if (!k) return;
+          if (!pMap[k]) pMap[k] = { name: p.name, teams: new Set(), bySeason: {}, totalG: 0, lastDate: '' };
+          const pp = pMap[k];
+          pp.teams.add(team); pp.totalG++;
+          (pp.bySeason[s] = pp.bySeason[s] || new Set()).add(team);
+          if ((m.date || '') > pp.lastDate) pp.lastDate = m.date || '';
        });
      };
      process(m.homePlayers, m.homeTeam);
      process(m.awayPlayers, m.awayTeam);
    });
 
-   const players = Object.values(pMap);
+   // Cambios de equipo: todos, ordenados por el más reciente
+   const movers = Object.values(pMap)
+     .filter(p => p.teams.size > 1 && ![...p.teams].some(t => isOurTeam(t)))
+     .map(p => {
+       const path = [];
+       Object.keys(p.bySeason).sort().forEach(se => [...p.bySeason[se]].forEach(t => {
+         if (!path.length || path[path.length - 1].team !== t) path.push({ team: t, season: se });
+       }));
+       return { ...p, path };
+     })
+     .sort((a, b) => (b.lastDate || '').localeCompare(a.lastDate || '') || a.name.localeCompare(b.name));
 
-   // 1. Cambios de equipo
-   const movers = players.filter(p => p.teams.size > 1 && ![...p.teams].some(t => isOurTeam(t)))
-        .sort((a,b) => b.totalPts - a.totalPts).slice(0, 6);
-   
-   // 2. Jugadores Revelación / Caídas libres (Pts, Reb, Ast)
-   const changes = [];
-   players.forEach(p => {
-       const sList = [...p.seasons].sort();
-       if (sList.length >= 2) {
-           const s1 = sList[sList.length - 2]; 
-           const s2 = sList[sList.length - 1]; 
-           const g1 = p.gByS[s1] || 1; const g2 = p.gByS[s2] || 1; 
-
-           const ppg1 = p.ptsByS[s1] / g1; const ppg2 = p.ptsByS[s2] / g2;
-           const rpg1 = p.rebByS[s1] / g1; const rpg2 = p.rebByS[s2] / g2;
-           const apg1 = p.astByS[s1] / g1; const apg2 = p.astByS[s2] / g2;
-           
-           const ptsDiff = ppg2 - ppg1;
-           const rebDiff = rpg2 - rpg1;
-           const astDiff = apg2 - apg1;
-
-           let statName = null, diff = 0, v1 = 0, v2 = 0;
-           if (Math.abs(ptsDiff) >= 4) { statName = "PTS"; diff = ptsDiff; v1 = ppg1; v2 = ppg2; }
-           else if (Math.abs(rebDiff) >= 3) { statName = "REB"; diff = rebDiff; v1 = rpg1; v2 = rpg2; }
-           else if (Math.abs(astDiff) >= 2.5) { statName = "AST"; diff = astDiff; v1 = apg1; v2 = apg2; }
-
-           if (statName) {
-               changes.push({ 
-                   name: p.name, team: [...p.teams][0], statName, diff, v1, v2,
-                   isUp: diff > 0,
-                   mag: Math.abs(diff)
-               });
-           }
-       }
-   });
-   changes.sort((a,b) => b.mag - a.mag).slice(0, 8); 
-
-   let html = `<div style="text-align:left; max-width:900px; margin: 0 auto;">
-     <div style="background:linear-gradient(120deg,#0f172a,#1e293b); color:#fff; border-radius:12px; padding:20px; margin-bottom:16px;">
-        <h2 style="font-size:20px; font-weight:900; margin-bottom:4px;">🕵️ Radar de Mercado y Progresión</h2>
-        <div style="font-size:12px; color:var(--t3); opacity:0.8;">Detectando automáticamente cambios de equipo y variaciones estadísticas entre temporadas.<br>Selecciona un rival específico arriba para ver su informe de scouting.</div>
+   window._radarMovers = movers;
+   const card = mv => `
+     <div class="radar-mv" data-q="${_esc((mv.name + ' ' + [...mv.teams].join(' ')).toLowerCase())}" style="display:flex;align-items:center;gap:12px;padding:10px;background:#f8fafc;border:1px solid var(--bd);border-radius:10px;cursor:pointer" onclick="openRadarProfile('${_esc(mv.name).replace(/'/g, "\\'")}')">
+       <span style="font-size:18px;background:#fff;padding:6px;border-radius:50%">🚚</span>
+       <div style="flex:1;min-width:0">
+         <div style="font-weight:800;font-size:13px;color:var(--nv)">${_esc(mv.name)}</div>
+         <div style="font-size:10.5px;color:var(--t2);margin-top:3px;line-height:1.5">${mv.path.map(x => `<b style="color:var(--tx)">${_esc(x.team)}</b> <span style="color:var(--t3)">(${_esc(x.season)})</span>`).join(' <span style="color:#3b82f6;font-weight:900">➔</span> ')}</div>
+       </div>
+       <span style="font-size:10px;color:var(--t3);white-space:nowrap">${mv.totalG} PJ</span>
      </div>`;
 
-   if (changes.length) {
-      html += `<div class="card" style="border-left:4px solid #3b82f6">
-        <div class="ct" style="margin-bottom:12px; color:#1e40af">📊 Mayores variaciones de rendimiento (Año anterior vs Actual)</div>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">
-          ${changes.map(m => `
-            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${m.isUp?'#f0fdf4':'#fef2f2'}; border:1px solid ${m.isUp?'#bbf7d0':'#fecaca'}; border-radius:10px; cursor:pointer;" onclick="openRadarProfile('${_esc(m.name)}')">
-              <span style="font-size:20px; background:#fff; padding:6px; border-radius:50%;">${m.isUp?'📈':'📉'}</span>
-              <div style="flex:1">
-                 <div style="font-weight:800; font-size:13px; color:${m.isUp?'#166534':'#991b1b'};">${_esc(m.name)}</div>
-                 <div style="font-size:10px; color:var(--t3); margin-top:2px;">${m.team}</div>
-              </div>
-              <div style="text-align:right">
-                 <div style="font-weight:900; font-size:15px; color:${m.isUp?'#15803d':'#dc2626'};">${m.isUp?'+':''}${m.diff.toFixed(1)} ${m.statName}</div>
-                 <div style="font-size:9px; color:var(--t3);">${m.v1.toFixed(1)} ➔ ${m.v2.toFixed(1)}</div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-   }
+   let html = `<div style="text-align:left;max-width:1000px;margin:0 auto">
+     <div style="background:linear-gradient(120deg,#0f172a,#1e293b);color:#fff;border-radius:12px;padding:20px;margin-bottom:16px">
+        <h2 style="font-size:20px;font-weight:900;margin-bottom:4px">🕵️ Radar de Mercado</h2>
+        <div style="font-size:12px;color:var(--t3);opacity:0.8">Jugadores que han pasado por más de un equipo en la base de datos.<br>Selecciona un rival específico arriba para ver su informe de scouting.</div>
+     </div>`;
 
    if (movers.length) {
       html += `<div class="card">
-        <div class="ct" style="margin-bottom:12px;">🔄 Cambios de Equipo detectados</div>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">
-          ${movers.map(m => `
-            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:#f8fafc; border:1px solid var(--bd); border-radius:10px; cursor:pointer;" onclick="openRadarProfile('${_esc(m.name)}')">
-              <span style="font-size:20px; background:#fff; padding:6px; border-radius:50%;">🚚</span>
-              <div style="flex:1">
-                 <div style="font-weight:800; font-size:13px; color:var(--nv);">${_esc(m.name)}</div>
-                 <div style="font-size:10px; color:var(--t3); margin-top:2px;"><b style="color:var(--tx)">${[...m.teams].join(' ➔ ')}</b></div>
-              </div>
-            </div>
-          `).join('')}
+        <div class="ct" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">🔄 Cambios de equipo detectados <span id="radar-count" style="font-weight:600;text-transform:none;color:var(--t3)">· ${movers.length} jugadores</span>
+          <input id="radar-q" placeholder="🔎 Buscar jugador o equipo…" oninput="window._radarFilter(this.value)" style="margin-left:auto;min-width:220px;padding:6px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;text-transform:none;font-weight:500">
         </div>
+        <div id="radar-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px">${movers.map(card).join('')}</div>
       </div>`;
-   } 
-
-   if(!changes.length && !movers.length) {
-     html += `<div class="card"><div class="empty">Se necesitan partidos de diferentes temporadas de un mismo jugador para detectar progresiones o cambios de equipo.</div></div>`;
+   } else {
+     html += `<div class="card"><div class="empty">No se ha detectado ningún jugador que haya jugado en más de un equipo.</div></div>`;
    }
-   
    return html + `</div>`;
 }
+
+window._radarFilter = function (q) {
+  const t = String(q || '').trim().toLowerCase();
+  let n = 0;
+  document.querySelectorAll('#radar-list .radar-mv').forEach(el => {
+    const ok = !t || el.dataset.q.includes(t);
+    el.style.display = ok ? 'flex' : 'none';
+    if (ok) n++;
+  });
+  const c = document.getElementById('radar-count'); if (c) c.textContent = `· ${n} jugadores`;
+};
 
 // ── Perfil Especial del Radar de Mercado (Progresión) ──
 function openRadarProfile(name) {
@@ -17067,7 +17255,7 @@ function _advancedTeam(matches,team){
     (pl||[]).forEach(p=>{
       z.t2m+=p.t2Made||0;z.t2a+=p.t2Att||0;z.t3m+=p.t3Made||0;z.t3a+=p.t3Att||0;
       z.ftm+=p.tlMade||0;z.fta+=p.tlAtt||0;z.orb+=p.ro||0;z.drb+=p.rd||0;
-      z.to+=p.to||0;z.ast+=p.ast||0;z.min+=p.min||0;
+      z.to+=p.to||0;z.ast+=p.ast||0;z.min+=_minNum(p.min);
     });
   });
   const fga=z.t2a+z.t3a,poss=fga+.44*z.fta-z.orb+z.to,n=(matches||[]).filter(m=>{
@@ -17100,7 +17288,7 @@ function _advancedTeamSplit(matches, team) {
       target.t3m += p.t3Made || 0; target.t3a += p.t3Att || 0;
       target.ftm += p.tlMade || 0; target.fta += p.tlAtt || 0;
       target.orb += p.ro || 0; target.drb += p.rd || 0;
-      target.to += p.to || 0; target.ast += p.ast || 0; target.min += p.min || 0;
+      target.to += p.to || 0; target.ast += p.ast || 0; target.min += _minNum(p.min);
     });
   });
   const processMetrics = (z) => {
@@ -17261,7 +17449,7 @@ function _renderStAdvanced() {
     if (!p) return null;
     const my = side === 'home' ? Number(m.scoreHome) || 0 : Number(m.scoreAway) || 0;
     const op = side === 'home' ? Number(m.scoreAway) || 0 : Number(m.scoreHome) || 0;
-    return {m,p,side,my,op,result:my>op?'W':my<op?'L':'E',_mins:Number(p.min)||0};
+    return {m,p,side,my,op,result:my>op?'W':my<op?'L':'E',_mins:_minNum(p.min)};
   }).filter(Boolean);
   const opts = (key, label, values) => `<select onchange="window._stAdvState.${key}=this.value;window._renderStAdvanced()" style="width:100%;font-size:11px;padding:6px"><option value="">${label}</option>${values.map(v => `<option value="${_esc(v[0])}"${_stAdvState[key]===v[0]?' selected':''}>${_esc(v[1])}</option>`).join('')}</select>`;
   const matchVals = matchOptions.sort((a,b)=>(b.id||0)-(a.id||0)).map(m => [String(m.id), `${m.name || m.homeTeam+' vs '+m.awayTeam}${m.date?' · '+m.date.slice(0,10):''}`]);
@@ -17911,7 +18099,7 @@ function renderLeaders(){
       const key=String(p.name||'').trim().toLowerCase();
       if(!key)return;
       if(!totals.has(key))totals.set(key,{name:p.name,dorsal:p.dorsal,teams:new Set(),g:0,min:0,pts:0,reb:0,ast:0,t2m:0,t2a:0,t3m:0,t3a:0,tlm:0,tla:0,pm:0,blk:0,stl:0,to:0,fc:0,fr:0});
-      const t=totals.get(key);t.g++;t.min+=Number(p.min)||0;t.pts+=Number(p.pts)||0;t.reb+=Number(p.reb)||0;t.ast+=Number(p.ast)||0;
+      const t=totals.get(key);t.g++;t.min+=_minNum(p.min);t.pts+=Number(p.pts)||0;t.reb+=Number(p.reb)||0;t.ast+=Number(p.ast)||0;
       if(p.team)t.teams.add(p.team);
       t.t2m+=Number(p.t2Made)||0;t.t2a+=Number(p.t2Att)||0;t.t3m+=Number(p.t3Made)||0;t.t3a+=Number(p.t3Att)||0;
       t.tlm+=Number(p.tlMade)||0;t.tla+=Number(p.tlAtt)||0;t.pm+=Number(p.pm)||0;t.blk+=Number(p.blk)||0;t.stl+=Number(p.stl)||0;
@@ -18311,10 +18499,12 @@ function _analyzeAdvancedFCBQ(matches, rivalTeam) {
     let hasData = false;
 
     matches.forEach(m => {
-        const rId = String(m.homeTeam.toLowerCase() === rivalTeam.toLowerCase() ? m.localId : m.visitId);
-        if (!rId || rId === 'undefined' || !m.fcbqMoves) return;
+        const src = _pbpSource(m);
+        if (!src) return;
+        const rId = String(m.homeTeam.toLowerCase() === rivalTeam.toLowerCase() ? src.localId : src.visitId);
+        if (!rId || rId === 'undefined') return;
         hasData = true;
-        const oppId = String(rId === String(m.localId) ? m.visitId : m.localId);
+        const oppId = String(rId === String(src.localId) ? src.visitId : src.localId);
 
         let curRunRival = 0, curRunOpp = 0;
         let stateTO = null;  
@@ -18328,7 +18518,7 @@ function _analyzeAdvancedFCBQ(matches, rivalTeam) {
             if (p.dorsal) rPlayersByDorsal[String(p.dorsal)] = p.name;
         });
 
-        const sortedMoves = [...m.fcbqMoves].sort((a,b) => {
+        const sortedMoves = [...src.moves].sort((a,b) => {
             const elA = ((a.period||1)-1)*600 + (600-((a.min??0)*60+(a.sec??0)));
             const elB = ((b.period||1)-1)*600 + (600-((b.min??0)*60+(b.sec??0)));
             return elA - elB;

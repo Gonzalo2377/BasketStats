@@ -15690,6 +15690,34 @@ function _fcbqDropLegacy(uuid) {
   S.matches = S.matches.filter(m => String(m.id) !== 'fcbq_' + uuid);
 }
 
+// Crea/actualiza los dos equipos del partido (por nombre + temporada) con su plantilla,
+// para tenerlos listos en el directo. Devuelve {created, updated}.
+function _fcbqSyncTeams(match) {
+  const res = { created: [], updated: [] };
+  [[match.homeTeam, match.homePlayers], [match.awayTeam, match.awayPlayers]].forEach(([name, players]) => {
+    if (!name) return;
+    const season = match.season || 'Sin temporada';
+    let team = S.teams.find(t => String(t.name).toLowerCase() === String(name).toLowerCase() && t.season === season);
+    if (!team) {
+      team = { id: Date.now() + Math.floor(Math.random() * 99999), name, season, color: '#0f1f3d', players: [] };
+      S.teams.push(team);
+      res.created.push(name);
+    }
+    team.players = team.players || [];
+    let changed = false;
+    (players || []).forEach(p => {
+      const pn = String(p.name || '').trim();
+      if (!pn) return;
+      const d = String(p.dorsal ?? '').trim();
+      const ex = team.players.find(e => String(e.name || '').toLowerCase() === pn.toLowerCase());
+      if (!ex) { team.players.push({ dorsal: d, name: pn }); changed = true; }
+      else if (d && String(ex.dorsal ?? '') !== d) { ex.dorsal = d; changed = true; } // dorsal más reciente
+    });
+    if (changed && !res.created.includes(name)) res.updated.push(name);
+  });
+  return res;
+}
+
 function _fcbqUpsertMatch(newMatch) {
   const i = S.matches.findIndex(m => String(m.id) === String(newMatch.id));
   if (i >= 0) S.matches[i] = { ...S.matches[i], ...newMatch };
@@ -15705,6 +15733,7 @@ async function importFromFCBQ() {
 
   btn.disabled = true; btn.innerText = '⏳ Importando...';
   let ok = 0, fail = 0, unknownAll = {};
+  const teamsCreated = new Set(), teamsUpdated = new Set();
   statusEl.innerHTML = `<span style="color:#ca8a04;font-weight:600;">Iniciando conexión con FCBQ...</span>`;
   try {
     for (let i = 0; i < urls.length; i++) {
@@ -15725,12 +15754,15 @@ async function importFromFCBQ() {
         match.fcbqUuid = uuid;
         Object.entries(unknown).forEach(([k, v]) => { unknownAll[k] = unknownAll[k] || { n: 0, sample: v.sample }; unknownAll[k].n += v.n; });
         _fcbqUpsertMatch(match);
+        const tr = _fcbqSyncTeams(match);
+        tr.created.forEach(n => teamsCreated.add(n)); tr.updated.forEach(n => teamsUpdated.add(n));
         ok++;
       } catch (err) { console.error('Fallo al importar', uuid, err); fail++; if (!window._fcbqBridge) window._fcbqNeedBridge = true; }
     }
     svL(); rAll();
     if (ok > 0) document.getElementById('i-fcbq-url').value = '';
     statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ${ok} importados. ${fail ? `(${fail} errores — mira la consola)` : ''}</span>${_fcbqUnknownHtml(unknownAll)}`;
+    if (teamsCreated.size || teamsUpdated.size) statusEl.innerHTML += `<div style="color:#1e40af;font-weight:700;margin-top:4px">👥 ${teamsCreated.size ? teamsCreated.size + ' equipos creados' : ''}${teamsCreated.size && teamsUpdated.size ? ' · ' : ''}${teamsUpdated.size ? teamsUpdated.size + ' plantillas actualizadas' : ''}</div>`;
     if (fail && window._fcbqNeedBridge) statusEl.innerHTML += `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ La FCBQ bloquea las descargas desde servidor. Abre el partido o la página de resultados del grupo en basquetcatala.cat y pulsa el marcador <b>→ BascatApp</b>.</div>`;
     window._fcbqNeedBridge = false;
     if (ok > 0) toast('Partidos importados correctamente.', 'ok');
@@ -15786,22 +15818,11 @@ async function importFCBQFiles() {
     }
     _fcbqUpsertMatch(match);
 
-    [[match.homeTeam, match.homePlayers], [match.awayTeam, match.awayPlayers]].forEach(([name, players]) => {
-      const matchSeason = match.season || 'Sin temporada';
-      let team = S.teams.find(t => t.name.toLowerCase() === name.toLowerCase() && t.season === matchSeason);
-      if (!team) {
-        team = { id: Date.now() + Math.floor(Math.random() * 999), name, season: matchSeason, color: '#0f1f3d', players: [] };
-        S.teams.push(team);
-      }
-      team.players = team.players || [];
-      (players || []).forEach(p => {
-        if (!team.players.some(e => e.name.toLowerCase() === String(p.name || '').toLowerCase()))
-          team.players.push({ dorsal: String(p.dorsal ?? ''), name: p.name });
-      });
-    });
+    const teamsRes = _fcbqSyncTeams(match);
 
     await svL(); rAll();
     status.innerHTML = `<span style="color:#15803d;font-weight:800">✅ ${_esc(match.homeTeam)} ${match.scoreHome} — ${match.scoreAway} ${_esc(match.awayTeam)} · ${match.fcbqMoves.length} jugadas · ${match.subEvents.length} cambios · ${match.shots.length} tiros ubicados.</span>${_fcbqUnknownHtml(unknown)}`;
+    if (teamsRes.created.length || teamsRes.updated.length) status.innerHTML += `<div style="color:#1e40af;font-weight:700;margin-top:4px">👥 ${teamsRes.created.length ? 'Equipos creados: ' + teamsRes.created.map(_esc).join(', ') + '. ' : ''}${teamsRes.updated.length ? 'Plantillas actualizadas: ' + teamsRes.updated.map(_esc).join(', ') + '.' : ''}</div>`;
     toast('Partido FCBQ importado correctamente.', 'ok');
   } catch (error) {
     console.error('[FCBQ files] Error importando partido:', error);

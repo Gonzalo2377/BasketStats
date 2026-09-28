@@ -3580,6 +3580,7 @@ body.zen-mode {
 <div id="t-club" class="tab"><div class="main">
   <div class="card" style="margin-bottom:10px">
     <div class="ct">🟡 Unió Esportiva Claret
+      <select id="cl-tf" onchange="setOurTeam(this.value)" style="height:28px;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;min-width:150px;margin-right:6px"></select>
       <select id="cl-sf" onchange="renderClub()" style="height:28px;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;min-width:150px">
         <option value="">Acumulado (todo)</option>
       </select>
@@ -8534,6 +8535,45 @@ function _renderStDetalles(scoped,m){
   
   const pOf = (e) => e.type === 'pts3' ? 3 : e.type === 'pts2' ? 2 : 1;
   const qs = Object.keys(byQ).map(Number).sort((a,b) => b-a);
+
+  // Asistencias: evento 'ast' del directo justo después de la canasta, o jugada "Assistència" de la FCBQ
+  const _astOf = new Map();
+  {
+    const allE = m.events || [];
+    allE.forEach((e, i) => {
+      if (!['pts2', 'pts3'].includes(e.type)) return;
+      for (let k = i + 1; k < Math.min(allE.length, i + 4); k++) {
+        const x = allE[k];
+        if (['pts2', 'pts3', 'tl_in'].includes(x.type)) break;
+        if (x.type === 'ast' && x.team === e.team && x.player && x.player !== e.player) { _astOf.set(e, x.player); break; }
+      }
+    });
+    const mv = Array.isArray(m.fcbqMoves) ? m.fcbqMoves : [];
+    if (mv.length) {
+      const byScore = {};
+      const scoreOf = x => {
+        if (typeof x.score === 'string') { const r = x.score.match(/(\d+)\s*-\s*(\d+)/); return r ? r[1] + '-' + r[2] : null; }
+        return x.score ? `${x.score.local ?? x.score.h ?? 0}-${x.score.visitor ?? x.score.a ?? 0}` : null;
+      };
+      mv.forEach((x, i) => {
+        const t = String(x.move || '').toLowerCase();
+        if (!/cistella de [23]|esmaixada/.test(t)) return;
+        for (let k = Math.max(0, i - 2); k < Math.min(mv.length, i + 4); k++) {
+          const y = mv[k];
+          if (k === i || !/assist/i.test(String(y.move || ''))) continue;
+          if (String(y.idTeam) !== String(x.idTeam) || Number(y.period) !== Number(x.period)) continue;
+          if ((Number(y.min) || 0) * 60 + (Number(y.sec) || 0) !== (Number(x.min) || 0) * 60 + (Number(x.sec) || 0)) continue;
+          const sc = scoreOf(x); if (sc && y.actorName) byScore[x.period + '|' + sc] = y.actorName;
+          break;
+        }
+      });
+      allE.forEach(e => {
+        if (_astOf.has(e) || !['pts2', 'pts3'].includes(e.type) || !e.score) return;
+        const k = e.period + '|' + (e.score.h ?? e.score.home) + '-' + (e.score.a ?? e.score.away);
+        if (byScore[k]) _astOf.set(e, byScore[k]);
+      });
+    }
+  }
   
   const pbp = qs.length ? qs.map(qq => {
     // Ordenamos por tiempo TRANSCURRIDO real (sirve para importados y directo)
@@ -8567,7 +8607,7 @@ function _renderStDetalles(scoped,m){
       ${evs.map(e => {
         const home = e.team === 'home';
         const rawTime = e.time ? (e.time/60) : (e.min || 0);
-        const clk = `<span style="font-size:11px;color:var(--t3);width:30px;flex-shrink:0;text-align:${home?'left':'right'}">${_fmtClock(_elapsedMin(m, e.period, rawTime, false))}</span>`;
+        const clk = `<span style="font-size:11px;color:var(--t2);width:30px;flex-shrink:0;text-align:${home?'left':'right'}">${_fmtClock(_elapsedMin(m, e.period, rawTime, false))}</span>`;
         
         // 🚀 Si es un Tiempo Muerto, diseño especial sin marcador
         if (e.type === 'timeout') {
@@ -8581,8 +8621,9 @@ function _renderStDetalles(scoped,m){
         // Si es canasta
         const h = e.score.h!=null?e.score.h:e.score.home, a = e.score.a!=null?e.score.a:e.score.away;
         const badge = `<span style="width:26px;height:26px;border-radius:50%;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${pOf(e)}</span>`;
-        const sc = `<b style="font-size:12px;white-space:nowrap;width:58px;flex-shrink:0;text-align:center">${h} -${a}</b>`;
-        const nm = `<span style="font-size:12px;color:var(--t2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:${home?'left':'right'}">${_esc(e.player)}</span>`;
+        const sc = `<b style="font-size:12px;white-space:nowrap;width:58px;flex-shrink:0;text-align:center;color:var(--tx)">${h} - ${a}</b>`;
+        const ast = _astOf.get(e);
+        const nm = `<span style="font-size:12px;color:#1e293b;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:${home?'left':'right'}">${_esc(e.player)}${ast ? ` <span style="color:#94a3b8;font-weight:500">(${_esc(ast)})</span>` : ''}</span>`;
         
         return home
           ? `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">${clk}${badge}${sc}${nm}</div>`
@@ -9960,10 +10001,36 @@ function populateRivalSelect() {
   S.matches.forEach(m => {
     [m.homeTeam, m.awayTeam].forEach(tn => { if (tn && _inGroup(tn,gf)) rivals.add(tn); });
   });
-  const keep=!v||rivals.has(v);
-  sel.innerHTML=_teamSelectOptions(keep?v:'',{placeholder:'— Selecciona un rival —',filterGroupId:gf,names:[...rivals].sort()});
+  // Mismo nombre en varias categorías (A infantil / A cadete…) → una opción por categoría
+  const cats = {};
+  S.matches.forEach(m => [m.homeTeam, m.awayTeam].forEach(tn => {
+    if (!tn || !rivals.has(tn)) return;
+    const c = _catOf(m) || _uniqueCatFor(_teamKey(tn));
+    if (c) (cats[tn] = cats[tn] || new Set()).add(c);
+  }));
+  const [vName] = String(v || '').split('§');
+  const keep=!v||rivals.has(vName);
+  let html=_teamSelectOptions(keep?vName:'',{placeholder:'— Selecciona un rival —',filterGroupId:gf,names:[...rivals].sort()});
+  Object.entries(cats).forEach(([tn, set]) => {
+    if (set.size < 2) return;
+    const ev = _esc(tn);
+    const re = new RegExp('<option value="' + ev.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"( selected)?>([^<]*)</option>');
+    html = html.replace(re, (all, selAttr, label) => [...set].sort().map(c => {
+      const val = tn + '§' + c;
+      return `<option value="${_esc(val)}"${v === val || (selAttr && v === tn && c === [...set].sort()[0]) ? ' selected' : ''}>${label} · ${_esc(c)}</option>`;
+    }).join(''));
+  });
+  sel.innerHTML=html;
   if(!keep)sel.value='';
 }
+
+// Categoría del rival elegido en scouting ('' = sin filtro)
+function _scCatOk(m) {
+  const c = window._scoutCat || '';
+  if (!c) return true;
+  return (_catOf(m) || _uniqueCatFor(_teamKey(_scoutRival))) === c;
+}
+function _scoutNoteKey() { return _scoutRival + (window._scoutCat ? '§' + window._scoutCat : ''); }
 
 // ── Métricas cruzadas para los splits ──
 var _SPLIT_METRICS = [
@@ -10231,7 +10298,7 @@ function _leagueStarterAvg(key) {
   if (window._leagueAvgCache[ck] !== undefined) return window._leagueAvgCache[ck];
   let st = 0, bn = 0, n = 0;
   (S.matches || []).forEach(m => {
-    if (_leagueKey(m.competition) !== key) return;
+    if (_isFriendly(m) || _leagueKey(m.competition) !== key) return;
     ['home', 'away'].forEach(side => {
       const r = _starterSplit(m, side);
       if (!r || !(r.st + r.bn)) return;
@@ -10252,7 +10319,7 @@ function _renderScoutStarterPie(matches, rival) {
     const split = _starterSplit(m, side);
     if (!split) return;
     usable++;
-    const k = _leagueKey(m.competition); if (k) keys[k] = (keys[k] || 0) + 1;
+    const k = _isFriendly(m) ? '' : _leagueKey(m.competition); if (k) keys[k] = (keys[k] || 0) + 1;
     starterPts += split.st; benchPts += split.bn;
     (side === 'home' ? m.homePlayers : m.awayPlayers).forEach(p => {
       if (split.starters.has(p.name) || !_playedGame(p)) return;
@@ -10362,7 +10429,7 @@ function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
 function renderScouting() {
   setTimeout(() => { try { _loadScoutNotes(); } catch (e) {} }, 0);
   const sel = document.getElementById('sc-rival');
-  _scoutRival = sel?.value || '';
+  { const raw = String(sel?.value || ''); const [nm, cat] = raw.split('§'); _scoutRival = nm || ''; window._scoutCat = cat || ''; }
 
   let sfSelect = document.getElementById('sc-sf');
   
@@ -10373,7 +10440,7 @@ function renderScouting() {
   let sfEff = '';
   if (sfSelect) {
       const cur = sfSelect.value;
-      const matchPool = _scoutRival ? S.matches.filter(m => m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) : S.matches;
+      const matchPool = _scoutRival ? S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m)) : S.matches;
       const seasons = [...new Set(matchPool.map(m=>m.season).filter(Boolean))].sort().reverse();
       const ok = !cur || seasons.includes(cur);
       
@@ -10394,7 +10461,7 @@ function renderScouting() {
   scContent.style.display = 'block';
 
   let matches = S.matches.filter(m => {
-      const isThisRival = (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival);
+      const isThisRival = (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m);
       const matchesSeason = !sfEff || m.season === sfEff;
       return isThisRival && matchesSeason;
   });
@@ -11164,7 +11231,7 @@ window.setScoutSplit = function(mode) {
     if(!cont) return;
 
     const sfEff = document.getElementById('sc-sf')?.value || '';
-    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff));
+    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m) && (!sfEff || m.season === sfEff));
     
     if (mode === 'ha') cont.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
     else cont.innerHTML = _v4AnalyzeTeamSplits(matches, _scoutRival).htmlSplit;
@@ -11179,7 +11246,7 @@ window.toggleScoutPl = function(idx, name) {
         let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
         shots = shots.filter(s => {
             const m = S.matches.find(m => m.id === (s.mId || s.matchId));
-            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && (!sfEff || m.season === sfEff);
+            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m) && (!sfEff || m.season === sfEff);
         });
         if(shots.length >= 3) drawHeatmap(`sc-cv-heat-${idx}`, shots);
         else {
@@ -11207,7 +11274,7 @@ function _scoutNoteStore() {
 }
 function _loadScoutNotes() {
   const store = _scoutNoteStore();
-  const n = (_scoutRival && store[_scoutRival]) || {};
+  const n = (_scoutRival && (store[_scoutNoteKey()] || (!window._scoutCat ? null : null))) || {};
   const legacyPlays = [n.pr, n.side].filter(Boolean).join('\n');
   _SC_NOTE_KEYS.forEach(k => {
     const el = document.getElementById('sc-note-' + k);
@@ -11220,8 +11287,8 @@ function _collectScoutNotes() {
   const store = _scoutNoteStore();
   const n = {};
   _SC_NOTE_KEYS.forEach(k => { n[k] = document.getElementById('sc-note-' + k)?.value || ''; });
-  store[_scoutRival] = n;
-  _scoutNotes[_scoutRival] = n;
+  store[_scoutNoteKey()] = n;
+  _scoutNotes[_scoutNoteKey()] = n;
   try { localStorage.setItem('bascatScoutNotes', JSON.stringify(_scoutNotes)); } catch (e) {}
   return true;
 }
@@ -12515,7 +12582,8 @@ function renderClub(){
   const ssel = document.getElementById('cl-sf');
   const sf = ssel ? ssel.value : '';
   if(ssel){
-    const sMap = S.matches.filter(m => isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)).map(m => m.season).filter(Boolean);
+    const _k0 = _ourTeamKey();
+    const sMap = S.matches.filter(m => [m.homeTeam, m.awayTeam].some(n => isOurTeam(n) && (!_k0 || _ourKeyOf(m, n) === _k0))).map(m => m.season).filter(Boolean);
     const seasons = [...new Set(sMap)].sort().reverse();
     const ok = !sf || seasons.includes(sf);
     
@@ -12529,14 +12597,22 @@ function renderClub(){
   }
   const sfEff = ssel ? ssel.value : '';
 
+  const _tList = _ourTeamsList(), _tKey = _ourTeamKey();
+  const tsel = document.getElementById('cl-tf');
+  if (tsel) {
+    tsel.innerHTML = _tList.map(t => `<option value="${_esc(t.key)}"${t.key === _tKey ? ' selected' : ''}>${_esc(t.label)} (${t.games})</option>`).join('') || '<option value="">U.E. Claret</option>';
+    tsel.style.display = _tList.length > 1 ? '' : 'none';
+  }
+  const _isSel = (n, m) => isOurTeam(n) && (!_tKey || _ourKeyOf(m, n) === _tKey);
+
   const ours = [];
   S.matches.forEach(m => {
     if(sfEff && m.season !== sfEff) return;
-    if(isOurTeam(m.homeTeam)) {
+    if(_isSel(m.homeTeam, m)) {
         const hp = m.homePlayers ? m.homePlayers : [];
         ours.push({m: m, side: 'home', tName: m.homeTeam, my: m.scoreHome, op: m.scoreAway, opp: m.awayTeam, players: hp});
     }
-    else if(isOurTeam(m.awayTeam)) {
+    else if(_isSel(m.awayTeam, m)) {
         const ap = m.awayPlayers ? m.awayPlayers : [];
         ours.push({m: m, side: 'away', tName: m.awayTeam, my: m.scoreAway, op: m.scoreHome, opp: m.homeTeam, players: ap});
     }
@@ -13064,11 +13140,13 @@ function renderMatchEditBody(){
   const groups = uniq(S.matches.filter(x => x.competition === m.competition).map(x => x.group));
   const seasons = uniq(S.matches.map(x => x.season)).reverse();
   const inp = 'width:100%;border:1px solid #cbd5e1;padding:7px;border-radius:6px;font-size:12px';
-  const meta = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px;padding:12px;background:#f8fafc;border:1px solid var(--bd);border-radius:10px">
+  const meta = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;padding:12px;background:#f8fafc;border:1px solid var(--bd);border-radius:10px">
       <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Liga / competición</label>
         <input id="me-comp" list="me-comp-dl" value="${_esc(m.competition || '')}" style="${inp}"><datalist id="me-comp-dl">${comps.map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
       <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Grupo</label>
         <input id="me-group" list="me-group-dl" value="${_esc(m.group || '')}" placeholder="Ej: 2" style="${inp}"><datalist id="me-group-dl">${groups.map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
+      <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Categoría</label>
+        <input id="me-cat" list="me-cat-dl" value="${_esc(_catOf(m))}" placeholder="Cadet M, Infantil F…" style="${inp}"><datalist id="me-cat-dl">${uniq(S.matches.map(_catOf)).map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
       <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Temporada</label>
         <input id="me-season" list="me-season-dl" value="${_esc(m.season || '')}" placeholder="2026-27" style="${inp}"><datalist id="me-season-dl">${seasons.map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
     </div>`;
@@ -13089,6 +13167,8 @@ function saveMatchEdit(){
   if (_mc) m.competition = _mc.value.trim();
   if (_mg) m.group = _mg.value.trim();
   if (_ms && _ms.value.trim()) m.season = _ms.value.trim();
+  const _mcat = document.getElementById('me-cat');
+  if (_mcat) { const v = _mcat.value.trim(); if (v && v !== _catOf({ competition: m.competition })) m.category = v; else if (!v || v === _catOf({ competition: m.competition })) delete m.category; }
   
   body.querySelectorAll('tr[data-side]').forEach(row => {
     const side = row.dataset.side;
@@ -13267,8 +13347,13 @@ function renderCompare() {
 
     const rival = S.nextMatch.rival;
     let myTeamName = 'U.E. Claret'; 
-    const myTeamObj = S.teams.find(t => isOurTeam(t.name));
-    if (myTeamObj) myTeamName = myTeamObj.name;
+    // Próximo rival: siempre el sénior A (U.E. CLARET A de Copa Catalunya), no depende de la pestaña Claret
+    const _nmOur = _nextMatchOurTeam();
+    const _selOur = _nmOur.name;
+    const _ourCat = _nmOur.cat;
+    const myTeamObj = _selOur ? null : S.teams.find(t => isOurTeam(t.name));
+    if (_selOur) myTeamName = _selOur;
+    else if (myTeamObj) myTeamName = myTeamObj.name;
     else {
         const mMatch = S.matches.find(m => isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam));
         if (mMatch) myTeamName = isOurTeam(mMatch.homeTeam) ? mMatch.homeTeam : mMatch.awayTeam;
@@ -13301,7 +13386,7 @@ function renderCompare() {
     };
     
     let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || inferredMatchSeason(m) === rSeason));
-    let myMatchesThisSeason = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!mSeason || inferredMatchSeason(m) === mSeason));
+    let myMatchesThisSeason = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!mSeason || inferredMatchSeason(m) === mSeason));
     if (mSeason) myMatchesThisSeason = officialPreferred(myMatchesThisSeason, mSeason);
     if (rSeason) rivMatchesThisSeason = officialPreferred(rivMatchesThisSeason, rSeason);
     
@@ -13328,7 +13413,7 @@ function renderCompare() {
     }
 
     let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || inferredMatchSeason(m) === effectiveRivalSeason));
-    let myMatches = S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason));
+    let myMatches = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason));
     if (effectiveRivalSeason) rivMatches = officialPreferred(rivMatches, effectiveRivalSeason);
     if (effectiveMySeason) myMatches = officialPreferred(myMatches, effectiveMySeason);
 
@@ -13340,7 +13425,7 @@ function renderCompare() {
     if (isMyPreseason && myMatches.length === 0) {
         const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         const lastTeamSeason = pastTeamSeasons.find(s => s !== mSeason);
-        if (lastTeamSeason) myMatches = officialPreferred(S.matches.filter(m => (m.homeTeam === myTeamName || m.awayTeam === myTeamName) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
+        if (lastTeamSeason) myMatches = officialPreferred(S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
 
     const getL5 = (tName, matchesArray) => {
@@ -13602,9 +13687,11 @@ function renderCompare() {
             if (p.dorsal) ourPl[k].dorsal = p.dorsal;
         });
     });
-    const myDef = S.teams.find(t => t.name === myTeamName && (!mSeason || t.season === mSeason)) || S.teams.find(t => t.name === myTeamName);
+    const _catOk = t => !_ourCat || !t.category || t.category === _ourCat;
+    const myDef = S.teams.find(t => t.name === myTeamName && _catOk(t) && (!mSeason || t.season === mSeason)) || S.teams.find(t => t.name === myTeamName && _catOk(t));
     (myDef?.players || []).forEach(p => { const k = normName(p.name); if (!ourPl[k]) ourPl[k] = { name: p.name, dorsal: p.dorsal, min: 0, games: 0 }; });
-    const ourList = Object.values(ourPl).sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0));
+    const _dn = p => { const n = parseInt(p.dorsal, 10); return isNaN(n) ? 999 : n; };
+    const ourList = Object.values(ourPl).sort((a, b) => _dn(a) - _dn(b) || String(a.name).localeCompare(String(b.name)));
     const rivList = [...rpList].sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0));
     const matchupsHtml = _renderMatchups(ourList, rivList, _muOrdered(S.nextMatch), rival, myTeamName);
 
@@ -13665,19 +13752,33 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
   };
   const groups = ourList.map(o => ({ o, rivs: (ordered[o.name] || []).map(n => rivByName[n]).filter(Boolean) })).filter(g => g.rivs.length);
 
-  const cards = groups.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">${groups.map(({ o, rivs }) => `
-      <div style="border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fff">
-        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fffbeb;border-bottom:1px solid #fde68a">
-          <span style="font-weight:900;color:#92400e;font-size:13px">${_esc(lbl(o))}</span>
-          <span style="font-size:10px;color:#b45309;font-weight:800;margin-left:auto">DEFIENDE A</span></div>
-        ${rivs.map((r, k) => `<div style="display:flex;gap:9px;padding:9px 12px${k ? ';border-top:1px dashed var(--bd)' : ''}">
+  const cards = groups.length ? `<div style="display:flex;justify-content:flex-end;gap:6px;margin:-4px 0 8px">
+      <button onclick="document.querySelectorAll('.mu-card').forEach(d=>d.open=true)" style="background:#f1f5f9;border:1px solid var(--bd);border-radius:6px;padding:4px 9px;font-size:10.5px;font-weight:800;cursor:pointer">▾ Abrir todos</button>
+      <button onclick="document.querySelectorAll('.mu-card').forEach(d=>d.open=false)" style="background:#f1f5f9;border:1px solid var(--bd);border-radius:6px;padding:4px 9px;font-size:10.5px;font-weight:800;cursor:pointer">▸ Cerrar todos</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-items:start">${groups.map(({ o, rivs }, gi) => `
+      <details class="mu-card" style="border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fff">
+        <summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fffbeb">
+          <span style="font-weight:900;color:#92400e;font-size:13px;white-space:nowrap">${_esc(lbl(o))}</span>
+          <span style="font-size:10.5px;color:#1d4ed8;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">→ ${rivs.map(r => '#' + (r.dorsal ?? '')).join(', ')}</span>
+          <span class="mu-ar" style="font-size:11px;color:#b45309;font-weight:900">▾</span></summary>
+        ${rivs.map((r, k) => `<div style="padding:9px 12px;border-top:1px ${k ? 'dashed' : 'solid'} ${k ? 'var(--bd)' : '#fde68a'}">
+          <div style="display:flex;gap:9px">
           <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${k ? '#e2e8f0' : '#1d4ed8'};color:${k ? 'var(--t2)' : '#fff'};font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${k + 1}</span>
-          <div style="min-width:0">
-            <div style="font-weight:900;color:#1d4ed8;font-size:14px">${_esc(lbl(r))}</div>
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:900;color:#1d4ed8;font-size:14px">${_esc(lbl(r))}</span>
+              <button onclick="window._muMaps('${gi}-${k}', this.dataset.n)" data-n="${_esc(r.name)}" style="margin-left:auto;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap"><span id="mu-mbtn-${gi}-${k}">▾</span> Mapas</button></div>
             <div style="font-size:10.5px;color:var(--t2);margin:3px 0 ${_muTips(r).length ? 5 : 0}px">${statLine(r)}</div>
             ${_muTips(r).map(t => `<div style="font-size:10.5px;font-weight:700;color:var(--nv);padding:1px 0">${t}</div>`).join('')}
+          </div></div>
+          <div id="mu-maps-${gi}-${k}" style="display:none;margin-top:8px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;max-width:760px">
+              <div><div style="font-size:9px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:4px;text-transform:uppercase">Mapa de calor</div><div class="cw"><canvas id="mu-heat-${gi}-${k}"></canvas></div></div>
+              <div><div style="font-size:9px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:4px;text-transform:uppercase">Acierto por zonas</div><div class="cw"><canvas id="mu-zone-${gi}-${k}"></canvas></div></div>
+            </div>
+            <div id="mu-mnote-${gi}-${k}" style="font-size:9.5px;color:var(--t3);text-align:center;margin-top:3px"></div>
           </div></div>`).join('')}
-      </div>`).join('')}</div>`
+      </details>`).join('')}</div>
+    <style>.mu-card[open]{grid-column:1/-1}.mu-card .cw canvas{width:100%;height:auto;display:block;border-radius:8px}.mu-card summary::-webkit-details-marker{display:none}.mu-card[open] .mu-ar{transform:rotate(180deg)}.mu-ar{display:inline-block;transition:transform .15s}</style>`
     : `<div class="empty" style="font-size:11px">${_playerMode ? 'El cuerpo técnico todavía no ha definido los emparejamientos.' : 'Todavía no hay emparejamientos guardados.'}</div>`;
 
   let editor = '';
@@ -13697,16 +13798,40 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
         <button onclick="window.saveMatchups()" style="background:var(--nv);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-weight:800;font-size:11px;cursor:pointer">💾 Guardar emparejamientos</button>
       </div></details>`;
     window._muRivOrder = rivList.map(r => r.name);
+    window._muOurByMin = [...ourList].sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0)).map(o => o.name);
   }
   return `<div class="card" style="margin-bottom:16px">
     <div class="ct" style="font-size:13px;margin-bottom:10px">⚔️ Emparejamientos defensivos <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none">— a quién defiende cada jugador de ${_esc(myTeamName)}, por orden</span></div>
     ${cards}${editor}</div>`;
 }
+// Mapas del rival dentro de un emparejamiento
+window._muMaps = function (id, name) {
+  const box = document.getElementById('mu-maps-' + id), btn = document.getElementById('mu-mbtn-' + id);
+  if (!box) return;
+  const open = box.style.display === 'none';
+  box.style.display = open ? 'block' : 'none';
+  if (btn) btn.textContent = open ? '▴' : '▾';
+  if (!open || box.dataset.drawn) return;
+  box.dataset.drawn = '1';
+  const nn = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const shots = (window._currentRivalShots || []).filter(sh => nn(sh.player) === nn(name));
+  setTimeout(() => {
+    try {
+      const hid = 'mu-heat-' + id;
+      if (shots.length >= 3) drawHeatmap(hid, shots);
+      else { const cv = document.getElementById(hid); if (cv) { cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots); } }
+      drawZoneMap('mu-zone-' + id, shots);
+      const note = document.getElementById('mu-mnote-' + id);
+      if (note) note.textContent = shots.length ? `${shots.length} tiros ubicados` : 'Sin tiros ubicados para este jugador';
+    } catch (e) { console.error('Mapas emparejamiento:', e); }
+  }, 30);
+};
 window.suggestMatchups = function () {
-  const riv = window._muRivOrder || [];
-  document.querySelectorAll('.mu-row').forEach((row, i) => {
+  const riv = window._muRivOrder || [], byMin = window._muOurByMin || [];
+  document.querySelectorAll('.mu-row').forEach(row => {
+    const i = byMin.indexOf(row.dataset.our);
     const sels = row.querySelectorAll('.mu-sel');
-    sels.forEach((sel, k) => { sel.value = k === 0 ? (riv[i] || '') : ''; });
+    sels.forEach((sel, k) => { sel.value = k === 0 ? ((i >= 0 && riv[i]) || '') : ''; });
   });
   if (typeof toast === 'function') toast('Sugerencia por minutos aplicada (1º rival): revisa y guarda', 'ok');
 };
@@ -14014,6 +14139,70 @@ function vDeleteMatch(mkKey){
 // 🟡 CLARET TAB — our team hub
 // ═══════════════════════════════════════════
 const isOurTeam=n=>/claret/i.test(n||'');
+// ── Equipos del Claret (A, B, categorías…) separados ──
+const _teamKey = n => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+// Categoría del partido: la guardada a mano o deducida del nombre de la competición
+function _catOf(m) {
+  if (m && m.category) return String(m.category);
+  const c = String((m && m.competition) || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  if (!c) return '';
+  const CATS = [['PREINFANTIL', 'Preinfantil'], ['INFANTIL', 'Infantil'], ['PREMINI', 'Premini'], ['MINIBASQUET', 'Mini'], ['MINI', 'Mini'], ['CADET', 'Cadet'], ['JUNIOR', 'Júnior'], ['SUB-2', 'Sub-20'], ['SUB 2', 'Sub-20'], ['U20', 'Sub-20'], ['SENIOR', 'Sènior'], ['PRIMERA CATALANA', 'Sènior'], ['SEGONA CATALANA', 'Sènior'], ['TERCERA CATALANA', 'Sènior'], ['COPA CATALUNYA', 'Sènior'], ['SUPERCOPA', 'Sènior'], ['LLIGA EBA', 'Sènior']];
+  const hit = CATS.find(([k]) => c.includes(k));
+  if (!hit) return '';
+  const g = /FEMENI|FEMENINO|FEMENINA/.test(c) ? ' F' : /MASCULI|MASCULINO/.test(c) ? ' M' : '';
+  return hit[1] + g;
+}
+// Partidos sin categoría (amistosos, pretemporada): si ese nombre de equipo solo existe en UNA categoría, van con ella
+function _uniqueCatFor(tk) {
+  const ck = (S.matches || []).length;
+  if (!window._ucCache || window._ucCache.n !== ck) {
+    const map = {};
+    (S.matches || []).forEach(m => { const c = _catOf(m); if (!c) return; [m.homeTeam, m.awayTeam].forEach(n => { const k = _teamKey(n); (map[k] = map[k] || new Set()).add(c); }); });
+    window._ucCache = { n: ck, map };
+  }
+  const set = window._ucCache.map[tk];
+  return set && set.size === 1 ? [...set][0] : '';
+}
+const _ourKeyOf = (m, n) => { const tk = _teamKey(n); return tk + '|' + (_catOf(m) || _uniqueCatFor(tk)); };
+function _ourTeamsList() {
+  const map = {};
+  (S.matches || []).forEach(m => [m.homeTeam, m.awayTeam].forEach(n => {
+    if (!isOurTeam(n)) return;
+    const k = _ourKeyOf(m, n), cat = k.split('|')[1] || '';
+    const t = map[k] = map[k] || { key: k, cat, names: {}, games: 0 };
+    t.names[n] = (t.names[n] || 0) + 1; t.games++;
+  }));
+  return Object.values(map).map(t => {
+    const name = Object.entries(t.names).sort((a, b) => b[1] - a[1])[0][0];
+    return { key: t.key, cat: t.cat, games: t.games, name, label: t.cat ? `${name} · ${t.cat}` : name };
+  }).sort((a, b) => b.games - a.games);
+}
+// Equipo del Claret para "Próximo rival": U.E. CLARET A sénior (Copa Catalunya)
+function _nextMatchOurTeam() {
+  const list = _ourTeamsList();
+  const isA = t => t.key.split('|')[0] === 'UECLARETA';
+  const pick = list.find(t => isA(t) && /^S[eè]nior/i.test(t.cat || ''))
+    || list.find(t => isA(t) && !t.cat)
+    || list.find(isA);
+  return pick ? { name: pick.name, cat: pick.cat || '' } : { name: '', cat: '' };
+}
+function _ourTeamCat() { return (_ourTeamKey().split('|')[1]) || ''; }
+function _ourTeamKey() {
+  const list = _ourTeamsList();
+  let k = ''; try { k = localStorage.getItem('bascatOurTeam') || ''; } catch (e) {}
+  if (k && list.some(t => t.key === k)) return k;
+  return list[0]?.key || '';
+}
+function _ourTeamName() {
+  const k = _ourTeamKey();
+  return (_ourTeamsList().find(t => t.key === k) || {}).name || '';
+}
+window.setOurTeam = function (k) {
+  try { localStorage.setItem('bascatOurTeam', k); } catch (e) {}
+  if (typeof renderClub === 'function') renderClub();
+  if (typeof renderCompare === 'function') { try { renderCompare(); } catch (e) {} }
+};
+
 
 // ══════════════════════════════════════════════════════════════
 // CLASIFICACIÓN — una tabla por cada combinación Liga + Grupo,
@@ -14023,10 +14212,12 @@ const isOurTeam=n=>/claret/i.test(n||'');
 // ══════════════════════════════════════════════════════════════
 
 // Agrupa los partidos con liga en un mapa {liga: {grupo: [partidos]}}
+// Amistosos / pretemporada: no cuentan como liga (ni clasificación ni comparativas)
+function _isFriendly(m) { return /amistos|friendly|pretemporad/i.test(String((m && m.competition) || '')); }
 function _standingsIndex(seasonFilter){
   const idx={};
   S.matches.forEach(m=>{
-    if(!m.competition)return;
+    if(!m.competition||_isFriendly(m))return;
     if(m.scoreHome==null||m.scoreAway==null)return;
     if(seasonFilter&&m.season!==seasonFilter)return;
     const g=String(m.group||'1');
@@ -14272,12 +14463,13 @@ window.toggleClubGroup = function() {
 // Agregados por equipo sobre todos los partidos (opcionalmente filtrados por
 // liga+grupo+temporada del "equipo ancla" para comparar solo contra su liga).
 function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true) {
-  let scopedMatches = S.matches;
+  const _official = S.matches.filter(m => !_isFriendly(m));
+  let scopedMatches = _official;
 
   if (targetTeamName) {
     const validCombos = new Set();
     
-    S.matches.forEach(m => {
+    _official.forEach(m => {
       const playsInMatch = m.homeTeam === targetTeamName || m.awayTeam === targetTeamName || (targetTeamName === '__CLARET__' && (isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)));
       if (targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return;
 
@@ -14295,7 +14487,7 @@ function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true) 
     });
 
     if (validCombos.size > 0) {
-      scopedMatches = S.matches.filter(m => {
+      scopedMatches = _official.filter(m => {
         const comp = (m.competition || 'SinLiga').trim();
         const sea = (m.season || 'SinTemporada').trim();
         if (applyGroup) {
@@ -14446,8 +14638,9 @@ function renderClubLinks(ours) {
     `<option value="${_esc(String(o.m.id))}"${String(o.m.id) === cur ? ' selected' : ''}>${_esc(o.opp)} · ${_esc(o.m.date || '')} · ${o.my}-${o.op}</option>`).join('');
   const picked = cur ? list.filter(o => String(o.m.id) === cur) : list;
   const teamName = picked[0]?.tName || 'U.E. Claret';
-  window._lnkTeamLabel = cur ? teamName : 'Claret';
-  const card = _linksCardHtml(picked.map(o => o.m), cur ? (n => n === teamName) : (n => isOurTeam(n)), 'cl', cur ? 'solo este partido' : null);
+  window._lnkTeamLabel = cur ? teamName : ((_ourTeamsList().find(t => t.key === _ourTeamKey()) || {}).label || 'Claret');
+  const _k = _ourTeamKey();
+  const card = _linksCardHtml(picked.map(o => o.m), cur ? (n => n === teamName) : (n => isOurTeam(n) && (!_k || _teamKey(n) === _k.split('|')[0])), 'cl', cur ? 'solo este partido' : null);
   el.innerHTML = `<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--t2)">
       Partido: <select onchange="window._clLinkSel=this.value; renderClub()" style="height:28px;font-size:11px;min-width:240px">${opts}</select></div>${card}`;
 }
@@ -15995,6 +16188,7 @@ function _fcbqBuildMatch(pbpInput, statsInput, opts = {}) {
     awayTeam: _an,
     scoreHome, scoreAway, localId, visitId,
     season, competition,
+    category: _catOf({ competition }) || undefined,
     fcbqMoves: moves,
     events: [...(parsed.events || []), ...timeoutEvents],
     subEvents: parsed.subEvents || [],
@@ -16045,9 +16239,17 @@ function _fcbqSyncTeams(match) {
   [[match.homeTeam, match.homePlayers], [match.awayTeam, match.awayPlayers]].forEach(([name, players]) => {
     if (!name) return;
     const season = match.season || 'Sin temporada';
-    let team = S.teams.find(t => String(t.name).toLowerCase() === String(name).toLowerCase() && t.season === season);
+    const cat = _catOf(match);
+    const same = t => String(t.name).toLowerCase() === String(name).toLowerCase() && t.season === season;
+    let team = S.teams.find(t => same(t) && (t.category || '') === cat);
+    if (!team && cat) {
+      // Equipo antiguo sin categoría: lo adoptamos solo si comparte la mayoría de jugadores
+      const names = new Set((players || []).map(p => String(p.name || '').toLowerCase()));
+      team = S.teams.find(t => same(t) && !t.category && (t.players || []).filter(p => names.has(String(p.name || '').toLowerCase())).length >= Math.max(3, (t.players || []).length * 0.5));
+      if (team) team.category = cat;
+    }
     if (!team) {
-      team = { id: Date.now() + Math.floor(Math.random() * 99999), name, season, color: '#0f1f3d', players: [] };
+      team = { id: Date.now() + Math.floor(Math.random() * 99999), name, season, category: cat || undefined, color: '#0f1f3d', players: [] };
       S.teams.push(team);
       res.created.push(name);
     }
@@ -17566,6 +17768,13 @@ function clearTeamForm(){
   document.getElementById('eq-st').className='st-msg';
 }
 
+window.setTeamCategory = function (id) {
+  const t = S.teams.find(x => x.id === id); if (!t) return;
+  const v = prompt('Categoría del equipo (ej: Cadet M, Infantil F, Júnior M, Sènior M). Déjalo vacío para quitarla.', t.category || '');
+  if (v === null) return;
+  if (v.trim()) t.category = v.trim(); else delete t.category;
+  svL(); renderTeams();
+};
 function renderTeams(){
   const gsel=document.getElementById('eq-gf');
   const gf=gsel?gsel.value:'';
@@ -17583,10 +17792,11 @@ function renderTeams(){
   el.innerHTML=lista.map(t=>`
     <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px;border-left:4px solid ${t.color||'#E8402A'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-weight:700;font-size:14px">${t.name} <span style="font-size:10px;font-weight:800;color:var(--nv);margin-left:4px;background:#f1f5f9;padding:3px 8px;border-radius:6px">${t.season || 'Sin temporada'}</span></span>
+        <span style="font-weight:700;font-size:14px">${t.name} <span style="font-size:10px;font-weight:800;color:var(--nv);margin-left:4px;background:#f1f5f9;padding:3px 8px;border-radius:6px">${t.season || 'Sin temporada'}</span>${t.category ? ` <span style="font-size:10px;font-weight:800;color:#7c3aed;margin-left:2px;background:#f5f3ff;padding:3px 8px;border-radius:6px">${_esc(t.category)}</span>` : ''}</span>
         <span style="font-size:11px;color:var(--t3)">${t.players.length} jugadors</span>
         <div style="margin-left:auto;display:flex;gap:5px">
           <button class="btn bo bxs" onclick="mergeTeam(${t.id})" title="Fusionar con otro equipo">🔗 Fusionar</button>
+          <button class="btn bo bxs" onclick="setTeamCategory(${t.id})" title="Categoría (Infantil, Cadet…)">🏷️</button>
           <button class="btn bo bxs" onclick="editTeam(${t.id})">✏️</button>
           <button class="btn bo bxs" onclick="deleteTeam(${t.id})" style="color:#dc2626">✕</button>
         </div>
@@ -18025,8 +18235,10 @@ function _renderAdvancedPlayerTable(scope){
   } else {
     const clSeasonEl = document.getElementById('cl-sf');
     const clSeason = clSeasonEl ? clSeasonEl.value : '';
+    const _kSel = _ourTeamKey();
+    window._clSelKey = _kSel;
     source = S.matches.filter(m => {
-      const isCl = isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam);
+      const isCl = [m.homeTeam, m.awayTeam].some(n => isOurTeam(n) && (!_kSel || _ourKeyOf(m, n) === _kSel));
       return isCl && (!clSeason || m.season === clSeason);
     });
   }
@@ -18070,7 +18282,7 @@ function _renderAdvancedPlayerTable(scope){
       const team = data[1];
       const players = data[2];
       
-      if(scope === 'cl' && !isOurTeam(team)) return;
+      if(scope === 'cl' && !(isOurTeam(team) && (!window._clSelKey || _ourKeyOf(m, team) === window._clSelKey))) return;
 
       const tPts = Number(team === m.homeTeam ? m.scoreHome : m.scoreAway) || 0;
       const oppPts = Number(team === m.homeTeam ? m.scoreAway : m.scoreHome) || 0;

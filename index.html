@@ -16206,17 +16206,29 @@ const toks=()=>{const out=new Set();const add=v=>{if(typeof v!=='string')return;
 [localStorage,sessionStorage].forEach(st=>{try{for(let i=0;i<st.length;i++)add(st.getItem(st.key(i)));}catch(e){}});
 try{document.cookie.split(';').forEach(c=>add(decodeURIComponent(c.split('=').slice(1).join('='))));}catch(e){}return[...out];};
 let good=null,seen=null;
-try{const oS=XMLHttpRequest.prototype.setRequestHeader;XMLHttpRequest.prototype.setRequestHeader=function(k,v){if(/^authorization$/i.test(k)&&/^Bearer /.test(v))seen=v.slice(7);return oS.apply(this,arguments);};
-const oF=window.fetch;window.fetch=function(u,o){try{const h=o&&o.headers;const v=h&&(h.get?h.get('authorization'):(h.Authorization||h.authorization));if(v&&/^Bearer /.test(v))seen=v.slice(7);}catch(e){}return oF.apply(this,arguments);};}catch(e){}
 const exp=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp||0;}catch(e){return 0;}};
-const get=async(id,ep)=>{const url=API+id+'/'+ep+'?currentSeason=true';const F={federation:'fcbq',Accept:'application/json, text/plain, */*'};
-const now=Date.now()/1000;const tk=[...new Set([seen,...toks()].filter(Boolean))].sort((a,b)=>exp(b)-exp(a));
-const alive=tk.filter(t=>!exp(t)||exp(t)>now+20);
-const opts=[...(good?[good]:[]),...(alive.length?alive:tk).map(t=>({headers:{...F,Authorization:'Bearer '+t}})),{headers:F}];
+const now=()=>Date.now()/1000;
+const grab=v=>{(String(v||'').match(/eyJ[\\w-]+\\.[\\w-]+\\.[\\w-]+/g)||[]).forEach(t=>{if(exp(t)&&(!seen||exp(t)>exp(seen)))seen=t;});};
+const hook=W=>{try{if(W.__bh)return;W.__bh=1;const X=W.XMLHttpRequest.prototype,oS=X.setRequestHeader,oSend=X.send;
+X.setRequestHeader=function(k,v){if(/^authorization$/i.test(k))grab(v);return oS.apply(this,arguments);};
+X.send=function(){try{this.addEventListener('load',()=>{try{if(typeof this.responseText==='string'&&this.responseText.length<200000)grab(this.responseText);}catch(e){}});}catch(e){}return oSend.apply(this,arguments);};
+const oF=W.fetch;W.fetch=function(u,o){try{const h=o&&o.headers;grab(h&&(h.get?h.get('authorization'):(h.Authorization||h.authorization)));}catch(e){}
+return oF.apply(this,arguments).then(r=>{try{r.clone().text().then(t=>{if(t.length<200000)grab(t);}).catch(()=>{});}catch(e){}return r;});};}catch(e){}};
+hook(window);
+const refresh=id=>new Promise(res=>{const f=document.createElement('iframe');f.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;right:0';
+f.src='/estadistica/partit/'+id;document.body.appendChild(f);let n=0;
+const iv=setInterval(()=>{try{const w2=f.contentWindow;if(w2&&w2.XMLHttpRequest)hook(w2);}catch(e){}
+if((seen&&exp(seen)>now()+20)||++n>1500){clearInterval(iv);setTimeout(()=>f.remove(),300);res();}},10);});
+const get=async(id,ep,again)=>{const url=API+id+'/'+ep+'?currentSeason=true';const F={federation:'fcbq',Accept:'application/json, text/plain, */*'};
+let tk=[...new Set([seen,...toks()].filter(Boolean))].sort((a,b)=>exp(b)-exp(a));
+let alive=tk.filter(t=>!exp(t)||exp(t)>now()+20);
+if(!alive.length&&!again){await refresh(id);return get(id,ep,true);}
+const opts=[...(good?[good]:[]),...alive.map(t=>({headers:{...F,Authorization:'Bearer '+t}})),{headers:F}];
 let last=0;for(const o of opts){try{const r=await fetch(url,o);last=r.status;if(r.ok){good=o;return r.json();}}catch(e){last='red';}}
 good=null;
-let why;if(!tk.length)why='no se ha encontrado el token de la web: dentro de basquetcatala.cat cambia de sección (p.ej. otro partido o Resultats) y vuelve a importar';
-else if(!alive.length)why='el token de la web ha caducado: dentro de basquetcatala.cat cambia de sección para que se renueve y vuelve a importar';
+if(!again){seen=null;await refresh(id);return get(id,ep,true);}
+let why;if(!tk.length)why='no se ha encontrado el token de la web: recarga la página de basquetcatala.cat y vuelve a pulsar el marcador';
+else if(!alive.length)why='no se ha podido renovar el token de la web: recarga la página de basquetcatala.cat, espera a que cargue y vuelve a pulsar el marcador';
 else why='la FCBQ rechaza la petición con un token válido: casi seguro es la VPN o la red (apaga la VPN solo para importar o usa los datos del móvil)';
 throw new Error(ep+' HTTP '+last+' · '+why);};
 

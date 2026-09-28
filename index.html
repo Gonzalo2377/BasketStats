@@ -4651,25 +4651,6 @@ function closeSP(made){
 }
 
 function showFoulPopup(fouledBy, fouledByTeam, foulType){
-  // 🚀 INTERCEPTOR FANTASMA PARA ANOTAR FALTAS RECIBIDAS (Para Personal y Antideportiva)
-  if (!window._originalFoulVictimSel && typeof foulVictimSel === 'function') {
-      window._originalFoulVictimSel = foulVictimSel;
-      window.foulVictimSel = function(ix) {
-          if (ix >= 0 && window._foulOpciones && window._foulOpciones[ix]) {
-              const victim = window._foulOpciones[ix];
-              const oppTeam = window._foulCtx.shooterTeam;
-              const stOpp = lv.st[oppTeam][victim.name];
-              if (stOpp) {
-                  stOpp.fr = (stOpp.fr || 0) + 1;
-                  lv.log.unshift({team: oppTeam, msg: `🩹 Falta recibida — ${victim.name.split(' ')[0]}`, period: lv.period, min: lv.curMin});
-                  if (typeof rLvAll === 'function') rLvAll();
-                  if (typeof svL === 'function') svL();
-              }
-          }
-          window._originalFoulVictimSel(ix); // Continúa al popup de Tiros Libres
-      };
-  }
-
   const shooterTeam = fouledByTeam === 'home' ? 'away' : 'home';
   const courtPl = [...lv.onCourt[shooterTeam]].map(n=>lv.pl[shooterTeam].find(p=>p.name===n)).filter(Boolean);
   const opciones = courtPl.length>0 ? courtPl : lv.pl[shooterTeam];
@@ -4743,9 +4724,20 @@ function foulVictimSel(ix){
   const p=ix>=0?(window._foulOpciones||[])[ix]:null;
   if(p){
     c.shooter=p.name;
-    // Registrar la falta recibida en las estadísticas del que la recibe
-    const st=lv.st[c.shooterTeam]?.[p.name];
-    if(st)st.fr=(st.fr||0)+1;
+    // La falta recibida se guarda en el propio evento de la falta (así sobrevive a deshacer/borrar)
+    const FT=['foul','anti','tech','tech_real','tech_tac'];
+    let ev=null;
+    for(let k=lv.events.length-1;k>=0&&k>=lv.events.length-8;k--){
+      const e=lv.events[k];
+      if(FT.includes(e.type)&&e.team===c.fouledByTeam&&e.player===c.fouledBy){ev=e;break;}
+    }
+    if(ev&&!ev.victim){
+      ev.victim=p.name;
+      const st=lv.st[c.shooterTeam]?.[p.name];
+      if(st)st.fr=(st.fr||0)+1;
+      lv.log.unshift({team:c.shooterTeam,msg:`🩹 Falta recibida — ${p.name.split(' ')[0]}`,period:lv.period,min:lv.curMin});
+      if(typeof svL==='function')svL();
+    }
   }
   const inner=document.getElementById('shot-popup-inner');
   inner.innerHTML=`
@@ -7248,6 +7240,9 @@ function _lvReplay(){
       case'tech_real':s.tech=(s.tech||0)+1; s.fc++; break; 
       case'tech_tac':s.tech_tac=(s.tech_tac||0)+1; s.fc++; break; 
       case'anti':s.anti=(s.anti||0)+1; s.fc++; break;
+    }
+    if(ev.victim&&['foul','anti','tech','tech_real','tech_tac'].includes(ev.type)){
+      const v=lv.st[opp]?.[ev.victim]; if(v)v.fr=(v.fr||0)+1;
     }
   });
   

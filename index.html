@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -15155,6 +15155,28 @@ function recalcAllShots(){
 // Extrae todos los tiros ubicados (2 y 3, encestados y fallados) del
 // endpoint getJsonWithMatchStats, en el formato {x,y,made,player,team,period,min,type}
 // que espera S.matches[].shots / renderShotMap.
+// Coordenadas del shotChart de la FCBQ: milímetros respecto al aro.
+//   xRaw = profundidad (hacia medio campo) · yRaw = lateral.
+// El signo depende de a qué canasta ataca el equipo (cambia en el descanso),
+// así que por equipo y mitad giramos 180° para llevarlo todo a la misma canasta.
+function _fcbqPlaceShots(shots) {
+  const groups = {};
+  (shots || []).forEach(sh => {
+    if (typeof sh.xRaw !== 'number' || typeof sh.yRaw !== 'number') return;
+    const k = sh.team + '|' + ((Number(sh.period) || 1) <= 2 ? 1 : 2);
+    (groups[k] = groups[k] || []).push(sh);
+  });
+  Object.values(groups).forEach(list => {
+    const sg = list.reduce((a, sh) => a + sh.xRaw, 0) >= 0 ? 1 : -1;
+    list.forEach(sh => {
+      const depth = sh.xRaw * sg / 1000, lat = sh.yRaw * sg / 1000;
+      sh.x = Math.max(0, Math.min(CW, Math.round(BX + lat * SC)));
+      sh.y = Math.max(0, Math.min(CH, Math.round(BY + depth * SC)));
+    });
+  });
+  return shots;
+}
+
 function _fcbqStatsToShots(stats){
   const shots=[];
   const shotChart=stats.shotChart || stats.data?.shotChart;
@@ -15162,15 +15184,12 @@ function _fcbqStatsToShots(stats){
     const addChart=(list,team)=>{
       (list||[]).forEach(shot=>{
         const x=_fcbqNumber(shot.x), y=_fcbqNumber(shot.y);
-        // La FCBQ entrega coordenadas centradas y escaladas; las normalizamos
-        // al canvas de media pista manteniendo la relación espacial.
-        const px=Math.max(0,Math.min(CW,Math.round(CW/2+(x/7500)*(CW/2))));
-        const py=Math.max(0,Math.min(CH,Math.round(CH/2-(y/7500)*(CH/2))));
-        shots.push({x:px,y:py,made:shot.made!==false,player:shot.actorName||'',team,period:shot.period||1,min:shot.minute||0,type:shot.type||'T2',dorsal:String(shot.dorsal||''),zone:shot.zone,xRaw:x,yRaw:y});
+        shots.push({x:0,y:0,made:shot.made!==false,player:shot.actorName||'',team,period:shot.period||1,min:shot.minute||0,type:shot.type||'T2',dorsal:String(shot.dorsal||''),zone:shot.zone,xRaw:x,yRaw:y});
       });
     };
     addChart(shotChart.local,'home');
     addChart(shotChart.visitor,'away');
+    _fcbqPlaceShots(shots);
     return shots;
   }
   const teams=stats.teams||[];
@@ -16668,6 +16687,7 @@ function _loadMatchRows(rows) {
     if (i >= 0) S.matches.splice(i, 1);
     (_shotsOf[k] || []).forEach(s => drop.add(s));
     if (!m.name && m.homeTeam && m.awayTeam) m.name = `${m.homeTeam} vs ${m.awayTeam}`;
+    if (Array.isArray(m.shots) && m.shots.some(sh => typeof sh.xRaw === 'number')) _fcbqPlaceShots(m.shots);
     if (/^\d{4}-\d{2}-\d{2}/.test(String(m.date || ''))) m.date = _fmtMatchDate(m.date);
     const ps = m.placedShots || []; delete m.placedShots;
     _shotsOf[k] = ps;

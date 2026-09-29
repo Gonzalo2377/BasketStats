@@ -4160,16 +4160,30 @@ function renderFisio() {
         return hasWeight || hasSJ || hasCMJ || hasFree;
     }).sort();
 
+ // Plantilla del U.E. CLARET A (para dorsales y para añadir jugadores a mano)
+    const _clA = (S.teams || []).filter(t => /CLARETA$/.test(_teamKey(t.name)));
+    const _clSen = _clA.filter(t => /s[eè]nior/i.test(t.category || ''));
+    const _roster = [...new Map((_clSen.length ? _clSen : _clA).flatMap(t => t.players || []).map(p => [String(p.name).toLowerCase(), p])).values()]
+        .sort((a, b) => (parseInt(a.dorsal) || 999) - (parseInt(b.dorsal) || 999));
+    const _addable = _roster.filter(p => !activePlayers.some(n => n.toLowerCase() === String(p.name).toLowerCase()));
+
     el.innerHTML = `
         <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff; border:none; padding:24px;">
             <div style="font-size:24px; font-weight:900; margin-bottom:4px">🩹 Área Médica y Fisio</div>
             <div style="font-size:12px; opacity:0.85">Control de peso y métricas de salto exclusivas de jugadores con seguimiento activo. (${activePlayers.length} jugadores)</div>
+            ${_addable.length ? `<div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+                <select id="fisio-add-sel" style="padding:8px 10px; border-radius:8px; border:none; font-size:12px; font-weight:700; color:var(--nv); min-width:200px">
+                    <option value="">+ Añadir jugador del Claret A…</option>
+                    ${_addable.map(p => `<option value="${_esc(p.name)}">${p.dorsal ? '#' + _esc(p.dorsal) + ' ' : ''}${_esc(p.name)}</option>`).join('')}
+                </select>
+                <button onclick="const v=document.getElementById('fisio-add-sel').value; if(v) openFisioProfile(v)" style="background:#fff; color:#0284c7; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:800; cursor:pointer">Abrir ficha</button>
+            </div>` : ''}
         </div>
         
         ${activePlayers.length === 0 ? `
             <div class="empty card" style="text-align:center; padding:40px;">
                 No hay ningún jugador con registros médicos activos todavía.<br>
-                <span style="font-size:12px; color:var(--t3);">Usa el inyector del histórico o añade medidas desde sus perfiles.</span>
+                <span style="font-size:12px; color:var(--t3);">Elige un jugador arriba («Añadir jugador del Claret A») y guarda su primera medida.</span>
             </div>
         ` : `
             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
@@ -4179,12 +4193,9 @@ function renderFisio() {
                     const lastWeight = getLast(data.weight);
                     const lastCMJ = getLast(data.jump_cmj);
                     
-                    // Intentamos buscar su dorsal en la plantilla del Claret si existe
-                    let dorsal = '';
-                    for(const t of (S.teams || [])) {
-                        const found = (t.players || []).find(p => p.name.toLowerCase() === name.toLowerCase());
-                        if(found) { dorsal = '#' + found.dorsal; break; }
-                    }
+                    // Dorsal: solo de la plantilla del Claret A (no de rivales con el mismo nombre)
+                    const _f = _roster.find(p => String(p.name).toLowerCase() === name.toLowerCase());
+                    const dorsal = _f && _f.dorsal ? '#' + _f.dorsal : '';
 
                     return `
                     <div style="background:#fff; border:1px solid var(--bd); border-radius:12px; padding:14px; cursor:pointer; display:flex; align-items:center; gap:12px; box-shadow:0 2px 4px rgba(0,0,0,0.02)" onclick="openFisioProfile('${_esc(name)}')">
@@ -4197,6 +4208,7 @@ function renderFisio() {
                             </div>
                         </div>
                         <div style="font-size:18px; opacity:0.5">📈</div>
+                        <button title="Quitar a este jugador del área de fisio (borra sus medidas)" onclick="event.stopPropagation(); fisioRemovePlayer('${_esc(name)}')" style="background:#fef2f2; border:none; color:#dc2626; border-radius:6px; padding:4px 7px; font-size:11px; cursor:pointer">🗑</button>
                     </div>`;
                 }).join('')}
             </div>
@@ -4204,6 +4216,14 @@ function renderFisio() {
     `;
 }
 
+window.fisioRemovePlayer = function(name) {
+    const d = (S.fisio || {})[name]; if (!d) return;
+    const n = ['weight', 'jump_sj', 'jump_cmj', 'jump_free'].reduce((a, k) => a + ((d[k] || []).length), 0);
+    if (!confirm(`¿Quitar a ${name} del área de fisio?\nSe borrarán sus ${n} medidas.`)) return;
+    delete S.fisio[name];
+    svL(); renderFisio();
+    toast('🗑 Jugador quitado de fisio');
+};
 window.openFisioProfile = function(name) {
     let modal = document.getElementById('fisio-modal');
     if (!modal) {
@@ -5078,24 +5098,91 @@ function _allTeamNames(){
   S.matches.forEach(m=>{if(m.homeTeam)s.add(m.homeTeam);if(m.awayTeam)s.add(m.awayTeam);});
   return [...s].sort();
 }
-function _watchGroups(){return S.watchGroups||(S.watchGroups=[]);}
+// ── Mismo nombre en varias categorías (U.E. CLARET A júnior / sénior…) ──
+// Valor de desplegable "NOMBRE§CATEGORÍA" → [nombre, categoría]
+function _tvSplit(v){const s=String(v||'');const i=s.indexOf('§');return i<0?[s,'']:[s.slice(0,i),s.slice(i+1)];}
+// Categoría con la que juega un equipo en un partido
+function _mCatFor(m,tn){return _catOf(m)||_uniqueCatFor(_teamKey(tn));}
+// Categorías (según los partidos) en las que aparece un nombre de equipo
+function _teamCatsOf(name){
+  const sig=(S.matches||[]).length;
+  if(!window._tcCache||window._tcCache.sig!==sig){
+    const map={};
+    (S.matches||[]).forEach(m=>{const c=_catOf(m);if(!c)return;[m.homeTeam,m.awayTeam].forEach(n=>{if(n)(map[n]=map[n]||new Set()).add(c);});});
+    window._tcCache={sig,map};
+  }
+  return [...(window._tcCache.map[name]||[])].sort();
+}
+function _watchGroups(){
+  const gs=S.watchGroups||(S.watchGroups=[]);
+  try{_wgMigrate(gs);}catch(e){}
+  return gs;
+}
+// Grupos antiguos guardaban solo el nombre: si ese nombre existe en varias
+// categorías, se queda con la categoría del resto de equipos del grupo
+// (p. ej. "Grupo 26-27" de Copa Catalunya → U.E. CLARET A · Sènior M).
+function _wgMigrate(gs){
+  const n=(S.matches||[]).length;
+  if(!n||!gs.length||(window._wgMig===gs&&window._wgMigN===n))return;
+  window._wgMig=gs;window._wgMigN=n;
+  gs.forEach(g=>{
+    const multi=(g.teams||[]).filter(x=>!String(x).includes('§')&&_teamCatsOf(x).length>=2);
+    if(!multi.length)return;
+    const cnt={};
+    g.teams.forEach(x=>{const [nm,c]=_tvSplit(x);const cs=c?[c]:_teamCatsOf(nm);if(cs.length===1)cnt[cs[0]]=(cnt[cs[0]]||0)+1;});
+    const dom=(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[])[0];
+    if(!dom)return;
+    multi.forEach(x=>{if(_teamCatsOf(x).includes(dom))g.teams=g.teams.map(y=>y===x?x+'§'+dom:y);});
+  });
+}
 function _groupById(id){return _watchGroups().find(g=>String(g.id)===String(id))||null;}
+// ¿Está el equipo (en esa categoría) dentro del grupo? Sin categoría conocida vale cualquiera
+function _gHas(g,name,cat){
+  if(!g||!name)return false;
+  const t=g.teams||[];
+  if(t.includes(name))return true;
+  if(cat)return t.includes(name+'§'+cat);
+  const p=name+'§';
+  return t.some(x=>String(x).startsWith(p));
+}
 // ¿Está el equipo dentro del grupo indicado? (sin grupo = todos valen)
-function _inGroup(teamName,groupId){
+function _inGroup(teamName,groupId,cat){
   if(!groupId)return true;
   const g=_groupById(groupId);
-  return !g||g.teams.includes(teamName);
+  return !g||_gHas(g,teamName,cat||'');
 }
-// Nombre del primer grupo al que pertenece un equipo (para agrupar en los selects)
-function _groupsOfTeam(name){return _watchGroups().filter(g=>g.teams.includes(name));}
+// Grupos a los que pertenece un equipo
+function _groupsOfTeam(name,cat){return _watchGroups().filter(g=>_gHas(g,name,cat||''));}
+const _wgLabel=x=>{const [n,c]=_tvSplit(x);return c?`${n} · ${c}`:n;};
+
+// Entradas de un desplegable de equipos: un nombre que existe en varias
+// categorías sale una vez por categoría (valor "NOMBRE§CATEGORÍA").
+// cats (opcional): {nombre: Set(categorías)} limitadas a los partidos del filtro
+function _teamEntries(names,cats){
+  const out=[];
+  names.forEach(n=>{
+    const glob=_teamCatsOf(n);
+    let cs=cats&&cats[n]&&cats[n].size?[...cats[n]].sort():glob;
+    if(glob.length>=2)cs.forEach(c=>out.push({value:n+'§'+c,name:n,cat:c}));
+    else out.push({value:n,name:n,cat:cs[0]||''});
+  });
+  return out;
+}
 
 // Construye las <option> de un desplegable de equipos, separadas por grupo
 // de seguimiento (<optgroup>). Si se pasa filterGroupId, solo salen los de ese grupo.
-function _teamSelectOptions(cur,{placeholder='— todos —',filterGroupId='',names=null}={}){
-  const all=names||_allTeamNames();
-  const list=filterGroupId?all.filter(n=>_inGroup(n,filterGroupId)):all;
-  const label=n=>`${isOurTeam(n)?'⭐ ':''}${n}`;
-  const opt=n=>`<option value="${_esc(n)}"${n===cur?' selected':''}>${_esc(label(n))}</option>`;
+function _teamSelectOptions(cur,{placeholder='— todos —',filterGroupId='',names=null,cats=null}={}){
+  const all=_teamEntries(names||_allTeamNames(),cats);
+  const list=filterGroupId?all.filter(e=>_inGroup(e.name,filterGroupId,e.cat)):all;
+  // Opción elegida (acepta valores antiguos sin categoría)
+  let selV='';
+  if(cur){
+    const [cn,cc]=_tvSplit(cur);
+    const hit=list.find(e=>e.value===cur)||list.find(e=>e.name===cn&&(!cc||!e.cat||e.cat===cc))||list.find(e=>e.name===cn);
+    selV=hit?hit.value:'';
+  }
+  const label=e=>`${isOurTeam(e.name)?'⭐ ':''}${e.name}${e.value!==e.name?' · '+e.cat:''}`;
+  const opt=e=>`<option value="${_esc(e.value)}"${e.value===selV?' selected':''}>${_esc(label(e))}</option>`;
   let html=`<option value="">${_esc(placeholder)}</option>`;
   if(filterGroupId||!_watchGroups().length){
     return html+list.map(opt).join('');
@@ -5103,12 +5190,12 @@ function _teamSelectOptions(cur,{placeholder='— todos —',filterGroupId='',na
   // Agrupados: primero cada grupo de seguimiento, luego el resto
   const used=new Set();
   _watchGroups().forEach(g=>{
-    const inside=list.filter(n=>g.teams.includes(n));
+    const inside=list.filter(e=>_gHas(g,e.name,e.cat));
     if(!inside.length)return;
-    inside.forEach(n=>used.add(n));
+    inside.forEach(e=>used.add(e.value));
     html+=`<optgroup label="👁 ${_esc(g.name)}">${inside.map(opt).join('')}</optgroup>`;
   });
-  const rest=list.filter(n=>!used.has(n));
+  const rest=list.filter(e=>!used.has(e.value));
   if(rest.length)html+=`<optgroup label="Otros equipos">${rest.map(opt).join('')}</optgroup>`;
   return html;
 }
@@ -5136,7 +5223,7 @@ function renderWatchGroups(){
         </div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:3px">
-        ${g.teams.length?g.teams.map(n=>`<span style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:10px">${_esc(n)}</span>`).join('')
+        ${g.teams.length?g.teams.map(n=>`<span style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;font-size:10px">${_esc(_wgLabel(n))}</span>`).join('')
           :'<span style="font-size:10px;color:var(--t3)">Sin equipos asignados</span>'}
       </div>
     </div>`).join('');
@@ -5168,12 +5255,19 @@ function wgEdit(id){
   const el=document.getElementById('wg-edit-body');
   const ttl=document.getElementById('wg-edit-title');
   if(ttl)ttl.textContent=`👁 ${g.name}`;
-  const names=_allTeamNames();
-  if(el)el.innerHTML=names.length?names.map(n=>`
-    <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;cursor:pointer;background:${g.teams.includes(n)?'#f0fdf4':'#fff'}">
-      <input type="checkbox" class="wg-chk" value="${_esc(n)}" ${g.teams.includes(n)?'checked':''} style="width:18px;height:18px;flex-shrink:0">
-      <span style="font-size:12px;font-weight:${g.teams.includes(n)?'700':'400'}">${isOurTeam(n)?'⭐ ':''}${_esc(n)}</span>
-      <span style="margin-left:auto;font-size:10px;color:var(--t3);flex-shrink:0">${S.matches.filter(m=>m.homeTeam===n||m.awayTeam===n).length}p</span>
+  // Un nombre que existe en varias categorías sale una vez por categoría
+  const rows=[];
+  _allTeamNames().forEach(n=>{
+    const cs=_teamCatsOf(n);
+    if(cs.length>=2)cs.forEach(c=>rows.push({v:n+'§'+c,n,c,on:g.teams.includes(n)||g.teams.includes(n+'§'+c),
+      pc:S.matches.filter(m=>(m.homeTeam===n||m.awayTeam===n)&&_mCatFor(m,n)===c).length}));
+    else rows.push({v:n,n,c:'',on:_gHas(g,n,''),pc:S.matches.filter(m=>m.homeTeam===n||m.awayTeam===n).length});
+  });
+  if(el)el.innerHTML=rows.length?rows.map(r=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;cursor:pointer;background:${r.on?'#f0fdf4':'#fff'}">
+      <input type="checkbox" class="wg-chk" value="${_esc(r.v)}" ${r.on?'checked':''} style="width:18px;height:18px;flex-shrink:0">
+      <span style="font-size:12px;font-weight:${r.on?'700':'400'}">${isOurTeam(r.n)?'⭐ ':''}${_esc(r.n)}${r.c?` <span style="font-size:10px;font-weight:800;color:#7c3aed;background:#f5f3ff;padding:1px 6px;border-radius:5px">${_esc(r.c)}</span>`:''}</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--t3);flex-shrink:0">${r.pc}p</span>
     </label>`).join(''):'<div class="empty">No hay equipos todavía. Importa partidos primero.</div>';
   const md=document.getElementById('wg-edit-modal');if(md)md.style.display='flex';
 }
@@ -9122,7 +9216,7 @@ function _renderStMaps(scoped,m,tf,gf){
   scoped.forEach(x=>{
     (x.shots||[]).forEach(sh=>{
       const tn=sh.team==='home'?x.homeTeam:x.awayTeam;
-      if(!_inGroup(tn,gf))return;
+      if(!_inGroup(tn,gf,_mCatFor(x,tn)))return;
       if(tf&&tn!==tf)return;
       shots.push({...sh,_tn:tn});
     });
@@ -9130,7 +9224,7 @@ function _renderStMaps(scoped,m,tf,gf){
   S.shots.forEach(sh=>{
     const x=scoped.find(mm=>mm.id===(sh.mId||sh.matchId));if(!x)return;
     const tn=sh.team==='home'?x.homeTeam:x.awayTeam;
-    if(!_inGroup(tn,gf))return;
+    if(!_inGroup(tn,gf,_mCatFor(x,tn)))return;
     if(tf&&tn!==tf)return;
     shots.push({...sh,_tn:tn});
   });
@@ -9205,13 +9299,17 @@ function renderDash(){
       sfEff = sfSelect.value;
   }
 
-  const tf=document.getElementById('db-tf')?.value||'';
+  const tfRaw=document.getElementById('db-tf')?.value||'';
+  // Mismo nombre en varias categorías: el valor lleva "NOMBRE§CATEGORÍA"
+  const [tf,tfCat]=_tvSplit(tfRaw);
   const pf2=document.getElementById('db-pf')?.value||'';
   const mv=document.getElementById('db-mv')?.value||'shots';
   
   // Filtrar base de partidos según la Temporada
   let baseMatches = S.matches;
   if(sfEff) baseMatches = baseMatches.filter(m => m.season === sfEff);
+  const optMatches = baseMatches;   // para el desplegable de equipos (todas las categorías)
+  if(tf && tfCat) baseMatches = baseMatches.filter(m => (m.homeTeam !== tf && m.awayTeam !== tf) || _mCatFor(m, tf) === tfCat);
 
   const mf=document.getElementById('db-mf')?.value||''; 
   const msel=document.getElementById('db-mf');
@@ -9230,19 +9328,27 @@ function renderDash(){
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
   
-  let all=[],allT=new Set();
+  let all=[],allT=new Set(),dbCats={};
   const srcMatches=mfEff?baseMatches.filter(m=>String(m.id)===String(mfEff)):baseMatches;
   
   srcMatches.forEach(m=>{[...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mId:m.id})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mId:m.id}))].forEach(p=>{
-    if(!_inGroup(p.team,gf))return;   
-    allT.add(p.team);all.push(p);});});
+    if(!_inGroup(p.team,gf,_mCatFor(m,p.team)))return;   
+    all.push(p);});});
+  (mfEff?optMatches.filter(m=>String(m.id)===String(mfEff)):optMatches).forEach(m=>[[m.homeTeam,m.homePlayers],[m.awayTeam,m.awayPlayers]].forEach(([tn,pl])=>{
+    if(!tn||!(pl||[]).length)return;
+    const c=_mCatFor(m,tn);
+    if(!_inGroup(tn,gf,c))return;
+    allT.add(tn);if(c)(dbCats[tn]=dbCats[tn]||new Set()).add(c);
+  }));
     
   const tsel=document.getElementById('db-tf');
-  if(tsel){const v=tsel.value;const ok=!v||allT.has(v);
-    tsel.innerHTML=_teamSelectOptions(ok?v:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:[...allT].sort()});
-    if(!ok)tsel.value='';}
+  if(tsel){const v=tsel.value;const ok=!v||allT.has(_tvSplit(v)[0]);
+    tsel.innerHTML=_teamSelectOptions(ok?v:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:[...allT].sort(),cats:dbCats});
+    if(!ok)tsel.value='';
+    // Valor antiguo sin categoría → ya apunta a una categoría concreta: repintar con ella
+    if(tsel.value&&tsel.value!==tfRaw&&_tvSplit(tsel.value)[1]!==tfCat&&!window._dbReRender){window._dbReRender=true;try{return renderDash();}finally{window._dbReRender=false;}}}
     
-  const tfEff=document.getElementById('db-tf')?.value||'';
+  const tfEff=_tvSplit(document.getElementById('db-tf')?.value||'')[0];
   let filt=all;if(tfEff)filt=filt.filter(p=>p.team===tfEff);
   const dnorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const dq='';  
@@ -9281,7 +9387,7 @@ function renderDash(){
   const dbHa = document.getElementById('db-ha-card');
   if (dbHa) {
     if (tfEff) {
-      const teamMatches = srcMatches.filter(m => (m.homeTeam === tfEff || m.awayTeam === tfEff) && _inGroup(m.homeTeam, gf));
+      const teamMatches = srcMatches.filter(m => (m.homeTeam === tfEff || m.awayTeam === tfEff) && _inGroup(tfEff, gf, _mCatFor(m, tfEff)));
       
       // ✅ AQUÍ ESTÁ EL CAMBIO: Le pasamos 'pfEff' para que cambie si hay un jugador seleccionado
       dbHa.innerHTML = _generateHomeAwayHTML(tfEff, teamMatches, pfEff);
@@ -9411,8 +9517,8 @@ function renderDash(){
   if(lcard&&lel){
     if(tfEff){
       lcard.style.display='block';
-      if(ltn)ltn.textContent='· '+tfEff;
-      lel.innerHTML=_leagueComparisonHtml(tfEff);
+      if(ltn)ltn.textContent='· '+tfEff+(tfCat?' · '+tfCat:'');
+      lel.innerHTML=_leagueComparisonHtml(tfEff,'',tfCat);
     }else{
       lcard.style.display='none';
       lel.innerHTML='';
@@ -9997,31 +10103,17 @@ function populateRivalSelect() {
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
   
-  const rivals = new Set();
-  S.matches.forEach(m => {
-    [m.homeTeam, m.awayTeam].forEach(tn => { if (tn && _inGroup(tn,gf)) rivals.add(tn); });
-  });
-  // Mismo nombre en varias categorías (A infantil / A cadete…) → una opción por categoría
-  const cats = {};
+  // Mismo nombre en varias categorías (A júnior / A sénior…) → una opción por categoría,
+  // y el grupo de seguimiento se respeta por categoría
+  const names = new Set(), cats = {};
   S.matches.forEach(m => [m.homeTeam, m.awayTeam].forEach(tn => {
-    if (!tn || !rivals.has(tn)) return;
-    const c = _catOf(m) || _uniqueCatFor(_teamKey(tn));
+    if (!tn) return;
+    const c = _mCatFor(m, tn);
+    if (!_inGroup(tn, gf, c)) return;
+    names.add(tn);
     if (c) (cats[tn] = cats[tn] || new Set()).add(c);
   }));
-  const [vName] = String(v || '').split('§');
-  const keep=!v||rivals.has(vName);
-  let html=_teamSelectOptions(keep?vName:'',{placeholder:'— Selecciona un rival —',filterGroupId:gf,names:[...rivals].sort()});
-  Object.entries(cats).forEach(([tn, set]) => {
-    if (set.size < 2) return;
-    const ev = _esc(tn);
-    const re = new RegExp('<option value="' + ev.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"( selected)?>([^<]*)</option>');
-    html = html.replace(re, (all, selAttr, label) => [...set].sort().map(c => {
-      const val = tn + '§' + c;
-      return `<option value="${_esc(val)}"${v === val || (selAttr && v === tn && c === [...set].sort()[0]) ? ' selected' : ''}>${label} · ${_esc(c)}</option>`;
-    }).join(''));
-  });
-  sel.innerHTML=html;
-  if(!keep)sel.value='';
+  sel.innerHTML = _teamSelectOptions(v, { placeholder: '— Selecciona un rival —', filterGroupId: gf, names: [...names].sort(), cats });
 }
 
 // Categoría del rival elegido en scouting ('' = sin filtro)
@@ -10562,7 +10654,7 @@ function renderScouting() {
       const t3p = advData.t3a ? advData.t3m / advData.t3a * 100 : 0;
       const tlp = advData.fta ? advData.ftm / advData.fta * 100 : 0;
 
-      const l_aggs = _leagueTeamAggregates(_scoutRival, sfEff);
+      const l_aggs = _leagueTeamAggregates(_scoutRival, sfEff, true, window._scoutCat || '');
       const getRank = (fn, desc=true, isPct=false) => {
           if(l_aggs.length < 3) return null;
           const sorted = [...l_aggs].sort((a,b) => desc ? fn(b)-fn(a) : fn(a)-fn(b));
@@ -11769,9 +11861,11 @@ function _getHistoricalExactMins(m, teamSide) {
 function renderStats(){
   const val=id=>document.getElementById(id)?.value||'';
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
-      gf=val('st-gf'), tf=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
+      gf=val('st-gf'), tfRaw=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
+  // Mismo nombre en varias categorías: el valor lleva "NOMBRE§CATEGORÍA"
+  let [tf, tfCat] = _tvSplit(tfRaw);
 
-  const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tf}|${pf}|${gf}|${mf}`;
+  const currentFilters = `${(S.matches || []).length}|${(S.teams || []).length}|${lf}|${sf}|${grf}|${tfRaw}|${pf}|${gf}|${mf}`;
   let all, teams, scoped, mfEff;
   
   let fallbackBanner = '';
@@ -11797,8 +11891,9 @@ function renderStats(){
       let activeRosterNamesNorm = null;
       let tDefActual = null;
       if (fallbackSfActivado && tf) {
-          tDefActual = S.teams.find(x => x.name === tf && x.season === sf);
-          if (!tDefActual) tDefActual = S.teams.find(x => x.name === tf);
+          const _cOk = x => !tfCat || !x.category || x.category === tfCat;
+          tDefActual = S.teams.find(x => x.name === tf && _cOk(x) && x.season === sf);
+          if (!tDefActual) tDefActual = S.teams.find(x => x.name === tf && _cOk(x));
           if (tDefActual && tDefActual.players) {
               activeRosterNamesNorm = tDefActual.players.map(x => x.name.trim().toLowerCase());
           }
@@ -11813,11 +11908,11 @@ function renderStats(){
           if (activeRosterNamesNorm) {
               return [...(m.homePlayers||[]), ...(m.awayPlayers||[])].some(p => activeRosterNamesNorm.includes((p.name||'').trim().toLowerCase()));
           }
-          return m.homeTeam===tf||m.awayTeam===tf;
+          return (m.homeTeam===tf||m.awayTeam===tf) && (!tfCat || _mCatFor(m,tf)===tfCat);
       };
       
       const okM =m=>!mf ||String(m.id)===String(mf);
-      const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf));
+      const teamsOf=m=>[m.homeTeam,m.awayTeam].filter(t=>t&&_inGroup(t,gf,_mCatFor(m,t)));
       const okW =m=>teamsOf(m).length>0;
 
       const pool=(excepto)=>S.matches.filter(m=>
@@ -11842,17 +11937,24 @@ function renderStats(){
       grf=fill('st-grf',uniq(pool('G'),m=>m.group?'Grupo '+m.group:''), grf, 'Todos');
 
       const teamsAvail = [...new Set([...pool('T').flatMap(teamsOf), ...(S.teams||[]).map(t=>t.name)])].sort();
+      const stCats = {};
+      pool('T').forEach(m => teamsOf(m).forEach(t => { const c = _mCatFor(m, t); if (c) (stCats[t] = stCats[t] || new Set()).add(c); }));
       const tsel=document.getElementById('st-tf');
       if(tsel){
         const ok=!tf||teamsAvail.includes(tf);
-        tsel.innerHTML=_teamSelectOptions(ok?tf:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail});
-        if(!ok){tsel.value='';tf='';}
+        tsel.innerHTML=_teamSelectOptions(ok?tfRaw:'',{placeholder:'Todos los equipos',filterGroupId:gf,names:teamsAvail,cats:stCats});
+        if(!ok){tsel.value='';tf='';tfCat='';}
+        // Valor antiguo sin categoría → ya apunta a una categoría concreta: repintar con ella
+        else if(tsel.value&&tsel.value!==tfRaw&&_tvSplit(tsel.value)[1]!==tfCat&&!window._stReRender){
+          window._stReRender=true;_stCacheFilters=null;
+          try{return renderStats();}finally{window._stReRender=false;}
+        }
       }
 
       const playerLabels=new Map();
       pool('P').forEach(m=>{
         [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam})),...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam}))].forEach(p=>{
-          if(!_inGroup(p.team,gf))return;
+          if(!_inGroup(p.team,gf,_mCatFor(m,p.team)))return;
           const norm = (p.name||'').trim().toLowerCase();
           if(activeRosterNamesNorm){ if(!activeRosterNamesNorm.includes(norm))return; } else { if(tf&&p.team!==tf)return; }
           const key=String(p.name||'').trim();
@@ -11886,7 +11988,7 @@ function renderStats(){
       scoped.forEach(m=>{
         [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam, side:'home'})),
          ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam, side:'away'}))].forEach(p=>{
-          if(!_inGroup(p.team,gf))return;
+          if(!_inGroup(p.team,gf,_mCatFor(m,p.team)))return;
           
           // 🔥 EXTRAEMOS LOS MINUTOS IGUAL QUE EN EL +/-
           if (m.events && m.events.length > 0 && typeof _playerStints === 'function') {
@@ -11947,7 +12049,7 @@ function renderStats(){
   }
 
   const selMatch=mfEff?S.matches.find(m=>String(m.id)===String(mfEff)):null;
-  window._stCtx={scoped,selMatch,tf,gf,pf};
+  window._stCtx={scoped,selMatch,tf,tfCat,gf,pf};
   const top=[...all].sort((a,b)=>b.pts-a.pts)[0];
   const kpi=document.getElementById('st-kpis');
   if(kpi)kpi.innerHTML= fallbackBanner + `
@@ -13243,15 +13345,35 @@ function saveMatchEdit(){
 // Panel exclusivo para jugadores. El Staff elige el rival y se genera el scouting.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Categoría del próximo rival (si su nombre existe en varias categorías):
+// la elegida al configurarlo, la de nuestro sénior A si la tiene, o la de su último partido oficial
+function _nmRivCat(nm) {
+  nm = nm || S.nextMatch || {};
+  const r = nm.rival || ''; if (!r) return '';
+  const cs = _teamCatsOf(r);
+  if (nm.rivalCat && (!cs.length || cs.includes(nm.rivalCat))) return nm.rivalCat;
+  if (cs.length < 2) return '';
+  const oc = _nextMatchOurTeam().cat;
+  return cs.includes(oc) ? oc : _defaultCatFor(r, '');
+}
+function _nmRivOk(m) {
+  const r = S.nextMatch?.rival;
+  if (!r || (m.homeTeam !== r && m.awayTeam !== r)) return false;
+  const c = _nmRivCat();
+  return !c || _mCatFor(m, r) === c;
+}
+
 window.saveNextMatch = async function() {
+    const _rv = _tvSplit(document.getElementById('nm-rival')?.value || '');
     S.nextMatch = {
-        rival: document.getElementById('nm-rival')?.value || '',
+        rival: _rv[0],
+        rivalCat: _rv[1] || '',
         rivalSeason: document.getElementById('nm-r-season')?.value || '',
         mySeason: document.getElementById('nm-m-season')?.value || '',
         venue: document.getElementById('nm-venue')?.value || 'home',
         date: document.getElementById('nm-date')?.value || '',
         time: document.getElementById('nm-time')?.value || '',
-        matchupsOrdered: (S.nextMatch && S.nextMatch.rival === (document.getElementById('nm-rival')?.value || '') && _muOrdered(S.nextMatch)) || {}
+        matchupsOrdered: (S.nextMatch && S.nextMatch.rival === _rv[0] && _muOrdered(S.nextMatch)) || {}
     };
     
     svL(); // 👈 Esto ya lo sube a Supabase
@@ -13282,7 +13404,7 @@ window.toggleNextRivalPl = function(idx, name) {
             
             shots = shots.filter(s => {
                 const m = S.matches.find(mm => mm.id === (s.mId || s.matchId));
-                return m && s.player === name && (m.homeTeam === rivalName || m.awayTeam === rivalName) && (!rSeason || m.season === rSeason);
+                return m && s.player === name && (m.homeTeam === rivalName || m.awayTeam === rivalName) && _nmRivOk(m) && (!rSeason || m.season === rSeason);
             });
 
             // 1. MAPA DE CALOR DEL JUGADOR
@@ -13345,7 +13467,7 @@ function renderCompare() {
                 if(t.season && t.season !== 'Sin temporada') allSeasonsSet.add(t.season);
             });
 
-            const opts = [...rivals].sort().map(r => `<option value="${_esc(r)}"${S.nextMatch?.rival===r?' selected':''}>${_esc(r)}</option>`).join('');
+            const opts = _teamEntries([...rivals].sort()).map(e => `<option value="${_esc(e.value)}">${_esc(e.value !== e.name ? e.name + ' · ' + e.cat : e.name)}</option>`).join('');
             const allSeasons = [...allSeasonsSet].sort().reverse();
             const getSeasonsOpts = (sel) => `<option value="">Todas (Acumulado)</option>` + allSeasons.map(s => `<option value="${_esc(s)}"${s===sel?' selected':''}>${_esc(s)}</option>`).join('');
 
@@ -13355,6 +13477,9 @@ function renderCompare() {
     }
 
     const rival = S.nextMatch.rival;
+    // Mismo nombre en varias categorías: solo los partidos de la categoría del rival
+    const _rCat = _nmRivCat();
+    const _rOk = m => (m.homeTeam === rival || m.awayTeam === rival) && (!_rCat || _mCatFor(m, rival) === _rCat);
     let myTeamName = 'U.E. Claret'; 
     // Próximo rival: siempre el sénior A (U.E. CLARET A de Copa Catalunya), no depende de la pestaña Claret
     const _nmOur = _nextMatchOurTeam();
@@ -13394,7 +13519,7 @@ function renderCompare() {
       return official.length ? official : seasonMatches;
     };
     
-    let rivMatchesThisSeason = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!rSeason || inferredMatchSeason(m) === rSeason));
+    let rivMatchesThisSeason = S.matches.filter(m => _rOk(m) && (!rSeason || inferredMatchSeason(m) === rSeason));
     let myMatchesThisSeason = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!mSeason || inferredMatchSeason(m) === mSeason));
     if (mSeason) myMatchesThisSeason = officialPreferred(myMatchesThisSeason, mSeason);
     if (rSeason) rivMatchesThisSeason = officialPreferred(rivMatchesThisSeason, rSeason);
@@ -13408,7 +13533,7 @@ function renderCompare() {
     if (rSeason && !rivalSeasonHasStats) {
       isPreseason = true;
       const rivalPastSeasons = [...new Set(S.matches
-        .filter(m => m.homeTeam === rival || m.awayTeam === rival)
+        .filter(_rOk)
         .map(inferredMatchSeason).filter(Boolean))].sort().reverse();
       effectiveRivalSeason = rivalPastSeasons.find(s => s !== rSeason) || rSeason;
     }
@@ -13421,15 +13546,15 @@ function renderCompare() {
         effectiveMySeason = pastGlobalSeasons.find(s => s !== mSeason) || pastGlobalSeasons[0] || mSeason;
     }
 
-    let rivMatches = S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && (!effectiveRivalSeason || inferredMatchSeason(m) === effectiveRivalSeason));
+    let rivMatches = S.matches.filter(m => _rOk(m) && (!effectiveRivalSeason || inferredMatchSeason(m) === effectiveRivalSeason));
     let myMatches = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason));
     if (effectiveRivalSeason) rivMatches = officialPreferred(rivMatches, effectiveRivalSeason);
     if (effectiveMySeason) myMatches = officialPreferred(myMatches, effectiveMySeason);
 
     if (isPreseason && rivMatches.length === 0) {
-        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === rival || m.awayTeam === rival).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
+        const pastTeamSeasons = [...new Set(S.matches.filter(_rOk).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         const lastTeamSeason = pastTeamSeasons.find(s => s !== rSeason);
-        if (lastTeamSeason) rivMatches = officialPreferred(S.matches.filter(m => (m.homeTeam === rival || m.awayTeam === rival) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
+        if (lastTeamSeason) rivMatches = officialPreferred(S.matches.filter(m => _rOk(m) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
     if (isMyPreseason && myMatches.length === 0) {
         const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
@@ -13458,7 +13583,7 @@ function renderCompare() {
     const leftMatches = isMyTeamHome ? myMatches : rivMatches;
     const rightMatches = isMyTeamHome ? rivMatches : myMatches;
 
-    const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b"><div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div><div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div></div>` : '';
+    const configHtml = !_playerMode ? `<div class="card" style="margin-bottom:16px; background:#f8fafc; border-left:4px solid #f59e0b"><div class="ct" style="margin-bottom:10px; color:#92400e">⚙️ CONFIGURACIÓN DEL PRÓXIMO RIVAL (Solo Staff)</div><div style="font-size:12px; font-weight:700; color:var(--nv)">Partido contra: <b>${_esc(rival)}${_rCat && _teamCatsOf(rival).length > 1 ? ' · ' + _esc(_rCat) : ''}</b> (${isMyTeamHome ? 'En Casa' : 'Fuera'}) <button onclick="clearNextMatch()" style="margin-left:10px;background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">Cambiar</button></div></div>` : '';
 
     const headHtml = `<div class="card" style="margin-bottom:16px; padding:16px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.15)"><div style="text-align:center; font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:12px">🔥 PRÓXIMO PARTIDO</div><div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px"><div style="flex:1; text-align:right; font-size:18px; font-weight:900; color:${leftColor}; overflow:hidden; text-overflow:ellipsis"><div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Local</div>${_esc(leftTeam)}</div><div style="font-size:12px; font-weight:900; color:#cbd5e1; background:rgba(255,255,255,0.1); padding:4px 6px; border-radius:6px; flex-shrink:0">VS</div><div style="flex:1; text-align:left; font-size:18px; font-weight:900; color:${rightColor}; overflow:hidden; text-overflow:ellipsis"><div style="font-size:8px; color:#cbd5e1; font-weight:800; text-transform:uppercase; margin-bottom:2px">Visitante</div>${_esc(rightTeam)}</div></div><div style="text-align:center; font-size:12px; font-weight:800; color:#fff; margin-bottom:16px; background:rgba(255,255,255,0.1); display:inline-block; padding:4px 12px; border-radius:10px; position:relative; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,0.15)">📅 ${S.nextMatch.date || 'Por definir'} &nbsp;|&nbsp; ⏰ ${S.nextMatch.time || 'Por definir'}</div><div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px"><div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px; font-weight:800; color:${leftColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(leftTeam.split(' ')[0])})</div>${getL5(leftTeam, leftMatches)}</div><div style="flex:1; min-width:260px; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px; font-weight:800; color:${rightColor}; text-transform:uppercase; margin-bottom:8px; text-align:center">Últimos 5 (${_esc(rightTeam.split(' ')[0])})</div>${getL5(rightTeam, rightMatches)}</div></div></div>`;
 
@@ -13480,8 +13605,9 @@ function renderCompare() {
     const rivalPlayers = {};
     let rivalShots = [];
     
-    let teamDef = S.teams.find(t => t.name === rival && t.season === rSeason);
-    if (!teamDef) teamDef = S.teams.find(t => t.name === rival);
+    const _rDefOk = t => t.name === rival && (!_rCat || !t.category || t.category === _rCat);
+    let teamDef = S.teams.find(t => _rDefOk(t) && t.season === rSeason);
+    if (!teamDef) teamDef = S.teams.find(_rDefOk);
 
     if (isPreseason) {
         if (teamDef && teamDef.players) {
@@ -13506,7 +13632,7 @@ function renderCompare() {
             matchesToScan.forEach(m => {
                 const isHomeMatch = m.homeTeam === rival;
                 const isAwayMatch = m.awayTeam === rival;
-              if (!isHomeMatch && !isAwayMatch) return;
+              if ((!isHomeMatch && !isAwayMatch) || !_rOk(m)) return;
 
               const rivalMatchPlayers = isHomeMatch ? (m.homePlayers || []) : (m.awayPlayers || []);
               rivalMatchPlayers.forEach(pMatch => {
@@ -14137,6 +14263,8 @@ function _vCleanupEmptyLibs(){
 }
 function renderVideoLib(){
     const el=document.getElementById('v-library');if(!el)return;
+    // Las carpetas abiertas siguen abiertas al repintar (renombrar / borrar un clip)
+    const _open=new Set([...el.querySelectorAll('[id^="vlib-"]')].filter(d=>d.style.display!=='none').map(d=>d.id));
     const matchesWithClips = [...(S.videoLibs || []), ...S.matches.filter(m => m.videoClips)].filter(m => m.videoClips && _vLibCount(m) > 0);
     matchesWithClips.sort((a,b)=>(b.videoClips.created||0)-(a.videoClips.created||0));
     
@@ -14153,10 +14281,10 @@ function renderVideoLib(){
                     <span style="font-size:10px;opacity:.7">${total} clips</span>
                     <button onclick="event.stopPropagation();vDownloadMatch('${mk.name.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
                     <button onclick="event.stopPropagation();vDeleteMatch('${mk.name.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
-                    <span id="arr-${mid}">▼</span>
+                    <span id="arr-${mid}">${_open.has(mid)?'▲':'▼'}</span>
                 </div>
             </div>
-            <div id="${mid}" style="display:none;padding:10px 12px">
+            <div id="${mid}" style="display:${_open.has(mid)?'block':'none'};padding:10px 12px">
                 ${Object.entries(mk.videoClips.teams||{}).map(([tName,cats])=>`
                     <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
                     ${['ataque','defensa'].map(cat=>{
@@ -14177,8 +14305,9 @@ function renderVideoLib(){
                                             style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
                                             ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
                                         </button>
-                                        <span style="flex:1;font-size:11px">${cl.label||'<i style="color:var(--t3)">sin descripción</i>'}</span>
+                                        <span style="flex:1;font-size:11px;cursor:text" title="Doble clic para cambiar el nombre" ondblclick="vRenameClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}','${cl.id}')">${cl.label?_esc(cl.label):'<i style="color:var(--t3)">sin descripción</i>'}</span>
                                         <span style="font-size:9px;color:var(--t3);font-family:monospace">${cl.time}→${cl.timeEndFmt}</span>
+                                        <button onclick="vRenameClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}','${cl.id}')" title="Cambiar el nombre del clip" style="background:#f1f5f9;border:none;color:var(--nv);border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✏️</button>
                                         <button onclick="vDeleteClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>
                                     </div>`).join('')}
                                 </div>`;}).join('')}
@@ -14200,6 +14329,19 @@ function vDeleteClip(mkKey,tName,cat,folder,id){
     if(!_vLibCount(matchObj)) _vDropLib(matchObj);
     svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
+// ✏️ Cambiar el nombre de un clip (es también el nombre del archivo al descargar el ZIP)
+function vRenameClip(mkKey,tName,cat,folder,id){
+    const matchObj = _vLib(mkKey);
+    const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder]; if(!arr) return;
+    const cl = arr.find(c => String(c.id) === String(id)); if(!cl) return;
+    const v = prompt('Nombre del clip:', cl.label || '');
+    if (v === null) return;
+    const t = v.trim();
+    if (t === (cl.label || '')) return;
+    cl.label = t;
+    svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
+    if (typeof toast === 'function') toast(t ? '✏️ Clip renombrado' : '✏️ Nombre del clip quitado', 'ok');
+}
 function vDeleteFolder(mkKey,tName,cat,folder){
     if(!confirm(`¿Eliminar la carpeta "${folder}" y sus clips?`)) return;
     let matchObj = _vLib(mkKey);
@@ -14219,11 +14361,19 @@ function vDeleteMatch(mkKey){
 // ═══════════════════════════════════════════
 const isOurTeam=n=>/claret/i.test(n||'');
 // ── Equipos del Claret (A, B, categorías…) separados ──
-const _teamKey = n => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const _teamKey = n => { const memo = window.__tkMemo || (window.__tkMemo = new Map()); const k = String(n || ''); let v = memo.get(k); if (v === undefined) { v = k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (memo.size < 20000) memo.set(k, v); } return v; };
 // Categoría del partido: la guardada a mano o deducida del nombre de la competición
 function _catOf(m) {
   if (m && m.category) return String(m.category);
-  const c = String((m && m.competition) || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  const raw = String((m && m.competition) || '');
+  if (!raw) return '';
+  const memo = window.__catMemo || (window.__catMemo = new Map());
+  let v = memo.get(raw);
+  if (v === undefined) { v = _catOfComp(raw); if (memo.size < 5000) memo.set(raw, v); }
+  return v;
+}
+function _catOfComp(raw) {
+  const c = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
   if (!c) return '';
   const CATS = [['PREINFANTIL', 'Preinfantil'], ['INFANTIL', 'Infantil'], ['PREMINI', 'Premini'], ['MINIBASQUET', 'Mini'], ['MINI', 'Mini'], ['CADET', 'Cadet'], ['JUNIOR', 'Júnior'], ['SUB-2', 'Sub-20'], ['SUB 2', 'Sub-20'], ['U20', 'Sub-20'], ['SENIOR', 'Sènior'], ['PRIMERA CATALANA', 'Sènior'], ['SEGONA CATALANA', 'Sènior'], ['TERCERA CATALANA', 'Sènior'], ['COPA CATALUNYA', 'Sènior'], ['SUPERCOPA', 'Sènior'], ['LLIGA EBA', 'Sènior']];
   const hit = CATS.find(([k]) => c.includes(k));
@@ -14539,17 +14689,44 @@ window.toggleClubGroup = function() {
     renderClubLeague();
 };
 
+// ¿Juega el equipo en el partido? Devuelve el nombre de su lado o ''.
+// Respeta la categoría (mismo nombre en júnior y sénior = equipos distintos).
+// '__CLARET__' = el equipo del Claret elegido (clave NOMBRE|CATEGORÍA).
+function _playsSide(m, target, cat, ourKey) {
+  for (const n of [m.homeTeam, m.awayTeam]) {
+    if (!n) continue;
+    if (target === '__CLARET__') { if (isOurTeam(n) && (!ourKey || _ourKeyOf(m, n) === ourKey)) return n; }
+    else if (n === target && (!cat || _mCatFor(m, n) === cat)) return n;
+  }
+  return '';
+}
+// Si no se indica categoría y el nombre existe en varias: la de su último partido oficial
+function _defaultCatFor(name, season) {
+  if (!name || name === '__CLARET__' || _teamCatsOf(name).length < 2) return '';
+  const ms = S.matches.filter(m => (m.homeTeam === name || m.awayTeam === name) && !_isFriendly(m) && _catOf(m) && (!season || season === 'Sin temporada' || m.season === season));
+  if (!ms.length) return '';
+  ms.sort((a, b) => _dateKey(b.date).localeCompare(_dateKey(a.date)));
+  return _catOf(ms[0]);
+}
+function _leagueSel(target, season, cat) {
+  return target === '__CLARET__'
+    ? { ourKey: cat || _ourTeamKey(), tCat: '' }
+    : { ourKey: '', tCat: cat || _defaultCatFor(target, season) };
+}
+
 // Agregados por equipo sobre todos los partidos (opcionalmente filtrados por
 // liga+grupo+temporada del "equipo ancla" para comparar solo contra su liga).
-function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true) {
+// cat: categoría del equipo (o la clave NOMBRE|CAT si es '__CLARET__').
+function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true, cat = '') {
   const _official = S.matches.filter(m => !_isFriendly(m));
   let scopedMatches = _official;
+  const { ourKey, tCat } = _leagueSel(targetTeamName, targetSeason, cat);
 
   if (targetTeamName) {
     const validCombos = new Set();
     
     _official.forEach(m => {
-      const playsInMatch = m.homeTeam === targetTeamName || m.awayTeam === targetTeamName || (targetTeamName === '__CLARET__' && (isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)));
+      const playsInMatch = !!_playsSide(m, targetTeamName, tCat, ourKey);
       if (targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return;
 
       if (playsInMatch && m.competition) {
@@ -14586,7 +14763,9 @@ function _leagueTeamAggregates(targetTeamName, targetSeason, applyGroup = true) 
     [['home', m.homeTeam, m.homePlayers, m.scoreHome, m.scoreAway],
      ['away', m.awayTeam, m.awayPlayers, m.scoreAway, m.scoreHome]].forEach(([side, name, players, my, op]) => {
       if (!name) return;
-      const keyName = (targetTeamName === '__CLARET__' && isOurTeam(name)) ? '__CLARET__' : name;
+      let keyName = name;
+      if (targetTeamName === '__CLARET__' && isOurTeam(name) && (!ourKey || _ourKeyOf(m, name) === ourKey)) keyName = '__CLARET__';
+      else if (tCat && name === targetTeamName && _mCatFor(m, name) !== tCat) keyName = `${name} (${_mCatFor(m, name) || '?'})`;
       if (!T[keyName]) T[keyName] = { name: keyName, realName: name, g: 0, pts: 0, ptsA: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0 };
       const t = T[keyName];
       t.g++; t.pts += my || 0; t.ptsA += op || 0;
@@ -14612,9 +14791,11 @@ const _LEAGUE_METRICS=[
 ];
 
 // Genera el HTML de ranking de un equipo contra su liga (tarjetas + "a mejorar").
-function _leagueComparisonHtml(teamName, targetSeason){
+function _leagueComparisonHtml(teamName, targetSeason, cat = ''){
   const targetCheck = (teamName === '__CLARET__') ? '__CLARET__' : teamName;
-  const teams = _leagueTeamAggregates(targetCheck, targetSeason);
+  const teams = _leagueTeamAggregates(targetCheck, targetSeason, true, cat);
+  const { ourKey: _lk, tCat: _lc } = _leagueSel(targetCheck, targetSeason, cat);
+  const lblCat = _lc || (_lk ? (_lk.split('|')[1] || '') : '');
   
   let us = teams.find(t => t.name === teamName);
   if(!us && teamName === '__CLARET__') {
@@ -14636,8 +14817,8 @@ function _leagueComparisonHtml(teamName, targetSeason){
 
   // 🚀 Extraer el nombre real de la liga y el grupo para mostrarlo en el texto
   const refMatch = S.matches.find(m => {
-      const plays = m.homeTeam === targetCheck || m.awayTeam === targetCheck || (targetCheck === '__CLARET__' && (isOurTeam(m.homeTeam) || isOurTeam(m.awayTeam)));
-      if (!plays) return false;
+      if (!m.competition || _isFriendly(m)) return false;
+      if (!_playsSide(m, targetCheck, _lc, _lk)) return false;
       if (targetSeason && targetSeason !== 'Sin temporada' && m.season !== targetSeason) return false;
       return true;
   });
@@ -14660,7 +14841,7 @@ function _leagueComparisonHtml(teamName, targetSeason){
       <div style="font-size:10px;font-weight:800;color:#dc2626;text-transform:uppercase;margin-bottom:3px">🎯 A mejorar en su grupo</div>
       <div style="font-size:11px">${toImprove.map(r => `<b>${r.label}</b> (${r.pos}º de ${N}, ${r.val})`).join(' · ')}</div>
     </div>` : '<div style="color:var(--gn);font-size:12px;font-weight:600">✅ Sin métricas en el tercio bajo del grupo</div>'}
-    <div style="font-size:10px;color:var(--t3);margin-top:8px">Comparativa contra los ${N} equipos de <b>${lblComp} ${lblGrp}</b> (${lblSea}).</div>`;
+    <div style="font-size:10px;color:var(--t3);margin-top:8px">Comparativa contra los ${N} equipos de <b>${lblComp} ${lblGrp}</b>${lblCat ? ' · ' + _esc(lblCat) : ''} (${lblSea}).</div>`;
 }
 
 
@@ -14968,7 +15149,7 @@ function exportMatchPDF(matchId){
   
   const tfEl = document.getElementById('st-tf');
   const tfVal = tfEl ? tfEl.value : '';
-  const tf = (matchId === undefined || matchId === null) ? tfVal.trim() : '';
+  const tf = (matchId === undefined || matchId === null) ? _tvSplit(tfVal)[0].trim() : '';
   
   let onlySide = null;
   if(tf){
@@ -17011,7 +17192,7 @@ function _metaPayload() {
   return {
     teams: S.teams || [], access: S.access || null,
     playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
-    nextMatch: S.nextMatch || null, fisio: S.fisio || {},
+    nextMatch: S.nextMatch || null, fisio: S.fisio || {}, fisioFix: S.fisioFix || 0,
     scoutNotes: S.scoutNotes || {}
   };
 }
@@ -17144,7 +17325,7 @@ async function ldLS() {
       if (parsed) {
         S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
         S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
-        S.fisio = parsed.fisio || {};
+        S.fisio = parsed.fisio || {}; S.fisioFix = parsed.fisioFix || 0;
         _refreshAfterSync();
       }
     }
@@ -17164,9 +17345,11 @@ async function ldLS() {
           const md = metaRes.data.data;
           S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
           S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
-          S.fisio = md.fisio || {};
+          S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || 0;
           S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
           window._lastMetaStr = JSON.stringify(_metaPayload());
+          // 🩹 Fisio: quita datos que el inyector antiguo metió en jugadores equivocados
+          if (savedRole === 'staff' && typeof window._fisioRepair === 'function') setTimeout(() => window._fisioRepair(), 300);
       }
       if (!metaRes.error) window._metaLoaded = true;
       if (clipsRes.data) {
@@ -17271,7 +17454,7 @@ async function ldLS() {
                   const md = payload.new.data;
                   S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
                   S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
-                  S.fisio = md.fisio || {};
+                  S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || S.fisioFix || 0;
                   S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
                   if (typeof _loadScoutNotes === 'function') _loadScoutNotes();
                   window._lastMetaStr = JSON.stringify(_metaPayload());
@@ -17760,7 +17943,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRenameClip,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
@@ -17866,7 +18049,7 @@ function renderTeams(){
   const gf=gsel?gsel.value:'';
   if(gsel)gsel.innerHTML=_groupFilterOptions(gf);
   
-  const lista=S.teams.filter(t=>_inGroup(t.name,gf))
+  const lista=S.teams.filter(t=>_inGroup(t.name,gf,t.category||''))
     .sort((a,b) => String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name));
     
   const countEl=document.getElementById('eq-count');
@@ -18738,7 +18921,7 @@ function renderStatsAggregated(){
 
     comb.forEach(p => {
       if(tf && p.team !== tf) return;
-      if(gf && !_inGroup(p.team, gf)) return;
+      if(gf && !_inGroup(p.team, gf, _mCatFor(m, p.team))) return;
       if(pf && p.name !== pf) return;
       const pD = p.dorsal ? String(p.dorsal) : '';
       if(q && !(norm(p.name).includes(q) || pD.includes(q))) return;
@@ -19032,8 +19215,8 @@ function advSort(col, scope){
 const _baseRenderDash=renderDash;
 renderDash=function(){
   _baseRenderDash();
-  const team=document.getElementById('db-tf')?.value||'',el=document.getElementById('db-ha-card');
-  if(el)el.innerHTML=team?_generateHomeAwayHTML(team,S.matches.filter(m=>m.homeTeam===team||m.awayTeam===team)):'';
+  const [team,tcat]=_tvSplit(document.getElementById('db-tf')?.value||''),el=document.getElementById('db-ha-card');
+  if(el)el.innerHTML=team?_generateHomeAwayHTML(team,S.matches.filter(m=>(m.homeTeam===team||m.awayTeam===team)&&(!tcat||_mCatFor(m,team)===tcat))):'';
 };
 
 const _baseRenderStats=renderStats;
@@ -19046,8 +19229,8 @@ renderStats=function(){
 const _baseRenderScout=renderScouting;
 renderScouting=function(){
   _baseRenderScout();
-  const team=document.getElementById('sc-rival')?.value||'',el=document.getElementById('sc-ha-card');
-  if(el)el.innerHTML=team?_generateHomeAwayHTML(team,S.matches.filter(m=>m.homeTeam===team||m.awayTeam===team)):'';
+  const team=_scoutRival||'',el=document.getElementById('sc-ha-card');
+  if(el)el.innerHTML=team?_generateHomeAwayHTML(team,S.matches.filter(m=>(m.homeTeam===team||m.awayTeam===team)&&_scCatOk(m))):'';
 };
 
 const _baseRenderClub=renderClub;
@@ -19208,14 +19391,13 @@ function _analyzePossessionClocks(matches, rivalTeam) {
 function _renderScoutPossessionClocksSeguro() {
   const container = document.getElementById('sc-possession-clock');
   if (!container) return;
-  const rivalSelect = document.getElementById('sc-rival');
-  const currentRival = rivalSelect ? rivalSelect.value : '';
+  const currentRival = _scoutRival || '';
   if (!currentRival) { container.innerHTML = ''; return; }
 
   const sfEff = document.getElementById('sc-sf')?.value || '';
   let matches = S.matches || [];
   const rName = currentRival.trim().toLowerCase();
-  const teamMatches = matches.filter(m => (m.homeTeam?.toLowerCase() === rName || m.awayTeam?.toLowerCase() === rName) && (!sfEff || m.season === sfEff));
+  const teamMatches = matches.filter(m => (m.homeTeam?.toLowerCase() === rName || m.awayTeam?.toLowerCase() === rName) && _scCatOk(m) && (!sfEff || m.season === sfEff));
 
   const data = _analyzePossessionClocks(teamMatches, currentRival);
   if (!data || !data.statsByZone['24-14']) return;
@@ -19574,9 +19756,12 @@ window.lvActAntiInteligente = function() {
 };
 
 // ═══════════════════════════════════════════
-// INYECTOR CORREGIDO (LOS DOS ADRIÀS BIEN ASIGNADOS)
+// HISTÓRICO DE FISIO (Excel) · ya NO se inyecta solo en cada carga.
+// Antes buscaba el nombre en TODOS los equipos (también rivales) y metía los datos en
+// jugadores equivocados (varios "Oriol", "Alex Sitjes"…). Ahora se ejecuta UNA vez como
+// reparación: quita lo que se metió mal y lo pone solo en jugadores del U.E. CLARET A.
 // ═══════════════════════════════════════════
-setTimeout(() => {
+window._fisioRepair = function () {
   try {
     const jumpData = {
       "Armak": [
@@ -19661,74 +19846,79 @@ setTimeout(() => {
       "Turru": [ {"date": "2026-08-25", "val": 80.0}]
     };
 
-    // 🎯 MAPEO CORREGIDO: Ordo ➔ Ordobàs | Turru ➔ Torroja
+    // Nombre del Excel → nombre (o trozos) del jugador del Claret A, del más al menos concreto
     const nameMapping = {
-      "Armak": "armak",
-      "Albert": "sitjes",
-      "Carrasco": "sergi carrasco",
-      "Gonzalo": "gonzalo fernando",
-      "Hector": "hector gimenez",
-      "JAVI": "javier vicente",
-      "Marti": "marti gomez",
-      "Ordo": "ordobàs",    // 👈 Corregido
-      "Oriol": "oriol",
-      "POCH": "jordi poch",
-      "Sowkin": "sowkin",
-      "Turru": "torroja"    // 👈 Corregido
+      "Armak": ["armak"],
+      "Albert": ["albert sitjes", "sitjes"],
+      "Carrasco": ["sergi carrasco", "carrasco"],
+      "Gonzalo": ["gonzalo fernando"],
+      "Hector": ["hector gimenez"],
+      "JAVI": ["javier vicente"],
+      "Marti": ["marti gomez"],
+      "Ordo": ["ordobas"],
+      "Oriol": ["oriol"],
+      "POCH": ["jordi poch", "poch"],
+      "Sowkin": ["sowkin"],
+      "Turru": ["torroja"]
     };
 
-    if (!S) return;
+    if (!S) return false;
+    const yaHecho = (S.fisioFix || 0) >= 2;
+    const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+    // Plantilla del U.E. CLARET A (sénior si hay categoría); nunca rivales ni otros equipos del club
+    const clA = (S.teams || []).filter(t => /CLARETA$/.test(_teamKey(t.name)));
+    const sen = clA.filter(t => /s[eè]nior/i.test(t.category || ''));
+    const roster = (sen.length ? sen : clA).flatMap(t => t.players || []);
+    if (!roster.length) return false; // todavía no hay plantilla cargada: se intentará luego
+    const uniq = [...new Map(roster.map(p => [norm(p.name), p])).values()];
+    const targetOf = {};
+    Object.entries(nameMapping).forEach(([excel, keys]) => {
+      for (const k of keys) {
+        const hits = uniq.filter(p => norm(p.name).includes(norm(k)));
+        if (hits.length === 1) { targetOf[excel] = hits[0].name; return; }
+        if (hits.length > 1) return; // ambiguo: mejor no poner nada
+      }
+    });
+    const targets = new Set(Object.values(targetOf));
+
     if (!S.fisio) S.fisio = {};
+    const METRICS = ['weight', 'jump_sj', 'jump_cmj', 'jump_free'];
+    // 1) Quitar lo que el inyector antiguo metió en jugadores equivocados
+    let quitados = 0;
+    Object.keys(S.fisio).forEach(name => {
+      if (targets.has(name)) return;
+      const d = S.fisio[name] || {};
+      METRICS.forEach(k => { const a = d[k] || []; const b = a.filter(x => !String(x.id || '').startsWith('hist_')); quitados += a.length - b.length; d[k] = b; });
+      if (!METRICS.some(k => (d[k] || []).length)) delete S.fisio[name];
+    });
+    if (yaHecho) { // la reparación ya se hizo: solo se limpia (por si un navegador con la versión vieja volvió a meter datos)
+      if (quitados) { console.log(`🩹 Fisio: ${quitados} registros quitados de jugadores equivocados`); if (typeof svL === 'function') svL(); if (typeof renderFisio === 'function') renderFisio(); }
+      return !!quitados;
+    }
+    // 2) Poner el histórico en el jugador correcto (sin duplicar fechas)
     const typeMap = { 'SJ': 'jump_sj', 'CMJ': 'jump_cmj', 'CMJFree': 'jump_free' };
     let importados = 0;
-
-    const allPlayers = (S.teams || []).flatMap(t => t.players || []);
-
-    const injectMetric = (excelName, metricId, dataArray) => {
-        const searchKey = nameMapping[excelName];
-        if (!searchKey) return;
-        
-        // Búsqueda insensible a tildes (por si acaso Ordobàs lleva acento o no en el roster)
-        const norm = t => String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-        const matchedPlayer = allPlayers.find(p => norm(p.name).includes(norm(searchKey)));
-        
-        if (!matchedPlayer) return;
-
-        const targetName = matchedPlayer.name;
-        if (!S.fisio[targetName]) S.fisio[targetName] = { weight: [], jump_sj: [], jump_cmj: [], jump_free: [] };
-        if (!S.fisio[targetName][metricId]) S.fisio[targetName][metricId] = [];
-
-        dataArray.forEach(item => {
-            const exists = S.fisio[targetName][metricId].some(d => d.date === item.date);
-            if (!exists) {
-                S.fisio[targetName][metricId].push({
-                    id: 'hist_' + Date.now().toString() + Math.floor(Math.random() * 1000),
-                    date: item.date,
-                    val: item.val
-                });
-                importados++;
-            }
-        });
+    const put = (excel, metricId, item) => {
+      const name = targetOf[excel]; if (!name) return;
+      if (!S.fisio[name]) S.fisio[name] = { weight: [], jump_sj: [], jump_cmj: [], jump_free: [] };
+      if (!S.fisio[name][metricId]) S.fisio[name][metricId] = [];
+      if (S.fisio[name][metricId].some(d => d.date === item.date)) return;
+      S.fisio[name][metricId].push({ id: 'hist_' + Date.now().toString() + Math.floor(Math.random() * 1000), date: item.date, val: item.val });
+      importados++;
     };
+    Object.keys(jumpData).forEach(ex => jumpData[ex].forEach(j => { if (typeMap[j.type]) put(ex, typeMap[j.type], j); }));
+    Object.keys(weightData).forEach(ex => weightData[ex].forEach(w => put(ex, 'weight', w)));
 
-    Object.keys(jumpData).forEach(excelName => {
-        jumpData[excelName].forEach(jump => {
-            if (typeMap[jump.type]) injectMetric(excelName, typeMap[jump.type], [jump]);
-        });
-    });
-
-    Object.keys(weightData).forEach(excelName => {
-        injectMetric(excelName, 'weight', weightData[excelName]);
-    });
-
-    if (importados > 0) {
-        if(typeof svL === 'function') svL(); 
-        if(typeof renderFisio === 'function') renderFisio();
-    }
+    S.fisioFix = 2;
+    console.log(`🩹 Fisio reparado: ${quitados} registros quitados de jugadores equivocados, ${importados} puestos en su jugador`, targetOf);
+    if (typeof svL === 'function') svL();
+    if (typeof renderFisio === 'function') renderFisio();
+    return true;
   } catch (error) {
-    console.error("Error en el inyector:", error);
+    console.error("Error reparando fisio:", error);
+    return false;
   }
-}, 2500);
+};
 
 
 // ═══════════════════════════════════════════════════════════════════════════

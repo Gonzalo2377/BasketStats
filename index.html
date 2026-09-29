@@ -11405,9 +11405,16 @@ function _recordSegment(vid, inT, outT, onProgress) {
     try { stream = vid.captureStream ? vid.captureStream() : vid.mozCaptureStream(); }
     catch (e) { reject(new Error('No se pudo capturar el vídeo')); return; }
 
-    const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
+    // Máxima calidad: misma resolución que el vídeo original (1080p si el vídeo es 1080p) y
+    // bitrate alto. MP4/H.264 primero: lo codifica la tarjeta gráfica (no se come la CPU) y es
+    // el formato que abre todo el mundo; si el navegador no puede, WebM.
+    const mime = ['video/mp4;codecs=avc1.64002a,mp4a.40.2','video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4',
+                  'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
       .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_200_000 });
+    const px = (vid.videoWidth || 1920) * (vid.videoHeight || 1080);
+    let bps = Math.min(40_000_000, Math.max(8_000_000, Math.round(px * 8)));   // 1080p ≈ 16 Mbps (calidad muy alta)
+    bps = Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, outT - inT + 2)));   // < 85 MB por clip (límite de Cloudinary)
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
     rec.onerror = () => reject(new Error('Error grabando el clip'));
@@ -14066,13 +14073,17 @@ function _clipMp4Url(url){
     try{
         const u=new URL(url);
         if(!/(^|\.)cloudinary\.com$/.test(u.hostname)||!u.pathname.includes('/video/upload/'))return null;
-        let p=u.pathname.replace('/video/upload/','/video/upload/vc_h264,ac_aac/');
+        let p=u.pathname.replace('/video/upload/','/video/upload/vc_h264,ac_aac,q_auto:best/');
         p=/\.[a-z0-9]{2,4}$/i.test(p)?p.replace(/\.[a-z0-9]{2,4}$/i,'.mp4'):p+'.mp4';
         u.pathname=p;u.search='';
         return u.toString();
     }catch(e){return null;}
 }
 async function _fetchClipMp4(url){
+    // Clips grabados ya en MP4: se descargan tal cual (máxima calidad, sin volver a comprimir)
+    if(/\.mp4(\?|$)/i.test(url)){
+        try{ const r=await fetch(url); if(r.ok){ const b=await r.blob(); if(b.size>1024) return {blob:new Blob([b],{type:'video/mp4'}),ext:'mp4'}; } }catch(e){}
+    }
     const mp4=_clipMp4Url(url);
     if(mp4){
         for(let k=0;k<5;k++){
@@ -16617,8 +16628,8 @@ window._vSpeed = 1;
 window._vEngine = null;
 
 window._vFolders = {
-    'ataque': ['CAA', 'BD', 'BI', 'Fons', 'Banda', 'Roff'],
-    'defensa': ['BD', 'BI', 'Zones', 'Press', 'Balanç']
+    'ataque': ['CAA', 'BD', 'BI', 'Fons', 'Banda', 'Roff', 'Playbook'],
+    'defensa': ['BD', 'BI', 'Zones', 'Press', 'Balanç', 'Defensa 5c5']
 };
 
 // ── 1. REC BADGE ACTUALIZADO (Funciona siempre) ──

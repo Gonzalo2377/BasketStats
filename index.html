@@ -3896,7 +3896,7 @@ async function uploadClipToCloud(blob, rival, onProgress) {
 // ═══════════════════════════════════════════
 // STATE & PERSISTENCE
 // ═══════════════════════════════════════════
-let S = {teams:[], matches:[], shots:[], clips:{}, playerNotes:{}, watchGroups:[]};
+let S = {teams:[], matches:[], shots:[], clips:{}, playerNotes:{}, watchGroups:[], videoLibs:[]};
 let _saving = false;
 let _saveTimer = null;
 
@@ -11490,7 +11490,8 @@ function importBackupFile(evt){
       const msg=`El backup contiene:\n· ${d.matches.length} partidos\n· ${d.teams.length} equipos\n· ${(d.shots||[]).length} tiros ubicados\n· clips: ${Object.keys(d.clips2||{}).length} partidos con clips\n\n¿REEMPLAZAR todos los datos actuales con este backup?\n(Los datos actuales se perderán)`;
       if(!confirm(msg))return;
       S.teams=d.teams||[];
-      S.matches=d.matches||[];
+      S.matches=(d.matches||[]).filter(m=>m.type!=='video_only');
+      S.videoLibs=[...(d.videoLibs||[]),...(d.matches||[]).filter(m=>m.type==='video_only')];
       S.shots=d.shots||[];
       S.clips=d.clips||{};
       S.clips2=d.clips2||{};
@@ -11515,7 +11516,8 @@ function exportBackup() {
         nextMatch: S.nextMatch || null,
         fisio: S.fisio || {},
         clips: S.clips || {},
-        clips2: S.clips2 || {}
+        clips2: S.clips2 || {},
+        videoLibs: S.videoLibs || []
     };
     bajarJSON(base, "00_hist_base.json");
 
@@ -13918,14 +13920,8 @@ function vSetTeams(){
     const a=document.getElementById('v-away')?.value.trim();
     if(!l||!a){toast('Escribe ambos equipos','err');return;}
     _vMatchKey=`${l} vs ${a}`;
-    
-    // 🎯 NUEVO: Lo vinculamos a tu BD real en vez de a S.clips2
-    let matchObj = S.matches.find(m => m.name === _vMatchKey);
-    if (!matchObj) {
-        matchObj = { id: Date.now(), name: _vMatchKey, date: new Date().toLocaleDateString(), homeTeam: l, awayTeam: a, homePlayers: [], awayPlayers: [], events: [], shots: [], type: "video_only" };
-        S.matches.push(matchObj);
-    }
-    if (!matchObj.videoClips) matchObj.videoClips = { created: Date.now(), teams: {} };
+    // Solo da nombre a la carpeta de clips (y al ZIP). No se crea ningún partido:
+    // la carpeta se guarda al grabar el primer clip.
 
     document.getElementById('v-teams-form').style.display='none';
     document.getElementById('v-wrap').style.display='block';
@@ -13977,7 +13973,7 @@ async function _vRunJob(job){
         const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
         
         // 🎯 Buscar en la BD real y actualizar el enlace de Firebase
-        let matchObj = S.matches.find(m => m.name === mkKey);
+        let matchObj = _vLib(mkKey);
         const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder];
         const cl = arr?.find(x=>x.id===clipId);
         if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
@@ -14006,7 +14002,7 @@ function _vRenderUploads(){
 
 // ── Download match folder as ZIP ────────────────────────────────────────────
 async function vDownloadMatch(mkKey){
-    let matchObj = S.matches.find(m => m.name === mkKey);
+    let matchObj = _vLib(mkKey);
     const mk = matchObj?.videoClips; if(!mk) return;
     const clips=[];
     Object.entries(mk.teams||{}).forEach(([tName,cats])=>Object.entries(cats).forEach(([cat,folders])=>
@@ -14027,39 +14023,110 @@ async function vDownloadMatch(mkKey){
     }
     const zip=new JSZip();
     const root=zip.folder(mkKey.replace(/[\\/:*?"<>|]/g,'-'));
-    let done=0;
-    const _usedNames={}; 
-    for(const {tName,cat,folder,cl} of clips){
-        try{
-            const r=await fetch(cl.videoUrl);
-            const b=await r.blob();
-            const safe=s=>s.replace(/[\\/:*?"<>|]/g,'-').trim();
-            let base=(cl.label&&cl.label.trim())?safe(cl.label):`min_${safe(cl.time)}`;
-            const path=`${safe(tName)}/${cat}/${safe(folder)}`;
-            const key=`${path}/${base}`;
-            if(_usedNames[key]!=null){_usedNames[key]++;base=`${base} (${_usedNames[key]})`;}
-            else _usedNames[key]=0;
-            const fname=`${base}.webm`;
-            root.folder(safe(tName)).folder(cat).folder(safe(folder)).file(fname,b);
-            done++;
-            toast(`📦 ${done}/${clips.length} clips añadidos…`);
-        }catch(e){console.warn('skip clip',e);}
-    }
-    toast('📦 Comprimiendo…');
+    const safe=s=>String(s??'').replace(/[\\/:*?"<>|]/g,'-').trim();
+    // nombres decididos antes (en orden) para que no cambien con la descarga en paralelo
+    const _usedNames={};
+    const jobs=clips.map(({tName,cat,folder,cl})=>{
+        let base=(cl.label&&cl.label.trim())?safe(cl.label):`min_${safe(cl.time)}`;
+        const key=`${safe(tName)}/${cat}/${safe(folder)}/${base}`;
+        if(_usedNames[key]!=null){_usedNames[key]++;base=`${base} (${_usedNames[key]})`;}
+        else _usedNames[key]=0;
+        return {tName,cat,folder,cl,base};
+    });
+    let done=0,noMp4=0,failed=0,next=0;
+    const worker=async()=>{
+        while(next<jobs.length){
+            const j=jobs[next++];
+            try{
+                const {blob,ext}=await _fetchClipMp4(j.cl.videoUrl);
+                if(ext!=='mp4')noMp4++;
+                root.folder(safe(j.tName)).folder(j.cat).folder(safe(j.folder)).file(`${j.base}.${ext}`,blob,{compression:'STORE'});
+                done++;
+                toast(`📦 ${done}/${clips.length} clips en MP4…`);
+            }catch(e){failed++;console.warn('skip clip',e);}
+        }
+    };
+    await Promise.all([worker(),worker(),worker()]); // 3 a la vez: la conversión tarda unos segundos por clip
+    if(!done){toast('❌ No se ha podido descargar ningún clip','err');return;}
+    toast('📦 Preparando el ZIP…');
     const blob=await zip.generateAsync({type:'blob'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download=`${mkKey.replace(/[\\/:*?"<>|]/g,'-')}_clips.zip`;
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-    toast('✅ ZIP descargado');
+    const notes=[noMp4?`${noMp4} en formato original (no se pudieron convertir)`:'',failed?`${failed} no descargados`:''].filter(Boolean).join(' · ');
+    toast(notes?`✅ ZIP descargado · ${notes}`:'✅ ZIP descargado (MP4)',notes?'err':undefined);
 }
 
-// ── Library: main folders = matches ─────────────────────────────────────────
+// Cloudinary convierte el vídeo al vuelo a MP4 (H.264 + AAC) si se pide con extensión .mp4.
+// Así los clips (grabados en WebM por el navegador) se descargan en un formato que abre cualquier
+// reproductor, el móvil o un editor de vídeo.
+function _clipMp4Url(url){
+    try{
+        const u=new URL(url);
+        if(!/(^|\.)cloudinary\.com$/.test(u.hostname)||!u.pathname.includes('/video/upload/'))return null;
+        let p=u.pathname.replace('/video/upload/','/video/upload/vc_h264,ac_aac/');
+        p=/\.[a-z0-9]{2,4}$/i.test(p)?p.replace(/\.[a-z0-9]{2,4}$/i,'.mp4'):p+'.mp4';
+        u.pathname=p;u.search='';
+        return u.toString();
+    }catch(e){return null;}
+}
+async function _fetchClipMp4(url){
+    const mp4=_clipMp4Url(url);
+    if(mp4){
+        for(let k=0;k<5;k++){
+            try{
+                const r=await fetch(mp4);
+                if(r.ok){const b=await r.blob();if(b.size>1024)return {blob:new Blob([b],{type:'video/mp4'}),ext:'mp4'};}
+                else if(![420,423,429].includes(r.status)&&r.status<500)break; // 423 = aún convirtiendo
+            }catch(e){}
+            await new Promise(res=>setTimeout(res,2000*(k+1)));
+        }
+    }
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const b=await r.blob();
+    const h=new Uint8Array(await b.slice(0,12).arrayBuffer());
+    const isMp4=h[4]===0x66&&h[5]===0x74&&h[6]===0x79&&h[7]===0x70; // 'ftyp'
+    return {blob:b,ext:isMp4?'mp4':'webm'};
+}
+
+// ── Biblioteca de clips ──────────────────────────────────────────────────────
+// Cada "Local vs Visitante" del vídeo es una carpeta de clips, NO un partido: se guarda en
+// S.videoLibs (type 'video_only') y nunca aparece en partidos, estadísticas ni comparativas.
+// Los clips antiguos que quedaron colgados de un partido real se siguen mostrando.
+function _vLib(key, create){
+    if(!S.videoLibs) S.videoLibs = [];
+    let o = S.videoLibs.find(m => m.name === key);
+    if(!o) o = S.matches.find(m => m.name === key && m.videoClips);
+    if(!o && create){
+        const parts = String(key).split(' vs ');
+        o = { id: Date.now(), name: key, homeTeam: parts[0] || 'Local', awayTeam: parts[1] || 'Visitante', type: 'video_only', videoClips: { created: Date.now(), teams: {} } };
+        S.videoLibs.push(o);
+    }
+    if(o && !o.videoClips) o.videoClips = { created: Date.now(), teams: {} };
+    return o || null;
+}
+function _vLibCount(o){ let n=0; Object.values(o?.videoClips?.teams||{}).forEach(t=>Object.values(t||{}).forEach(c=>Object.values(c||{}).forEach(a=>n+=(a||[]).length))); return n; }
+// Borra una carpeta de clips (si es video_only, la fila entera; en un partido real solo sus clips)
+async function _vDropLib(o){
+    if(!o) return;
+    if(o.type === 'video_only'){
+        S.videoLibs = (S.videoLibs || []).filter(x => x !== o);
+        delete _matchHashes[String(o.id)];
+        try{ await supabase.from('matches').delete().eq('id', o.id); }catch(e){ console.warn('No se pudo borrar la carpeta de clips', e); }
+        if(window._cacheDb) _IDB.del(window._cacheDb, [String(o.id)]).catch(()=>{});
+    } else delete o.videoClips;
+}
+// Carpetas creadas antes solo con elegir equipos (sin ningún clip): se quitan
+function _vCleanupEmptyLibs(){
+    if(localStorage.getItem('bascatRole') !== 'staff') return;
+    (S.videoLibs || []).filter(o => !_vLibCount(o)).forEach(o => _vDropLib(o));
+}
 function renderVideoLib(){
     const el=document.getElementById('v-library');if(!el)return;
-    // 🎯 Filtramos y pintamos leyendo de la base de datos de verdad
-    const matchesWithClips = S.matches.filter(m => m.videoClips && Object.keys(m.videoClips.teams || {}).length > 0);
+    const matchesWithClips = [...(S.videoLibs || []), ...S.matches.filter(m => m.videoClips)].filter(m => m.videoClips && _vLibCount(m) > 0);
     matchesWithClips.sort((a,b)=>(b.videoClips.created||0)-(a.videoClips.created||0));
     
     if(!matchesWithClips.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa <b>B</b> para marcar inicio y fin del primero.</div>';return;}
@@ -14115,22 +14182,23 @@ function vToggleFolder(id){
   el.style.display=open?'none':'block';if(a)a.textContent=open?'▼':'▲';
 }
 function vDeleteClip(mkKey,tName,cat,folder,id){
-    let matchObj = S.matches.find(m => m.name === mkKey);
+    let matchObj = _vLib(mkKey);
     const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder]; if(!arr) return;
     matchObj.videoClips.teams[tName][cat][folder] = arr.filter(c => c.id != id);
     if(!matchObj.videoClips.teams[tName][cat][folder].length) delete matchObj.videoClips.teams[tName][cat][folder];
+    if(!_vLibCount(matchObj)) _vDropLib(matchObj);
     svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 function vDeleteFolder(mkKey,tName,cat,folder){
     if(!confirm(`¿Eliminar la carpeta "${folder}" y sus clips?`)) return;
-    let matchObj = S.matches.find(m => m.name === mkKey);
+    let matchObj = _vLib(mkKey);
     if(matchObj?.videoClips?.teams?.[tName]?.[cat]) delete matchObj.videoClips.teams[tName][cat][folder];
+    if(matchObj && !_vLibCount(matchObj)) _vDropLib(matchObj);
     svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 function vDeleteMatch(mkKey){
     if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`)) return;
-    let matchObj = S.matches.find(m => m.name === mkKey);
-    if (matchObj) delete matchObj.videoClips;
+    _vDropLib(_vLib(mkKey));
     svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
 }
 
@@ -16511,7 +16579,8 @@ window.addEventListener('message', e => {
     window._fcbqBridge = { win: e.source, origin: e.origin };
     _bridgeUI();
     try { history.replaceState({}, '', location.pathname); } catch (err) {}
-    const ids = [...new Set([...(Array.isArray(d.list) ? d.list : []), ...(d.current ? [d.current] : [])])];
+    // En la página de un partido → solo ese partido. En resultados de un grupo → todos los de la página.
+    const ids = d.current ? [d.current] : [...new Set(Array.isArray(d.list) ? d.list : [])];
     if (ids.length) _whenReadyForImport(() => {
       try { if (typeof ST === 'function') ST('t-imp'); else if (typeof window.ST === 'function') window.ST('t-imp'); } catch (err) {}
       const todo = ids;
@@ -16775,7 +16844,7 @@ window.vSetCat = function(cat) {
         (window._vFolders[cat] || []).forEach(f => { sel.innerHTML += `<option value="${f}">${f}</option>`; });
         
         // 🎯 Buscar carpetas creadas en la base de datos real
-        let matchObj = S.matches.find(m => m.name === _vMatchKey);
+        let matchObj = _vLib(_vMatchKey);
         if (window._vState.side && matchObj && matchObj.videoClips) {
             const tName = window._vState.side === 'local' ? matchObj.homeTeam : matchObj.awayTeam;
             const existing = matchObj.videoClips.teams?.[tName]?.[cat] || {};
@@ -16818,14 +16887,8 @@ window.vSaveClip = function() {
     
     const label = document.getElementById('v-clip-label')?.value.trim() || '';
     
-    // 🎯 Crear o buscar el partido y guardar en la BD real
-    let matchObj = S.matches.find(m => m.name === _vMatchKey);
-    if (!matchObj) {
-        const parts = _vMatchKey.split(' vs ');
-        matchObj = { id: Date.now(), name: _vMatchKey, date: new Date().toLocaleDateString(), homeTeam: parts[0] || 'Local', awayTeam: parts[1] || 'Visitante', homePlayers: [], awayPlayers: [], events: [], shots: [], type: "video_only" };
-        S.matches.push(matchObj);
-    }
-    if (!matchObj.videoClips) matchObj.videoClips = { created: Date.now(), teams: {} };
+    // 🎯 Carpeta de clips (no es un partido): se crea aquí, con el primer clip
+    let matchObj = _vLib(_vMatchKey, true);
     
     const tName = window._vState.side === 'local' ? matchObj.homeTeam : matchObj.awayTeam;
     const cat = window._vState.cat;
@@ -16849,7 +16912,7 @@ window.vSaveClip = function() {
         note: ''
     });
     
-    svL(); // 🎯 Al guardar aquí, ¡tu S.matches (y los clips dentro) se persisten!
+    svL(); // 🎯 Se guarda la carpeta de clips (S.videoLibs), no un partido
     if (typeof syncFirebase === 'function') syncFirebase();
 
     if (typeof _vEnqueue === 'function' && typeof _recordSegment === 'function') {
@@ -16946,7 +17009,7 @@ function _metaPayload() {
 function _rehashAll() {
   const by = {};
   (S.shots || []).forEach(s => { const k = String(s.mId || s.matchId); (by[k] = by[k] || []).push(s); });
-  (S.matches || []).forEach(m => {
+  [...(S.matches || []), ...(S.videoLibs || [])].forEach(m => {
     const k = String(m.id);
     _matchHashes[k] = _hash(JSON.stringify({ ...m, placedShots: by[k] || [] }));
   });
@@ -16961,6 +17024,15 @@ function _loadMatchRows(rows) {
     const k = String(m.id);
     const i = S.matches.findIndex(x => String(x.id) === k);
     if (i >= 0) S.matches.splice(i, 1);
+    // 🎬 Bibliotecas de clips (se guardan en la misma tabla, pero NO son partidos)
+    if (m.type === 'video_only') {
+      if (!S.videoLibs) S.videoLibs = [];
+      const j = S.videoLibs.findIndex(x => String(x.id) === k);
+      if (j >= 0) S.videoLibs.splice(j, 1);
+      delete m.placedShots;
+      S.videoLibs.push(m);
+      return;
+    }
     (_shotsOf[k] || []).forEach(s => drop.add(s));
     if (!m.name && m.homeTeam && m.awayTeam) m.name = `${m.homeTeam} vs ${m.awayTeam}`;
     if (Array.isArray(m.shots) && m.shots.some(sh => typeof sh.xRaw === 'number')) _fcbqPlaceShots(m.shots);
@@ -16979,6 +17051,7 @@ function _removeMatchIds(ids) {
   const drop = new Set();
   set.forEach(k => { (_shotsOf[k] || []).forEach(s => drop.add(s)); delete _shotsOf[k]; delete _matchHashes[k]; });
   S.matches = S.matches.filter(m => !set.has(String(m.id)));
+  S.videoLibs = (S.videoLibs || []).filter(m => !set.has(String(m.id)));
   if (drop.size) S.shots = S.shots.filter(s => !drop.has(s));
 }
 
@@ -17168,6 +17241,7 @@ async function ldLS() {
                       if (n % 50 === 0 && typeof toast === 'function') toast(`⏳ Descargando partidos nuevos/cambiados... (${n})`, 'ok');
                   });
                   if (typeof toast === 'function') toast(r.downloaded ? `✅ ${r.downloaded} partidos actualizados` : '✅ Todo al día (caché local)', 'ok');
+                  _vCleanupEmptyLibs();
               } catch (e) {
                   console.warn('Sync incremental no disponible (¿falta updated_at?). Carga completa:', e);
                   try {
@@ -17197,7 +17271,7 @@ async function ldLS() {
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
               if(payload.new && payload.new.match_data) {
                   const m = payload.new.match_data;
-                  if(!S.matches.find(x => String(x.id) === String(m.id))) {
+                  if(!S.matches.find(x => String(x.id) === String(m.id)) && !(S.videoLibs || []).find(x => String(x.id) === String(m.id))) {
                       _loadMatchRows([m]);
                       _rehashAll();
                       if (window._cacheDb) _IDB.put(window._cacheDb, [m]).catch(() => {});
@@ -17260,7 +17334,7 @@ async function svL() {
 
       if (S.matches && Array.isArray(S.matches)) {
         const matchesToUpsert = [];
-        for (const m of S.matches) {
+        for (const m of [...S.matches, ...(S.videoLibs || [])]) {
           const mIdStr = String(m.id);
           const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
           const fullMatch = { ...m, placedShots };
@@ -17279,7 +17353,8 @@ async function svL() {
 
         if (matchesToUpsert.length > 0) {
           // 🔥 AVISO VISUAL: Te dice cuántos va a subir
-          if (typeof toast === 'function') toast(`☁️ Subiendo ${matchesToUpsert.length} partidos a la nube... No cierres la web.`, 'ok');
+          const _nReal = matchesToUpsert.filter(c => c.match_data?.type !== 'video_only').length;
+          if (typeof toast === 'function') toast(_nReal ? `☁️ Subiendo ${_nReal} partidos a la nube... No cierres la web.` : '☁️ Guardando clips…', 'ok');
           
           const chunkSize = 5; // Paquetes de 5 para no saturar
           for (let i = 0; i < matchesToUpsert.length; i += chunkSize) {
@@ -17299,7 +17374,7 @@ async function svL() {
           }
           
           // 🔥 AVISO VISUAL: Te avisa al terminar
-          if (typeof toast === 'function') toast(`✅ ¡Todos los partidos guardados en Supabase!`, 'ok');
+          if (typeof toast === 'function') toast(_nReal ? `✅ ¡Todos los partidos guardados en Supabase!` : '✅ Clips guardados', 'ok');
           console.log(`☁️ Supabase sincronizado: ${matchesToUpsert.length} partidos subidos`);
         }
       }

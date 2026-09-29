@@ -3824,6 +3824,7 @@ body.zen-mode {
 
   <div class="card">
     <div class="ct">📚 Biblioteca de clips <span style="font-size:10px;color:var(--t3);font-weight:400">— una carpeta por partido</span></div>
+    <div id="v-zip-progress"></div>
     <div id="v-library"></div>
   </div>
 
@@ -11504,7 +11505,11 @@ function _recordSegment(vid, inT, outT, onProgress) {
                   'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
       .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
     const px = (vid.videoWidth || 1920) * (vid.videoHeight || 1080);
-    let bps = Math.min(40_000_000, Math.max(8_000_000, Math.round(px * 8)));   // 1080p ≈ 16 Mbps (calidad muy alta)
+    // Bitrate: el doble que el vídeo original (se ve igual que el original, sin inflar el archivo),
+    // entre ~6 y ~16 Mbps en 1080p. Sin datos del original: ~8 Mbps en 1080p.
+    const srcBps = (window._vSrcSize && vid.duration) ? window._vSrcSize * 8 / vid.duration : 0;
+    let bps = srcBps ? Math.round(srcBps * 2) : Math.round(px * 4);
+    bps = Math.min(40_000_000, Math.round(px * 8), Math.max(4_000_000, Math.round(px * 3), bps));
     bps = Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, outT - inT + 2)));   // < 85 MB por clip (límite de Cloudinary)
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     const chunks = [];
@@ -14006,6 +14011,7 @@ function vLoadVideo(evt){
   const f=evt.target.files[0];if(!f)return;
   const v=vEl();
   _vSrcUrl=URL.createObjectURL(f);
+  window._vSrcSize=f.size;   // para ajustar la calidad de los clips al vídeo original
   v.src=_vSrcUrl;
   document.getElementById('v-name').textContent=f.name;
   document.getElementById('v-teams-form').style.display='block';
@@ -14133,63 +14139,125 @@ function _vRenderUploads(){
     </div>`).join(''):'';
 }
 
-// ── Download match folder as ZIP ────────────────────────────────────────────
-async function vDownloadMatch(mkKey){
+// ── Descargar clips como ZIP ────────────────────────────────────────────────
+// ZIP sin compresión (los MP4 ya van comprimidos) montado por partes: sin librerías externas,
+// sin copiar los vídeos otra vez en memoria y sin la espera final de "Preparando el ZIP".
+// Los clips se bajan 6 a la vez. only = {tName, cat, folder} para bajar solo una carpeta.
+async function vDownloadMatch(mkKey, only){
     let matchObj = _vLib(mkKey);
     const mk = matchObj?.videoClips; if(!mk) return;
+    if(window._vZipBusy){toast('Ya hay una descarga en marcha','err');return;}
     const clips=[];
     Object.entries(mk.teams||{}).forEach(([tName,cats])=>Object.entries(cats).forEach(([cat,folders])=>
         Object.entries(folders).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{
+            if(only&&(only.tName!==tName||only.cat!==cat||only.folder!==folder))return;
             if(cl.videoUrl)clips.push({tName,cat,folder,cl});
         }))));
-    if(!clips.length){toast('Este partido no tiene clips con vídeo subido','err');return;}
-    toast(`📦 Preparando ZIP con ${clips.length} clips…`);
-    
-    if(!window.JSZip){
-        await new Promise((res,rej)=>{
-            const s=document.createElement('script');
-            s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-            s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar JSZip'));
-            document.head.appendChild(s);
-        }).catch(e=>{toast(e.message,'err');});
-        if(!window.JSZip) return;
-    }
-    const zip=new JSZip();
-    const root=zip.folder(mkKey.replace(/[\\/:*?"<>|]/g,'-'));
+    if(!clips.length){toast(only?'Esta carpeta no tiene clips con vídeo subido':'Este partido no tiene clips con vídeo subido','err');return;}
+    window._vZipBusy=true;
     const safe=s=>String(s??'').replace(/[\\/:*?"<>|]/g,'-').trim();
+    const rootName=safe(mkKey)+(only?` - ${safe(only.folder)}`:'');
     // nombres decididos antes (en orden) para que no cambien con la descarga en paralelo
     const _usedNames={};
     const jobs=clips.map(({tName,cat,folder,cl})=>{
         let base=(cl.label&&cl.label.trim())?safe(cl.label):`min_${safe(cl.time)}`;
-        const key=`${safe(tName)}/${cat}/${safe(folder)}/${base}`;
+        const dir=only?'':`${safe(tName)}/${cat}/${safe(folder)}/`;
+        const key=dir+base;
         if(_usedNames[key]!=null){_usedNames[key]++;base=`${base} (${_usedNames[key]})`;}
         else _usedNames[key]=0;
-        return {tName,cat,folder,cl,base};
+        return {cl,path:`${rootName}/${dir}${base}`};
     });
-    let done=0,noMp4=0,failed=0,next=0;
-    const worker=async()=>{
-        while(next<jobs.length){
-            const j=jobs[next++];
-            try{
-                const {blob,ext}=await _fetchClipMp4(j.cl.videoUrl);
-                if(ext!=='mp4')noMp4++;
-                root.folder(safe(j.tName)).folder(j.cat).folder(safe(j.folder)).file(`${j.base}.${ext}`,blob,{compression:'STORE'});
-                done++;
-                toast(`📦 ${done}/${clips.length} clips en MP4…`);
-            }catch(e){failed++;console.warn('skip clip',e);}
-        }
+    const zip=new _ZipStore();
+    const t0=performance.now();
+    let bytes=0,done=0,noMp4=0,failed=0,next=0;
+    const prog=document.getElementById('v-zip-progress');
+    const show=(fin)=>{
+        if(!prog)return;
+        const secs=Math.max(0.5,(performance.now()-t0)/1000), mbps=bytes/1048576/secs;
+        const pct=Math.round(done/jobs.length*100);
+        prog.innerHTML=fin?'':`<div style="margin-bottom:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:11px">
+            <div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;color:#0369a1;margin-bottom:5px">
+              <span>📦 ${_esc(rootName)}</span><span>${done}/${jobs.length} clips · ${(bytes/1048576).toFixed(0)} MB · ${mbps.toFixed(1)} MB/s</span></div>
+            <div style="height:6px;background:#e0f2fe;border-radius:4px;overflow:hidden"><div style="height:6px;width:${pct}%;background:#0284c7"></div></div></div>`;
     };
-    await Promise.all([worker(),worker(),worker()]); // 3 a la vez: la conversión tarda unos segundos por clip
+    show();
+    const tick=setInterval(()=>show(),700);
+    try{
+        const worker=async()=>{
+            while(next<jobs.length){
+                const j=jobs[next++];
+                try{
+                    const r=await _fetchClipMp4(j.cl.videoUrl,n=>{bytes+=n;});
+                    if(r.ext!=='mp4')noMp4++;
+                    zip.add(`${j.path}.${r.ext}`,r.blob,r.crc,r.size);
+                    done++;
+                }catch(e){failed++;console.warn('skip clip',e);}
+            }
+        };
+        await Promise.all(Array.from({length:Math.min(6,jobs.length)},worker));
+    }finally{clearInterval(tick);show(true);window._vZipBusy=false;}
     if(!done){toast('❌ No se ha podido descargar ningún clip','err');return;}
-    toast('📦 Preparando el ZIP…');
-    const blob=await zip.generateAsync({type:'blob'});
+    const blob=zip.blob();
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=`${mkKey.replace(/[\\/:*?"<>|]/g,'-')}_clips.zip`;
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    a.download=`${rootName}_clips.zip`;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+    const secs=(performance.now()-t0)/1000;
     const notes=[noMp4?`${noMp4} en formato original (no se pudieron convertir)`:'',failed?`${failed} no descargados`:''].filter(Boolean).join(' · ');
-    toast(notes?`✅ ZIP descargado · ${notes}`:'✅ ZIP descargado (MP4)',notes?'err':undefined);
+    toast(notes?`✅ ZIP descargado · ${notes}`:`✅ ZIP descargado · ${done} clips · ${(bytes/1048576).toFixed(0)} MB en ${Math.round(secs)} s`,notes?'err':undefined);
+}
+function vDownloadFolder(mkKey,tName,cat,folder){ return vDownloadMatch(mkKey,{tName,cat,folder}); }
+
+// CRC-32 (necesario en las cabeceras del ZIP), por tablas de 8 bytes a la vez
+const _CRC_T=(()=>{const T=new Uint32Array(256*8);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;T[n]=c>>>0;}
+  for(let n=0;n<256;n++){let c=T[n];for(let k=1;k<8;k++){c=T[c&255]^(c>>>8);T[k*256+n]=c>>>0;}}return T;})();
+function _crc32(u8,crc){
+  const T=_CRC_T;let c=~(crc||0)>>>0,i=0;const n=u8.length,n8=n-(n%8);
+  for(;i<n8;i+=8){
+    const a=(u8[i]|u8[i+1]<<8|u8[i+2]<<16|u8[i+3]<<24)^c, b=u8[i+4]|u8[i+5]<<8|u8[i+6]<<16|u8[i+7]<<24;
+    c=T[1792+(a&255)]^T[1536+((a>>>8)&255)]^T[1280+((a>>>16)&255)]^T[1024+(a>>>24)]^T[768+(b&255)]^T[512+((b>>>8)&255)]^T[256+((b>>>16)&255)]^T[b>>>24];
+  }
+  for(;i<n;i++)c=T[(c^u8[i])&255]^(c>>>8);
+  return (~c)>>>0;
+}
+// Escritor de ZIP "store" (con ZIP64 si pasa de 4 GB)
+class _ZipStore{
+  constructor(z64At){this.parts=[];this.cd=[];this.off=0;this.n=0;this.z64At=z64At||0xFFFFFFFF;}
+  _dos(){const d=new Date();return{t:(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1),d:((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate()};}
+  add(path,blob,crc,size){
+    const name=new TextEncoder().encode(path),{t,d}=this._dos(),off=this.off,big=off>=this.z64At;
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,big?45:20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);
+    h.setUint16(10,t,true);h.setUint16(12,d,true);h.setUint32(14,crc,true);h.setUint32(18,size,true);h.setUint32(22,size,true);
+    h.setUint16(26,name.length,true);h.setUint16(28,0,true);
+    this.parts.push(h.buffer,name,blob);this.off+=30+name.length+size;this.n++;
+    const c=new DataView(new ArrayBuffer(46+(big?12:0)));
+    c.setUint32(0,0x02014b50,true);c.setUint16(4,big?45:20,true);c.setUint16(6,big?45:20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);
+    c.setUint16(12,t,true);c.setUint16(14,d,true);c.setUint32(16,crc,true);c.setUint32(20,size,true);c.setUint32(24,size,true);
+    c.setUint16(28,name.length,true);c.setUint16(30,big?12:0,true);c.setUint32(42,big?0xFFFFFFFF:off,true);
+    if(big){c.setUint16(46,1,true);c.setUint16(48,8,true);c.setBigUint64(50,BigInt(off),true);}
+    this.cd.push({c:c.buffer,name});
+  }
+  blob(){
+    const cdOff=this.off;let cdSize=0;const cdParts=[];
+    this.cd.forEach(e=>{const extra=e.c.byteLength-46;cdParts.push(new Uint8Array(e.c,0,46),e.name);if(extra)cdParts.push(new Uint8Array(e.c,46));cdSize+=e.c.byteLength+e.name.length;});
+    const tail=[];
+    const z64=cdOff>=this.z64At||cdOff+cdSize>=this.z64At||this.n>=0xFFFF;
+    if(z64){
+      const r=new DataView(new ArrayBuffer(56));
+      r.setUint32(0,0x06064b50,true);r.setBigUint64(4,44n,true);r.setUint16(12,45,true);r.setUint16(14,45,true);
+      r.setBigUint64(24,BigInt(this.n),true);r.setBigUint64(32,BigInt(this.n),true);r.setBigUint64(40,BigInt(cdSize),true);r.setBigUint64(48,BigInt(cdOff),true);
+      const l=new DataView(new ArrayBuffer(20));
+      l.setUint32(0,0x07064b50,true);l.setBigUint64(8,BigInt(cdOff+cdSize),true);l.setUint32(16,1,true);
+      tail.push(r.buffer,l.buffer);
+    }
+    const e=new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true);e.setUint16(8,z64?0xFFFF:this.n,true);e.setUint16(10,z64?0xFFFF:this.n,true);
+    e.setUint32(12,z64?0xFFFFFFFF:cdSize,true);e.setUint32(16,z64?0xFFFFFFFF:cdOff,true);
+    tail.push(e.buffer);
+    return new Blob([...this.parts,...cdParts,...tail],{type:'application/zip'});
+  }
 }
 
 // Cloudinary convierte el vídeo al vuelo a MP4 (H.264 + AAC) si se pide con extensión .mp4.
@@ -14205,28 +14273,37 @@ function _clipMp4Url(url){
         return u.toString();
     }catch(e){return null;}
 }
-async function _fetchClipMp4(url){
-    // Clips grabados ya en MP4: se descargan tal cual (máxima calidad, sin volver a comprimir)
+// Baja un archivo por trozos: calcula el CRC del ZIP y cuenta los bytes para el progreso
+async function _fetchBytes(url,onBytes){
+    const r=await fetch(url);
+    if(!r.ok){const e=new Error('HTTP '+r.status);e.status=r.status;throw e;}
+    const parts=[];let crc=0,size=0;
+    if(r.body&&r.body.getReader){
+        const rd=r.body.getReader();
+        for(;;){const {done,value}=await rd.read();if(done)break;crc=_crc32(value,crc);parts.push(value);size+=value.length;if(onBytes)onBytes(value.length);}
+    }else{const u=new Uint8Array(await r.arrayBuffer());crc=_crc32(u,0);parts.push(u);size=u.length;if(onBytes)onBytes(size);}
+    return {parts,crc,size};
+}
+async function _fetchClipMp4(url,onBytes){
+    // Clips grabados ya en MP4: se descargan tal cual (máxima calidad, sin esperar a ninguna conversión)
     if(/\.mp4(\?|$)/i.test(url)){
-        try{ const r=await fetch(url); if(r.ok){ const b=await r.blob(); if(b.size>1024) return {blob:new Blob([b],{type:'video/mp4'}),ext:'mp4'}; } }catch(e){}
+        try{ const f=await _fetchBytes(url,onBytes); if(f.size>1024) return {blob:new Blob(f.parts,{type:'video/mp4'}),ext:'mp4',crc:f.crc,size:f.size}; }catch(e){}
     }
+    // Clips antiguos en WebM: Cloudinary los convierte a MP4 (la 1ª vez tarda unos segundos)
     const mp4=_clipMp4Url(url);
     if(mp4){
-        for(let k=0;k<5;k++){
+        for(let k=0;k<6;k++){
             try{
-                const r=await fetch(mp4);
-                if(r.ok){const b=await r.blob();if(b.size>1024)return {blob:new Blob([b],{type:'video/mp4'}),ext:'mp4'};}
-                else if(![420,423,429].includes(r.status)&&r.status<500)break; // 423 = aún convirtiendo
-            }catch(e){}
-            await new Promise(res=>setTimeout(res,2000*(k+1)));
+                const f=await _fetchBytes(mp4,onBytes);
+                if(f.size>1024)return {blob:new Blob(f.parts,{type:'video/mp4'}),ext:'mp4',crc:f.crc,size:f.size};
+            }catch(e){ if(e.status&&![420,423,429].includes(e.status)&&e.status<500)break; } // 423 = aún convirtiendo
+            await new Promise(res=>setTimeout(res,1500*(k+1)));
         }
     }
-    const r=await fetch(url);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const b=await r.blob();
-    const h=new Uint8Array(await b.slice(0,12).arrayBuffer());
+    const f=await _fetchBytes(url,onBytes);
+    const h=f.parts[0]||new Uint8Array(0);
     const isMp4=h[4]===0x66&&h[5]===0x74&&h[6]===0x79&&h[7]===0x70; // 'ftyp'
-    return {blob:b,ext:isMp4?'mp4':'webm'};
+    return {blob:new Blob(f.parts),ext:isMp4?'mp4':'webm',crc:f.crc,size:f.size};
 }
 
 // ── Biblioteca de clips ──────────────────────────────────────────────────────
@@ -14297,6 +14374,7 @@ function renderVideoLib(){
                                 const clips=(folders[f]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
                                 return `<div style="margin-bottom:5px">
                                     <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">📁 ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>
+                                        <button onclick="vDownloadFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" title="Descargar solo esta carpeta (ZIP)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">💾</button>
                                         <button onclick="vDeleteFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
                                     </div>
                                     ${clips.map(cl=>`
@@ -17943,7 +18021,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRenameClip,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRenameClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,

@@ -10475,46 +10475,112 @@ function _renderScoutStarterPie(matches, rival) {
     </div>` : `<div style="border-top:1px solid var(--bd);margin-top:6px;padding-top:6px;font-size:9.5px;color:var(--t3)">Ningún suplente con ${minGames}+ partidos saliendo del banquillo.</div>`}</div>`;
 }
 
-// Generador de Insights Profundos
+// Generador de Insights Profundos — todo se calcula aquí a partir de las actas (nada depende de campos que no existan)
+// Perfil de tiro de una liga entera (todos los equipos): % de tiros de campo que son triples, posesiones/partido…
+function _leagueShotProfile(key) {
+  if (!key) return null;
+  window._lspCache = window._lspCache || {};
+  const ck = key + '|' + (S.matches || []).length;
+  if (window._lspCache[ck] !== undefined) return window._lspCache[ck];
+  const N = v => Number(v) || 0;
+  let t2a = 0, t3a = 0, fta = 0, to = 0, ro = 0, n = 0, poss = 0;
+  (S.matches || []).forEach(m => {
+    if (_isFriendly(m) || _leagueKey(m.competition) !== key) return;
+    [m.homePlayers, m.awayPlayers].forEach(pl => {
+      if (!pl || !pl.length) return;
+      let a2 = 0, a3 = 0, ft = 0, tv = 0, or = 0;
+      pl.forEach(p => { a2 += N(p.t2Att); a3 += N(p.t3Att); ft += N(p.tlAtt); tv += N(p.to); or += N(p.ro); });
+      if (!(a2 + a3)) return;
+      t2a += a2; t3a += a3; fta += ft; to += tv; ro += or; n++;
+      poss += a2 + a3 + 0.44 * ft + tv - or;
+    });
+  });
+  const res = n ? { n, t3Rate: t3a / (t2a + t3a) * 100, ftaPg: fta / n, pace: poss / n } : null;
+  window._lspCache[ck] = res;
+  return res;
+}
 function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     const ins = [];
-    const t3Rate = advData.fga ? (advData.t3a/advData.fga)*100 : 0;
-    
-    // 🚀 CORREGIDO: Ahora ordenamos de mayor a menor por puntos totales antes de coger al primero
-    const topScorer = [...rpList].sort((a, b) => b.pts - a.pts)[0];
-    
-    if (topScorer) ins.push(`🏀 <b>${_esc(topScorer.name)}</b>: máximo anotador con <b>${topScorer.pts} puntos</b> en ${topScorer.games} partidos (${(topScorer.pts/topScorer.games).toFixed(1)}/partido).`);
-    
-    const t3pl = rpList.filter(p=>p.t3a>=5).sort((a,b)=>(b.t3m/b.t3a)-(a.t3m/a.t3a));
-    if(t3pl.length) ins.push(`🎯 Mejor tirador T3 (mín. 5 int.): <b>${_esc(t3pl[0].name)}</b> → <b>${Math.round(t3pl[0].t3m/t3pl[0].t3a*100)}%</b> (${t3pl[0].t3m}/${t3pl[0].t3a}).`);
-    
-    let shotBalance = '';
-    if (t3Rate >= 42) shotBalance = `🎯 <b>Ataque Perimetral:</b> Fuerte dependencia del triple`;
-    else if (t3Rate <= 28) shotBalance = `🏀 <b>Ataque Interior:</b> Buscan constantemente la pintura`;
-    else shotBalance = `⚖️ <b>Ataque Equilibrado:</b> Reparto compensado de tiros`;
-    ins.push(`${shotBalance} (${100 - Math.round(t3Rate)}% T2 / ${Math.round(t3Rate)}% T3). Promedian ${(advData.t2a/(advData.n||1)).toFixed(1)} dobles vs ${(advData.t3a/(advData.n||1)).toFixed(1)} triples por partido.`);
-    
-    if (advData.n > 0) {
-        ins.push(`🎯 <b>Tiros Libres:</b> Promedian ${(advData.fta/advData.n).toFixed(1)} intentos por partido (anotando ${(advData.ftm/advData.n).toFixed(1)}, un ${advData.fta ? Math.round(advData.ftm/advData.fta*100) : 0}%).`);
+    const N = v => Number(v) || 0;
+    const n = matches.length || 1;
+
+    // Totales del equipo rival (desde las actas)
+    const T = { t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, ast: 0, to: 0, ro: 0, hasTo: false, hasRo: false };
+    matches.forEach(m => {
+        const side = m.homeTeam === rival ? 'home' : m.awayTeam === rival ? 'away' : null; if (!side) return;
+        ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => {
+            T.t2m += N(p.t2Made); T.t2a += N(p.t2Att); T.t3m += N(p.t3Made); T.t3a += N(p.t3Att);
+            T.ftm += N(p.tlMade); T.fta += N(p.tlAtt); T.ast += N(p.ast); T.to += N(p.to); T.ro += N(p.ro);
+            if (p.to != null && p.to !== '') T.hasTo = true;
+            if (p.ro != null && p.ro !== '') T.hasRo = true;
+        });
+    });
+    const fga = T.t2a + T.t3a;
+
+    // Liga de referencia: la competición en la que más han jugado
+    const keys = {}; matches.forEach(m => { if (_isFriendly(m)) return; const k = _leagueKey(m.competition); if (k) keys[k] = (keys[k] || 0) + 1; });
+    const lg = _leagueShotProfile(Object.entries(keys).sort((a, b) => b[1] - a[1])[0]?.[0] || '');
+
+    // 🏀 Máximo anotador
+    const topScorer = [...rpList].sort((a, b) => N(b.pts) - N(a.pts) || N(a.games) - N(b.games))[0];
+    if (topScorer && topScorer.pts > 0) ins.push(`🏀 <b>${_esc(topScorer.name)}</b>: máximo anotador con <b>${topScorer.pts} puntos</b> en ${topScorer.games} partidos (${(topScorer.pts / topScorer.games).toFixed(1)}/partido).`);
+
+    // 🎯 Mejor tirador de triples: mínimo 5 intentos y al menos 1 por partido jugado del equipo; empate → más aciertos
+    const minT3 = Math.max(5, Math.ceil(n * 1));
+    const t3pl = rpList.filter(p => N(p.t3a) >= minT3).sort((a, b) => (b.t3m / b.t3a) - (a.t3m / a.t3a) || b.t3m - a.t3m);
+    if (t3pl.length) ins.push(`🎯 Mejor tirador T3 (mín. ${minT3} int.): <b>${_esc(t3pl[0].name)}</b> → <b>${Math.round(t3pl[0].t3m / t3pl[0].t3a * 100)}%</b> (${t3pl[0].t3m}/${t3pl[0].t3a}).`);
+    // 🔥 Quién más triples tira
+    const vol3 = [...rpList].filter(p => N(p.t3a) > 0).sort((a, b) => b.t3a - a.t3a || b.t3m - a.t3m)[0];
+    if (vol3 && (!t3pl.length || vol3.name !== t3pl[0].name) && vol3.t3a / n >= 2) ins.push(`🔥 Más volumen de triple: <b>${_esc(vol3.name)}</b> → ${(vol3.t3a / vol3.games).toFixed(1)} intentos/partido (${vol3.t3m}/${vol3.t3a}, ${Math.round(vol3.t3m / vol3.t3a * 100)}%).`);
+
+    // 🧭 Perfil de tiro: comparado con la media de su liga si la hay (si no, umbrales fijos)
+    if (fga > 0) {
+        const t3Rate = T.t3a / fga * 100;
+        const ref = lg ? lg.t3Rate : 35, d = t3Rate - ref;
+        let lab;
+        if (d >= 5) lab = `🎯 <b>Ataque Perimetral:</b> tiran más de tres que la media`;
+        else if (d <= -5) lab = `🏀 <b>Ataque Interior:</b> buscan más la pintura que la media`;
+        else lab = `⚖️ <b>Ataque Equilibrado:</b> reparto de tiros normal`;
+        const refTxt = lg ? ` · media liga ${Math.round(lg.t3Rate)}% T3` : '';
+        ins.push(`${lab} (${Math.round(100 - t3Rate)}% T2 / ${Math.round(t3Rate)}% T3${refTxt}). Por partido: <b>${(T.t2m / n).toFixed(1)}/${(T.t2a / n).toFixed(1)}</b> en T2 (${T.t2a ? Math.round(T.t2m / T.t2a * 100) : 0}%) y <b>${(T.t3m / n).toFixed(1)}/${(T.t3a / n).toFixed(1)}</b> en T3 (${T.t3a ? Math.round(T.t3m / T.t3a * 100) : 0}%).`);
     }
 
-    let allShots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+    // 🎯 Tiros libres (y si van mucho o poco a la línea respecto a la liga)
+    if (T.fta > 0) {
+        const pg = T.fta / n;
+        const cmp = lg && lg.ftaPg ? (pg >= lg.ftaPg * 1.2 ? ' — <b>van mucho a la línea</b>' : pg <= lg.ftaPg * 0.8 ? ' — van poco a la línea' : '') + ` (media liga ${lg.ftaPg.toFixed(1)})` : '';
+        ins.push(`🎯 <b>Tiros Libres:</b> ${(T.ftm / n).toFixed(1)}/${pg.toFixed(1)} por partido (${Math.round(T.ftm / T.fta * 100)}%)${cmp}.`);
+    }
+
+    // 📐 Esquinas (solo si hay tiros con posición)
+    const allShots = [...(S.shots || []), ...(S.matches || []).flatMap(m => (m.shots || []).map(s => ({ ...s, mId: m.id })))];
     const teamShots = allShots.filter(s => {
         const m = matches.find(mm => mm.id === (s.mId || s.matchId));
         return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
     });
-    const corn = teamShots.filter(s => shotZone(s).includes('Cantonada'));
-    if(corn.length) ins.push(`📐 Esquinas: <b>${Math.round(corn.filter(s=>s.made).length/corn.length*100)}%</b> de acierto (${corn.filter(s=>s.made).length}/${corn.length}).`);
+    const corn = teamShots.filter(s => String(shotZone(s) || '').includes('Cantonada'));
+    if (corn.length >= 5) ins.push(`📐 Esquinas: <b>${Math.round(corn.filter(s => s.made).length / corn.length * 100)}%</b> de acierto (${corn.filter(s => s.made).length}/${corn.length}).`);
 
-    const foulRate = rpList.filter(p=>p.games>=1).map(p=>({name:p.name,avg:p.fc/p.games,tot:p.fc,g:p.games})).sort((a,b)=>b.avg-a.avg);
-    if(foulRate.length && foulRate[0].avg >= 2.5) ins.push(`⚠️ Más cargado de faltas: <b>${_esc(foulRate[0].name.split(' ')[0])}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
-    
-    // También nos aseguramos de que el mejor +/- se ordena correctamente
-    const pmPl = [...rpList].sort((a,b)=>(b.pm||0)-(a.pm||0));
-    if(pmPl[0] && pmPl[0].pm > 0) ins.push(`📈 Mejor +/-: <b>${_esc(pmPl[0].name)}</b> con <b>+${pmPl[0].pm}</b> (${pmPl[0].games} jug.).`);
+    // ⚠️ Faltas: solo jugadores con al menos 2 partidos o la mitad de los del equipo
+    const minG = Math.max(1, Math.min(2, Math.ceil(n / 2)));
+    const foulRate = rpList.filter(p => p.games >= minG).map(p => ({ name: p.name, avg: N(p.fc) / p.games, tot: N(p.fc), g: p.games })).sort((a, b) => b.avg - a.avg);
+    if (foulRate.length && foulRate[0].avg >= 2.5) ins.push(`⚠️ Más cargado de faltas: <b>${_esc(foulRate[0].name)}</b> promedia <b>${foulRate[0].avg.toFixed(1)} faltas/partido</b> (${foulRate[0].tot} en ${foulRate[0].g}).`);
 
-    if (advData.pace > 0) ins.push(`⚡ <b>Ritmo (Pace):</b> Juegan a ${advData.pace.toFixed(1)} posesiones por partido.`);
-    if (advData.astTo > 0) ins.push(`🤝 <b>Ratio AST/PER:</b> Reparten ${advData.astTo.toFixed(1)} asistencias por cada balón perdido.`);
+    // 📈 Mejor +/- (por partido, para no premiar solo a quien más juega)
+    const pmPl = rpList.filter(p => p.games >= minG).sort((a, b) => N(b.pm) - N(a.pm));
+    if (pmPl[0] && pmPl[0].pm > 0) ins.push(`📈 Mejor +/-: <b>${_esc(pmPl[0].name)}</b> con <b>+${pmPl[0].pm}</b> en ${pmPl[0].games} partidos (${(pmPl[0].pm / pmPl[0].games >= 0 ? '+' : '')}${(pmPl[0].pm / pmPl[0].games).toFixed(1)}/partido).`);
+
+    // ⚡ Ritmo: posesiones por partido = FGA + 0.44·FTA + PER − RO
+    if (fga > 0 && T.hasTo) {
+        const pace = (fga + 0.44 * T.fta + T.to - (T.hasRo ? T.ro : 0)) / n;
+        const cmp = lg && lg.pace ? (pace >= lg.pace + 3 ? ' — <b>ritmo alto</b>' : pace <= lg.pace - 3 ? ' — <b>ritmo lento</b>' : ' — ritmo normal') + ` (media liga ${lg.pace.toFixed(1)})` : '';
+        ins.push(`⚡ <b>Ritmo:</b> unas ${pace.toFixed(1)} posesiones por partido${cmp}.`);
+    }
+    // 🤝 Asistencias / pérdidas
+    if (T.hasTo && (T.ast || T.to)) {
+        const r = T.to ? T.ast / T.to : T.ast;
+        ins.push(`🤝 <b>AST/PER:</b> ${(T.ast / n).toFixed(1)} asistencias y ${(T.to / n).toFixed(1)} pérdidas por partido (ratio ${r.toFixed(2)})${r < 0.8 ? ' — <b>pierden más balones de los que asisten</b>' : r >= 1.3 ? ' — cuidan bien el balón' : ''}.`);
+    }
 
     return ins;
 }
@@ -10604,9 +10670,10 @@ function renderScouting() {
     roster.forEach(p => {
       if (!rivalPlayers[p.name]) rivalPlayers[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, fc: 0, reb: 0, ast: 0, pm: 0, games: 0, starts: 0, min: 0 };
       const rp = rivalPlayers[p.name];
-      rp.pts += p.pts || 0; rp.t2m += p.t2Made || 0; rp.t2a += p.t2Att || 0; rp.t3m += p.t3Made || 0; rp.t3a += p.t3Att || 0;
-      rp.tlm += p.tlMade || 0; rp.tla += p.tlAtt || 0; rp.fc += p.fc || 0; rp.reb += p.reb || 0; rp.ast += p.ast || 0;
-      rp.pm += p.pm || 0; rp.games++; rp.min += _minNum(p.min);
+      const N = v => Number(v) || 0;
+      rp.pts += N(p.pts); rp.t2m += N(p.t2Made); rp.t2a += N(p.t2Att); rp.t3m += N(p.t3Made); rp.t3a += N(p.t3Att);
+      rp.tlm += N(p.tlMade); rp.tla += N(p.tlAtt); rp.fc += N(p.fc); rp.reb += N(p.reb); rp.ast += N(p.ast);
+      rp.pm += N(p.pm); rp.games++; rp.min += _minNum(p.min);
       if (p.starter) rp.starts++;
     });
   });
@@ -10855,31 +10922,45 @@ function renderScouting() {
   if (b8 && !advFCBQ) b8.innerHTML = '';
   if (b8 && advFCBQ) {
       const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
-      const runAvgs = [1,2,3,4].map(q => ({ q, net: getAvg(advFCBQ.runsForQ[q]) - getAvg(advFCBQ.runsAgainstQ[q]) }));
-      
-      let bars = '';
-      runAvgs.forEach((d, i) => {
-          const x = 50 + (i * 100); 
-          let rect = '';
-          if (d.net > 0) {
-              rect = `<path d="M${x-15} 45 L${x+15} 45 L${x+15} 35 Q${x+15} 25 ${x} 25 Q${x-15} 25 ${x-15} 35 Z" fill="#16a34a" />
-                    <text x="${x}" y="20" font-size="12" font-weight="900" fill="#15803d" text-anchor="middle">+${d.net.toFixed(1)}</text>`;
-          } else if (d.net < 0) {
-              rect = `<path d="M${x-15} 55 L${x+15} 55 L${x+15} 65 Q${x+15} 75 ${x} 75 Q${x-15} 75 ${x-15} 65 Z" fill="#ef4444" />
-                    <text x="${x}" y="90" font-size="12" font-weight="900" fill="#991b1b" text-anchor="middle">${d.net.toFixed(1)}</text>`;
-          }
-          bars += `${rect}
-              <rect x="${x-14}" y="42" width="28" height="16" rx="8" fill="#fff" stroke="var(--bd)" stroke-width="2"/>
-              <text x="${x}" y="53" font-size="10" font-weight="900" fill="var(--nv)" text-anchor="middle">Q${d.q}</text>`;
-      });
-      const runSvg = `<svg viewBox="0 0 400 100" style="width:100%;max-width:500px;margin:20px auto;display:block">
-          <line x1="10" y1="50" x2="390" y2="50" stroke="var(--bd)" stroke-width="2" stroke-dasharray="4 4" />
-          ${bars}
-      </svg>`;
+      const nG = advFCBQ.games || 1;
+      const sgn = v => (v > 0 ? '+' : '') + v.toFixed(1);
+      // 📊 Cuartos: diferencia media de puntos en cada cuarto (y cuántos ganan)
+      const QS = _scoutQuarterSplits(matches, _scoutRival);
+      let runSvg;
+      if (!QS.list.length) runSvg = '<div class="empty" style="font-size:11px">Sin parciales por cuarto en estos partidos.</div>';
+      else {
+          const maxAbs = Math.max(3, ...QS.list.map(q => Math.abs(q.diff)));
+          const W = 100 * QS.list.length;
+          const bars = QS.list.map((q, i) => {
+              const x = 50 + i * 100, h = Math.abs(q.diff) / maxAbs * 34, pos = q.diff >= 0;
+              const col = q.diff > 0.05 ? '#16a34a' : q.diff < -0.05 ? '#ef4444' : '#94a3b8';
+              return `<rect x="${x - 16}" y="${pos ? 60 - h : 60}" width="32" height="${Math.max(h, 1.5)}" rx="4" fill="${col}"/>
+                <text x="${x}" y="${pos ? 60 - h - 6 : 60 + h + 14}" font-size="13" font-weight="900" fill="${col}" text-anchor="middle">${sgn(q.diff)}</text>
+                <text x="${x}" y="122" font-size="11" font-weight="900" fill="var(--nv)" text-anchor="middle">${q.k}</text>
+                <text x="${x}" y="136" font-size="9.5" font-weight="700" fill="var(--t3)" text-anchor="middle">${q.pf.toFixed(1)} – ${q.pa.toFixed(1)}</text>
+                <text x="${x}" y="149" font-size="9" fill="var(--t3)" text-anchor="middle">gana ${q.won}/${q.g}</text>`;
+          }).join('');
+          const reg = QS.list.filter(q => q.k !== 'PR');
+          const best = [...reg].sort((a, b) => b.diff - a.diff)[0], worst = [...reg].sort((a, b) => a.diff - b.diff)[0];
+          const half1 = reg.filter(q => q.k === 'Q1' || q.k === 'Q2').reduce((t, q) => t + q.diff, 0), half2 = reg.filter(q => q.k === 'Q3' || q.k === 'Q4').reduce((t, q) => t + q.diff, 0);
+          const read = [];
+          if (best && best.diff > 0) read.push(`Su mejor cuarto es el <b>${best.k}</b> (${sgn(best.diff)} de media).`);
+          if (worst && worst.diff < 0 && worst !== best) read.push(`Sufren en el <b>${worst.k}</b> (${sgn(worst.diff)}).`);
+          if (Math.abs(half1 - half2) >= 3) read.push(half1 > half2 ? 'Salen más fuertes de lo que acaban: <b>aprietan en la 1ª parte</b>, se les puede remontar.' : '<b>Equipo de segundas partes</b>: acaban mejor de lo que empiezan.');
+          const big = advFCBQ.bigRunFor.length ? `<div style="font-size:10px;color:var(--t2);margin-top:6px">Mayor parcial por partido (media): <b style="color:#15803d">${getAvg(advFCBQ.bigRunFor).toFixed(1)}-0 a favor</b> · <b style="color:#dc2626">0-${getAvg(advFCBQ.bigRunAg).toFixed(1)} en contra</b></div>` : '';
+          runSvg = `<div style="font-size:10px;color:var(--t3);line-height:1.3">Diferencia media de puntos en cada cuarto (ellos − rival). Debajo: puntos a favor – en contra por partido y cuartos ganados. ${QS.n} partidos.</div>
+            <svg viewBox="0 0 ${W} 155" style="width:100%;max-width:${W * 1.25}px;margin:10px auto 0;display:block">
+              <line x1="10" y1="60" x2="${W - 10}" y2="60" stroke="var(--bd)" stroke-width="2" stroke-dasharray="4 4"/>${bars}
+            </svg>
+            ${read.length ? `<div style="font-size:11px;color:var(--nv);line-height:1.45;margin-top:4px">${read.join(' ')}</div>` : ''}${big}`;
+      }
 
       const scPctT3 = advFCBQ.scPts > 0 ? Math.round((advFCBQ.scT3 / advFCBQ.scPts) * 100) : 0;
-      const scPctT2 = advFCBQ.scPts > 0 ? 100 - scPctT3 : 0;
-      const avgScPts = (advFCBQ.scPts / (matches.length || 1)).toFixed(1);
+      const scPctFT = advFCBQ.scPts > 0 ? Math.round((advFCBQ.scFT / advFCBQ.scPts) * 100) : 0;
+      const scPctT2 = advFCBQ.scPts > 0 ? 100 - scPctT3 - scPctFT : 0;
+      const avgScPts = (advFCBQ.scPts / nG).toFixed(1);
+      const scSrc = [advFCBQ.gamesRO ? `${advFCBQ.gamesRO} con rebotes apuntados` : '', advFCBQ.gamesCtx ? `${advFCBQ.gamesCtx} del directo con «tras rebote ofensivo»` : '', advFCBQ.gamesInferred ? `${advFCBQ.gamesInferred} deducidos (fallo y vuelven a anotar sin que el rival toque el balón)` : ''].filter(Boolean).join(' · ');
+      const scPerRO = advFCBQ.roFor ? (advFCBQ.scPts / advFCBQ.roFor).toFixed(2) : null;
 
       const scRingHtml = advFCBQ.scPts === 0 
           ? `<svg viewBox="0 0 54 54" style="width:54px; height:54px; display:block; flex-shrink:0"><circle cx="27" cy="27" r="22" stroke="#e2e8f0" stroke-width="8" fill="transparent"></circle></svg>`
@@ -10911,16 +10992,16 @@ function renderScouting() {
               
               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
-                     <span style="font-size:14px">📊</span> Momentum (Tendencia Neta de Rachas por Cuarto)
+                     <span style="font-size:14px">📊</span> Tendencia por cuartos
                   </div>
-                  <div style="flex:1; display:flex; align-items:center">${runSvg}</div>
+                  <div style="flex:1">${runSvg}</div>
               </div>
 
               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
                      <span style="font-size:14px; color:#2563eb">🔄</span> Segundas Oportunidades
                   </div>
-                  <div style="font-size:10px; color:var(--t3); margin-bottom:12px; line-height:1.2">Puntos en los 14s posteriores a un rebote ofensivo.</div>
+                  <div style="font-size:10px; color:var(--t3); margin-bottom:12px; line-height:1.3">Puntos desde que cogen un rebote ofensivo hasta que el rival tiene el balón (tiros libres incluidos). ${nG} partidos con jugada a jugada: ${scSrc}.</div>
                   
                   <div style="flex:1; display:flex; justify-content:space-around; align-items:center; background:#fff; border-radius:8px; border:1px solid #e2e8f0; padding:16px">
                       
@@ -10932,6 +11013,8 @@ function renderScouting() {
                           <div style="font-size:10px; font-weight:800; color:var(--t3); text-transform:uppercase; margin-top:4px">Pts por partido</div>
                           <div style="font-size:11px; font-weight:800; color:var(--nv); margin-top:10px; padding-top:10px; border-top:1px solid #f1f5f9; text-align:left">
                               ${advFCBQ.scPts} <span style="font-size:10px; color:var(--t3); font-weight:600">pts en total</span>
+                              ${scPerRO ? `<div style="font-size:10px;color:var(--t2);font-weight:700;margin-top:4px">${(advFCBQ.roFor / nG).toFixed(1)} reb. of./p · <b>${scPerRO}</b> pts por rebote</div>` : ''}
+                              <div style="font-size:10px;color:#dc2626;font-weight:700;margin-top:4px">Conceden ${(advFCBQ.scAg / nG).toFixed(1)}/p${advFCBQ.roAg ? ` (${(advFCBQ.roAg / nG).toFixed(1)} reb. of. rival/p)` : ''}</div>
                           </div>
                       </div>
 
@@ -10939,6 +11022,7 @@ function renderScouting() {
                           <div style="text-align:right; display:flex; flex-direction:column; gap:6px">
                               <div style="font-size:12px; font-weight:900; color:#0ea5e9">${advFCBQ.scPts > 0 ? scPctT3 : 0}% <span style="font-size:10px; color:var(--t3); font-weight:700">T3</span></div>
                               <div style="font-size:12px; font-weight:900; color:#e8402a">${advFCBQ.scPts > 0 ? scPctT2 : 0}% <span style="font-size:10px; color:var(--t3); font-weight:700">T2</span></div>
+                              <div style="font-size:12px; font-weight:900; color:#64748b">${scPctFT}% <span style="font-size:10px; color:var(--t3); font-weight:700">TL</span></div>
                           </div>
                           ${scRingHtml}
                       </div>
@@ -10957,23 +11041,26 @@ function renderScouting() {
                   <div style="font-size:11px; font-weight:800; color:var(--nv); margin-bottom:0; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-shrink:0">
                      <span style="font-size:14px; color:#f59e0b">⚡</span> Impacto de las Pérdidas
                   </div>
+                  <div style="font-size:10px;color:var(--t3);margin:4px 0 8px;line-height:1.3">Puntos desde una pérdida (o robo) hasta que el otro equipo recupera el balón. ${(() => { const d = (advFCBQ.potScored - advFCBQ.potConceded) / nG; return `Balance: <b style="color:${d >= 0 ? '#15803d' : '#dc2626'}">${sgn(d)}/p</b>`; })()}</div>
                   
                   <div style="display:flex; flex-direction:column; gap:12px; flex:1; justify-content:center">
                       <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:14px">
-                          <div style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase; margin-bottom:6px">Anotan tras robo:</div>
+                          <div style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase; margin-bottom:6px">Anotan tras pérdida del rival:</div>
                           <div style="display:flex; align-items:baseline; gap:6px">
                               <span style="font-size:28px; font-weight:900; color:#15803d; line-height:1">${advFCBQ.potScored}</span>
                               <span style="font-size:11px; color:#166534; font-weight:700">Puntos</span>
-                              <span style="font-size:12px; font-weight:800; color:#15803d; margin-left:6px">(${(advFCBQ.potScored/matches.length).toFixed(1)}/p)</span>
+                              <span style="font-size:12px; font-weight:800; color:#15803d; margin-left:6px">(${(advFCBQ.potScored/nG).toFixed(1)}/p)</span>
                           </div>
+                          <div style="font-size:10px;color:#166534;margin-top:5px">El rival les pierde ${(advFCBQ.toAg/nG).toFixed(1)} balones/p${advFCBQ.toAg ? ` · <b>${(advFCBQ.potScored/advFCBQ.toAg).toFixed(2)} pts por pérdida</b>` : ''}</div>
                       </div>
                       <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:14px">
                           <div style="font-size:10px; font-weight:800; color:#991b1b; text-transform:uppercase; margin-bottom:6px">Encajan tras pérdida propia:</div>
                           <div style="display:flex; align-items:baseline; gap:6px">
                               <span style="font-size:28px; font-weight:900; color:#dc2626; line-height:1">${advFCBQ.potConceded}</span>
                               <span style="font-size:11px; color:#991b1b; font-weight:700">Puntos</span>
-                              <span style="font-size:12px; font-weight:800; color:#dc2626; margin-left:6px">(${(advFCBQ.potConceded/matches.length).toFixed(1)}/p)</span>
+                              <span style="font-size:12px; font-weight:800; color:#dc2626; margin-left:6px">(${(advFCBQ.potConceded/nG).toFixed(1)}/p)</span>
                           </div>
+                          <div style="font-size:10px;color:#991b1b;margin-top:5px">Pierden ${(advFCBQ.toFor/nG).toFixed(1)} balones/p${advFCBQ.toFor ? ` · <b>${(advFCBQ.potConceded/advFCBQ.toFor).toFixed(2)} pts encajados por pérdida</b>` : ''}</div>
                       </div>
                   </div>
               </div>
@@ -10987,55 +11074,37 @@ function renderScouting() {
 
 function isClutch(e){
   if(!e||e.period==null||e.min==null)return false;
-  if(e.period>=5)return true;                     // Cualquier prórroga es clutch
-  const perMin = e.min - (e.period - 1) * 10;     // Minutos transcurridos en el cuarto
-  return e.period === 4 && perMin >= 5;           // >= 5 significa del minuto 35 al 40
+  if(e.period>=5)return true;
+  const perMin = e.min - (e.period - 1) * 10;
+  return e.period === 4 && perMin >= 5;
 }
 
+// ⏰ Clutch = últimos 5 min del 4º cuarto + prórrogas, SOLO con el marcador a 5 o menos
+// (si el partido está roto, no es clutch). Sale del jugada a jugada (FCBQ o directo).
 function renderScoutClutch(matches) {
   const el = document.getElementById('sc-sit-clutch'); if (!el) return;
-  const clutchEvents = [];
-  matches.forEach(m => {
-    const rivalSide = m.homeTeam === _scoutRival ? 'home' : 'away';
-    (m.events || []).filter(e => e.team === rivalSide && isClutch(e)).forEach(e => clutchEvents.push(e));
-  });
-
-  if (!clutchEvents.length) { el.innerHTML = '<div class="ct">⏰ Ejecutores en Clutch (Últ. 5 min + PR)</div><div class="empty">Sin datos de eventos en finales apretados.</div>'; return; }
-  
-  const pts2 = clutchEvents.filter(e => e.type === 'pts2').length;
-  const pts3 = clutchEvents.filter(e => e.type === 'pts3').length;
-  const miss2 = clutchEvents.filter(e => e.type === 'miss2').length;
-  const miss3 = clutchEvents.filter(e => e.type === 'miss3').length;
-  const tl_in = clutchEvents.filter(e => e.type === 'tl_in').length;
-  const totalPts = pts2*2 + pts3*3 + tl_in;
-
-  const cScorers={};
-  clutchEvents.filter(e=>['pts2','pts3','tl_in'].includes(e.type)).forEach(e=>{
-    cScorers[e.player]=(cScorers[e.player]||0)+(e.type==='pts3'?3:e.type==='pts2'?2:1);
-  });
-  const topScorers=Object.entries(cScorers).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  el.innerHTML = `<div class="ct" style="margin-bottom:12px; padding:12px 12px 0; border:none; display:flex; align-items:center; gap:6px; justify-content:flex-start">
-      <span style="font-size:16px">⏰</span> EJECUTORES EN CLUTCH (ÚLT. 5MIN + PRÓRROGAS)
-  </div>
-  <div style="padding:0 12px 12px">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;text-align:center">
-      <div style="background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:12px">
-         <div style="font-size:24px;font-weight:900;color:var(--nv)">${totalPts}</div><div style="font-size:9px;color:var(--t3);font-weight:700;margin-top:2px">PTS CLUTCH</div>
-      </div>
-      <div style="background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:12px">
-         <div style="font-size:24px;font-weight:900;color:var(--nv)">${pts3+miss3 ? Math.round(pts3/(pts3+miss3)*100)+'%' : '—'}</div><div style="font-size:9px;color:var(--t3);font-weight:700;margin-top:2px">T3% CLUTCH</div>
-      </div>
-      <div style="background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:12px">
-         <div style="font-size:24px;font-weight:900;color:var(--nv)">${pts2+miss2 ? Math.round(pts2/(pts2+miss2)*100)+'%' : '—'}</div><div style="font-size:9px;color:var(--t3);font-weight:700;margin-top:2px">T2% CLUTCH</div>
-      </div>
+  const A = _analyzeAdvancedFCBQ(matches, _scoutRival);
+  const title = '<div class="ct" style="margin-bottom:12px; padding:12px 12px 0; border:none; display:flex; align-items:center; gap:6px; justify-content:flex-start"><span style="font-size:16px">⏰</span> CLUTCH (ÚLT. 5 MIN + PR, A ±5 O MENOS)</div>';
+  if (!A) { el.innerHTML = title + '<div class="empty">Sin jugada a jugada en estos partidos.</div>'; return; }
+  const C = A.clutch;
+  if (!C.games) { el.innerHTML = title + `<div class="empty">Ningún final apretado en ${A.games} partidos con jugada a jugada.</div>`; return; }
+  const pc = (m, a) => a ? Math.round(m / a * 100) + '%' : '—';
+  const top = Object.entries(C.scorers).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const net = C.pts - C.opp;
+  const box = (v, l, sub) => `<div style="background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:10px 6px"><div style="font-size:21px;font-weight:900;color:var(--nv)">${v}</div><div style="font-size:9px;color:var(--t3);font-weight:700;margin-top:2px">${l}</div>${sub ? `<div style="font-size:9px;color:var(--t2);margin-top:2px">${sub}</div>` : ''}</div>`;
+  el.innerHTML = title + `<div style="padding:0 12px 12px">
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px">${C.games} de ${A.games} partidos llegaron igualados al final · <b>${C.w}-${C.l}</b> en esos partidos</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;text-align:center">
+      ${box(C.pts + '–' + C.opp, 'PUNTOS', `<b style="color:${net >= 0 ? '#15803d' : '#dc2626'}">${net >= 0 ? '+' : ''}${net}</b> en total`)}
+      ${box(pc(C.t2m, C.t2a), 'T2%', `${C.t2m}/${C.t2a}`)}
+      ${box(pc(C.t3m, C.t3a), 'T3%', `${C.t3m}/${C.t3a}`)}
+      ${box(pc(C.ftm, C.fta), 'TL%', `${C.ftm}/${C.fta}`)}
     </div>
-    <div style="font-size:10px; color:var(--t3); text-transform:uppercase; margin-bottom:10px; font-weight:800">Top Anotadores (Últ. 5min + PR)</div>
-    ${topScorers.map((s,i) => `<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px">
-        <span style="width:24px;height:24px;background:#dc2626;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;margin-right:12px">${i+1}</span>
-        <span style="flex:1; font-weight:600; text-transform:uppercase">${_esc(s[0])}</span> 
-        <b style="color:var(--nv);font-size:15px">${s[1]} pts</b>
-    </div>`).join('')}
+    ${C.to ? `<div style="font-size:10.5px;color:#991b1b;margin:-6px 0 12px">${C.to} pérdidas en esos minutos</div>` : ''}
+    <div style="font-size:10px; color:var(--t3); text-transform:uppercase; margin-bottom:8px; font-weight:800">Quién la pide al final</div>
+    ${top.length ? top.map((t, i) => `<div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px">
+        <span style="width:22px;height:22px;background:#dc2626;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;margin-right:10px">${i + 1}</span>
+        <span style="flex:1;font-weight:600;text-transform:uppercase">${_esc(t[0])}</span><b style="color:var(--nv);font-size:14px">${t[1]} pts</b></div>`).join('') : '<div class="empty" style="font-size:11px">Sin canastas en esos minutos.</div>'}
   </div>`;
 }
 
@@ -11243,7 +11312,7 @@ function _pbpSource(m) {
       move: _LIVE_TXT[e.type], idMove: e.type === 'timeout' ? 113 : null,
       idTeam: e.team === 'home' ? H : e.team === 'away' ? A : null,
       period, min: Math.floor(rem / 60), sec: rem % 60,
-      actorName: e.player || '', score: { local: sc.h ?? sc.home ?? 0, visitor: sc.a ?? sc.away ?? 0 }
+      actorName: e.player || '', ctx: e.playContext || '', score: { local: sc.h ?? sc.home ?? 0, visitor: sc.a ?? sc.away ?? 0 }
     });
   });
   if (lastP !== null) moves.push({ move: 'Final de període', period: lastP, min: 0, sec: 0, idTeam: null });
@@ -19661,154 +19730,182 @@ function appendLiveEventFast(eventHTML) {
     list.insertAdjacentHTML('afterbegin', eventHTML);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎯 ANALÍTICA JUGADA A JUGADA (FCBQ importado o partido apuntado en directo)
+// Se sigue el ORDEN de las jugadas (posesiones), no ventanas de segundos: en directo
+// el reloj va por minutos y una ventana de 14 s no funciona.
+//  · Segundas oportunidades: puntos desde un rebote ofensivo hasta que el rival tiene el
+//    balón. Sin rebotes apuntados: tras un fallo propio sin que el rival haga nada entre medias.
+//    Las canastas del directo marcadas «📌 Tras Rebote Ofensivo» cuentan siempre.
+//  · Pérdidas: puntos de un equipo desde la pérdida del otro hasta que este recupera el balón.
+//  · Clutch: últimos 5 min del 4º cuarto y prórrogas con el marcador a 5 o menos.
+// ═══════════════════════════════════════════════════════════════════════════
+function _pbpClass(txt) {
+  const t = String(txt || '').toLowerCase();
+  if (/final de/.test(t)) return { end: true };
+  if (/fallat|fallado|errat|falla\b/.test(t)) return { miss: /de 1\b|lliure|libre/.test(t) ? 1 : /de 3\b|triple/.test(t) ? 3 : 2 };
+  if (/cistella de 1|lliure anotat|libre anotado/.test(t)) return { pts: 1 };
+  if (/cistella de 3|triple anotat/.test(t)) return { pts: 3 };
+  if (/cistella de 2|esmaixada|cistella/.test(t) && !/rebuda|tap/.test(t)) return { pts: 2 };
+  if (/rebot ofensiu|rebote ofensivo/.test(t)) return { ro: true };
+  if (/rebot defensiu|rebote defensivo/.test(t)) return { rd: true };
+  if (/p[èe]rdua|p[ée]rdida|passos|dobles|camp enrere|campo atr|segons|segundos/.test(t)) return { to: true };
+  if (/recuperaci|robatori|\brobo\b/.test(t)) return { stl: true };
+  if (/falta rebuda|falta recibida/.test(t)) return { fr: true };
+  if (/personal|falta/.test(t) && !/rebuda|recibida/.test(t)) return { foul: true };
+  return {};
+}
 function _analyzeAdvancedFCBQ(matches, rivalTeam) {
     const stats = {
-        runsForQ: { 1:[], 2:[], 3:[], 4:[] },
-        runsAgainstQ: { 1:[], 2:[], 3:[], 4:[] },
-        scPts: 0, scT3: 0, scT2: 0,   
-        fdPlayers: {},                
-        potScored: 0,   
-        potConceded: 0  
+        games: 0, gamesRO: 0, gamesCtx: 0, gamesInferred: 0,
+        runsForQ: { 1:[], 2:[], 3:[], 4:[] }, runsAgainstQ: { 1:[], 2:[], 3:[], 4:[] },
+        bigRunFor: [], bigRunAg: [],
+        scPts: 0, scT3: 0, scT2: 0, scFT: 0, scAg: 0, roFor: 0, roAg: 0,
+        fdPlayers: {},
+        potScored: 0, potConceded: 0, toFor: 0, toAg: 0,
+        clutch: { games: 0, w: 0, l: 0, pts: 0, opp: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, to: 0, scorers: {} }
     };
-
-    let hasData = false;
+    const rl = String(rivalTeam || '').toLowerCase();
 
     matches.forEach(m => {
         const src = _pbpSource(m);
         if (!src) return;
-        const rId = String(m.homeTeam.toLowerCase() === rivalTeam.toLowerCase() ? src.localId : src.visitId);
-        if (!rId || rId === 'undefined') return;
-        hasData = true;
-        const oppId = String(rId === String(src.localId) ? src.visitId : src.localId);
+        const isHome = String(m.homeTeam || '').toLowerCase() === rl;
+        const R = String(isHome ? src.localId : src.visitId), O = String(isHome ? src.visitId : src.localId);
+        if (!R || R === 'undefined') return;
+        stats.games++;
 
-        let curRunRival = 0, curRunOpp = 0;
-        let stateTO = null;  
-        let lastMiss = null; 
-        let lastFoulDrawn = {};
+        const rByDorsal = {};
+        ((isHome ? m.homePlayers : m.awayPlayers) || []).forEach(p => { if (p.dorsal) rByDorsal[String(Number(p.dorsal))] = p.name; });
+        const pLen = p => (p > 4 ? 5 : 10) * 60;
+        const pBase = p => p <= 4 ? (p - 1) * 600 : 2400 + (p - 5) * 300;
+        const elOf = mv => { const p = Number(mv.period) || 1; return pBase(p) + pLen(p) - ((Number(mv.min) || 0) * 60 + (Number(mv.sec) || 0)); };
+        const moves = src.moves.map((mv, i) => ({ mv, i, el: elOf(mv) })).sort((a, b) => a.el - b.el || a.i - b.i);
 
-        // Diccionario por si toca un partido de liga regular sin 'actorName'
-        const rPlayersByDorsal = {};
-        const rPlayersArr = (m.homeTeam.toLowerCase() === rivalTeam.toLowerCase()) ? m.homePlayers : m.awayPlayers;
-        (rPlayersArr || []).forEach(p => {
-            if (p.dorsal) rPlayersByDorsal[String(p.dorsal)] = p.name;
-        });
+        const hasRO = moves.some(x => x.mv.idTeam != null && _pbpClass(x.mv.move).ro);
+        const hasFR = moves.some(x => String(x.mv.idTeam) === R && _pbpClass(x.mv.move).fr);
+        const hasCtx = moves.some(x => x.mv.ctx);
+        if (hasRO) stats.gamesRO++; else if (hasCtx) stats.gamesCtx++; else stats.gamesInferred++;
 
-        const sortedMoves = [...src.moves].sort((a,b) => {
-            const elA = ((a.period||1)-1)*600 + (600-((a.min??0)*60+(a.sec??0)));
-            const elB = ((b.period||1)-1)*600 + (600-((b.min??0)*60+(b.sec??0)));
-            return elA - elB;
-        });
+        const sc = { [R]: 0, [O]: 0 };              // marcador que vamos contando
+        const sec = { [R]: null, [O]: null };       // ventana de 2ª oportunidad abierta {kind, el, closeAfterEl}
+        const tov = { [R]: null, [O]: null };       // ventana de «puntos tras pérdida» del equipo que gana el balón
+        let runR = 0, runO = 0, bigR = 0, bigO = 0, lastQ = 1;
+        const lastFD = {};
+        let clutchGame = false;
+        const other = t => t === R ? O : R;
+        const nameOf = mv => {
+            let n = (mv.actorName && String(mv.actorName).trim()) || '';
+            if (!n) { const d = String(mv.move || '').toLowerCase().match(/(?:^|\s|-|#)0*(\d+)\b/); if (d) n = rByDorsal[String(Number(d[1]))] || ''; }
+            return n;
+        };
+        const closeAll = () => { sec[R] = sec[O] = tov[R] = tov[O] = null; };
+        const pushRuns = q => {
+            if (runR > 0) stats.runsForQ[Math.min(q, 4)].push(runR);
+            if (runO > 0) stats.runsAgainstQ[Math.min(q, 4)].push(runO);
+        };
 
-        sortedMoves.forEach(mv => {
-            const txt = (mv.move||'').toLowerCase();
-            const tId = String(mv.idTeam);
-            const elapsed = ((mv.period||1)-1)*600 + (600-((mv.min??0)*60+(mv.sec??0)));
-            const q = Math.min(mv.period || 1, 4); 
+        moves.forEach(({ mv, el }) => {
+            const c = _pbpClass(mv.move);
+            const per = Number(mv.period) || 1;
+            if (per !== lastQ) { pushRuns(lastQ); runR = runO = 0; closeAll(); lastQ = per; }
+            if (c.end) { pushRuns(per); runR = runO = 0; closeAll(); return; }
+            const T = mv.idTeam == null ? null : String(mv.idTeam);
+            if (T !== R && T !== O) return;
+            const X = other(T);
 
-            // ── MAGIA: ATRAPAR EL NOMBRE REAL DESDE EL JSON OCULTO ──
-            let pName = (mv.actorName && mv.actorName.trim() !== '') ? mv.actorName.trim() : null;
-            
-            // Si es Liga Regular y no viene actorName, lo deducimos
-            if (!pName) {
-                let dorsalMatch = txt.match(/(?:^|\s|-|sobre\s|per\s|por\s|a\s)0*(\d+)\b/);
-                if (dorsalMatch) pName = rPlayersByDorsal[String(Number(dorsalMatch[1]))];
+            // ── POSESIÓN: si T tira, anota, rebotea, roba o pierde, el otro equipo ya no tiene el balón
+            const isFT = c.pts === 1 || c.miss === 1;
+            if (c.pts || c.miss || c.ro || c.rd || c.stl || c.to) { sec[X] = null; tov[X] = null; }
+            // tras una canasta de campo se cierran las ventanas de T (salvo el tiro libre adicional del 2+1)
+            [sec, tov].forEach(w => { if (w[T] && w[T].closeAfterEl != null && !(isFT && el - w[T].closeAfterEl <= 2)) w[T] = null; });
+            if (c.to) { sec[T] = null; tov[T] = null; }
+
+            // ── CLUTCH (antes de sumar esta jugada)
+            const rem = (Number(mv.min) || 0) * 60 + (Number(mv.sec) || 0);
+            const isClutchT = (per === 4 && rem <= 300) || per >= 5;
+            const inClutch = isClutchT && Math.abs(sc[R] - sc[O]) <= 5;
+            if (inClutch) {
+                clutchGame = true;
+                const C = stats.clutch;
+                if (T === R) {
+                    if (c.pts) { C.pts += c.pts; const n = nameOf(mv) || '—'; C.scorers[n] = (C.scorers[n] || 0) + c.pts; }
+                    if (c.pts === 2 || c.miss === 2) { C.t2a++; if (c.pts) C.t2m++; }
+                    if (c.pts === 3 || c.miss === 3) { C.t3a++; if (c.pts) C.t3m++; }
+                    if (c.pts === 1 || c.miss === 1) { C.fta++; if (c.pts) C.ftm++; }
+                    if (c.to) C.to++;
+                } else if (c.pts) C.opp += c.pts;
             }
 
-            // 1. CLASIFICACIÓN DE PUNTOS
-            let pts = 0, isT3 = false, isFT = false;
-            // En Copa usan "Cistella de X"
-            if (txt.includes('cistella de 2') || txt.includes('esmaixada')) { pts = 2; }
-            else if (txt.includes('cistella de 3') || (txt.includes('de 3') && !txt.includes('fallat') && !txt.includes('errat'))) { pts = 3; isT3 = true; }
-            else if (txt.includes('cistella de 1') || txt.includes('lliure anotat') || txt.includes('libre anotado')) { pts = 1; isFT = true; }
-            else if (txt.includes('cistella') && !txt.includes('de 1') && !txt.includes('de 3')) { pts = 2; }
-
-            // Detectar si tiran TL fallado
-            if (txt.includes('fallat de 1') || txt.includes('lliure fallat') || txt.includes('libre fallado') || txt.includes('errat de 1')) {
-                isFT = true;
-            }
-
-            // INFERENCIA DE SEGUNDAS OPORTUNIDADES FANTASMA
-            let isSecondChance = false;
-            if (pts > 0 && lastMiss && lastMiss.tId === tId && (elapsed - lastMiss.ts <= 14)) {
-                isSecondChance = true;
-            }
-
-            if (pts > 0) {
-                if (tId === rId) {
-                    curRunRival += pts;
-                    if (curRunOpp > 0) { stats.runsAgainstQ[q].push(curRunOpp); curRunOpp = 0; }
-
-                    if (isSecondChance) {
-                        stats.scPts += pts;
-                        if (isT3) stats.scT3 += pts; else if (pts === 2) stats.scT2 += pts;
-                    }
-                    if (stateTO && stateTO.teamWithAdvantage === rId && (elapsed - stateTO.ts <= 14)) {
-                        stats.potScored += pts;
-                    }
-                } else if (tId === oppId) {
-                    curRunOpp += pts;
-                    if (curRunRival > 0) { stats.runsForQ[q].push(curRunRival); curRunRival = 0; }
-
-                    if (stateTO && stateTO.teamWithAdvantage === oppId && (elapsed - stateTO.ts <= 14)) {
-                        stats.potConceded += pts;
-                    }
+            // ── PUNTOS
+            if (c.pts) {
+                sc[T] += c.pts;
+                // rachas
+                if (T === R) { runR += c.pts; if (runO) { stats.runsAgainstQ[Math.min(per, 4)].push(runO); bigO = Math.max(bigO, runO); runO = 0; } bigR = Math.max(bigR, runR); }
+                else { runO += c.pts; if (runR) { stats.runsForQ[Math.min(per, 4)].push(runR); bigR = Math.max(bigR, runR); runR = 0; } bigO = Math.max(bigO, runO); }
+                // 2ª oportunidad
+                const fromCtx = /rebote of/i.test(mv.ctx || '');
+                if (sec[T] || fromCtx) {
+                    if (T === R) { stats.scPts += c.pts; if (c.pts === 3) stats.scT3 += 3; else if (c.pts === 2) stats.scT2 += 2; else stats.scFT += 1; }
+                    else stats.scAg += c.pts;
+                    if (sec[T] && c.pts > 1) sec[T].closeAfterEl = el;
                 }
-                
-                // Reseteo tras canasta de campo o el último TL (no es "1 de 2")
-                if (pts > 1 || (pts === 1 && !txt.match(/1 de 2|1 de 3|2 de 3/))) {
-                    stateTO = null; lastMiss = null;
-                }
-            }
-
-            // REGISTRO DE FALLOS DE CAMPO (Inicia cuenta atrás de 14s por si cogen el rebote ofensivo fantasma)
-            if ((txt.includes('fallat') || txt.includes('fallado') || txt.includes('errat')) && !isFT) {
-                lastMiss = { tId, ts: elapsed };
-            }
-
-            // FALTAS RECIBIDAS (A prueba de balas)
-            // Si nuestro equipo tira un Tiro Libre y tenemos su nombre, OBVIAMENTE ha forzado la falta.
-            if (tId === rId && isFT && pName) {
-                let lastTS = lastFoulDrawn[pName] || 0;
-                if (elapsed - lastTS > 10) { 
-                    stats.fdPlayers[pName] = (stats.fdPlayers[pName] || 0) + 1;
-                    lastFoulDrawn[pName] = elapsed;
-                }
-            } 
-            // Si el rival comete falta en Liga Regular (y pone "sobre 9")
-            else if (tId === oppId && (txt.includes('falta') || txt.includes('personal'))) {
-                let targetMatch = txt.match(/(?:sobre|per|por|a)\s*0*(\d+)\b/);
-                if (targetMatch) {
-                    let targetName = rPlayersByDorsal[String(Number(targetMatch[1]))];
-                    if (targetName) {
-                        let lastTS = lastFoulDrawn[targetName] || 0;
-                        if (elapsed - lastTS > 10) {
-                            stats.fdPlayers[targetName] = (stats.fdPlayers[targetName] || 0) + 1;
-                            lastFoulDrawn[targetName] = elapsed;
-                        }
-                    }
+                // tras pérdida
+                if (tov[T]) {
+                    if (T === R) stats.potScored += c.pts; else stats.potConceded += c.pts;
+                    if (c.pts > 1) tov[T].closeAfterEl = el;
                 }
             }
-
-            // PÉRDIDAS
-            if (txt.includes('pèrdua') || txt.includes('perdida') || txt.includes('passos') || txt.includes('dobles')) {
-                stateTO = { teamWithAdvantage: tId === rId ? oppId : rId, ts: elapsed }; 
-                lastMiss = null;
+            // ── REBOTE OFENSIVO → abre (o mantiene) la 2ª oportunidad
+            if (c.ro) { sec[T] = { kind: 'ro', el }; if (T === R) stats.roFor++; else stats.roAg++; }
+            // ── FALLO de campo sin rebotes apuntados: 2ª oportunidad «inferida» si no pasa nada del rival
+            if (c.miss > 1 && !hasRO && !hasCtx) sec[T] = { kind: 'inf', el };
+            // ── PÉRDIDA (o robo del rival): el otro equipo gana el balón
+            if (c.to || c.stl) {
+                const loser = c.to ? T : X, gainer = other(loser);
+                const dup = tov[gainer] && tov[gainer].el === el; // pèrdua + recuperació de la misma jugada
+                if (!dup) { if (loser === R) stats.toFor++; else stats.toAg++; }
+                tov[gainer] = { el }; tov[loser] = null; sec[loser] = null;
             }
-
-            // FINAL DE CUARTO
-            if (txt.includes('final de')) {
-                if (curRunRival > 0) stats.runsForQ[q].push(curRunRival);
-                if (curRunOpp > 0) stats.runsAgainstQ[q].push(curRunOpp);
-                curRunRival = 0; curRunOpp = 0;
-                stateTO = null; lastMiss = null;
+            // ── FALTAS RECIBIDAS
+            if (T === R && hasFR && c.fr) { const n = nameOf(mv); if (n) stats.fdPlayers[n] = (stats.fdPlayers[n] || 0) + 1; }
+            else if (!hasFR && T === R && (c.pts === 1 || c.miss === 1)) {
+                const n = nameOf(mv);
+                if (n && (lastFD[n] == null || el - lastFD[n] > 10)) { stats.fdPlayers[n] = (stats.fdPlayers[n] || 0) + 1; lastFD[n] = el; }
+            } else if (!hasFR && T === O && c.foul) {
+                const t = String(mv.move || '').toLowerCase().match(/(?:sobre|per|por|a)\s*0*(\d+)\b/);
+                const n = t && rByDorsal[String(Number(t[1]))];
+                if (n && (lastFD[n] == null || el - lastFD[n] > 10)) { stats.fdPlayers[n] = (stats.fdPlayers[n] || 0) + 1; lastFD[n] = el; }
             }
         });
-        
-        if (curRunRival > 0) stats.runsForQ[4].push(curRunRival);
-        if (curRunOpp > 0) stats.runsAgainstQ[4].push(curRunOpp);
+        pushRuns(lastQ);
+        stats.bigRunFor.push(Math.max(bigR, runR)); stats.bigRunAg.push(Math.max(bigO, runO));
+        if (clutchGame) {
+            stats.clutch.games++;
+            const my = Number(isHome ? m.scoreHome : m.scoreAway), op = Number(isHome ? m.scoreAway : m.scoreHome);
+            if (my > op) stats.clutch.w++; else if (my < op) stats.clutch.l++;
+        }
     });
 
-    return hasData ? stats : null;
+    return stats.games ? stats : null;
+}
+
+// Puntos a favor / en contra por cuarto (marcador oficial por cuarto si lo hay, si no el de las jugadas)
+function _scoutQuarterSplits(matches, rival) {
+    const Q = {}; let n = 0;
+    matches.forEach(m => {
+        let qs = null; try { qs = _matchQuarters(m); } catch (e) {}
+        if (!qs || !qs.length) return;
+        const home = m.homeTeam === rival; n++;
+        qs.forEach(q => {
+            const k = q.p >= 5 ? 'PR' : 'Q' + q.p;
+            const f = home ? q.h : q.a, a = home ? q.a : q.h;
+            const o = Q[k] = Q[k] || { k, f: 0, a: 0, g: 0, won: 0, lost: 0 };
+            o.f += f; o.a += a; o.g++; if (f > a) o.won++; else if (f < a) o.lost++;
+        });
+    });
+    const order = ['Q1', 'Q2', 'Q3', 'Q4', 'PR'];
+    return { n, list: order.filter(k => Q[k]).map(k => { const o = Q[k]; return { ...o, pf: o.f / o.g, pa: o.a / o.g, diff: (o.f - o.a) / o.g }; }) };
 }
 
 /* =========================================================

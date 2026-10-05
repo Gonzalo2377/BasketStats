@@ -18704,7 +18704,7 @@ function _renderAdvancedPlayerTable(scope){
            people.set(key, { 
                name: p.name, teams: new Set([team]), seasons: new Set([seasonStr]), dorsal: p.dorsal, 
                pts: 0, fga: 0, fta: 0, tov: 0, minSecs: 0, tmFga: 0, tmFta: 0, tmTov: 0, tmMin: 0,
-               onCourtPts: 0, onCourtOppPts: 0, onCourtPoss: 0
+               onCourtPts: 0, onCourtOppPts: 0, onCourtPoss: 0, offPts: 0, offOppPts: 0, offPoss: 0
            });
         } else {
            people.get(key).teams.add(team);
@@ -18738,6 +18738,16 @@ function _renderAdvancedPlayerTable(scope){
             obj.onCourtPts += ptsOn;
             obj.onCourtOppPts += oppPtsOn;
             obj.onCourtPoss += possOn;
+            // Fuera de pista: lo que hizo el equipo en ese partido menos lo estimado con él en pista
+            const offShare = Math.max(0, 1 - minShare);
+            if (offShare > 0.001) {
+                obj.offPts += tPts - ptsOn;        // la diferencia off = (marcador final) − (+/- del jugador)
+                obj.offOppPts += oppPts - oppPtsOn;
+                obj.offPoss += tPoss * offShare;
+            }
+        } else if (tSecs > 0 && tPoss > 0) {
+            // convocado pero sin jugar: todo el partido cuenta como «fuera de pista»
+            obj.offPts += tPts; obj.offOppPts += oppPts; obj.offPoss += tPoss;
         }
       });
     });
@@ -18767,6 +18777,9 @@ function _renderAdvancedPlayerTable(scope){
     const onCourtPPP = (pTotMinDec > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtPts / p.onCourtPoss) : 0;
     const onCourtDefPPP = (pTotMinDec > 0 && p.onCourtPoss > 0) ? Math.max(0, p.onCourtOppPts / p.onCourtPoss) : 0;
     const netPPP = onCourtPPP - onCourtDefPPP;
+    // NET con el jugador en el banquillo (mínimo ~5 posesiones fuera para que signifique algo)
+    const netOff = p.offPoss >= 5 ? (p.offPts - p.offOppPts) / p.offPoss : NaN;
+    const onOff = Number.isFinite(netOff) && p.onCourtPoss > 0 ? netPPP - netOff : NaN;
 
     return {
       name: p.name, 
@@ -18784,6 +18797,8 @@ function _renderAdvancedPlayerTable(scope){
       ppp: onCourtPPP, 
       dppp: onCourtDefPPP, 
       net: netPPP,
+      netOff,
+      onOff,
       eff: a.eff ? a.eff : 0, 
       pir: a.pir ? a.pir : 0
     };
@@ -18800,9 +18815,9 @@ function _renderAdvancedPlayerTable(scope){
         vb = parseInt(vb); if(isNaN(vb)) vb = 0;
     }
     if (typeof va === 'string') return sdir * va.localeCompare(vb);
-    const numA = va !== undefined && va !== null ? va : 0;
-    const numB = vb !== undefined && vb !== null ? vb : 0;
-    return sdir * (numA - numB);
+    const okA = Number.isFinite(va), okB = Number.isFinite(vb);
+    if (!okA || !okB) return okA === okB ? 0 : (okA ? -1 : 1); // sin dato («—») siempre al final
+    return sdir * (va - vb);
   });
 
   const arrIcon = col => sc === col ? (sdir > 0 ? ' ▲' : ' ▼') : '';
@@ -18811,6 +18826,8 @@ function _renderAdvancedPlayerTable(scope){
   list.forEach(p => {
     const netC = p.net > 0 ? 'var(--gn)' : (p.net < 0 ? '#dc2626' : 'inherit');
     const netS = p.net > 0 ? '+' : '';
+    const sgn = x => !Number.isFinite(x) ? 'inherit' : x > 0 ? 'var(--gn)' : x < 0 ? '#dc2626' : 'inherit';
+    const sg = x => Number.isFinite(x) && x > 0 ? '+' : '';
     const pirC = p.pir > 0 ? 'var(--gn)' : (p.pir < 0 ? '#dc2626' : 'var(--t3)');
     const effC = p.eff > 0 ? 'var(--gn)' : (p.eff < 0 ? '#dc2626' : 'var(--t3)');
       
@@ -18824,6 +18841,8 @@ function _renderAdvancedPlayerTable(scope){
       <td style="font-weight:800;text-align:center" title="Puntos del equipo a favor por posesión">${num(p.ppp)}</td>
       <td style="font-weight:800;text-align:center" title="Puntos del equipo en contra por posesión">${num(p.dppp)}</td>
       <td style="font-weight:900;text-align:center;color:${netC}" title="Diferencial Neto por posesión">${netS}${num(p.net)}</td>
+      <td style="font-weight:800;text-align:center;color:${sgn(p.netOff)}" title="NET del equipo con el jugador en el banquillo">${sg(p.netOff)}${num(p.netOff)}</td>
+      <td style="font-weight:900;text-align:center;color:${sgn(p.onOff)};background:#f8fafc" title="NET en pista menos NET en el banquillo: cuánto mejora el equipo con él">${sg(p.onOff)}${num(p.onOff)}</td>
       <td style="color:#15803d;font-weight:800;text-align:center">${pc(p.efg)}</td>
       <td style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
       <td style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
@@ -18833,9 +18852,9 @@ function _renderAdvancedPlayerTable(scope){
     </tr>`;
   });
 
-  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="15" class="no-d">Sin datos</td></tr>';
+  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="17" class="no-d">Sin datos</td></tr>';
 
-  box.innerHTML = `<div class="tw" style="overflow-x:auto;"><table style="min-width:1000px; font-size:12px">
+  box.innerHTML = `<div class="tw" style="overflow-x:auto;"><table style="min-width:1140px; font-size:12px">
     <thead>
       <tr>
         <th onclick="advSort('dorsal','${scope}')" style="cursor:pointer;text-align:left;padding:8px">#${arrIcon('dorsal')}</th>
@@ -18847,6 +18866,8 @@ function _renderAdvancedPlayerTable(scope){
         <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo a favor por posesión en pista">O-PPP${arrIcon('ppp')}</th>
         <th onclick="advSort('dppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo en contra por posesión en pista">D-PPP${arrIcon('dppp')}</th>
         <th onclick="advSort('net','${scope}')" style="cursor:pointer;text-align:center" title="Diferencial Neto de puntos por posesión">NET${arrIcon('net')}</th>
+        <th onclick="advSort('netOff','${scope}')" style="cursor:pointer;text-align:center" title="NET del equipo con el jugador en el banquillo">NET OFF${arrIcon('netOff')}</th>
+        <th onclick="advSort('onOff','${scope}')" style="cursor:pointer;text-align:center" title="NET en pista menos NET fuera">ON-OFF${arrIcon('onOff')}</th>
         <th onclick="advSort('efg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro ajustado">eFG%${arrIcon('efg')}</th>
         <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
         <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
@@ -18867,6 +18888,8 @@ function _renderAdvancedPlayerTable(scope){
       <div><b>O-PPP:</b> puntos anotados por el equipo por cada posesión mientras el jugador está en pista.</div>
       <div><b>D-PPP:</b> puntos encajados por el equipo por cada posesión mientras el jugador está en pista.</div>
       <div><b>NET:</b> diferencial neto (O-PPP menos D-PPP).</div>
+      <div><b>NET OFF:</b> el mismo diferencial pero con el jugador en el banquillo (minutos que no juega en sus partidos, y partidos en los que no sale).</div>
+      <div><b>ON-OFF:</b> NET menos NET OFF. Positivo = el equipo rinde mejor con él en pista. «—» si casi no ha estado fuera.</div>
       <div><b>Efg%:</b> eficacia ajustada = (T2M + 1.5 x T3M) / FGA.</div>
       <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
       <div><b>Usg%:</b> uso estimado = 100 x (FGA + 0.44 x FTA + Per) x (Min equipo / 5) / (Min jugador x Posesiones equipo).</div>

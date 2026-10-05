@@ -13610,9 +13610,7 @@ function renderCompare() {
     const rivalPlayers = {};
     let rivalShots = [];
     
-    const _rDefOk = t => t.name === rival && (!_rCat || !t.category || t.category === _rCat);
-    let teamDef = S.teams.find(t => _rDefOk(t) && t.season === rSeason);
-    if (!teamDef) teamDef = S.teams.find(_rDefOk);
+    let teamDef = _rosterFor(rival, _rCat, rSeason);
 
     if (isPreseason) {
         if (teamDef && teamDef.players) {
@@ -13827,8 +13825,8 @@ function renderCompare() {
             if (p.dorsal) ourPl[k].dorsal = p.dorsal;
         });
     });
-    const _catOk = t => !_ourCat || !t.category || t.category === _ourCat;
-    const myDef = S.teams.find(t => t.name === myTeamName && _catOk(t) && (!mSeason || t.season === mSeason)) || S.teams.find(t => t.name === myTeamName && _catOk(t));
+    // solo la plantilla de nuestra categoría (el sènior A), no la de otro equipo que también se llama «U.E. CLARET A»
+    const myDef = _rosterFor(myTeamName, _ourCat, mSeason);
     (myDef?.players || []).forEach(p => { const k = normName(p.name); if (!ourPl[k]) ourPl[k] = { name: p.name, dorsal: p.dorsal, min: 0, games: 0 }; });
     const _dn = p => { const n = parseInt(p.dorsal, 10); return isNaN(n) ? 999 : n; };
     const ourList = Object.values(ourPl).sort((a, b) => _dn(a) - _dn(b) || String(a.name).localeCompare(String(b.name)));
@@ -14469,6 +14467,23 @@ function _uniqueCatFor(tk) {
   }
   const set = window._ucCache.map[tk];
   return set && set.size === 1 ? [...set][0] : '';
+}
+// Plantilla de un equipo en una categoría concreta. Hay nombres repetidos en varias categorías (U.E. CLARET A sènior y
+// júnior…): una plantilla sin categoría guardada solo vale si sus jugadores han jugado partidos de esa categoría.
+const _catEq = (a, b) => { if (!a || !b) return false; const [ab, ag = ''] = String(a).split(' '), [bb, bg = ''] = String(b).split(' '); return ab === bb && (!ag || !bg || ag === bg); };
+function _rosterFor(name, cat, season) {
+  const same = (S.teams || []).filter(t => t.name === name);
+  if (!cat) return same.find(t => !season || t.season === season) || same[0] || null;
+  const nn = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const played = new Set();
+  (S.matches || []).forEach(m => {
+    if (m.homeTeam !== name && m.awayTeam !== name) return;
+    if (!_catEq(_catOf(m) || _uniqueCatFor(_teamKey(name)), cat)) return;
+    ((m.homeTeam === name ? m.homePlayers : m.awayPlayers) || []).forEach(p => played.add(nn(p.name)));
+  });
+  const ok = t => _catEq(t.category, cat) || (!t.category && (played.size ? (t.players || []).some(p => played.has(nn(p.name))) : same.length === 1));
+  const c = same.filter(ok);
+  return c.find(t => !season || t.season === season) || c[0] || null;
 }
 const _ourKeyOf = (m, n) => { const tk = _teamKey(n); return tk + '|' + (_catOf(m) || _uniqueCatFor(tk)); };
 function _ourTeamsList() {

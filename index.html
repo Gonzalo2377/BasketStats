@@ -13814,20 +13814,28 @@ function renderCompare() {
     rosterHtml += `</tbody></table></div></div>`;
 
     // ⚔️ EMPAREJAMIENTOS DEFENSIVOS
+    // Solo jugadores que han jugado partidos del U.E. CLARET A sènior masculí (los mismos que salen en Stats).
+    // Plantillas guardadas NO se mezclan: hay otros «U.E. CLARET A» (júnior, femení) con el mismo nombre.
     const ourPl = {};
-    myMatchesThisSeason.forEach(m => {
+    const _muNN = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const _muSrc = myMatchesThisSeason.length ? myMatchesThisSeason : myMatches;
+    [..._muSrc].sort((x, y) => String(x.date || '').localeCompare(String(y.date || ''))).forEach(m => {
         const side = m.homeTeam === myTeamName ? 'home' : m.awayTeam === myTeamName ? 'away' : null;
         if (!side) return;
         ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => {
-            const k = normName(p.name);
+            if (!p || !p.name) return;
+            const k = _muNN(p.name);
             if (!ourPl[k]) ourPl[k] = { name: p.name, dorsal: p.dorsal, min: 0, games: 0 };
             ourPl[k].min += _minNum(p.min); ourPl[k].games++;
             if (p.dorsal) ourPl[k].dorsal = p.dorsal;
         });
     });
-    // solo la plantilla de nuestra categoría (el sènior A), no la de otro equipo que también se llama «U.E. CLARET A»
-    const myDef = _rosterFor(myTeamName, _ourCat, mSeason);
-    (myDef?.players || []).forEach(p => { const k = normName(p.name); if (!ourPl[k]) ourPl[k] = { name: p.name, dorsal: p.dorsal, min: 0, games: 0 }; });
+    // Sin ningún partido del sènior A todavía: plantilla guardada, pero solo si está marcada como sènior (no femení)
+    if (!Object.keys(ourPl).length) {
+        const myDef = (S.teams || []).find(t => _teamKey(t.name) === _SR_A_KEY && _isSrM(t.category) && (!mSeason || t.season === mSeason))
+            || (S.teams || []).find(t => _teamKey(t.name) === _SR_A_KEY && _isSrM(t.category));
+        (myDef?.players || []).forEach(p => { const k = _muNN(p.name); if (!ourPl[k]) ourPl[k] = { name: p.name, dorsal: p.dorsal, min: 0, games: 0 }; });
+    }
     const _dn = p => { const n = parseInt(p.dorsal, 10); return isNaN(n) ? 999 : n; };
     const ourList = Object.values(ourPl).sort((a, b) => _dn(a) - _dn(b) || String(a.name).localeCompare(String(b.name)));
     const rivList = [...rpList].sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0));

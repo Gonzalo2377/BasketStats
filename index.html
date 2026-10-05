@@ -13359,7 +13359,7 @@ function _nmRivCat(nm) {
   if (nm.rivalCat && (!cs.length || cs.includes(nm.rivalCat))) return nm.rivalCat;
   if (cs.length < 2) return '';
   const oc = _nextMatchOurTeam().cat;
-  return cs.includes(oc) ? oc : _defaultCatFor(r, '');
+  return cs.find(c => _catEq(c, oc)) || _defaultCatFor(r, '');
 }
 function _nmRivOk(m) {
   const r = S.nextMatch?.rival;
@@ -13525,7 +13525,7 @@ function renderCompare() {
     };
     
     let rivMatchesThisSeason = S.matches.filter(m => _rOk(m) && (!rSeason || inferredMatchSeason(m) === rSeason));
-    let myMatchesThisSeason = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!mSeason || inferredMatchSeason(m) === mSeason));
+    let myMatchesThisSeason = _srAMatches(myTeamName).filter(m => !mSeason || inferredMatchSeason(m) === mSeason);
     if (mSeason) myMatchesThisSeason = officialPreferred(myMatchesThisSeason, mSeason);
     if (rSeason) rivMatchesThisSeason = officialPreferred(rivMatchesThisSeason, rSeason);
     
@@ -13552,7 +13552,7 @@ function renderCompare() {
     }
 
     let rivMatches = S.matches.filter(m => _rOk(m) && (!effectiveRivalSeason || inferredMatchSeason(m) === effectiveRivalSeason));
-    let myMatches = S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && (!effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason));
+    let myMatches = _srAMatches(myTeamName).filter(m => !effectiveMySeason || inferredMatchSeason(m) === effectiveMySeason);
     if (effectiveRivalSeason) rivMatches = officialPreferred(rivMatches, effectiveRivalSeason);
     if (effectiveMySeason) myMatches = officialPreferred(myMatches, effectiveMySeason);
 
@@ -13562,9 +13562,9 @@ function renderCompare() {
         if (lastTeamSeason) rivMatches = officialPreferred(S.matches.filter(m => _rOk(m) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
     if (isMyPreseason && myMatches.length === 0) {
-        const pastTeamSeasons = [...new Set(S.matches.filter(m => m.homeTeam === myTeamName || m.awayTeam === myTeamName).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
+        const pastTeamSeasons = [...new Set(_srAMatches(myTeamName).map(inferredMatchSeason).filter(Boolean))].sort().reverse();
         const lastTeamSeason = pastTeamSeasons.find(s => s !== mSeason);
-        if (lastTeamSeason) myMatches = officialPreferred(S.matches.filter(m => ((m.homeTeam === myTeamName || m.awayTeam === myTeamName) && (!_ourCat || (_catOf(m) || _uniqueCatFor(_teamKey(myTeamName))) === _ourCat)) && inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
+        if (lastTeamSeason) myMatches = officialPreferred(_srAMatches(myTeamName).filter(m => inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
 
     const getL5 = (tName, matchesArray) => {
@@ -14499,14 +14499,46 @@ function _ourTeamsList() {
     return { key: t.key, cat: t.cat, games: t.games, name, label: t.cat ? `${name} · ${t.cat}` : name };
   }).sort((a, b) => b.games - a.games);
 }
-// Equipo del Claret para "Próximo rival": U.E. CLARET A sénior (Copa Catalunya)
+// Equipo del Claret para "Próximo rival": SIEMPRE y SOLO el U.E. CLARET A sènior masculí.
+// Partido válido si: es del U.E. CLARET A (cualquier forma de escribirlo) y su categoría es Sènior (no femení).
+// Partidos sin categoría (amistosos…): cuentan si sus jugadores son más del sènior A que de otra categoría del A.
+const _SR_A_KEY = 'UECLARETA';
+const _isSrM = c => /^S[eè]nior/i.test(c || '') && !/ F$/.test(c || '');
+function _srASide(m) {
+  if (!m) return null;
+  if (_teamKey(m.homeTeam) === _SR_A_KEY) return 'home';
+  if (_teamKey(m.awayTeam) === _SR_A_KEY) return 'away';
+  return null;
+}
+const _srNN = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+function _isOurSeniorA(m) {
+  const side = _srASide(m); if (!side) return false;
+  const c = _catOf(m);
+  if (c) return _isSrM(c);
+  const ck = (S.matches || []).length;
+  if (!window._srACache || window._srACache.n !== ck) {
+    const sr = new Set(), ot = new Set();
+    (S.matches || []).forEach(x => { const sd = _srASide(x), cx = _catOf(x); if (!sd || !cx) return;
+      ((sd === 'home' ? x.homePlayers : x.awayPlayers) || []).forEach(p => (_isSrM(cx) ? sr : ot).add(_srNN(p.name))); });
+    window._srACache = { n: ck, sr, ot };
+  }
+  const { sr, ot } = window._srACache;
+  let a = 0, b = 0;
+  ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => { const k = _srNN(p.name); if (sr.has(k)) a++; if (ot.has(k)) b++; });
+  return a > 0 && a >= b;
+}
 function _nextMatchOurTeam() {
-  const list = _ourTeamsList();
-  const isA = t => t.key.split('|')[0] === 'UECLARETA';
-  const pick = list.find(t => isA(t) && /^S[eè]nior/i.test(t.cat || ''))
-    || list.find(t => isA(t) && !t.cat)
-    || list.find(isA);
-  return pick ? { name: pick.name, cat: pick.cat || '' } : { name: '', cat: '' };
+  const cnt = {};
+  (S.matches || []).forEach(m => { if (!_isOurSeniorA(m)) return; const n = _srASide(m) === 'home' ? m.homeTeam : m.awayTeam; cnt[n] = (cnt[n] || 0) + 1; });
+  const name = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0] || 'U.E. CLARET A';
+  return { name, cat: 'Sènior M' };
+}
+// Partidos del sènior A con el nombre del equipo unificado (por si en algún acta está escrito distinto)
+function _srAMatches(name) {
+  return (S.matches || []).filter(_isOurSeniorA).map(m => {
+    const sd = _srASide(m), n = sd === 'home' ? m.homeTeam : m.awayTeam;
+    return n === name ? m : Object.assign({}, m, sd === 'home' ? { homeTeam: name } : { awayTeam: name });
+  });
 }
 function _ourTeamCat() { return (_ourTeamKey().split('|')[1]) || ''; }
 function _ourTeamKey() {
@@ -19064,23 +19096,35 @@ function renderStatsAggregated(){
 
   const sf = _stAggSort.field;
   const dir = _stAggSort.dir;
-  const valFn = (p) => {
+  // Claves de orden: la primera manda; las siguientes deshacen empates (en el mismo sentido).
+  // Tiros (TL/T2/T3): aciertos y, si empatan, más intentos arriba. Porcentajes: %, luego más intentos.
+  const _n = v => (v === undefined || v === null || v === '' || isNaN(v)) ? 0 : +v;
+  const _pct = (m, a) => a ? m / a : -1;
+  const keysFn = (p) => {
     switch(sf){
-      case 'dorsal': return parseInt(p.dorsal) ? parseInt(p.dorsal) : 0;
-      case 'name': return p.name.toLowerCase();
-      case 'team': return [...p.teams].join(' ').toLowerCase();
-      case 'min': return p._totalSecs; 
-      case 'pts': return p.pts ? p.pts : 0;
-      case 'ppg': return p.games.length ? p.pts/p.games.length : 0;
-      case 'tl': return p.tlAtt ? p.tlMade/p.tlAtt : -1;
-      case 't2': return p.t2Att ? p.t2Made/p.t2Att : -1;
-      case 't3': return p.t3Att ? p.t3Made/p.t3Att : -1;
-      case 'pm': return p.pm ? p.pm : 0;
-      default: return p.pts ? p.pts : 0;
+      case 'dorsal': return [parseInt(p.dorsal) || 0];
+      case 'name': return [p.name.toLowerCase()];
+      case 'team': return [[...p.teams].join(' ').toLowerCase(), p.name.toLowerCase()];
+      case 'min': return [_n(p._totalSecs), _n(p.pts)];
+      case 'pts': return [_n(p.pts), _n(p._totalSecs)];
+      case 'ppg': return [p.games.length ? _n(p.pts)/p.games.length : 0, _n(p.pts)];
+      case 'tlm': return [_n(p.tlMade), _n(p.tlAtt)];
+      case 't2m': return [_n(p.t2Made), _n(p.t2Att)];
+      case 't3m': return [_n(p.t3Made), _n(p.t3Att)];
+      case 'tl': return [_pct(p.tlMade, p.tlAtt), _n(p.tlAtt)];
+      case 't2': return [_pct(p.t2Made, p.t2Att), _n(p.t2Att)];
+      case 't3': return [_pct(p.t3Made, p.t3Att), _n(p.t3Att)];
+      case 'reb': case 'ast': case 'stl': case 'blk': case 'to': case 'fc': case 'fr': case 'val': case 'pm':
+        return [_n(p[sf]), _n(p.pts)];
+      default: return [_n(p.pts)];
     }
   };
-  
-  players.sort((a,b) => typeof valFn(a) === 'string' ? dir * valFn(a).localeCompare(valFn(b)) : dir * (valFn(a)-valFn(b)));
+  const _cmp = (x, y) => typeof x === 'string' ? x.localeCompare(y) : x - y;
+  players.sort((a,b) => {
+    const ka = keysFn(a), kb = keysFn(b);
+    for (let i = 0; i < ka.length; i++) { const c = _cmp(ka[i], kb[i]); if (c) return dir * c; }
+    return a.name.localeCompare(b.name);
+  });
   const pc = (m,a) => a ? Math.round(m/a*100)+'%' : '—';
   
   let rowsHtml = '';

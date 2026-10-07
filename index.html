@@ -2735,6 +2735,385 @@ body.zen-mode {
     }
 }
 </style>
+<style id="basketapp-v2">
+/* ═══════════ BasketApp · capa visual v2 (solo estilo: no cambia nada de la lógica) ═══════════
+   Movimiento: personalidad «Corporate» — rápido y decidido. Curva base cubic-bezier(.2,0,0,1);
+   entradas que deceleran, salidas que aceleran; 120 / 200 / 320 ms. */
+:root {
+  --ease: cubic-bezier(.2,0,0,1); --ease-out: cubic-bezier(.05,.7,.1,1);
+  --sh1: 0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+  --sh2: 0 6px 22px rgba(0,0,0,.07), 0 2px 6px rgba(0,0,0,.04);
+  --ring: 0 0 0 3px rgba(0,113,227,.22);
+}
+html { scroll-behavior: smooth }
+body { letter-spacing: -.003em }
+::selection { background: rgba(0,113,227,.18) }
+
+/* barras superiores: cristal oscuro y pestaña activa con indicador suave */
+.top { background: rgba(22,22,24,.92); -webkit-backdrop-filter: saturate(180%) blur(14px); backdrop-filter: saturate(180%) blur(14px); box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 6px 18px rgba(0,0,0,.18) }
+.nav { background: rgba(38,38,41,.94); -webkit-backdrop-filter: saturate(180%) blur(14px); backdrop-filter: saturate(180%) blur(14px); padding: 0 10px; gap: 2px }
+.nb { position: relative; border-bottom: 0 !important; padding: 11px 14px; border-radius: 0; transition: color .15s var(--ease), background .15s var(--ease) }
+.nb::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2.5px; border-radius: 3px 3px 0 0; background: #2997ff; transform: scaleX(0); transform-origin: center; transition: transform .26s var(--ease-out) }
+.nb.active::after { transform: scaleX(1) }
+.nb:hover { background: rgba(255,255,255,.06) }
+.tb { transition: background .15s var(--ease), transform .12s var(--ease) }
+
+/* cambio de pestaña: el contenido entra con un ligero deslizamiento, en cascada */
+.tab.active { animation: ba-fade .2s var(--ease) backwards }
+.tab.active > * { animation: ba-rise .32s var(--ease-out) backwards }
+.tab.active > *:nth-child(2) { animation-delay: .04s }
+.tab.active > *:nth-child(3) { animation-delay: .08s }
+.tab.active > *:nth-child(4) { animation-delay: .12s }
+.tab.active > *:nth-child(5) { animation-delay: .16s }
+.tab.active > *:nth-child(n+6) { animation-delay: .2s }
+@keyframes ba-fade { from { opacity: 0 } }
+@keyframes ba-rise { from { opacity: 0; transform: translateY(8px) } }
+
+/* tarjetas: más aire, sombra en capas y borde más fino */
+.card { border-radius: 16px; border-color: rgba(0,0,0,.06); box-shadow: var(--sh1), var(--sh2); transition: box-shadow .2s var(--ease) }
+.ct { letter-spacing: .06em; color: #3a3a3c; margin-bottom: 12px }
+.kpi, .kbox { transition: transform .2s var(--ease), box-shadow .2s var(--ease) }
+
+/* botones: respuesta al pulsar y foco visible */
+button, .btn { transition: background-color .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease), transform .12s var(--ease) }
+.btn { border-radius: 10px }
+.btn:active, .tb:active, .nb:active, .tac-sb-btn:active, .per-btn:active { transform: scale(.97) }
+.bp { box-shadow: 0 2px 8px rgba(0,113,227,.28) }
+.bp:hover { box-shadow: 0 4px 14px rgba(0,113,227,.32) }
+.bo { border-color: rgba(0,0,0,.12) }
+.bo:hover { border-color: rgba(0,0,0,.22); background: #fafafc }
+button:focus-visible, .btn:focus-visible, a:focus-visible { outline: none; box-shadow: var(--ring) }
+
+/* campos de formulario */
+input[type=text], input[type=number], input[type=date], input[type=password], select, textarea {
+  border-radius: 10px; border-color: rgba(0,0,0,.12); transition: border-color .15s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease) }
+input[type=text]:hover, input[type=number]:hover, select:hover, textarea:hover { border-color: rgba(0,0,0,.22) }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ac) !important; box-shadow: var(--ring) }
+
+/* tablas: filas que se iluminan al pasar por encima */
+tbody tr { transition: background-color .12s var(--ease) }
+tbody tr:hover > td { background-color: rgba(0,113,227,.045) }
+th { letter-spacing: .02em }
+
+/* textos vacíos y avisos más discretos */
+.empty { color: var(--t3) }
+
+/* barras de desplazamiento finas */
+* { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.22) transparent }
+::-webkit-scrollbar { width: 10px; height: 10px }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 10px; border: 3px solid transparent; background-clip: content-box }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,.3) }
+.nav::-webkit-scrollbar { display: none }
+
+/* ventanas emergentes */
+.modal-body { border-radius: 16px; animation: ba-rise .26s var(--ease-out) backwards }
+
+/* móvil: pestañas con un poco más de zona táctil */
+@media (max-width: 767px) { .nb { padding: 12px 13px } .card { border-radius: 14px } }
+
+/* accesibilidad: sin animaciones si el sistema lo pide */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important } }
+
+/* los avisos informativos no deben bloquear lo que hay debajo (antes tapaban botones mientras se mostraban) */
+#toast { pointer-events: none }
+
+/* ═══════════ BasketApp · nueva distribución (barra lateral, cabecera de sección, Inicio) ═══════════ */
+:root { --side: 236px; --hdr: 64px; --ink: #111114; --surf: #ffffff; --line: rgba(0,0,0,.07); --blue: #0071e3; --blue2: #2997ff; }
+
+/* ── barra lateral (es la antigua .nav, reutilizada: mismos botones, mismo orden) ── */
+@media (min-width: 900px) {
+  body:not(.player-mode) .nav {
+    position: fixed !important; top: 0; left: 0; bottom: 0; width: var(--side); z-index: 210;
+    display: flex; flex-direction: column; align-items: stretch; gap: 1px; overflow-y: auto; overflow-x: hidden;
+    padding: 14px 12px 18px; background: #141416; border-right: 1px solid rgba(255,255,255,.06);
+    -webkit-backdrop-filter: none; backdrop-filter: none; scrollbar-width: none;
+  }
+  body:not(.player-mode) .nav .nb {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.66); background: transparent;
+  }
+  body:not(.player-mode) .nav .nb::after { display: none }
+  body:not(.player-mode) .nav .nb { color: rgba(255,255,255,.66) !important; font-weight: 600 !important }
+  body:not(.player-mode) .nav .nb:hover { background: rgba(255,255,255,.07); color: #fff !important }
+  body:not(.player-mode) .nav .nb.active { background: rgba(41,151,255,.16); color: #fff !important; box-shadow: inset 3px 0 0 var(--blue2) }
+  body:not(.player-mode) .top { margin-left: var(--side); position: sticky; top: 0 }
+  body:not(.player-mode) .tab, body:not(.player-mode) #ba-ph { margin-left: var(--side) }
+}
+.ba-brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 16px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.07); cursor: pointer; text-decoration: none }
+.ba-brand i { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(150deg, #ff9a3c, #f05a16); display: grid; place-items: center; font-style: normal; font-size: 18px; box-shadow: 0 4px 14px rgba(240,90,22,.35) }
+.ba-brand b { color: #fff; font-size: 17px; font-weight: 800; letter-spacing: -.02em } .ba-brand b span { color: var(--blue2) }
+.ba-brand small { display: block; color: #6b8fd6; font-size: 9px; font-weight: 800; letter-spacing: .3em; margin-top: 1px }
+.ba-grp { color: rgba(255,255,255,.34); font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 16px 12px 6px }
+.ba-home { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.66); background: transparent; border: 0; cursor: pointer; text-align: left }
+.ba-home:hover { background: rgba(255,255,255,.07); color: #fff }
+.ba-home.active { background: rgba(41,151,255,.16); color: #fff; box-shadow: inset 3px 0 0 var(--blue2) }
+.ba-sidefoot { margin-top: auto; padding: 14px 10px 0; color: rgba(255,255,255,.35); font-size: 10.5px; line-height: 1.5 }
+
+/* el aviso de tiro (Anotado / Fallado) ocupaba 40 px en blanco hasta que se usaba por primera vez */
+#shot-popup:not([style]) { display: none }
+
+/* ── barra superior: queda como franja fina de herramientas ── */
+@media (min-width: 900px) {
+  body:not(.player-mode) .top { height: 52px; background: rgba(245,245,247,.82) !important; color: var(--ink); box-shadow: 0 1px 0 var(--line) !important; -webkit-backdrop-filter: saturate(180%) blur(16px); backdrop-filter: saturate(180%) blur(16px) }
+  body:not(.player-mode) .top .logo, body:not(.player-mode) .top #app-ver { display: none }
+  body:not(.player-mode) .top .tr button { background: #fff !important; color: var(--ink) !important; border: 1px solid rgba(0,0,0,.1) !important; border-radius: 9px !important; padding: 6px 11px !important; font-size: 12px !important; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.04) }
+  body:not(.player-mode) .top .tr button:hover { border-color: rgba(0,0,0,.2) !important }
+  body:not(.player-mode) .top #topst { color: #6e6e73; opacity: 1 }
+  body:not(.player-mode) .top #sync-txt { color: #6e6e73; opacity: 1 }
+}
+
+/* ── cabecera de cada sección ── */
+#ba-ph { position: relative; padding: 26px 32px 6px; max-width: calc(1400px + 64px) }
+#ba-ph .t { display: flex; align-items: center; gap: 14px }
+#ba-ph .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.06) }
+#ba-ph h1 { font-size: 27px; font-weight: 800; letter-spacing: -.025em; color: var(--ink); line-height: 1.1 }
+#ba-ph p { color: #6e6e73; font-size: 13.5px; margin-top: 3px }
+#ba-ph.anim { animation: ba-rise .3s var(--ease-out, cubic-bezier(.05,.7,.1,1)) backwards }
+body.player-mode #ba-ph { display: none }
+
+/* ── contenido: más aire y cuadrícula que se adapta ── */
+.main { padding: 14px 32px 48px !important; max-width: calc(1400px + 64px) !important; margin: 0 !important }
+.card { padding: 20px !important; margin-bottom: 16px !important }
+.ct { font-size: 12px !important; letter-spacing: .07em !important; padding-bottom: 12px; margin-bottom: 14px !important; border-bottom: 1px solid var(--line) }
+.g2 { gap: 16px !important }
+.kpi, .kbox { border-radius: 14px !important }
+@media (min-width: 1500px) { .main { padding-left: 40px !important; padding-right: 40px !important } }
+
+/* tablas: cabecera fija, cebra suave, números alineados */
+.tw { border-radius: 12px; border: 1px solid var(--line) }
+.tw table thead th { position: sticky; top: 0; z-index: 1; background: #fafafc; backdrop-filter: blur(6px) }
+.tw table tbody tr:nth-child(even) > td { background-color: rgba(0,0,0,.015) }
+td, th { font-variant-numeric: tabular-nums }
+
+/* ── Inicio ── */
+#t-home .main { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-content: start }
+.h-card { background: #fff; border-radius: 18px; padding: 20px 22px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05); border: 1px solid var(--line); min-width: 0 }
+.h-lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #86868b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px }
+.h-next { grid-column: span 8; background: radial-gradient(120% 140% at 0% 0%, #1b2a4a 0%, #101521 55%, #0b0d12 100%); color: #fff; border: 0; position: relative; overflow: hidden; min-height: 220px; display: flex; flex-direction: column }
+.h-next::after { content: ''; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,140,40,.35), rgba(255,140,40,0)); animation: h-breathe 6s ease-in-out infinite }
+@keyframes h-breathe { 50% { transform: scale(1.12); opacity: .75 } }
+.h-next .h-lbl { color: #8ea6d8 }
+.h-vs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 28px; font-weight: 900; letter-spacing: -.02em; margin: 6px 0 10px; position: relative; z-index: 1 }
+.h-vs .us { color: #ffb347 } .h-vs .vs { font-size: 13px; padding: 5px 9px; border-radius: 8px; background: rgba(255,255,255,.12); letter-spacing: .1em } .h-vs .them { color: #7ab8ff }
+.h-meta { color: #a9b6d3; font-size: 13.5px; font-weight: 600; position: relative; z-index: 1 }
+.h-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 18px; position: relative; z-index: 1 }
+.h-btn { border: 0; border-radius: 11px; padding: 10px 15px; font-size: 13px; font-weight: 700; cursor: pointer; background: rgba(255,255,255,.12); color: #fff; transition: background .15s, transform .12s }
+.h-btn:hover { background: rgba(255,255,255,.2) } .h-btn:active { transform: scale(.97) }
+.h-btn.pri { background: var(--blue); box-shadow: 0 6px 18px rgba(0,113,227,.45) } .h-btn.pri:hover { background: #0a7cf0 }
+.h-form { grid-column: span 4; display: flex; flex-direction: column }
+.h-rec { font-size: 44px; font-weight: 900; letter-spacing: -.03em; line-height: 1; color: var(--ink) }
+.h-rec small { font-size: 14px; font-weight: 600; color: #86868b; letter-spacing: 0; margin-left: 8px }
+.h-dots { display: flex; gap: 6px; margin: 16px 0 6px }
+.h-dots i { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 900; color: #fff; animation: h-pop .4s cubic-bezier(.175,.885,.32,1.275) backwards }
+.h-dots i.w { background: #34c759 } .h-dots i.l { background: #ff3b30 } .h-dots i.d { background: #8e8e93 }
+@keyframes h-pop { from { transform: scale(.4); opacity: 0 } }
+.h-last { font-size: 12.5px; color: #6e6e73; margin-top: auto; padding-top: 10px; line-height: 1.5 }
+.h-kpis { grid-column: span 12; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.h-kpi { background: #fff; border-radius: 18px; padding: 18px 20px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05); cursor: pointer; transition: transform .2s, box-shadow .2s }
+.h-kpi:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,.05), 0 14px 32px rgba(0,0,0,.08) }
+.h-kpi b { display: block; font-size: 30px; font-weight: 900; letter-spacing: -.03em; color: var(--ink) }
+.h-kpi span { font-size: 12.5px; color: #6e6e73; font-weight: 600 }
+.h-kpi em { float: right; font-style: normal; font-size: 20px }
+.h-acts2 { grid-column: span 5 }
+.h-qa { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.h-qa button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 13px 14px; border-radius: 13px; border: 1px solid var(--line); background: #fafafc; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer; transition: background .15s, border-color .15s, transform .12s }
+.h-qa button:hover { background: #fff; border-color: rgba(0,113,227,.4) } .h-qa button:active { transform: scale(.98) }
+.h-qa button i { font-style: normal; font-size: 18px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); flex: none }
+.h-qa button small { display: block; font-weight: 500; color: #86868b; font-size: 11.5px }
+.h-recent { grid-column: span 7 }
+.h-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px }
+.h-row:first-of-type { border-top: 0 }
+.h-row .tg { font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 6px; background: #f1f5f9; color: #475569; flex: none }
+.h-row .tg.live { background: #dbeafe; color: #1e40af }
+.h-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600 }
+.h-row .sc { font-weight: 800; font-variant-numeric: tabular-nums } .h-row .dt { color: #86868b; font-size: 12px; width: 78px; text-align: right; flex: none }
+.h-empty { color: #86868b; font-size: 13px; padding: 8px 0 }
+@media (max-width: 1200px) { .h-next, .h-form, .h-acts2, .h-recent { grid-column: span 12 } .h-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+
+/* ── móvil: barra inferior tipo app ── */
+@media (max-width: 899px) {
+  body:not(.player-mode) .nav { position: fixed !important; top: auto !important; bottom: 0; left: 0; right: 0; height: calc(62px + env(safe-area-inset-bottom)); padding: 4px 4px env(safe-area-inset-bottom) !important; z-index: 220; background: rgba(20,20,22,.94) !important; box-shadow: 0 -1px 0 rgba(255,255,255,.06); overflow-x: auto; display: flex; gap: 0 }
+  body:not(.player-mode) .nav .nb { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 66px; padding: 6px 4px !important; font-size: 10px !important; line-height: 1.15; white-space: nowrap }
+  body:not(.player-mode) .nav .nb::first-letter { font-size: 19px }
+  body:not(.player-mode) .nav .nb::after { left: 18px; right: 18px; top: 0; bottom: auto; border-radius: 0 0 3px 3px }
+  .ba-brand, .ba-grp, .ba-sidefoot { display: none }
+  .ba-home { flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 2px; min-width: 62px; padding: 6px 4px; font-size: 10px }
+  .ba-home::first-letter { font-size: 19px }
+  body:not(.player-mode) { padding-bottom: calc(70px + env(safe-area-inset-bottom)) }
+  #ba-ph { padding: 18px 16px 2px } #ba-ph h1 { font-size: 22px } #ba-ph .ic { width: 40px; height: 40px; font-size: 19px }
+  .main { padding: 10px 12px 30px !important }
+  .h-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) } .h-vs { font-size: 21px } .h-qa { grid-template-columns: 1fr }
+}
+@media (prefers-reduced-motion: reduce) { .h-next::after, .h-dots i { animation: none } }
+
+/* ── Importar: selector de caminos ── */
+.ba-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-bottom: 18px }
+.ba-seg button { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1.5px solid rgba(0,0,0,.08); background: #fafafc; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .2s, transform .12s }
+.ba-seg button:hover { border-color: rgba(0,113,227,.35); background: #fff }
+.ba-seg button:active { transform: scale(.98) }
+.ba-seg button.on { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(0,113,227,.12), 0 8px 22px rgba(0,113,227,.12) }
+.ba-seg button i { font-style: normal; font-size: 20px; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); flex: none }
+.ba-seg button.on i { background: var(--blue); box-shadow: 0 4px 12px rgba(0,113,227,.35) }
+.ba-seg button b { display: block; font-size: 14px; color: var(--ink) }
+.ba-seg button small { display: block; font-size: 11.5px; color: #86868b; font-weight: 500; margin-top: 1px }
+.ba-pane { display: none } .ba-pane.on { display: block; animation: ba-rise .26s cubic-bezier(.05,.7,.1,1) backwards }
+.ba-pane > div[style*="border-radius:10px"] { margin-bottom: 0 !important; border-radius: 14px !important; padding: 18px !important }
+.ba-opt { margin: 4px 0 12px; padding: 12px; border-radius: 12px; background: #f7f7fa }
+
+/* móvil: cajas de cifras de dos en dos */
+@media (max-width: 899px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important } }
+
+/* pantalla de acceso a juego con el nuevo diseño */
+#login-gate { background: radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #101521 55%, #0b0d12 100%) !important }
+#login-gate > div { border-radius: 22px !important; box-shadow: 0 30px 90px rgba(0,0,0,.55) !important; animation: ba-rise .4s cubic-bezier(.05,.7,.1,1) backwards }
+#login-gate input:focus { border-color: #0071e3 !important; box-shadow: 0 0 0 4px rgba(0,113,227,.18) }
+
+/* Inicio: cajas de acceso directo al rival */
+.h-kpi.h-go { display: flex; flex-direction: column; gap: 4px; min-height: 128px }
+.h-kpi.h-go b.t { font-size: 18px; letter-spacing: -.01em; line-height: 1.2; padding-right: 30px }
+.h-kpi.h-go span { line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+.h-kpi.h-go .go { font-style: normal; margin-top: auto; padding-top: 8px; font-size: 12.5px; font-weight: 800; color: #0071e3; transition: transform .2s cubic-bezier(.2,0,0,1) }
+.h-kpi.h-go:hover .go { transform: translateX(4px) }
+.h-kpi.h-go.off { opacity: .75 } .h-kpi.h-go.off .go { color: #86868b }
+
+/* ═══════════ MÓVIL v2: como una app ═══════════ */
+#ba-tabbar, #ba-sheet, #ba-topmore { display: none }
+@media (max-width: 899px) {
+  /* la fila de 11 pestañas desaparece: la sustituyen la barra de 5 y el panel «Más» */
+  body:not(.player-mode) .nav { display: none !important }
+  body:not(.player-mode) { padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important }
+
+  /* barra superior compacta: marca + estado + menú ⋯ */
+  body:not(.player-mode) .top { height: 52px !important; padding: 0 12px !important; gap: 10px; flex-wrap: nowrap !important; background: rgba(17,17,20,.94) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px) }
+  body:not(.player-mode) .top .logo { font-size: 17px }
+  body:not(.player-mode) .top #app-ver { display: none !important }
+  body:not(.player-mode) .top .tr { position: absolute; top: 52px; right: 8px; left: auto; flex-direction: column; align-items: stretch; gap: 6px; padding: 10px; border-radius: 16px; background: #1c1c20; box-shadow: 0 18px 50px rgba(0,0,0,.45); min-width: 220px;
+    opacity: 0; transform: translateY(-6px) scale(.98); transform-origin: top right; pointer-events: none; transition: opacity .18s cubic-bezier(.2,0,0,1), transform .22s cubic-bezier(.05,.7,.1,1); margin: 0 }
+  body:not(.player-mode) .top.open .tr { opacity: 1; transform: none; pointer-events: auto }
+  body:not(.player-mode) .top .tr button { width: 100%; text-align: left; padding: 11px 12px !important; font-size: 14px !important; border-radius: 10px !important; background: rgba(255,255,255,.07) !important; border: 0 !important; color: #fff !important }
+  body:not(.player-mode) .top #btn-codes::after { content: '  Cambiar códigos de acceso' }
+  body:not(.player-mode) .top .tr button[onclick*="backup-file"]::after { content: '  Restaurar un backup' }
+  body:not(.player-mode) .top .tr { left: auto !important; width: 260px }
+  body:not(.player-mode) .top .tr #topst, body:not(.player-mode) .top .tr #sync-status { padding: 4px 6px; color: #9a9aa2 }
+  body:not(.player-mode) #ba-topmore { display: grid; place-items: center; margin-left: auto; width: 38px; height: 38px; border-radius: 12px; border: 0; background: rgba(255,255,255,.1); color: #fff; font-size: 20px; line-height: 1; cursor: pointer }
+
+  /* barra inferior de 5 */
+  body:not(.player-mode) #ba-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 230; height: calc(66px + env(safe-area-inset-bottom)); padding: 6px 6px env(safe-area-inset-bottom);
+    background: rgba(17,17,20,.94); -webkit-backdrop-filter: saturate(180%) blur(18px); backdrop-filter: saturate(180%) blur(18px); box-shadow: 0 -1px 0 rgba(255,255,255,.06) }
+  #ba-tabbar button { border: 0; background: none; color: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 10.5px; font-weight: 700; border-radius: 14px; position: relative; transition: color .15s }
+  #ba-tabbar button i { font-style: normal; font-size: 21px; line-height: 1; transition: transform .25s cubic-bezier(.175,.885,.32,1.275) }
+  #ba-tabbar button.on { color: #fff }
+  #ba-tabbar button.on i { transform: translateY(-2px) scale(1.12) }
+  #ba-tabbar button.on::before { content: ''; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: #2997ff }
+  #ba-tabbar button:active i { transform: scale(.9) }
+
+  /* panel «Más» */
+  body:not(.player-mode) #ba-sheet { display: block; position: fixed; left: 0; right: 0; top: 0; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 225; pointer-events: none }
+  #ba-sheet .bk { position: absolute; inset: 0; background: rgba(0,0,0,.45); opacity: 0; transition: opacity .25s }
+  #ba-sheet .pn { position: absolute; left: 0; right: 0; bottom: 0; background: #f5f5f7; border-radius: 24px 24px 0 0; padding: 10px 16px 18px; box-shadow: 0 -10px 40px rgba(0,0,0,.25); transform: translateY(105%); transition: transform .34s cubic-bezier(.05,.7,.1,1); max-height: 82vh; overflow-y: auto }
+  body:not(.player-mode) #ba-sheet.open { pointer-events: auto } #ba-sheet.open .bk { opacity: 1 } #ba-sheet.open .pn { transform: none }
+  #ba-sheet .gr { width: 40px; height: 5px; border-radius: 3px; background: #c7c7cc; margin: 0 auto 6px }
+  #ba-sheet h4 { font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #86868b; margin: 14px 4px 8px }
+  #ba-sheet .gd { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+  #ba-sheet .gd button { border: 0; background: #fff; border-radius: 16px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #1d1d1f; box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: transform .12s }
+  #ba-sheet .gd button i { font-style: normal; font-size: 26px; line-height: 1 }
+  #ba-sheet .gd button.on { box-shadow: 0 0 0 2px #0071e3 }
+  #ba-sheet .gd button:active { transform: scale(.96) }
+
+  /* cabecera de sección más compacta */
+  #ba-ph { padding: 14px 16px 0 } #ba-ph .ic { display: none } #ba-ph h1 { font-size: 26px } #ba-ph p { font-size: 12.5px }
+
+  /* contenido */
+  .main { padding: 8px 10px 24px !important }
+  .card { padding: 14px !important; border-radius: 16px !important; margin-bottom: 12px !important }
+  .ct { flex-wrap: wrap; gap: 8px; font-size: 11.5px !important }
+  .ct select { min-width: 0 !important; flex: 1 1 140px }
+  .fr { flex-direction: row !important; flex-wrap: wrap !important; gap: 10px !important } .fr > .fc { min-width: 0 !important; flex: 1 1 140px !important }
+
+  /* Equipos: la cabecera de cada equipo (nombre + botones) se parte en dos líneas */
+  #eq-list div:has(> div[style*="margin-left:auto"]) { flex-wrap: wrap !important; row-gap: 6px }
+  #eq-list div[style*="margin-left:auto;display:flex"] { margin-left: 0 !important; flex-wrap: wrap }
+
+  /* Histórico: nombre del partido arriba a todo el ancho y los botones debajo */
+  #st-match-history > div { flex-wrap: wrap !important; row-gap: 8px !important }
+  #st-match-history > div > div { flex: 1 1 calc(100% - 100px) !important; min-width: 0 }
+  #st-match-history > div > button { flex: 1 1 0 !important; margin: 0 !important; min-height: 38px }
+  .g2 { grid-template-columns: minmax(0, 1fr) !important }
+  input[type=text], input[type=number], select, textarea { font-size: 16px !important }
+  .btn { min-height: 40px }
+
+  /* tablas: se nota que se deslizan y la primera columna queda fija */
+  .tw { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain }
+  .tw table { font-size: 12.5px }
+  .tw td, .tw th { padding: 8px 7px !important; white-space: nowrap }
+  .tw tbody tr > :first-child, .tw thead tr > :first-child { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,.06) }
+  .tw thead tr > :first-child { z-index: 2; background: #fafafc }
+  .ba-swipe { font-size: 11px; color: #86868b; margin: -4px 0 8px; display: flex; align-items: center; gap: 6px }
+
+  /* pestañas internas (Detalles, Tabla de puntos…) en una fila deslizable */
+  .stsub { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; margin-left: -10px; margin-right: -10px; padding: 0 10px 4px !important }
+  .stsub::-webkit-scrollbar { display: none } .stsub > * { flex: 0 0 auto }
+
+  /* filtros plegables */
+  .ba-filt > :not(.ba-filt-btn) { display: none !important }
+  .ba-filt.open > :not(.ba-filt-btn) { display: revert !important }
+  .ba-filt-btn { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 2px 0; font-size: 15px; font-weight: 800; color: #1d1d1f; text-align: left }
+  .ba-filt-btn em { font-style: normal; font-size: 12px; font-weight: 700; color: #0071e3; background: rgba(0,113,227,.1); padding: 3px 8px; border-radius: 99px }
+  .ba-filt-btn b { margin-left: auto; font-size: 13px; color: #86868b; transition: transform .2s } .ba-filt.open .ba-filt-btn b { transform: rotate(180deg) }
+  .ba-filt.open .ba-filt-btn { margin-bottom: 12px }
+
+  /* avisos por encima de la barra inferior */
+  #toast, #undo-toast { z-index: 220 !important; bottom: calc(84px + env(safe-area-inset-bottom)) !important; max-width: calc(100vw - 32px); text-align: center }
+
+  /* Inicio en móvil */
+  .h-next { min-height: 0; padding: 18px !important } .h-vs { font-size: 22px !important; gap: 8px } .h-vs .vs { font-size: 11px }
+  .h-acts { padding-top: 14px } .h-btn { flex: 1 1 auto; text-align: center }
+  .h-kpi b { font-size: 24px } .h-kpi { padding: 14px 16px } .h-kpis { gap: 10px }
+  .h-row .dt { display: none }
+}
+
+/* ═══════════ Próximo Rival: accesos fijos, carrusel de mapas y modo jugador ═══════════ */
+#ba-pnav { position: sticky; top: 52px; z-index: 150; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 2px; margin: -4px 0 12px;
+  background: rgba(245,245,247,.88); -webkit-backdrop-filter: saturate(180%) blur(14px); backdrop-filter: saturate(180%) blur(14px) }
+#ba-pnav::-webkit-scrollbar { display: none }
+#ba-pnav button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(0,0,0,.08); background: #fff; color: #1d1d1f; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background .2s cubic-bezier(.2,0,0,1), color .2s, border-color .2s, transform .12s }
+#ba-pnav button i { font-style: normal }
+#ba-pnav button.on { background: #1d1d1f; color: #fff; border-color: #1d1d1f }
+#ba-pnav button:active { transform: scale(.96) }
+.ba-sec { scroll-margin-top: 118px }
+.ba-car-hint { display: none }
+
+@media (max-width: 899px) {
+  /* mapas de tiro en carrusel */
+  .ba-car { display: flex !important; gap: 10px !important; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -14px; padding: 0 14px 4px; -webkit-overflow-scrolling: touch }
+  .ba-car::-webkit-scrollbar { display: none }
+  .ba-car > * { flex: 0 0 86% !important; scroll-snap-align: center; min-width: 0 }
+  .ba-car-hint { display: block; font-size: 11.5px; color: #86868b; margin: -4px 0 8px; font-weight: 600 }
+
+  /* tarjetas de Próximo Rival con más aire en el móvil */
+  #t-compare .card { padding: 16px 14px !important }
+  #t-compare .ct { font-size: 12px !important; line-height: 1.35 }
+
+  /* modo jugador: barra superior limpia y una etiqueta discreta */
+  body.player-mode { padding-top: 52px !important } body.player-mode .top { position: fixed !important; top: 0 !important; left: 0; right: 0; z-index: 200 !important; height: 52px !important; padding: 0 14px !important; gap: 10px; flex-wrap: nowrap !important; background: rgba(17,17,20,.94) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px) }
+  body.player-mode .top #app-ver, body.player-mode .top #topst, body.player-mode .top #sync-txt { display: none !important }
+  body.player-mode .top .logo { font-size: 17px }
+  body.player-mode .top .logo::after { content: 'JUGADOR'; margin-left: 9px; font-size: 9.5px; font-weight: 800; letter-spacing: .14em; color: #ffb347; background: rgba(255,179,71,.14); padding: 3px 7px; border-radius: 6px; vertical-align: 3px }
+  body.player-mode .top .tr { gap: 8px }
+  body.player-mode .top .tr button { background: rgba(255,255,255,.1) !important; border: 0 !important; border-radius: 10px !important; padding: 8px 12px !important; font-size: 13px !important }
+  body.player-mode #t-compare .main { padding-top: 12px !important }
+  body.player-mode #ba-pnav { top: 52px }
+  body.player-mode #toast { bottom: calc(18px + env(safe-area-inset-bottom)) !important }
+}
+
+/* la página mide exactamente una pantalla (html, body height:100%), así que «sticky» deja de funcionar
+   al bajar: la barra superior se fija de verdad y el contenido baja 52 px */
+body:not(.player-mode) { padding-top: 52px !important }
+body:not(.player-mode) .top { position: fixed !important; top: 0 !important; left: 0; right: 0; z-index: 200 !important }
+@media (min-width: 900px) { body:not(.player-mode) .top { left: var(--side) !important; margin-left: 0 !important } }
+
+</style>
 </head>
 <body>
 
@@ -3862,6 +4241,13 @@ let _clipHashes={};
 // djb2 hash to detect which matches actually changed (avoid rewriting everything)
 function _hash(str){let h=5381;for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))|0;}return h;}
 let _matchHashes={};
+// Índice id de partido → tiros ubicados. Antes, cada guardado recorría TODOS los tiros por CADA partido
+// (1.549 × 107.046 comparaciones ≈ 30-40 s con la web congelada). Con el índice son milisegundos.
+function _shotsByMatch(){
+  const by=new Map();
+  for(const s of (S.shots||[])){const k=String(s.mId||s.matchId);let a=by.get(k);if(!a)by.set(k,a=[]);a.push(s);}
+  return by;
+}
 
 // ═══════════════════════════════════════════
 // CLOUDINARY (clips de vídeo) — plan gratis, sin tarjeta
@@ -3975,12 +4361,15 @@ function _refreshAfterSync(){
 
 
 
+let _toastT=null;
 function toast(msg,type='ok'){
   const el=document.getElementById('toast');
+  if(!el)return;
   el.textContent=msg;
   el.style.background=type==='err'?'#991b1b':'#1e293b';
   el.style.opacity='1';
-  setTimeout(()=>el.style.opacity='0',2500);
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>el.style.opacity='0',type==='err'?4500:Math.max(2500,Math.min(6000,String(msg).length*55)));
 }
 
 // ═══════════════════════════════════════════
@@ -9804,7 +10193,13 @@ function renderMatchHistory(){
   if(!el) return;
   if(!S.matches.length) { el.innerHTML = '<div class="empty">Sin partidos todavía</div>'; return; }
   
-  const sorted = [...S.matches].sort(_byDateDesc);
+  const _v = id => document.getElementById(id)?.value || '';
+  const _lf = _v('st-lf'), _sf = _v('st-sf'), _grf = _v('st-grf'), [_tf, _tfCat] = _tvSplit(_v('st-tf'));
+  const _pool = S.matches.filter(m => (!_lf || m.competition === _lf) && (!_sf || m.season === _sf) && (!_grf || ('Grupo ' + (m.group || '')) === _grf)
+    && (!_tf || ((m.homeTeam === _tf || m.awayTeam === _tf) && (!_tfCat || _mCatFor(m, _tf) === _tfCat))));
+  if (cnt) cnt.textContent = _pool.length !== S.matches.length ? `(${_pool.length} de ${S.matches.length})` : `(${S.matches.length})`;
+  if (!_pool.length) { el.innerHTML = '<div class="empty">Ningún partido con estos filtros</div>'; return; }
+  const sorted = [..._pool].sort(_byDateDesc);
   
   // En lugar de "todo o nada", cogemos solo los que tocan según el contador
   const shown = sorted.slice(0, _histVisible);
@@ -9861,7 +10256,9 @@ async function deleteMatch(id){ // 👈 Añadido async aquí
     if (window._cacheDb) _IDB.del(window._cacheDb, [String(id)]).catch(() => {});
   } catch(e) {
     console.warn('Error borrando en nube:', e);
+    toast('⚠️ Sin conexión: el partido se ha quitado aquí, pero sigue en la nube. Vuelve a borrarlo cuando tengas internet.', 'err');
   }
+  delete _matchHashes[String(id)];
   
   svL();
   renderMatchHistory();
@@ -9887,6 +10284,8 @@ function undoDeleteMatch(){
     localStorage.setItem('bascatTrash',JSON.stringify(tr));
     S.matches.push(match);
     S.shots.push(...(shots||[]));
+    // sin esto svL creía que el partido ya estaba en la nube y no lo volvía a subir: al recargar desaparecía
+    delete _matchHashes[String(match.id)];
     svL();renderMatchHistory();renderStats();
     const t=document.getElementById('undo-toast');if(t)t.remove();
     toast(`↩ Restaurado: ${match.homeTeam} vs ${match.awayTeam}`);
@@ -9988,11 +10387,11 @@ function _getLivePaceInsights(side) {
 // Desglose de tiros pendientes de ubicar, por partido y por jugador.
 // Compara los intentos de campo de cada jugador (T2+T3) con los tiros que
 // tienen ubicación, para decir exactamente de quién faltan y cuántos.
-function _pendingShots(m){
+function _pendingShots(m,byM){
   const placed={};   // tiros ya ubicados por jugador
   const add=(s2)=>{if(s2&&s2.player)placed[s2.player]=(placed[s2.player]||0)+1;};
   (m.shots||[]).forEach(add);
-  S.shots.filter(s2=>(s2.mId||s2.matchId)==m.id).forEach(add);
+  ((byM||_shotsByMatch()).get(String(m.id))||[]).forEach(add);
   const rows=[];
   [['home',m.homeTeam,m.homePlayers],['away',m.awayTeam,m.awayPlayers]].forEach(([side,tn,pl])=>{
     (pl||[]).forEach(p=>{
@@ -10008,19 +10407,24 @@ function _pendingShots(m){
   return {rows,totalFGA,totalPlaced,falta:rows.reduce((x,r)=>x+r.falta,0)};
 }
 
+let _shTodoVisible=20;
+window.shTodoMore=function(){_shTodoVisible+=40;renderShotsTodo();};
 function renderShotsTodo(){
   const el=document.getElementById('sh-todo');
   if(!el)return;
-  const todo=S.matches.filter(m=>{
+  const byM=_shotsByMatch();
+  const pend=new Map();
+  const todoAll=S.matches.filter(m=>{
     if(m.type==='live')return false;          // los de directo ya llevan ubicación
-    return _pendingShots(m).falta>0;
-  });
+    const p=_pendingShots(m,byM);pend.set(m,p);return p.falta>0;
+  }).sort(typeof _byDateDesc==='function'?_byDateDesc:(()=>0));
+  const todo=todoAll.slice(0,_shTodoVisible);
   if(!todo.length){
     el.innerHTML='<div style="color:var(--gn);font-size:11px;font-weight:600;padding:4px 0">✅ Todos los partidos tienen ubicaciones completas</div>';
     return;
   }
-  el.innerHTML=todo.map(m=>{
-    const {rows,totalFGA,totalPlaced,falta}=_pendingShots(m);
+  el.innerHTML=`<div style="font-size:11px;color:var(--t3);padding:2px 0 6px">${todoAll.length} partidos con tiros por ubicar · primero los más recientes</div>`+todo.map(m=>{
+    const {rows,totalFGA,totalPlaced,falta}=pend.get(m);
     const pct=totalFGA?Math.round(totalPlaced/totalFGA*100):0;
     const chips=rows.slice(0,8).map(r=>`<span style="display:inline-block;background:#fff5f5;border:1px solid #fecaca;color:#b91c1c;border-radius:5px;padding:2px 7px;font-size:10px;margin:2px 2px 0 0;white-space:nowrap">
         ${r.dorsal?'#'+_esc(r.dorsal)+' ':''}${_esc((r.name||'').split(' ').slice(0,2).join(' '))} <b>${r.falta}</b>
@@ -10042,7 +10446,7 @@ function renderShotsTodo(){
         ${chips}${more}
       </div>
     </div>`;
-  }).join('');
+  }).join('')+(todoAll.length>todo.length?`<button onclick="shTodoMore()" style="width:100%;background:var(--bg);border:1.5px dashed var(--b2);color:var(--t2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px">▼ Ver ${Math.min(40,todoAll.length-todo.length)} más (quedan ${todoAll.length-todo.length})</button>`:'');
 }
 function quickSelectMatch(id){
   // Switch to shots tab and pre-select this match
@@ -10553,11 +10957,8 @@ function _generateScoutInsights(advData, rpList, advFCBQ, matches, rival) {
     }
 
     // 📐 Esquinas (solo si hay tiros con posición)
-    const allShots = [...(S.shots || []), ...(S.matches || []).flatMap(m => (m.shots || []).map(s => ({ ...s, mId: m.id })))];
-    const teamShots = allShots.filter(s => {
-        const m = matches.find(mm => mm.id === (s.mId || s.matchId));
-        return m && s.team === (m.homeTeam === rival ? 'home' : 'away');
-    });
+    const _byMs = _shotsByMatch();
+    const teamShots = matches.flatMap(m => [...(_byMs.get(String(m.id)) || []), ...(m.shots || [])].filter(s => s.team === (m.homeTeam === rival ? 'home' : 'away')));
     const corn = teamShots.filter(s => String(shotZone(s) || '').includes('Cantonada'));
     if (corn.length >= 5) ins.push(`📐 Esquinas: <b>${Math.round(corn.filter(s => s.made).length / corn.length * 100)}%</b> de acierto (${corn.filter(s => s.made).length}/${corn.length}).`);
 
@@ -11933,6 +12334,7 @@ function _getHistoricalExactMins(m, teamSide) {
 }
 
 function renderStats(){
+  clearTimeout(window._histT); window._histT = setTimeout(() => { try { renderMatchHistory(); } catch (e) {} }, 0);
   const val=id=>document.getElementById(id)?.value||'';
   let lf=val('st-lf'), sf=val('st-sf'), grf=val('st-grf'),
       gf=val('st-gf'), tfRaw=val('st-tf'), pf=val('st-pf'), mf=val('st-mf');
@@ -14628,6 +15030,43 @@ function _ourTeamName() {
   const k = _ourTeamKey();
   return (_ourTeamsList().find(t => t.key === k) || {}).name || '';
 }
+window.__ba = Object.assign(window.__ba || {}, {
+  ourTeam: () => { try { return _ourTeamName(); } catch (e) { return ''; } },
+  // partidos del U.E. Claret A sènior (de una temporada) con el lado en que jugamos
+  srA: season => (S.matches || []).filter(m => _isOurSeniorA(m) && (!season || m.season === season)).map(m => ({ m, side: _srASide(m) })),
+  // abrir Scouting con un rival y una temporada ya elegidos
+  openScout: (rival, season) => {
+    ST('t-scout');
+    const gf = document.getElementById('sc-gf'); if (gf && gf.value) { gf.value = ''; try { populateRivalSelect(); } catch (e) {} }
+    const sel = document.getElementById('sc-rival'); if (!sel) return false;
+    const N = s => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+    const o = [...sel.options].find(o => N(o.value.split('§')[0]) === N(rival)) || [...sel.options].find(o => o.value && N(o.value).includes(N(rival)));
+    if (!o) return false; sel.value = o.value; renderScouting();
+    const sf = document.getElementById('sc-sf'); if (sf) { const opt = [...sf.options].map(x => x.value); sf.value = opt.includes(season) ? season : (opt[1] || ''); renderScouting(); }
+    return true;
+  },
+  // la carpeta de clips más reciente en la que juega el rival
+  rivalClips: rival => {
+    const N = s => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim(), r = N(rival);
+    const libs = [...(S.videoLibs || []), ...S.matches.filter(m => m.videoClips)].filter(m => m.videoClips && _vLibCount(m) > 0 && [m.homeTeam, m.awayTeam].some(t => N(t) === r || N(t).includes(r) || r.includes(N(t))));
+    libs.sort((a, b) => (b.videoClips.created || 0) - (a.videoClips.created || 0));
+    const m = libs[0]; return m ? { id: m.id, name: m.homeTeam + ' vs ' + m.awayTeam, n: _vLibCount(m) } : null;
+  },
+  // abrir el Histórico con un equipo y una temporada ya filtrados
+  openHist: (team, season) => {
+    ST('t-stats');
+    const N = s => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+    ['st-lf', 'st-grf', 'st-gf', 'st-pf', 'st-mf'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const sf = document.getElementById('st-sf'); if (sf) { sf.value = season; renderStats(); }
+    const tf = document.getElementById('st-tf'); if (!tf) return false;
+    const o = [...tf.options].find(o => N(_tvSplit(o.value)[0]) === N(team)) || [...tf.options].find(o => o.value && N(o.value).includes(N(team)));
+    if (o) { tf.value = o.value; renderStats(); }
+    renderMatchHistory();
+    setTimeout(() => document.getElementById('st-match-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    return !!o;
+  },
+  openClips: id => { ST('t-video'); setTimeout(() => { const el = document.getElementById('vlib-' + id); if (!el) return; if (el.style.display === 'none') vToggleFolder('vlib-' + id); el.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); }
+});
 window.setOurTeam = function (k) {
   try { localStorage.setItem('bascatOurTeam', k); } catch (e) {}
   if (typeof renderClub === 'function') renderClub();
@@ -17403,10 +17842,19 @@ function _metaPayload() {
 function _rehashAll() {
   const by = {};
   (S.shots || []).forEach(s => { const k = String(s.mId || s.matchId); (by[k] = by[k] || []).push(s); });
+  // (ya era lineal; se mantiene)
   [...(S.matches || []), ...(S.videoLibs || [])].forEach(m => {
     const k = String(m.id);
     _matchHashes[k] = _hash(JSON.stringify({ ...m, placedShots: by[k] || [] }));
   });
+}
+
+// Recalcula la huella solo de los partidos recién descargados (antes: de los 1.549 tras cada lote)
+function _rehashSome(rows) {
+  const by = _shotsByMatch();
+  (rows || []).forEach(m => { if (!m || m.id == null) return; const k = String(m.id);
+    const lib = (S.videoLibs || []).find(x => String(x.id) === k), cur = lib || S.matches.find(x => String(x.id) === k); if (!cur) return;
+    _matchHashes[k] = _hash(JSON.stringify({ ...cur, placedShots: by.get(k) || [] })); });
 }
 
 function _loadMatchRows(rows) {
@@ -17482,7 +17930,9 @@ async function _syncMatches(dbName, filter = q => q, onProgress) {
     try { await _IDB.put(dbName, rows); } catch (e) {}
     got += rows.length;
     if (onProgress) onProgress(got);
-    _rehashAll(); _refreshAfterSync();
+    _rehashSome(rows);
+    // repintar como mucho una vez por segundo mientras llegan lotes (antes: la web entera tras cada lote)
+    const now = Date.now(); if (!window._lastSyncPaint || now - window._lastSyncPaint > 1000) { window._lastSyncPaint = now; _refreshAfterSync(); }
   };
   for (let from = 0; ; from += step) {
     let q = filter(supabase.from('matches').select('match_data,updated_at'));
@@ -17500,6 +17950,7 @@ async function _syncMatches(dbName, filter = q => q, onProgress) {
     if (data.length) await keep(data);
   }
   if (maxTs) await _IDB.setK(dbName, 'lastSync', maxTs).catch(() => {});
+  if (got) _refreshAfterSync();
   console.log(`☁️ Sync ${dbName}: ${cached.length} en caché, ${got} descargados, ${gone.length} borrados`);
   return { cached: cached.length, downloaded: got, removed: gone.length };
 }
@@ -17534,7 +17985,7 @@ async function ldLS() {
   } catch (e) {}
 
   const savedRole = localStorage.getItem('bascatRole');
-  const rivalSemana = S.nextMatch?.rival || '';
+  let rivalSemana = S.nextMatch?.rival || '';
 
   try {
       // 2. METADATA SÚPER RÁPIDA
@@ -17607,9 +18058,11 @@ async function ldLS() {
           // ==========================================
           const tMsg = document.getElementById('telon-msg');
           if (tMsg) tMsg.innerText = "Cargando partidos del equipo...";
+          rivalSemana = S.nextMatch?.rival || '';   // ya con la configuración descargada
+          const _safe = v => String(v).replace(/[,()"\\]/g, '%');   // comas y paréntesis rompen el filtro
           
           let queryStr = rivalSemana 
-              ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${rivalSemana}%,away_team.ilike.%${rivalSemana}%`
+              ? `home_team.ilike.%Claret%,away_team.ilike.%Claret%,home_team.ilike.%${_safe(rivalSemana)}%,away_team.ilike.%${_safe(rivalSemana)}%`
               : `home_team.ilike.%Claret%,away_team.ilike.%Claret%`;
           const dbName = 'bascat_player_' + String(rivalSemana || 'none').toLowerCase().replace(/[^a-z0-9]+/g, '_');
           try {
@@ -17730,9 +18183,10 @@ async function svL() {
 
       if (S.matches && Array.isArray(S.matches)) {
         const matchesToUpsert = [];
+        const _byM = _shotsByMatch();
         for (const m of [...S.matches, ...(S.videoLibs || [])]) {
           const mIdStr = String(m.id);
-          const placedShots = (S.shots || []).filter(s => String(s.mId || s.matchId) === mIdStr);
+          const placedShots = _byM.get(mIdStr) || [];
           const fullMatch = { ...m, placedShots };
 
           const currentHash = typeof _hash === 'function' ? _hash(JSON.stringify(fullMatch)) : null;
@@ -25191,6 +25645,294 @@ Acta Canvis
     };
     reader.readAsText(file);
 };
+</script>
+<script id="basketapp-shell">
+/* BasketApp · nueva distribución: barra lateral agrupada, cabecera de sección e Inicio.
+   No cambia la lógica: reutiliza los mismos botones (.nb) en el mismo orden, así ST() sigue funcionando igual. */
+(function () {
+  'use strict';
+  if (window.__baShell) return; window.__baShell = true;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const PAGES = {
+    't-home': ['🏠', 'Inicio', 'Lo importante de la semana de un vistazo'],
+    't-eq': ['🏟️', 'Equipos', 'Plantillas, colores de camiseta y grupos de seguimiento'],
+    't-imp': ['📋', 'Importar', 'Actas de la FCBQ, archivos JSON o la cronología del partido'],
+    't-live': ['⚡', 'Directo', 'Estadística en vivo desde la banda: lo que el acta no recoge'],
+    't-shots': ['🎯', 'Tiros', 'Ubica los tiros en la pista y revisa los mapas'],
+    't-standings': ['🏆', 'Clasificación', 'Tablas por liga y grupo con los partidos importados'],
+    't-stats': ['📊', 'Histórico', 'Todos los partidos, estadísticas acumuladas y líderes'],
+    't-club': ['🟡', 'Claret', 'Tu equipo al detalle: jugadores, quintetos e impacto'],
+    't-scout': ['🔍', 'Scouting', 'Informe automático de cualquier rival'],
+    't-compare': ['⚖️', 'Próximo Rival', 'Comparativa, mapas y emparejamientos del próximo partido'],
+    't-video': ['🎬', 'Vídeo', 'Clips por partido, guardados en la nube'],
+    't-fisio': ['🩹', 'Fisio', 'Peso y métricas de salto del equipo'],
+  };
+  const GROUPS = [['Datos', 't-eq'], ['Análisis', 't-standings'], ['Staff', 't-video']];
+
+  // ── barra lateral: marca, Inicio y títulos de grupo intercalados (sin reordenar los .nb) ──
+  function buildSide() {
+    const nav = $('.nav'); if (!nav || nav.dataset.baSide) return; nav.dataset.baSide = '1';
+    nav.insertAdjacentHTML('afterbegin', `<a class="ba-brand" id="ba-brand"><i>🏀</i><span><b>Basket<span>App</span></b><small>DARE TO DREAM</small></span></a>
+      <button class="ba-home" id="ba-homebtn" type="button">🏠 Inicio</button>`);
+    const addGroups = () => {
+      for (const [label, tab] of GROUPS) {
+        const b = [...nav.querySelectorAll('.nb')].find(x => (x.getAttribute('onclick') || '').includes(`'${tab}'`));
+        if (b && !(b.previousElementSibling && b.previousElementSibling.classList.contains('ba-grp'))) b.insertAdjacentHTML('beforebegin', `<div class="ba-grp">${label}</div>`);
+      }
+      if (!$('#ba-sidefoot')) nav.insertAdjacentHTML('beforeend', '<div class="ba-sidefoot" id="ba-sidefoot">Unió Esportiva Claret</div>');
+      else nav.appendChild($('#ba-sidefoot'));   // el botón de Fisio se añade más tarde: el pie, siempre al final
+    };
+    addGroups(); new MutationObserver(addGroups).observe(nav, { childList: true });
+    $('#ba-brand').onclick = $('#ba-homebtn').onclick = () => showHome();
+  }
+
+  // ── cabecera de sección ──
+  function buildHeader() {
+    if ($('#ba-ph')) return;
+    const top = $('.top'); if (!top) return;
+    top.insertAdjacentHTML('afterend', '<div id="ba-ph"><div class="t"><div class="ic"></div><div><h1></h1><p></p></div></div></div>');
+  }
+  function current() { const t = document.querySelector('.tab.active'); return t ? t.id : 't-eq'; }
+  let lastId = null;
+  function syncHeader() {
+    const id = current(), pg = PAGES[id] || ['', id, ''], ph = $('#ba-ph'); if (!ph) return;
+    clearTimeout(syncHeader.ft); syncHeader.ft = setTimeout(foldFilters, 700);
+    if (id === 't-compare') { clearTimeout(syncHeader.rt); syncHeader.rt = setTimeout(() => { try { buildRivalNav(); } catch (e) { } }, 400); }
+    if (id === lastId) return; lastId = id;
+    syncMobile(id);
+    ph.querySelector('.ic').textContent = pg[0]; ph.querySelector('h1').textContent = pg[1]; ph.querySelector('p').textContent = pg[2];
+    ph.classList.remove('anim'); void ph.offsetWidth; ph.classList.add('anim');
+    const hb = $('#ba-homebtn'); if (hb) hb.classList.toggle('active', id === 't-home');
+    try { localStorage.setItem('ba_last_tab', id); } catch (e) { }
+    if (id === 't-home') renderHome(true);
+  }
+
+  // ── Inicio ──
+  function buildHome() {
+    if ($('#t-home')) return;
+    const first = document.querySelector('.tab'); if (!first) return;
+    first.insertAdjacentHTML('beforebegin', '<div id="t-home" class="tab"><div class="main" id="h-main"></div></div>');
+  }
+  function showHome() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+    $('#t-home').classList.add('active'); window.scrollTo({ top: 0, behavior: 'smooth' }); syncHeader(); renderHome(true);
+  }
+  window.baShowHome = showHome;
+  const go = id => { if (typeof window.ST === 'function') window.ST(id); };
+  window.baGo = go;
+  const dkey = d => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/.exec(String(d || '')); if (!m) return 0; const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return y * 10000 + +m[2] * 100 + +m[1]; };
+  const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+  function ourTeam(S) {
+    try { if (window.__ba && window.__ba.ourTeam) { const n = window.__ba.ourTeam(); if (n) return n; } } catch (e) { }
+    const cnt = {}; (S.matches || []).forEach(m => [m.homeTeam, m.awayTeam].forEach(t => { if (/CLARET/i.test(t || '')) cnt[t] = (cnt[t] || 0) + 1; }));
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  }
+  // forma del rival esta temporada (sus partidos en la base)
+  function rivalForm(S, rival, season) {
+    const r = norm(rival), ms = S.matches.filter(m => m.season === season && (norm(m.homeTeam) === r || norm(m.awayTeam) === r)).sort((a, b) => dkey(b.date) - dkey(a.date));
+    let w = 0, l = 0; ms.forEach(m => { const h = norm(m.homeTeam) === r, a = h ? m.scoreHome : m.scoreAway, b = h ? m.scoreAway : m.scoreHome; if (a > b) w++; else if (a < b) l++; });
+    return { w, l, n: ms.length, last: ms[0] || null, r };
+  }
+  function rivalBoxes(S, rival, season, nm) {
+    const B = window.__ba || {}, sh = season.replace(/^20(\d\d)-(\d\d)$/, '$1/$2');
+    const f = rivalForm(S, rival, season), clips = B.rivalClips ? B.rivalClips(rival) : null;
+    const lastTxt = f.last ? (() => { const h = norm(f.last.homeTeam) === f.r, a = h ? f.last.scoreHome : f.last.scoreAway, b = h ? f.last.scoreAway : f.last.scoreHome; return `${a > b ? 'Ganó' : a < b ? 'Perdió' : 'Empató'} ${a}–${b} vs ${esc(h ? f.last.awayTeam : f.last.homeTeam)}`; })() : 'Sin partidos esta temporada';
+    window.baOpenScout = () => { if (!(B.openScout && B.openScout(rival, season))) go('t-scout'); };
+    window.baOpenHist = () => { if (!(B.openHist && B.openHist(rival, season))) go('t-stats'); };
+    window.baOpenClips = () => { if (clips && B.openClips) B.openClips(clips.id); else go('t-video'); };
+    return `
+      <div class="h-kpi h-go" onclick="baOpenScout()"><em>🔍</em><b class="t">Scouting del rival</b><span>${esc(rival)} · ${esc(sh)}</span><i class="go">Abrir →</i></div>
+      <div class="h-kpi h-go" onclick="baGo('t-compare')"><em>⚖️</em><b class="t">Plan del partido</b><span>Comparativa, mapas y emparejamientos${nm && nm.date ? ' · ' + esc(nm.date) : ''}</span><i class="go">Abrir →</i></div>
+      <div class="h-kpi h-go ${clips ? '' : 'off'}" onclick="baOpenClips()"><em>🎬</em><b class="t">${clips ? clips.n + ' clips del rival' : 'Sin clips del rival'}</b><span>${clips ? esc(clips.name) : 'Cárgalos en la pestaña Vídeo'}</span><i class="go">${clips ? 'Ver carpeta →' : 'Ir a Vídeo →'}</i></div>
+      <div class="h-kpi h-go" onclick="baOpenHist()"><em>📈</em><b class="t">${f.n ? `${f.w}–${f.l} esta temporada` : 'Forma del rival'}</b><span>${lastTxt}</span><i class="go">Ver sus partidos →</i></div>`;
+  }
+  function renderHome(force) {
+    const el = $('#h-main'), S = window.S; if (!el) return;
+    if (!S || !S.matches) { el.innerHTML = '<div class="h-card" style="grid-column:span 12"><div class="h-empty">Cargando datos…</div></div>'; return; }
+    const sig = [S.matches.length, (S.teams || []).length, (S.shots || []).length, JSON.stringify(S.nextMatch || null)].join('|'); if (!force && sig === renderHome.sig && el.children.length) return; renderHome.sig = sig;
+    const nm = S.nextMatch || null, SEASON = (nm && nm.mySeason) || '2026-27';
+    const B = window.__ba || {};
+    const srA = B.srA ? B.srA(SEASON) : [];
+    const us = srA.length ? (srA[0].side === 'home' ? srA[0].m.homeTeam : srA[0].m.awayTeam) : 'U.E. CLARET A';
+    const sideOf = new Map(srA.map(x => [x.m, x.side]));
+    const mine = srA.map(x => x.m).sort((a, b) => dkey(b.date) - dkey(a.date));
+    const res = m => { const h = sideOf.get(m) === 'home', a = h ? m.scoreHome : m.scoreAway, b = h ? m.scoreAway : m.scoreHome; return a > b ? 'w' : a < b ? 'l' : 'd'; };
+    const W = mine.filter(m => res(m) === 'w').length, L = mine.filter(m => res(m) === 'l').length;
+    const last5 = mine.slice(0, 5).reverse();
+    const shotsN = (S.shots || []).length + (S.matches || []).reduce((a, m) => a + ((m.shots || []).length), 0);
+    const recent = [...S.matches].sort((a, b) => dkey(b.date) - dkey(a.date) || (b.id || 0) - (a.id || 0)).slice(0, 6);
+    const rival = nm && nm.rival ? nm.rival : '';
+    const venue = nm && nm.venue ? (/casa|home|local/i.test(nm.venue) ? 'En casa' : 'Fuera') : '';
+    const lm = mine[0];
+    el.innerHTML = `
+      <section class="h-card h-next">
+        <div class="h-lbl">🔥 Próximo partido</div>
+        ${rival ? `<div class="h-vs"><span class="us">${esc(us || 'Nosotros')}</span><span class="vs">VS</span><span class="them">${esc(rival)}</span></div>
+          <div class="h-meta">${[nm.date ? '📅 ' + esc(nm.date) : '', nm.time ? '⏰ ' + esc(nm.time) : '', venue ? '📍 ' + venue : ''].filter(Boolean).join('  ·  ')}</div>
+          <div class="h-acts"><button class="h-btn pri" onclick="baGo('t-compare')">⚖️ Abrir el plan del partido</button></div>`
+        : `<div class="h-vs" style="font-size:22px">Sin próximo rival configurado</div><div class="h-meta">Elígelo en «Próximo Rival» y aquí tendrás todo a mano.</div><div class="h-acts"><button class="h-btn pri" onclick="baGo('t-compare')">⚖️ Configurar el próximo partido</button></div>`}
+      </section>
+      <section class="h-card h-form">
+        <div class="h-lbl">📈 ${esc(us)} · Sènior · ${esc(SEASON.replace(/^20(\d\d)-(\d\d)$/, '$1/$2'))}</div>
+        <div class="h-rec">${W}–${L}<small>balance</small></div>
+        <div class="h-dots">${mine.length ? '' : '<span class="h-empty">Aún sin partidos esta temporada</span>'}${last5.map((m, i) => { const r = res(m); return `<i class="${r}" style="animation-delay:${i * 60}ms" title="${esc(m.homeTeam)} ${m.scoreHome}-${m.scoreAway} ${esc(m.awayTeam)}">${r === 'w' ? 'V' : r === 'l' ? 'D' : 'E'}</i>`; }).join('')}</div>
+        <div class="h-last">${lm ? `Último: <b>${esc(lm.homeTeam)} ${lm.scoreHome}–${lm.scoreAway} ${esc(lm.awayTeam)}</b>${lm.date ? ' · ' + esc(lm.date) : ''}` : ''}</div>
+      </section>
+      <div class="h-kpis">${rival ? rivalBoxes(S, rival, SEASON, nm) : `<div class="h-kpi h-go" style="grid-column:1/-1" onclick="baGo('t-compare')"><em>⚖️</em><b class="t">Elige el próximo rival</b><span>En «Próximo Rival» → Cambiar. Aquí aparecerán su scouting, el plan y sus clips.</span></div>`}</div>
+      <section class="h-card h-acts2">
+        <div class="h-lbl">⚡ Acciones rápidas</div>
+        <div class="h-qa">
+          <button onclick="baGo('t-imp')"><i>📋</i><span>Importar partido<small>Enlace FCBQ o JSON</small></span></button>
+          <button onclick="baGo('t-live')"><i>⚡</i><span>Partido en directo<small>Stats desde la banda</small></span></button>
+          <button onclick="baGo('t-shots')"><i>🎯</i><span>Ubicar tiros<small>Pendientes por partido</small></span></button>
+          <button onclick="baGo('t-club')"><i>🟡</i><span>Mi equipo<small>Jugadores y quintetos</small></span></button>
+          <button onclick="baGo('t-standings')"><i>🏆</i><span>Clasificación<small>Por liga y grupo</small></span></button>
+          <button onclick="baGo('t-fisio')"><i>🩹</i><span>Fisio<small>Peso y salto</small></span></button>
+        </div>
+      </section>
+      <section class="h-card h-recent">
+        <div class="h-lbl">🕘 Últimos partidos</div>
+        ${recent.map(m => `<div class="h-row"><span class="tg ${m.type === 'live' ? 'live' : ''}">${m.type === 'live' ? 'DIRECTO' : 'ACTA'}</span><span class="nm">${esc(m.homeTeam)} <span style="color:#86868b">vs</span> ${esc(m.awayTeam)}</span><span class="sc">${m.scoreHome ?? ''}–${m.scoreAway ?? ''}</span><span class="dt">${esc(m.date || '')}</span></div>`).join('') || '<div class="h-empty">Todavía no hay partidos</div>'}
+        <div style="margin-top:10px"><button class="h-btn" style="background:#f2f2f7;color:#111" onclick="baGo('t-stats')">Ver el histórico completo →</button></div>
+      </section>`;
+  }
+
+  // ── Importar: de 5 métodos mezclados en una caja a 4 caminos claros (se mueven los mismos elementos: mismos ids) ──
+  function buildImport() {
+    const tab = $('#t-imp'), url = $('#i-fcbq-url'), pbp = $('#i-fcbq-pbp-file'), cr = $('#i-cr');
+    if (!tab || !url || !pbp || !cr || tab.dataset.ba) return; tab.dataset.ba = '1';
+    const card = url.closest('.card'), fr = card.querySelector('.fr');
+    const box = el => el.closest('div[style*="border-radius:10px"]');
+    const green = box(url), orange = box(pbp), tip = card.querySelector('div[style*="#eff6ff"]'), stats = $('#i-stats-section');
+    const crLabel = cr.previousElementSibling, brow = cr.nextElementSibling, st = $('#i-st');
+    const accCard = $('#json-primera-upload') ? $('#json-primera-upload').closest('.card') : null;
+    if (!fr || !green || !orange) return;
+    const fcs = [...fr.children];
+    const opt = document.createElement('div'); opt.className = 'fr ba-opt';
+    fcs.slice(3).forEach(x => opt.appendChild(x));     // liga, grupo, temporada
+    const P = {}; const mk = k => { const d = document.createElement('div'); d.className = 'ba-pane'; d.dataset.k = k; return (P[k] = d); };
+    mk('fcbq').append(green);
+    mk('json').append(orange);
+    mk('manual').append(...[fr, tip, stats, crLabel, cr, brow, st].filter(Boolean));
+    if (accCard) { const a = mk('acc'); while (accCard.firstChild) a.appendChild(accCard.firstChild); accCard.remove(); }
+    const MODES = [['fcbq', '⚡', 'Desde la FCBQ', 'Pega los enlaces · recomendado'], ['json', '📁', 'Archivos JSON', 'Play-by-play + estadísticas'],
+      ['manual', '✍️', 'Manual', 'Cronología pegada a mano'], ...(accCard ? [['acc', '📊', 'Acumulados', 'Medias de la temporada']] : [])];
+    const ct = card.querySelector('.ct'); if (ct) ct.textContent = 'Importar partido';
+    const seg = document.createElement('div'); seg.className = 'ba-seg';
+    seg.innerHTML = MODES.map(([k, ic, t, s]) => `<button type="button" data-k="${k}"><i>${ic}</i><span><b>${t}</b><small>${s}</small></span></button>`).join('');
+    const panes = document.createElement('div'); panes.className = 'ba-panes'; Object.values(P).forEach(p => panes.appendChild(p));
+    while (card.lastChild && card.lastChild !== ct) card.removeChild(card.lastChild);   // ya está todo movido a los paneles
+    card.append(seg, panes);
+    const set = k => {
+      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+      Object.entries(P).forEach(([n, p]) => p.classList.toggle('on', n === k));
+      if (k === 'json') P.json.insertBefore(opt, P.json.firstChild); else if (k === 'manual') P.manual.insertBefore(opt, P.manual.children[1] || null);
+      try { localStorage.setItem('ba_imp_mode', k); } catch (e) { }
+    };
+    seg.querySelectorAll('button').forEach(b => b.onclick = () => set(b.dataset.k));
+    let k0 = 'fcbq'; try { k0 = localStorage.getItem('ba_imp_mode') || 'fcbq'; } catch (e) { } if (!P[k0]) k0 = 'fcbq';
+    set(k0);
+  }
+
+  // ── móvil: barra inferior de 5, panel «Más», menú ⋯ y filtros plegables ──
+  const TABBAR = [['t-home', '🏠', 'Inicio'], ['t-club', '🟡', 'Claret'], ['t-scout', '🔍', 'Scouting'], ['t-compare', '⚖️', 'Rival'], ['more', '☰', 'Más']];
+  const SHEET = [['Datos', ['t-eq', 't-imp', 't-live', 't-shots']], ['Análisis', ['t-standings', 't-stats', 't-club', 't-scout', 't-compare']], ['Staff', ['t-video', 't-fisio']]];
+  const openTab = id => { closeSheet(); if (id === 't-home') showHome(); else go(id); window.scrollTo({ top: 0 }); };
+  function closeSheet() { const s = $('#ba-sheet'); if (s) s.classList.remove('open'); }
+  function buildMobile() {
+    if ($('#ba-tabbar')) return;
+    document.body.insertAdjacentHTML('beforeend',
+      `<nav id="ba-tabbar">${TABBAR.map(([id, ic, l]) => `<button type="button" data-id="${id}"><i>${ic}</i>${l}</button>`).join('')}</nav>
+       <div id="ba-sheet"><div class="bk"></div><div class="pn"><div class="gr"></div>${SHEET.map(([g, ids]) => `<h4>${g}</h4><div class="gd">${ids.map(id => `<button type="button" data-id="${id}"><i>${PAGES[id][0]}</i>${PAGES[id][1]}</button>`).join('')}</div>`).join('')}</div></div>`);
+    $('#ba-tabbar').querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.id === 'more') $('#ba-sheet').classList.toggle('open'); else openTab(b.dataset.id); });
+    $('#ba-sheet .bk').onclick = closeSheet;
+    $('#ba-sheet').querySelectorAll('.gd button').forEach(b => b.onclick = () => openTab(b.dataset.id));
+    // menú ⋯ con los botones de la barra superior
+    const top = $('.top');
+    if (top && !$('#ba-topmore')) {
+      top.insertAdjacentHTML('beforeend', '<button type="button" id="ba-topmore" aria-label="Más opciones">⋯</button>');
+      $('#ba-topmore').onclick = e => { e.stopPropagation(); top.classList.toggle('open'); };
+      document.addEventListener('click', e => { if (!e.target.closest('.top .tr')) top.classList.remove('open'); });
+    }
+  }
+  function syncMobile(id) {
+    const inBar = TABBAR.some(t => t[0] === id);
+    document.querySelectorAll('#ba-tabbar button').forEach(b => b.classList.toggle('on', b.dataset.id === id || (b.dataset.id === 'more' && !inBar)));
+    document.querySelectorAll('#ba-sheet .gd button').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  }
+  // tarjetas con muchos desplegables (filtros): en el móvil se pliegan tras un botón «Filtros»
+  function foldFilters() {
+    if (innerWidth >= 900) return;
+    document.querySelectorAll('.tab.active .card').forEach(card => {
+      if (card.dataset.baFilt) return;
+      const sels = card.querySelectorAll(':scope select'), big = card.querySelector('table, canvas, textarea, .tw');
+      if (sels.length < 4 || big) return;
+      card.dataset.baFilt = '1'; card.classList.add('ba-filt');
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ba-filt-btn';
+      const upd = () => { const n = [...sels].filter(s => s.selectedIndex > 0).length; btn.innerHTML = `⚙️ Filtros ${n ? `<em>${n} activo${n > 1 ? 's' : ''}</em>` : '<em style="color:#86868b;background:#f2f2f7">todo</em>'}<b>▾</b>`; };
+      upd(); sels.forEach(s => s.addEventListener('change', upd));
+      btn.onclick = () => card.classList.toggle('open');
+      card.insertBefore(btn, card.firstChild);
+    });
+    // aviso «desliza» en tablas anchas (una vez por tabla)
+    document.querySelectorAll('.tab.active .tw').forEach(tw => {
+      if (tw.dataset.baSw || tw.scrollWidth <= tw.clientWidth + 8) return;
+      tw.dataset.baSw = '1'; tw.insertAdjacentHTML('beforebegin', '<div class="ba-swipe">↔ Desliza la tabla para ver todas las columnas</div>');
+    });
+  }
+
+  // ── Próximo Rival: fila de accesos fija (salta a cada bloque y marca dónde estás) + mapas en carrusel ──
+  const PSEC = [[/PR[OÓ]XIMO PARTIDO/i, '🔥', 'Partido'], [/COMPARATIVA/i, '📊', 'Comparativa'], [/MAPAS/i, '🗺️', 'Mapas'], [/EMPAREJAMIENTOS/i, '⚔️', 'Defensa'], [/ROSTER|PLANTILLA/i, '👥', 'Plantilla']];
+  let pnavBusy = false;
+  function buildRivalNav() {
+    const tab = $('#t-compare'); if (!tab || pnavBusy) return; pnavBusy = true;
+    try {
+      const cards = [...tab.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && c.offsetParent !== null);
+      const secs = [];
+      cards.forEach(c => { const txt = (c.querySelector('.ct') || c).textContent || ''; const hit = PSEC.find(([re]) => re.test(txt.slice(0, 80))); if (hit && !secs.some(s => s.l === hit[2])) { c.id = c.id || 'ba-sec-' + hit[2].toLowerCase(); c.classList.add('ba-sec'); secs.push({ el: c, i: hit[1], l: hit[2] }); }
+        const g = c.querySelector(':scope > .g2'); if (/MAPAS/i.test(txt.slice(0, 80)) && g && !g.classList.contains('ba-car')) { g.classList.add('ba-car'); g.insertAdjacentHTML('beforebegin', '<div class="ba-car-hint">↔ Desliza para ver el otro mapa</div>'); } });
+      let nav = $('#ba-pnav');
+      if (secs.length < 2) { if (nav) nav.remove(); return; }
+      const key = secs.map(s => s.l).join('|');
+      if (!nav || !nav.isConnected || nav.dataset.key !== key) {
+        if (nav) nav.remove();
+        secs[0].el.insertAdjacentHTML('beforebegin', `<div id="ba-pnav" role="navigation" data-key="${key}">${secs.map(s => `<button type="button" data-t="${s.el.id}"><i>${s.i}</i>${s.l}</button>`).join('')}</div>`);
+        nav = $('#ba-pnav');
+        nav.querySelectorAll('button').forEach(b => b.onclick = () => { const t = document.getElementById(b.dataset.t); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      }
+      // marcar el bloque visible
+      if (buildRivalNav.io) buildRivalNav.io.disconnect();
+      const vis = new Map();
+      buildRivalNav.io = new IntersectionObserver(es => {
+        es.forEach(e => vis.set(e.target.id, e.intersectionRatio));
+        const best = [...vis.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (best) nav.querySelectorAll('button').forEach(b => { const on = b.dataset.t === best[0]; b.classList.toggle('on', on); if (on && b.scrollIntoView) nav.scrollTo({ left: b.offsetLeft - 16, behavior: 'smooth' }); });
+      }, { threshold: [0, .15, .3, .5, .75, 1], rootMargin: '-110px 0px -35% 0px' });
+      secs.forEach(s => buildRivalNav.io.observe(s.el));
+    } finally { pnavBusy = false; }
+  }
+  window.baRivalNav = () => buildRivalNav();
+  function watchRival() {
+    const tab = $('#t-compare'); if (!tab) return;
+    let t = null; new MutationObserver(() => { if (pnavBusy) return; clearTimeout(t); t = setTimeout(buildRivalNav, 250); }).observe(tab, { childList: true, subtree: true });
+    buildRivalNav();
+  }
+
+  function init() {
+    try { watchRival(); } catch (e) { console.warn('Próximo Rival: sin barra de accesos', e); }
+    buildSide(); buildHeader(); buildHome(); buildMobile(); try { buildImport(); } catch (e) { console.warn('Importar: diseño clásico', e); }
+    new MutationObserver(syncHeader).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    // primera pantalla: Inicio (salvo el modo jugador, que va directo a lo suyo)
+    setTimeout(() => { if (!document.body.classList.contains('player-mode')) showHome(); syncHeader(); }, 50);
+    // refrescar Inicio cuando llegan datos
+    let n = 0; const iv = setInterval(() => { if (current() === 't-home') renderHome(); if (++n > 40) clearInterval(iv); }, 1500);
+    syncHeader();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
 </script>
 </body>
 </html>

@@ -3113,6 +3113,59 @@ body:not(.player-mode) { padding-top: 52px !important }
 body:not(.player-mode) .top { position: fixed !important; top: 0 !important; left: 0; right: 0; z-index: 200 !important }
 @media (min-width: 900px) { body:not(.player-mode) .top { left: var(--side) !important; margin-left: 0 !important } }
 
+/* ═══════════ mapa de calor 3D (tiros volando) ═══════════ */
+.ba-h3d { position: relative; line-height: 0 }
+.ba-h3d > canvas:first-child { display: block }
+.ba-h3d-btn { position: absolute; top: 8px; right: 8px; z-index: 4; display: inline-flex; padding: 3px; gap: 2px; border: 0; border-radius: 999px; cursor: pointer;
+  background: rgba(10,10,20,.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,.35); line-height: 1; opacity: .85; transition: opacity .2s }
+.ba-h3d-btn:hover, .ba-h3d.on .ba-h3d-btn { opacity: 1 }
+.ba-h3d-btn span { font: 800 10.5px/1 var(--fn, system-ui); letter-spacing: .06em; color: rgba(255,255,255,.6); padding: 5px 8px; border-radius: 999px; transition: background .25s cubic-bezier(.2,0,0,1), color .25s }
+.ba-h3d-btn .a { background: rgba(255,255,255,.95); color: #111 }
+.ba-h3d.on .ba-h3d-btn .a { background: none; color: rgba(255,255,255,.6) }
+.ba-h3d.on .ba-h3d-btn .b { background: linear-gradient(135deg, #ff9a3c, #ff4d4d); color: #fff }
+.ba-h3d.loading .ba-h3d-btn .b { animation: ba-h3d-pulse .8s ease-in-out infinite alternate }
+@keyframes ba-h3d-pulse { to { opacity: .4 } }
+.ba-h3d-gl { position: absolute; inset: 0; width: 100% !important; height: 100% !important; border-radius: inherit; cursor: grab; touch-action: none; animation: ba-h3d-in .45s cubic-bezier(.05,.7,.1,1) backwards }
+.ba-h3d-gl:active { cursor: grabbing }
+@keyframes ba-h3d-in { from { opacity: 0; transform: scale(.97) } }
+.ba-h3d-hud { position: absolute; top: 8px; left: 8px; z-index: 3; display: flex; gap: 6px; align-items: stretch; line-height: 1; pointer-events: none }
+.ba-h3d-hud > div { padding: 6px 9px; border-radius: 9px; background: rgba(6,6,26,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) }
+.ba-h3d-hud span { display: block; font: 700 8.5px/1 var(--fn, system-ui); letter-spacing: .12em; color: rgba(255,255,255,.55); margin-bottom: 4px }
+.ba-h3d-hud b { font: 800 17px/1 var(--fn, system-ui); color: #fff; font-variant-numeric: tabular-nums }
+.ba-h3d-hud .c b { color: #ffd65a; text-shadow: 0 0 12px rgba(255,170,60,.55) }
+.ba-h3d-hud .r b { font-size: 13px; padding-top: 3px; display: block }
+.ba-h3d-hud .rp { pointer-events: auto; align-self: center; width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer; background: rgba(6,6,26,.7); color: #fff; font: 700 15px/1 system-ui; opacity: 0; transform: scale(.8); transition: opacity .3s, transform .3s cubic-bezier(.05,.7,.1,1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.15) }
+.ba-h3d-hud.done .rp, .ba-h3d-hud .rp:focus-visible { opacity: 1; transform: none }
+.ba-h3d-hud .rp:hover { background: linear-gradient(135deg, #ff9a3c, #ff4d4d) }
+.ba-h3d-leg { position: absolute; left: 8px; bottom: 8px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 8px; background: rgba(6,6,26,.7); color: rgba(255,255,255,.75); font: 600 9.5px/1 var(--fn, system-ui) }
+.ba-h3d-leg i { width: 60px; height: 7px; border-radius: 3px; background: linear-gradient(90deg, rgb(59,130,246), #fff, rgb(255,70,70)) }
+
+/* ═══════════ mapa de zonas: Zonas | vs Liga | Detalle ═══════════ */
+.ba-zw { position: relative; line-height: 0 }
+.ba-zw > canvas:first-child { display: block }
+.ba-zov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: inherit; z-index: 2 }
+.ba-zseg { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 4; white-space: nowrap; display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; line-height: 1;
+  background: rgba(10,10,20,.66); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,.35) }
+.ba-zseg button { border: 0; background: none; cursor: pointer; font: 800 10.5px/1 var(--fn, system-ui); letter-spacing: .03em; color: rgba(255,255,255,.62); padding: 6px 9px; border-radius: 999px; transition: background .25s cubic-bezier(.2,0,0,1), color .25s }
+.ba-zseg button:hover { color: #fff }
+.ba-zseg button.on { background: rgba(255,255,255,.95); color: #111 }
+.ba-zseg button.on:not([data-m="z"]) { background: linear-gradient(135deg, #ff9a3c, #ff4d4d); color: #fff }
+.ba-zov.hex { cursor: crosshair; touch-action: manipulation }
+.ba-zleg { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 4px 8px; border-radius: 8px; line-height: 1;
+  background: rgba(10,10,20,.62); color: rgba(255,255,255,.78); font: 600 9.5px/1 var(--fn, system-ui); pointer-events: none }
+.ba-zleg i { width: 54px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgb(59,130,246), #fff, rgb(255,70,70)) }
+.ba-ztip { position: absolute; z-index: 5; left: 0; top: 0; display: grid; gap: 3px; padding: 7px 10px; border-radius: 10px; line-height: 1.1; white-space: nowrap; pointer-events: none;
+  background: rgba(6,6,26,.92); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 6px 20px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.1); color: #fff;
+  opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .2s cubic-bezier(.05,.7,.1,1) }
+.ba-ztip.on { opacity: 1; transform: none }
+.ba-ztip b { font: 800 15px/1 var(--fn, system-ui); font-variant-numeric: tabular-nums }
+.ba-ztip span { display: flex; align-items: center; gap: 5px; font: 700 11.5px/1 var(--fn, system-ui) }
+.ba-ztip span i { width: 9px; height: 9px; border-radius: 2px }
+.ba-ztip em { font-style: normal; font-weight: 600; color: rgba(255,255,255,.6) }
+.ba-ztip small { font: 600 9.5px/1 var(--fn, system-ui); color: rgba(255,255,255,.5) }
+@media (max-width: 520px) { .ba-zseg button { padding: 6px 7px; font-size: 10px } }
+@media (prefers-reduced-motion: reduce) { .ba-h3d-gl { animation: none } .ba-ztip { transition: none } }
+
 </style>
 </head>
 <body>
@@ -4866,6 +4919,7 @@ function drawShots(ctx,shots){
 
 function drawZoneMap(cvId,shots){
   const cv=document.getElementById(cvId);if(!cv)return;
+  cv.__baShots=shots; setTimeout(()=>{ try{ window.dispatchEvent(new CustomEvent('ba-zone',{detail:cv})); }catch(e){} },0);
   cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
   ctx.fillStyle='#0b0b20';ctx.fillRect(0,0,CW,CH);
   
@@ -4925,6 +4979,7 @@ function drawZoneMap(cvId,shots){
 
 function drawHeatmap(cvId,shots){
   const cv=document.getElementById(cvId);if(!cv)return;
+  cv.__baShots=shots; setTimeout(()=>{ try{ window.dispatchEvent(new CustomEvent('ba-heat',{detail:cv})); }catch(e){} },0);
   cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
   ctx.fillStyle='#06061a';ctx.fillRect(0,0,CW,CH);
   if(shots.length>0){
@@ -25931,6 +25986,325 @@ Acta Canvis
     syncHeader();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* BasketApp · mapas avanzados
+   1) Mapa de calor → botón «3D»: pista en perspectiva con hexágonos (altura = volumen, color = acierto vs liga)
+      y los tiros volando hacia el aro, partido a partido, con contador.
+   2) Mapa de zonas → selector «Zonas | vs Liga | Detalle»: zonas comparadas con la liga (gris rayado = pocos tiros)
+      y mapa de hexágonos detallado. Mismos colores que la app: azul (peor) · blanco (como la liga) · rojo (mejor). */
+(function () {
+  'use strict';
+  if (window.__baH3D) return; window.__baH3D = true;
+  // ── geometría de la pista (la misma que la app: lienzo 420×400) ──
+  const CW = 420, CH = 400, PAD = 10, SC = 26.7, BX = CW / 2, BY = 52, BASE_Y = PAD;
+  const ARC_R = 6.75 * SC, CRN_DX = (7.5 - 0.9) * SC, CRN_DY = Math.sqrt(ARC_R * ARC_R - CRN_DX * CRN_DX);
+  const ARC3_LX = BX - CRN_DX, ARC3_RX = BX + CRN_DX, ARC3_LY = BY + CRN_DY;
+  const PAINT_W = 4.9 * SC, PAINT_H = 5.8 * SC, PAINT_X = BX - PAINT_W / 2, FT_Y = BY + PAINT_H, FT_R = 1.8 * SC, RA_R = 1.25 * SC;
+  const isThree = (x, y) => ((x < ARC3_LX || x > ARC3_RX) && y < ARC3_LY) || Math.hypot(x - BX, y - BY) >= ARC_R;
+  function shotZone(s) {
+    const d = Math.hypot(s.x - BX, s.y - BY), inP = s.x >= PAINT_X && s.x <= PAINT_X + PAINT_W && s.y >= BY && s.y <= FT_Y;
+    if (d < RA_R + 12) return '2'; if (inP) return '3';
+    if (!isThree(s.x, s.y)) return s.x < BX ? '1' : '4';
+    if (s.y < ARC3_LY) return s.x < BX ? '5' : '9';
+    if (s.x < BX - 80) return '6'; if (s.x > BX + 80) return '8'; return '7';
+  }
+  const ok = s => s && typeof s.x === 'number' && typeof s.y === 'number' && isFinite(s.x) && isFinite(s.y);
+  // colores de la app: t 0 → azul · 0,5 → blanco · 1 → rojo
+  const vsColor = t => { t = Math.max(0, Math.min(1, t)); if (t < .5) { const u = t / .5; return [59 + u * 196, 130 + u * 125, 246 + u * 9]; } const u = (t - .5) / .5; return [255, 255 - u * 185, 255 - u * 185]; };
+  const tOf = (pct, lg) => .5 + (pct - lg) / .30;
+  const rgb = c => `rgb(${c.map(Math.round).join(',')})`;
+
+  // ── «la liga»: todos los tiros ubicados de la base (se calcula una vez) ──
+  const HEX_R = 9, HEX_W = Math.sqrt(3) * HEX_R, HEX_H = 1.5 * HEX_R;
+  const hexOf = (x, y) => { const row = Math.round((y - BASE_Y) / HEX_H), off = row % 2 ? HEX_W / 2 : 0, col = Math.round((x - off) / HEX_W); return [col, row]; };
+  const hexCenter = (col, row) => [col * HEX_W + (row % 2 ? HEX_W / 2 : 0), BASE_Y + row * HEX_H];
+  let LG = null;
+  function league() {
+    const S = window.S; if (!S || !S.matches) return null;
+    const n = S.matches.length * 1e6 + (S.shots || []).length; if (LG && LG.n === n) return LG;
+    const z = {}, hx = new Map(); let A = 0, M = 0;
+    const add = s => { if (!ok(s)) return; A++; if (s.made) M++; const k = shotZone(s); (z[k] = z[k] || { a: 0, m: 0 }).a++; if (s.made) z[k].m++;
+      const h = hexOf(s.x, s.y).join(','); let e = hx.get(h); if (!e) hx.set(h, e = { a: 0, m: 0 }); e.a++; if (s.made) e.m++; };
+    S.matches.forEach(m => (m.shots || []).forEach(add)); (S.shots || []).forEach(add);
+    LG = { n, z, hx, pct: A ? M / A : .45, A };
+    return LG;
+  }
+  const lgZone = k => { const L = league(); const e = L && L.z[k]; return e && e.a >= 20 ? e.m / e.a : (L ? L.pct : .45); };
+  const lgHex = (h, k) => { const L = league(); const e = L && L.hx.get(h), p0 = lgZone(k); return e ? (e.m + 8 * p0) / (e.a + 8) : p0; };
+
+  // ── líneas de la pista (para los mapas nuevos y el suelo 3D) ──
+  function courtLines(ctx, s = 1, col = 'rgba(148,163,184,.55)', lw = 1.5) {
+    ctx.save(); ctx.scale(s, s); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    ctx.rect(PAD, BASE_Y, CW - 2 * PAD, CH - BASE_Y - 2);
+    ctx.rect(PAINT_X, BASE_Y, PAINT_W, FT_Y - BASE_Y);
+    ctx.moveTo(BX + FT_R, FT_Y); ctx.arc(BX, FT_Y, FT_R, 0, Math.PI * 2);
+    ctx.moveTo(ARC3_LX, BASE_Y); ctx.lineTo(ARC3_LX, ARC3_LY);
+    ctx.moveTo(ARC3_RX, BASE_Y); ctx.lineTo(ARC3_RX, ARC3_LY);
+    const aL = Math.atan2(ARC3_LY - BY, ARC3_LX - BX), aR = Math.atan2(ARC3_LY - BY, ARC3_RX - BX);
+    ctx.moveTo(ARC3_RX, ARC3_LY); ctx.arc(BX, BY, ARC_R, aR, aL);
+    ctx.moveTo(BX + RA_R, BY); ctx.arc(BX, BY, RA_R, 0, Math.PI);
+    ctx.moveTo(BX - 25, BY - 12); ctx.lineTo(BX + 25, BY - 12);
+    ctx.moveTo(BX + 60, CH - 2); ctx.arc(BX, CH - 2, 60, 0, Math.PI, true);
+    ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = '#ff7a1a'; ctx.lineWidth = lw * 1.4; ctx.arc(BX, BY, 7, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+
+  // ═════════════ 2) MAPA DE ZONAS: Zonas | vs Liga | Detalle ═════════════
+  function wrapOf(cv, cls) {
+    let w = cv.parentElement; if (w.classList.contains(cls)) return w;
+    w = document.createElement('div'); w.className = cls; cv.parentNode.insertBefore(w, cv); w.appendChild(cv); return w;
+  }
+  function attachZone(cv) {
+    if (!cv || !cv.isConnected || !Array.isArray(cv.__baShots)) return;
+    const w = wrapOf(cv, 'ba-zw');
+    let seg = w.querySelector(':scope > .ba-zseg');
+    if (!seg) {
+      seg = document.createElement('div'); seg.className = 'ba-zseg';
+      seg.innerHTML = '<button type="button" data-m="z" class="on">Zonas</button><button type="button" data-m="l">vs Liga</button><button type="button" data-m="d">Detalle</button>';
+      seg.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); setZoneMode(w, cv, b.dataset.m, true); });
+      w.appendChild(seg);
+    }
+    setZoneMode(w, cv, w.dataset.m || 'z', false);
+  }
+  function setZoneMode(w, cv, m, anim) {
+    w.dataset.m = m; w.querySelectorAll('.ba-zseg button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+    let ov = w.querySelector(':scope > canvas.ba-zov'), leg = w.querySelector(':scope > .ba-zleg'), tip = w.querySelector(':scope > .ba-ztip');
+    if (tip) tip.remove();
+    if (m === 'z') { if (ov) ov.remove(); if (leg) leg.remove(); return; }
+    if (!ov) { ov = document.createElement('canvas'); ov.className = 'ba-zov'; w.insertBefore(ov, w.querySelector('.ba-zseg')); }
+    if (!leg) { leg = document.createElement('div'); leg.className = 'ba-zleg'; leg.innerHTML = '<span>Peor que la liga</span><i></i><span>Mejor</span>'; w.appendChild(leg); }
+    const shots = (cv.__baShots || []).filter(ok);
+    ov.onpointermove = ov.onpointerdown = ov.onpointerleave = null; ov.classList.toggle('hex', m === 'd');
+    if (m === 'l') { ov.width = CW; ov.height = CH; drawZoneLike(ov.getContext('2d'), shots); }
+    else { const k = 2; ov.width = CW * k; ov.height = CH * k; const ctx = ov.getContext('2d'); ctx.scale(k, k); hexTips(w, ov, drawDetail(ctx, shots)); }
+    if (anim && ov.animate && !reduce) ov.animate([{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.05,.7,.1,1)' });
+  }
+  // «vs Liga»: exactamente el mismo dibujo que «Zonas» (drawZoneMap de la app); solo cambia la referencia de cada zona,
+  // que pasa de un % fijo al % de la liga en esa zona
+  const ZN = { 1: 'Mitja distancia E.', 2: 'Sota canasta', 3: 'Mitja distancia frontal', 4: 'Mitja distancia D.', 5: 'Cantonada E.', 6: 'T3 45º E.', 7: 'T3 Frontal', 8: 'T3 45º D.', 9: 'Cantonada D.' };
+  function appCourtLines(ctx) {   // = drawCourtLinesOnly de la app
+    const ANG3_L = Math.atan2(ARC3_LY - BY, ARC3_LX - BX), ANG3_R = Math.atan2(ARC3_LY - BY, ARC3_RX - BX), PAINT_H_FULL = FT_Y - BASE_Y;
+    const lc = 'rgba(100,150,255,.55)'; ctx.strokeStyle = lc; ctx.lineWidth = 1.5;
+    ctx.strokeRect(PAD, PAD, CW - 2 * PAD, CH - 2 * PAD);
+    ctx.beginPath(); ctx.moveTo(ARC3_LX, BASE_Y); ctx.lineTo(ARC3_LX, ARC3_LY); ctx.arc(BX, BY, ARC_R, ANG3_L, ANG3_R, true); ctx.lineTo(ARC3_RX, BASE_Y); ctx.stroke();
+    ctx.strokeRect(PAINT_X, BASE_Y, PAINT_W, PAINT_H_FULL);
+    ctx.beginPath(); ctx.moveTo(PAINT_X, FT_Y); ctx.lineTo(PAINT_X + PAINT_W, FT_Y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(BX, FT_Y, FT_R, Math.PI, 0); ctx.stroke();
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(BX, FT_Y, FT_R, 0, Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(BX, BY + 4, RA_R, 0, Math.PI); ctx.stroke();
+    ctx.fillStyle = 'rgba(120,170,255,.6)'; ctx.fillRect(BX - 28, BASE_Y + 2, 56, 4);
+    ctx.strokeStyle = 'rgba(255,100,70,.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(BX, BY + 11, 12, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = lc; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(BX, CH - PAD, 1.8 * SC, Math.PI, 0, false); ctx.stroke();
+  }
+  function drawZoneLike(ctx, shots) {
+    ctx.fillStyle = '#0b0b20'; ctx.fillRect(0, 0, CW, CH);
+    const zs = {}; shots.forEach(s => { const z = shotZone(s); (zs[z] = zs[z] || { m: 0, a: 0 }).a++; if (s.made) zs[z].m++; });
+    const zoneColor = z => { const st = zs[z]; if (!st || !st.a) return 'rgba(148,163,184,.13)'; const c = vsColor(tOf(st.m / st.a, lgZone(z))); return `rgba(${c.map(Math.round).join(',')},.82)`; };
+    const CELL = 4, cen = {};
+    for (let y = 0; y < CH; y += CELL) for (let x = 0; x < CW; x += CELL) {
+      const z = shotZone({ x: x + CELL / 2, y: y + CELL / 2 }); ctx.fillStyle = zoneColor(z); ctx.fillRect(x, y, CELL, CELL);
+      const c = cen[z] || (cen[z] = { sx: 0, sy: 0, n: 0 }); c.sx += x; c.sy += y; c.n++;
+    }
+    appCourtLines(ctx);
+    ctx.textAlign = 'center';
+    Object.entries(cen).forEach(([z, ct]) => {
+      const st = zs[z]; if (!st || !st.a) return; const cx = ct.sx / ct.n, cy = ct.sy / ct.n;
+      const pct = Math.round(st.m / st.a * 100);
+      ctx.font = '800 15px system-ui'; ctx.fillStyle = '#0f172a'; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
+      ctx.strokeText(pct + '%', cx, cy); ctx.fillText(pct + '%', cx, cy);
+      ctx.font = '600 9px system-ui'; const sub = `${st.m}/${st.a}`;
+      ctx.strokeText(sub, cx, cy + 12); ctx.fillText(sub, cx, cy + 12);
+      ctx.font = '900 24px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillText(z, cx, cy - 15);
+    });
+  }
+  // «Detalle»: al pasar el ratón (o tocar) un hexágono → aciertos/intentos y % vs % de la liga
+  function hexTips(w, ov, hx) {
+    const tip = document.createElement('div'); tip.className = 'ba-ztip'; w.appendChild(tip);
+    const show = ev => {
+      const r = ov.getBoundingClientRect(), x = (ev.clientX - r.left) * CW / r.width, y = (ev.clientY - r.top) * CH / r.height;
+      const [c, rr] = hexOf(x, y), e = hx.get(c + ',' + rr);
+      if (!e) { tip.classList.remove('on'); return; }
+      const [hx0, hy0] = hexCenter(c, rr), k = shotZone({ x: hx0, y: hy0 }), lg = lgHex(c + ',' + rr, k), p = e.m / e.a, col = vsColor(tOf((e.m + 3 * lg) / (e.a + 3), lg));
+      tip.innerHTML = `<b>${e.m}/${e.a}</b><span><i style="background:${rgb(col)}"></i>${Math.round(p * 100)}% <em>vs ${Math.round(lg * 100)}% liga</em></span><small>${ZN[k]}</small>`;
+      tip.classList.add('on');
+      const px = hx0 * r.width / CW, py = hy0 * r.height / CH, tw = tip.offsetWidth;
+      tip.style.left = Math.max(4, Math.min(r.width - tw - 4, px - tw / 2)) + 'px';
+      tip.style.top = (py - tip.offsetHeight - 12 < 4 ? py + 14 : py - tip.offsetHeight - 12) + 'px';
+    };
+    ov.onpointermove = show; ov.onpointerdown = show; ov.onpointerleave = ev => { if (ev.pointerType === 'mouse') tip.classList.remove('on'); };
+  }
+  function zoneCentroids(step) {
+    const cen = {};
+    for (let y = BASE_Y; y < CH; y += step) for (let x = PAD; x < CW - PAD; x += step) { const k = shotZone({ x, y }), c = cen[k] || (cen[k] = { x: 0, y: 0, n: 0 }); c.x += x; c.y += y; c.n++; }
+    return cen;
+  }
+  const hexPath = (ctx, x, y, r) => { ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; ctx.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)); } ctx.closePath(); };
+  function drawDetail(ctx, shots) {
+    ctx.fillStyle = '#0b0b20'; ctx.fillRect(0, 0, CW, CH); courtLines(ctx);
+    const hx = new Map(); shots.forEach(s => { const [c, r] = hexOf(s.x, s.y), h = c + ',' + r; let e = hx.get(h); if (!e) hx.set(h, e = { a: 0, m: 0, c, r }); e.a++; if (s.made) e.m++; });
+    let max = 1; hx.forEach(e => { if (e.a > max) max = e.a; });
+    ctx.save(); ctx.beginPath(); ctx.rect(PAD, BASE_Y, CW - 2 * PAD, CH - BASE_Y - 2); ctx.clip();
+    hx.forEach((e, h) => {
+      const [x, y] = hexCenter(e.c, e.r), k = shotZone({ x, y }), lg = lgHex(h, k), sz = HEX_R * (.35 + .62 * Math.sqrt(e.a / max)), p = (e.m + 3 * lg) / (e.a + 3);
+      hexPath(ctx, x, y, sz); ctx.fillStyle = rgb(vsColor(tOf(p, lg))); ctx.fill();
+    });
+    ctx.restore();
+    const zs = {}; shots.forEach(s => { const k = shotZone(s); (zs[k] = zs[k] || { a: 0, m: 0 }).a++; if (s.made) zs[k].m++; });
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 12px system-ui, sans-serif';
+    Object.entries(zoneCentroids(6)).forEach(([k, c]) => { const st = zs[k]; if (!st) return; const t = Math.round(st.m / st.a * 100) + '%', x = c.x / c.n, y = c.y / c.n + (k === '2' ? 16 : 0);
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(11,11,32,.92)'; ctx.strokeText(t, x, y); ctx.fillStyle = '#f8fafc'; ctx.fillText(t, x, y); });
+    return hx;
+  }
+  window.addEventListener('ba-zone', e => attachZone(e.detail));
+
+  // ═════════════ 1) MAPA DE CALOR → 3D con los tiros volando ═════════════
+  const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  let threeP = null;
+  const loadThree = () => threeP || (threeP = new Promise((res, rej) => { if (window.THREE) return res(window.THREE); const s = document.createElement('script'); s.src = THREE_URL; s.onload = () => res(window.THREE); s.onerror = () => { threeP = null; rej(new Error('sin conexión')); }; document.head.appendChild(s); }));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function attachHeat(cv) {
+    if (!cv || !cv.isConnected || !Array.isArray(cv.__baShots) || cv.__baShots.filter(ok).length < 3) return;
+    const w = wrapOf(cv, 'ba-h3d');
+    let btn = w.querySelector(':scope > .ba-h3d-btn');
+    if (!btn) {
+      btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ba-h3d-btn'; btn.innerHTML = '<span class="a">2D</span><span class="b">3D</span>'; btn.title = 'Ver los tiros en 3D';
+      btn.onclick = e => { e.stopPropagation(); w.classList.contains('on') ? close3d(w) : open3d(w, cv); };
+      w.appendChild(btn);
+    }
+    if (w.classList.contains('on')) { close3d(w); open3d(w, cv); }
+  }
+  window.addEventListener('ba-heat', e => attachHeat(e.detail));
+
+  // partidos en orden de fecha (si los tiros saben de qué partido son); si no, tandas en el orden en que llegan
+  function rounds(shots) {
+    const S = window.S || {}, byId = new Map((S.matches || []).map(m => [String(m.id), m]));
+    const dk = id => { const m = byId.get(id), x = m && /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/.exec(String(m.date || '')); if (!x) return 0; const y = +x[3] < 100 ? 2000 + +x[3] : +x[3]; return y * 1e4 + +x[2] * 100 + +x[1]; };
+    const mid = s => s.mId != null ? s.mId : s.matchId;
+    const byMatch = shots.filter(s => mid(s) != null).length > shots.length * .8;
+    let groups;
+    if (byMatch) {
+      const g = new Map(); shots.forEach(s => { const k = String(mid(s)); if (!g.has(k)) g.set(k, []); g.get(k).push(s); });
+      groups = [...g.entries()].sort((a, b) => (dk(a[0]) - dk(b[0])) || String(a[0]).localeCompare(String(b[0]), 'es', { numeric: true })).map(e => e[1]);
+    } else { const n = Math.max(1, Math.min(24, Math.round(shots.length / 50))), per = Math.ceil(shots.length / n); groups = []; for (let i = 0; i < shots.length; i += per) groups.push(shots.slice(i, i + per)); }
+    while (groups.length > 30) { const m = []; for (let i = 0; i < groups.length; i += 2) m.push(groups[i].concat(groups[i + 1] || [])); groups = m; }
+    return { groups, byMatch };
+  }
+  function glowTex(T, inner, outer) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, inner); g.addColorStop(.25, outer); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c);
+  }
+  async function open3d(w, cv) {
+    w.classList.add('on', 'loading');
+    let T; try { T = await loadThree(); } catch (e) { w.classList.remove('on', 'loading'); alert('No se ha podido cargar la vista 3D (¿sin conexión?)'); return; }
+    if (!w.classList.contains('on') || w.__h3d) return; w.classList.remove('loading');
+    const shots = cv.__baShots.filter(ok), R0 = rounds(shots), W0 = cv.clientWidth || 360, H0 = cv.clientHeight || Math.round(W0 * CH / CW);
+    const gl = document.createElement('canvas'); gl.className = 'ba-h3d-gl'; w.appendChild(gl);
+    const hud = document.createElement('div'); hud.className = 'ba-h3d-hud';
+    hud.innerHTML = `<div class="c"><span>TIROS</span><b>0</b></div><div class="r"><span>${R0.byMatch ? 'PARTIDO' : 'PROGRESO'}</span><b>—</b></div><button type="button" class="rp" title="Repetir" aria-label="Repetir">↻</button>`;
+    w.appendChild(hud);
+    const leg = document.createElement('div'); leg.className = 'ba-h3d-leg'; leg.innerHTML = '<span>Peor</span><i></i><span>Mejor que la liga</span>'; w.appendChild(leg);
+    const R = new T.WebGLRenderer({ canvas: gl, antialias: true }); R.setPixelRatio(Math.min(2, devicePixelRatio || 1)); R.setSize(W0, H0, false); R.setClearColor(0x06061a);
+    const scene = new T.Scene(), cam = new T.PerspectiveCamera(38, W0 / H0, 1, 5000);
+    const X = x => x - CW / 2, Z = y => y - CH / 2;
+    // suelo con las líneas de la pista
+    const fl = document.createElement('canvas'); fl.width = CW * 2; fl.height = CH * 2; const fx = fl.getContext('2d');
+    fx.fillStyle = '#10112a'; fx.fillRect(0, 0, fl.width, fl.height); courtLines(fx, 2, 'rgba(148,163,184,.5)', 1.2);
+    const floorTex = new T.CanvasTexture(fl); floorTex.anisotropy = 4;
+    const floor = new T.Mesh(new T.PlaneGeometry(CW, CH), new T.MeshBasicMaterial({ map: floorTex })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+    const slab = new T.Mesh(new T.BoxGeometry(CW, 8, CH), new T.MeshBasicMaterial({ color: 0x0a0b1c })); slab.position.y = -4.2; scene.add(slab);
+    // hexágonos (todas las celdas que tendrán tiros; crecen a medida que llegan)
+    const cells = new Map(), list = [];
+    shots.forEach(s => { const [c, r] = hexOf(s.x, s.y), h = c + ',' + r; if (!cells.has(h)) { const [x, y] = hexCenter(c, r); cells.set(h, { h, x: X(x), z: Z(y), k: shotZone({ x, y }), a: 0, m: 0, cur: .001, n: list.length }); list.push(cells.get(h)); } });
+    const hexGeo = new T.CylinderGeometry(HEX_R * .86, HEX_R * .86, 1, 6); hexGeo.translate(0, .5, 0);
+    const hexMat = new T.MeshStandardMaterial({ roughness: .55, metalness: .05 });
+    const hexes = new T.InstancedMesh(hexGeo, hexMat, Math.max(1, list.length)); scene.add(hexes);
+    const m4 = new T.Matrix4(), col = new T.Color();
+    list.forEach(e => { m4.makeScale(.001, .001, .001); m4.setPosition(e.x, -20, e.z); hexes.setMatrixAt(e.n, m4); col.setRGB(1, 1, 1); hexes.setColorAt(e.n, col); });
+    scene.add(new T.AmbientLight(0xffffff, .62)); const sun = new T.DirectionalLight(0xffffff, .75); sun.position.set(-160, 420, 260); scene.add(sun);
+    // aro, tablero y resplandor
+    const HZ = Z(BY), HY = 70;
+    const hoop = new T.Mesh(new T.TorusGeometry(7, 1.2, 8, 28), new T.MeshBasicMaterial({ color: 0xff7a1a })); hoop.rotation.x = Math.PI / 2; hoop.position.set(0, HY, HZ); scene.add(hoop);
+    const board = new T.Mesh(new T.PlaneGeometry(52, 32), new T.MeshBasicMaterial({ color: 0x9fb4ff, transparent: true, opacity: .14, side: T.DoubleSide })); board.position.set(0, HY + 12, HZ - 13); scene.add(board);
+    const pole = new T.Mesh(new T.BoxGeometry(2.4, HY + 14, 2.4), new T.MeshBasicMaterial({ color: 0x2a2d4a })); pole.position.set(0, (HY + 14) / 2, HZ - 24); scene.add(pole);
+    const glow = new T.Sprite(new T.SpriteMaterial({ map: glowTex(T, 'rgba(255,240,200,1)', 'rgba(255,150,50,.5)'), blending: T.AdditiveBlending, depthWrite: false, transparent: true }));
+    glow.position.copy(hoop.position); glow.scale.set(44, 44, 1); scene.add(glow);
+    // tiros volando: estelas reutilizables
+    const POOL = 180, SEG = 16, trails = [];
+    for (let i = 0; i < POOL; i++) {
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(SEG * 3), 3));
+      const mat = new T.LineBasicMaterial({ transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }), line = new T.Line(g, mat);
+      line.frustumCulled = false; scene.add(line); trails.push({ line, mat, busy: false });
+    }
+    const MADE = new T.Color(.2, 1, .45), MISS = new T.Color(1, .2, .2);   // encestado verde · fallo rojo
+    const fly = [], pend = [];
+    let gi = 0, total = 0, tNext = 0, alive = true, t0 = performance.now(), last = t0, az = .3, el = .6, dist = 600, drag = null, touched = 0, glowPulse = 0;
+    const counter = hud.querySelector('.c b'), roundEl = hud.querySelector('.r b');
+    const GROUP_T = Math.max(.3, Math.min(.65, 10 / R0.groups.length));
+    function land(s) {
+      const [c, r] = hexOf(s.x, s.y), e = cells.get(c + ',' + r); if (e) { e.a++; if (s.made) e.m++; }
+      total++; counter.textContent = total.toLocaleString('es-ES'); if (s.made) glowPulse = Math.min(1.4, glowPulse + .35);
+    }
+    function launch(s, t) {
+      const tr = trails.find(q => !q.busy); if (!tr) { land(s); return; }
+      tr.busy = true; tr.mat.color.copy(s.made ? MADE : MISS);
+      const sx = X(s.x), sz = Z(s.y), d = Math.hypot(sx, sz - HZ);
+      const ex = s.made ? 0 : (Math.random() - .5) * 22, ez = s.made ? HZ : HZ + (Math.random() - .3) * 18;
+      fly.push({ s, tr, t0: t, dur: .55 + d / 600, sx, sz, ex, ez, apex: HY + 22 + d * .3, bx: ex * 2.5 + (Math.random() - .5) * 30, bz: 40 + Math.random() * 40 });
+    }
+    // trayectoria: parábola hasta el aro; el fallo rebota hacia fuera
+    const posAt = (f, u) => {
+      if (u <= 1) { const y = 2 + (HY - 2) * u + 4 * (f.apex - HY * .5) * u * (1 - u); return [f.sx + (f.ex - f.sx) * u, y, f.sz + (f.ez - f.sz) * u]; }
+      const v = u - 1; if (f.s.made) return [0, HY - v * 200, HZ];
+      return [f.ex + f.bx * v * 2, HY + 50 * v - 220 * v * v, f.ez + f.bz * v * 2];
+    };
+    gl.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, az, el }; try { gl.setPointerCapture(e.pointerId); } catch (_) {} });
+    gl.addEventListener('pointermove', e => { if (!drag) return; az = drag.az - (e.clientX - drag.x) * .008; el = Math.min(1.3, Math.max(.28, drag.el + (e.clientY - drag.y) * .005)); touched = performance.now(); });
+    const up = () => { drag = null; touched = performance.now(); }; gl.addEventListener('pointerup', up); gl.addEventListener('pointercancel', up);
+    function restart() {
+      cells.forEach(e => { e.a = 0; e.m = 0; e.cur = .001; }); pend.length = 0;
+      fly.splice(0).forEach(f => { f.tr.busy = false; f.tr.mat.opacity = 0; }); gi = 0; total = 0; counter.textContent = '0'; roundEl.textContent = '—';
+      tNext = (performance.now() - t0) / 1000 + .35; hud.classList.remove('done');
+    }
+    hud.querySelector('.rp').onclick = e => { e.stopPropagation(); restart(); };
+    restart();
+    function frame(now) {
+      if (!alive) return;
+      const t = (now - t0) / 1000, dt = Math.min(.05, (now - last) / 1000); last = now;
+      if (gi < R0.groups.length && t >= tNext) {   // siguiente partido
+        const g = R0.groups[gi]; gi++;
+        roundEl.textContent = R0.byMatch ? `${gi} de ${R0.groups.length}` : `${Math.round(gi / R0.groups.length * 100)}%`;
+        g.forEach((s, i) => pend.push({ s, at: t + (reduce ? 0 : (i / g.length) * GROUP_T * .9) }));
+        tNext = t + (reduce ? .05 : GROUP_T);
+      }
+      for (let i = pend.length - 1; i >= 0; i--) if (t >= pend[i].at) { if (reduce) land(pend[i].s); else launch(pend[i].s, t); pend.splice(i, 1); }
+      if (gi >= R0.groups.length && !pend.length && !fly.length) hud.classList.add('done');
+      for (let i = fly.length - 1; i >= 0; i--) {   // estelas
+        const f = fly[i], u = (t - f.t0) / f.dur, end = f.s.made ? 1.12 : 1.35;
+        if (u >= 1 && !f.landed) { f.landed = true; land(f.s); }
+        if (u >= end + .3) { f.tr.busy = false; f.tr.mat.opacity = 0; fly.splice(i, 1); continue; }
+        const p = f.tr.line.geometry.attributes.position.array, head = Math.min(u, end), tail = Math.max(0, head - .3);
+        for (let k = 0; k < SEG; k++) { const q = posAt(f, tail + (head - tail) * k / (SEG - 1)); p[k * 3] = q[0]; p[k * 3 + 1] = q[1]; p[k * 3 + 2] = q[2]; }
+        f.tr.line.geometry.attributes.position.needsUpdate = true;
+        f.tr.mat.opacity = (f.s.made ? .95 : .6) * Math.min(1, u * 5) * (u > end ? Math.max(0, 1 - (u - end) / .3) : 1);
+      }
+      let maxA = 1; for (const e of list) if (e.a > maxA) maxA = e.a;   // hexágonos: altura = volumen, color = acierto vs liga
+      for (const e of list) {
+        const target = e.a ? 1.5 + 48 * Math.pow(e.a / maxA, .8) : .001; e.cur += (target - e.cur) * Math.min(1, dt * 8);
+        const vis = e.cur > .2; m4.makeScale(vis ? 1 : .001, vis ? e.cur : .001, vis ? 1 : .001); m4.setPosition(e.x, vis ? 0 : -20, e.z); hexes.setMatrixAt(e.n, m4);
+        const lg = lgHex(e.h, e.k), p = e.a ? (e.m + 3 * lg) / (e.a + 3) : lg, c = vsColor(tOf(p, lg)); col.setRGB(c[0] / 255, c[1] / 255, c[2] / 255); hexes.setColorAt(e.n, col);
+      }
+      hexes.instanceMatrix.needsUpdate = true; if (hexes.instanceColor) hexes.instanceColor.needsUpdate = true;
+      glowPulse *= .88; const gs = 38 + 30 * glowPulse + 3 * Math.sin(t * 3); glow.scale.set(gs, gs, 1);
+      cam.position.set(Math.sin(az) * Math.cos(el) * dist, Math.sin(el) * dist, Math.cos(az) * Math.cos(el) * dist + 30); cam.lookAt(0, 26, -30);
+      R.render(scene, cam); w.__raf = requestAnimationFrame(frame);
+    }
+    w.__raf = requestAnimationFrame(frame);
+    const ro = new ResizeObserver(() => { const a = cv.clientWidth || W0, b = cv.clientHeight || H0; R.setSize(a, b, false); cam.aspect = a / b; cam.updateProjectionMatrix(); }); ro.observe(w);
+    w.__h3d = () => { alive = false; cancelAnimationFrame(w.__raf); ro.disconnect(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); R.dispose(); gl.remove(); hud.remove(); leg.remove(); };
+  }
+  function close3d(w) { w.classList.remove('on', 'loading'); if (w.__h3d) { w.__h3d(); w.__h3d = null; } }
+  // si el mapa deja de verse (cambio de pestaña), se apaga para no gastar batería
+  setInterval(() => document.querySelectorAll('.ba-h3d.on').forEach(w => { if (!w.isConnected || w.offsetParent === null) close3d(w); }), 2000);
 })();
 
 </script>

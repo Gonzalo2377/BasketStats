@@ -3184,6 +3184,9 @@ body.player-mode #ba-quinibtn, body.player-mode .q-hcard { display: none !import
 body.player-mode.ba-pq #t-compare { display: none !important }
 body.player-mode.ba-pq #t-quini { display: block !important }
 body.player-mode #t-quini .main { padding-bottom: 110px }
+/* el selector flotante «Rival | Quiniela» no tapa el final de la página (ni en Rival ni en Quiniela) */
+body.player-mode { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important }
+body.player-mode #q-main::after, body.player-mode #t-compare .main::after { content: ''; display: block; height: calc(90px + env(safe-area-inset-bottom)) }
 /* móvil: sin auto-zoom del iPhone al tocar una casilla (necesita 16 px) y sin desbordar de lado */
 #t-quini { overflow-x: hidden; max-width: 100vw }
 html:has(body.player-mode.ba-pq), body.player-mode.ba-pq { overflow-x: hidden !important; max-width: 100vw }
@@ -3361,7 +3364,7 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
 <div id="login-gate" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0f1f3d,#1e3a5f);z-index:2000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,.5);text-align:center">
     <div style="font-size:34px;margin-bottom:6px">🏀</div>
-    <div style="font-size:22px;font-weight:900;color:#0f1f3d">Bascat<span style="color:#e8402a">App</span></div>
+    <div style="font-size:22px;font-weight:900;color:#0f1f3d">Basket<span style="color:#e8402a">App</span></div>
     <div style="font-size:11px;color:#64748b;margin:6px 0 18px">Unió Esportiva Claret · Acceso privado</div>
     <input type="password" id="login-code" placeholder="Código de acceso" autocomplete="off"
       style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;text-align:center;letter-spacing:.1em;margin-bottom:10px"
@@ -3554,7 +3557,7 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
         <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #86efac;font-size:11px;color:var(--t3)">
           <div id="i-fcbq-bridge-state" style="margin-bottom:4px"></div>
           Instalar una vez: arrastra este botón a la barra de marcadores 👉
-          <a id="i-fcbq-bookmarklet" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#15803d;color:#fff;font-weight:800;text-decoration:none;cursor:grab">→ BascatApp</a>
+          <a id="i-fcbq-bookmarklet" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#15803d;color:#fff;font-weight:800;text-decoration:none;cursor:grab">→ BasketApp</a>
           <div style="margin-top:4px">Luego, en basquetcatala.cat pulsa el marcador: en la página de un partido importa ese partido; en la página de resultados de un grupo importa todos los partidos jugados que aparezcan. Con el puente activo, la caja de links de arriba también funciona.</div>
         </div>
       </div>
@@ -12148,7 +12151,7 @@ function importBackupFile(evt){
   reader.onload=()=>{
     try{
       const d=JSON.parse(reader.result);
-      if(!Array.isArray(d.matches)||!Array.isArray(d.teams)){toast('El archivo no parece un backup de BascatApp','err');return;}
+      if(!Array.isArray(d.matches)||!Array.isArray(d.teams)){toast('El archivo no parece un backup de BasketApp','err');return;}
       const msg=`El backup contiene:\n· ${d.matches.length} partidos\n· ${d.teams.length} equipos\n· ${(d.shots||[]).length} tiros ubicados\n· clips: ${Object.keys(d.clips2||{}).length} partidos con clips\n\n¿REEMPLAZAR todos los datos actuales con este backup?\n(Los datos actuales se perderán)`;
       if(!confirm(msg))return;
       S.teams=d.teams||[];
@@ -17356,7 +17359,7 @@ async function importFromFCBQ() {
     if (ok > 0) document.getElementById('i-fcbq-url').value = '';
     statusEl.innerHTML = `<span style="color:#16a34a;font-weight:800;">✅ ${ok} importados${skipped ? ` · ${skipped} ya estaban (omitidos)` : ''}${fail ? ` · ${fail} con error` : ''}.</span>${firstErr ? `<div style="color:#dc2626;font-weight:700;margin-top:4px">❌ ${_esc(firstErr)}</div>` : ''}${_fcbqUnknownHtml(unknownAll)}`;
     if (teamsCreated.size || teamsUpdated.size) statusEl.innerHTML += `<div style="color:#1e40af;font-weight:700;margin-top:4px">👥 ${teamsCreated.size ? teamsCreated.size + ' equipos creados' : ''}${teamsCreated.size && teamsUpdated.size ? ' · ' : ''}${teamsUpdated.size ? teamsUpdated.size + ' plantillas actualizadas' : ''}</div>`;
-    if (fail && window._fcbqNeedBridge) statusEl.innerHTML += `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ La FCBQ bloquea las descargas desde servidor. Abre el partido o la página de resultados del grupo en basquetcatala.cat y pulsa el marcador <b>→ BascatApp</b>.</div>`;
+    if (fail && window._fcbqNeedBridge) statusEl.innerHTML += `<div style="color:#b45309;font-weight:700;margin-top:4px">⚠️ La FCBQ bloquea las descargas desde servidor. Abre el partido o la página de resultados del grupo en basquetcatala.cat y pulsa el marcador <b>→ BasketApp</b>.</div>`;
     window._fcbqNeedBridge = false;
     if (ok > 0) toast('Partidos importados correctamente.', 'ok');
   } catch (e) {
@@ -17433,7 +17436,7 @@ window.importFCBQFiles = importFCBQFiles;
 // 🔗 PUENTE FCBQ (bookmarklet)
 // Los servidores (Netlify/Vercel) están bloqueados por la FCBQ, pero el
 // navegador del usuario en basquetcatala.cat sí puede pedir los JSON. El
-// marcador "→ BascatApp" se ejecuta en la web de la FCBQ, abre la app y le
+// marcador "→ BasketApp" se ejecuta en la web de la FCBQ, abre la app y le
 // sirve los datos por postMessage. La app los importa con _fcbqBuildMatch.
 // ═══════════════════════════════════════════════════════════════════════════
 const _FCBQ_BRIDGE_ORIGINS = ['https://www.basquetcatala.cat', 'https://basquetcatala.cat'];
@@ -17483,7 +17486,7 @@ window.addEventListener('message',async e=>{if(e.source!==w||!OK.includes(e.orig
 if(d.type==='bascat-ready'){w.postMessage({type:'bascat-bridge',current:cur,list:list},e.origin);}
 if(d.type==='bascat-fetch'){try{const[pbp,stats]=await Promise.all([get(d.id,'pbp'),get(d.id,'stats')]);w.postMessage({type:'bascat-data',req:d.req,id:d.id,pbp,stats},e.origin);}
 catch(err){w.postMessage({type:'bascat-data',req:d.req,id:d.id,error:String(err&&err.message||err)},e.origin);}}});
-document.title='🔗 Puente BascatApp · '+document.title;})();`;
+document.title='🔗 Puente BasketApp · '+document.title;})();`;
 
 function _bridgeFetch(id) {
   return new Promise((res, rej) => {
@@ -18075,7 +18078,7 @@ async function ldLS() {
           <div id="telon-global" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0f172a; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif;">
               <style>@keyframes st-spin { 100% { transform: rotate(360deg); } }</style>
               <div style="width:60px;height:60px;border:5px solid #1e293b;border-top-color:#f59e0b;border-radius:50%;animation:st-spin 1s linear infinite;"></div>
-              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASCATAPP</h2>
+              <h2 style="margin-top:24px;font-size:18px;font-weight:900;letter-spacing:1px;color:#f8fafc;">INICIANDO BASKETAPP</h2>
               <p id="telon-msg" style="color:#94a3b8;font-size:13px;margin-top:8px;">Conectando con Supabase...</p>
           </div>
       `);

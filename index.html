@@ -26949,8 +26949,14 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   const fmtHour = t => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   function untilTxt(t) { const d = t - Date.now(); if (d <= 0) return 'cerrado'; const h = Math.floor(d / 36e5), m = Math.floor(d % 36e5 / 6e4); return h >= 48 ? `${Math.floor(h / 24)} días` : h >= 1 ? `${h} h ${m} min` : `${m} min`; }
   const PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#e11d48'];
-  const ini = n => String(n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const av = (u, sm) => `<i class="q-av${sm ? ' sm' : ''}" style="--c:${u.col || '#64748b'}" title="${esc(u.name)}">${esc(ini(u.name))}</i>`;
+  // iniciales: solo letras/números (un emoji en el nombre ya no sale como «G�»)
+  const ini = n => String(n || '?').trim().split(/\s+/).map(w => Array.from(w).find(ch => /[\p{L}\p{N}]/u.test(ch)) || '').join('').slice(0, 2).toUpperCase() || '?';
+  // un color distinto para cada usuario, por orden de creación (los nuevos van al final y no cambian los de los demás)
+  const PAL24 = ['#e11d48', '#2563eb', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#b91c1c',
+    '#9333ea', '#ca8a04', '#0284c7', '#15803d', '#c026d3', '#57534e', '#1e40af', '#be123c', '#047857', '#a16207', '#6d28d9', '#0e7490'];
+  const colOf = uid => { const ids = Object.values(D.users).sort((a, b) => (a.created || 0) - (b.created || 0) || String(a.uid).localeCompare(String(b.uid))).map(u => u.uid);
+    const i = ids.indexOf(uid); return i < 0 ? null : i < PAL24.length ? PAL24[i] : `hsl(${Math.round(i * 137.508) % 360},62%,42%)`; };
+  const av = (u, sm) => `<i class="q-av${sm ? ' sm' : ''}" style="--c:${colOf(u.uid) || u.col || '#64748b'}" title="${esc(u.name)}">${esc(ini(u.name))}</i>`;
 
   // ── vista limpia: quita el zoom que se haya quedado (pellizco en los mapas o el auto-zoom del iPhone en un desplegable) y sube arriba ──
   function resetView() {
@@ -27199,7 +27205,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     rows.sort((a, b) => (b.last || 0) - (a.last || 0));
     const never = Object.values(D.users).filter(u => !seen.has(u.uid)).sort((a, b) => a.name.localeCompare(b.name));
     box.innerHTML = (rows.length ? rows.map((r, i) => { const v7 = r.visits.filter(v => v.t >= wk).length, l = r.visits[0];
-      return `<details class="q-sr"><summary>${av({ name: r.name, col: r.col })}<span class="nm">${esc(r.name)}</span><span class="w"><b>${when(r.last)}</b><small>${ago(r.last)} · ${l.d === 'móvil' ? '📱' : '💻'}${l.r === 'staff' ? ' · staff' : ''}</small></span><span class="n" title="Entradas en los últimos 7 días">${v7}<small>7 días</small></span></summary>
+      return `<details class="q-sr"><summary>${av({ uid: r.uid, name: r.name, col: r.col })}<span class="nm">${esc(r.name)}</span><span class="w"><b>${when(r.last)}</b><small>${ago(r.last)} · ${l.d === 'móvil' ? '📱' : '💻'}${l.r === 'staff' ? ' · staff' : ''}</small></span><span class="n" title="Entradas en los últimos 7 días">${v7}<small>7 días</small></span></summary>
         <ol>${r.visits.slice(0, 25).map(v => `<li>${when(v.t)} <small>${v.d === 'móvil' ? '📱' : '💻'} ${v.r}</small></li>`).join('')}</ol></details>`; }).join('') : '<p class="q-mut">Todavía no hay entradas registradas.</p>')
       + (never.length ? `<p class="q-mut q-never">Sin entradas registradas: ${never.map(u => esc(u.name)).join(', ')}</p>` : '')
       + `<p class="q-mut">Solo se registran los móviles u ordenadores donde alguien ha entrado con su usuario de la quiniela (como mucho una entrada cada 30 min).</p>`;

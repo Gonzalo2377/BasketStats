@@ -3371,6 +3371,24 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
 .q-str b{font-size:14px;font-weight:900;color:#0f172a;font-variant-numeric:tabular-nums}
 .q-mbox .q-mut{text-align:center;font-size:11px;margin:8px 12px 0}
 
+/* quién entra a la web (staff) */
+.q-spyw{gap:8px;flex-wrap:wrap}
+.q-seen-note{font-size:11px!important;margin-top:-4px}
+.q-mbox.q-seen{max-width:520px}
+.q-seenb{padding:6px 10px}
+.q-sr{border-radius:10px;padding:2px 4px}
+.q-sr:nth-child(even){background:#f8fafc}
+.q-sr summary{display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer;list-style:none}
+.q-sr summary::-webkit-details-marker{display:none}
+.q-sr .nm{flex:1;min-width:0;font-weight:800;font-size:13.5px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-sr .w{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.q-sr .w b{font-size:12.5px;color:#0f172a}
+.q-sr .w small,.q-sr .n small{font-size:10.5px;color:#94a3b8}
+.q-sr .n{display:flex;flex-direction:column;align-items:center;min-width:44px;font-weight:900;font-size:15px;color:#0f172a;line-height:1.1}
+.q-sr ol{margin:0 0 8px 46px;padding:0;font-size:12px;color:#334155;columns:2}
+.q-sr ol li{margin:2px 0}
+.q-never{margin-top:10px!important}
+
 /* ── Líderes por equipo ── */
 .bl-mode{display:inline-flex;gap:4px;margin-left:auto}
 .bl-mode button{border:1.5px solid var(--b2,#cbd5e1);background:#fff;color:var(--t2,#475569);border-radius:999px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer}
@@ -3502,6 +3520,67 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
 @media (max-width:700px){.bs-tbl{min-width:0}.bs-tbl th .l{display:none}.bs-tbl th .s{display:inline}.bs-tbl th,.bs-tbl td{padding:11px 6px}.bs-tbl td.pos{width:30px;padding-left:10px}.bs-tbl .tmw{gap:8px}.bs-tbl .tmw .bl-cr{width:26px;height:26px}.bs-tbl td.tm .nm{display:block;max-width:118px;overflow:hidden;text-overflow:ellipsis;font-size:12px}.bs-ttl{padding:12px 14px 8px}}
 
 #sc-sum-box .bl-sum{margin:0 0 12px}
+
+/* ── Cruce del partido (Próximo rival, solo staff) ── */
+body.player-mode .cx-card{display:none!important}
+.cx-card{margin-bottom:16px}
+.cx-staff{font-size:9.5px;font-weight:800;color:#7e22ce;background:#faf5ff;border:1px solid #e9d5ff;border-radius:999px;padding:2px 8px;margin-left:8px;text-transform:none;letter-spacing:0;vertical-align:2px}
+.cx-intro{font-size:11.5px;color:#64748b;margin:0 0 10px;line-height:1.45}
+.cx-warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 12px;font-size:11.5px;font-weight:700;margin-bottom:10px}
+.cx-keys{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.cx-keys h5,.cx-grid h5{margin:0 0 8px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#0f172a}
+.cx-keys p{margin:0 0 6px;font-size:12.5px;color:#1e293b;line-height:1.45}
+.cx-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cx-grid section{border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;min-width:0}
+.cx-row{display:grid;grid-template-columns:minmax(80px,1.1fr) 1fr 1fr 1fr;gap:6px;align-items:center;padding:7px 6px;border-radius:8px;font-size:12px}
+.cx-row+.cx-row{border-top:1px solid #f1f5f9}
+.cx-row.g{background:#f0fdf4}.cx-row.b{background:#fef2f2}
+.cx-hd{font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase}
+.cx-hd span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.cx-hd small{display:block;font-weight:600;color:#94a3b8;text-transform:none}
+.cx-lab{font-weight:800;color:#334155;font-size:11.5px}
+.cx-c{text-align:center;display:flex;flex-direction:column;line-height:1.2}
+.cx-c b{font-weight:900;color:#0f172a}
+.cx-c small{font-size:10px;color:#94a3b8}
+.cx-c small i{font-style:normal;font-weight:800;color:#475569}
+.cx-x b{font-size:13.5px}
+.cx-row.g .cx-x b{color:#15803d}.cx-row.b .cx-x b{color:#b91c1c}
+.cx-foot{font-size:10.5px;color:#94a3b8;margin:10px 0 0}
+@media (max-width:900px){.cx-grid{grid-template-columns:1fr}}
+@media (max-width:480px){.cx-row{grid-template-columns:72px 1fr 1fr 1fr;font-size:11px;padding:6px 3px}}
+
+/* ── Zonas: cruce por zonas (staff) y lo que concede (Scouting) ── */
+.zx{margin-top:14px;border-top:1px solid #eef0f3;padding-top:12px}
+.zx-ttl{margin:0 0 4px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#0f172a}
+.zx-intro{font-size:11.5px;color:#64748b;margin:0 0 10px;line-height:1.45}
+.zx-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.zx-tabs button{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:800;cursor:pointer}
+.zx-tabs button.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.zx-pane{display:grid;grid-template-columns:minmax(260px,420px) 1fr;gap:16px;align-items:start}
+.zx-pane[hidden]{display:none}
+.zx-map canvas{width:100%;height:auto;display:block;border-radius:12px;background:#0b0b20}
+.zx-leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:10.5px;color:#64748b}
+.zx-leg span{display:inline-flex;align-items:center;gap:5px}
+.zx-leg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.zx-txt h5{margin:0 0 6px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#0f172a}
+.zx-txt h5+p{margin-top:0}
+.zx-txt p{margin:0 0 7px;font-size:12.5px;line-height:1.45;color:#1e293b}
+.zx-txt p+h5{margin-top:12px}
+.zx-none{color:#94a3b8!important;font-size:12px!important}
+.zx-card{margin-bottom:12px}
+@media (max-width:760px){.zx-pane{grid-template-columns:1fr}}
+.zx-ctx{display:inline-block;margin-left:4px;font-size:10.5px;font-weight:700;color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:1px 6px;white-space:nowrap}
+.zx-sub{font-size:11px!important;color:#94a3b8!important;margin-top:-2px!important}
+.zx-tabs button{flex:0 1 auto}
+.zx-ctx{display:inline-block;margin-left:4px;font-size:10.5px;font-weight:700;color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:1px 6px;white-space:nowrap}
+.zx-sub{font-size:11px!important;color:#94a3b8!important;margin-top:-2px!important}
+
+/* Vídeo: buscador por equipo en la biblioteca */
+.vlib-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
+.vlib-filter label{font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:.04em}
+.vlib-filter select{flex:1;min-width:180px;padding:7px 9px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff}
+.vlib-filter button{border:0;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
+.zx-key{font-size:11px;color:#475569;margin:0 0 6px;line-height:1.4;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px}
 
 </style>
 </head>
@@ -14572,7 +14651,8 @@ function renderCompare() {
     const rivList = [...rpList].sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0));
     const matchupsHtml = _renderMatchups(ourList, rivList, _muOrdered(S.nextMatch), rival, myTeamName);
 
-    tabMain.innerHTML = configHtml + headHtml + compHtml + mapsHtml + matchupsHtml + rosterHtml;
+    const _muHtml = (!_playerMode && window.__baMatchupHTML) ? window.__baMatchupHTML({my: myTeamName, rival, myMatches, rivMatches, myHome: isMyTeamHome}) : '';
+    tabMain.innerHTML = configHtml + headHtml + compHtml + _muHtml + mapsHtml + matchupsHtml + rosterHtml;
 
     setTimeout(() => {
         if (rivalShots.length >= 3) drawHeatmap('nm-cv-heat', rivalShots);
@@ -15086,10 +15166,20 @@ function renderVideoLib(){
     matchesWithClips.sort((a,b)=>(b.videoClips.created||0)-(a.videoClips.created||0));
     
     if(!matchesWithClips.length){el.innerHTML='<div class="empty">Sin clips todavía. Carga un vídeo y usa <b>B</b> para marcar inicio y fin del primero.</div>';return;}
+    // 🔎 Buscador por equipo: solo equipos que ya tienen clips; al elegir uno, solo sus partidos y sus carpetas (abiertas)
+    const _nk=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
+    const _cnt=t=>Object.values(t||{}).reduce((a,c)=>a+Object.values(c||{}).reduce((b,arr)=>b+(arr||[]).length,0),0);
+    const _tm=new Map();
+    matchesWithClips.forEach(mk=>Object.entries(mk.videoClips.teams||{}).forEach(([tn,cats])=>{const n=_cnt(cats);if(!n)return;const k=_nk(tn);const e=_tm.get(k)||{name:tn,n:0,p:0};if(tn===tn.toUpperCase())e.name=tn;e.n+=n;e.p++;_tm.set(k,e);}));
+    if(window._vLibTeam&&!_tm.has(window._vLibTeam))window._vLibTeam='';
+    const _vTeamF=window._vLibTeam||'';
+    const _vTeamOk=tn=>!_vTeamF||_nk(tn)===_vTeamF;
+    const _vShown=_vTeamF?matchesWithClips.filter(mk=>Object.entries(mk.videoClips.teams||{}).some(([tn,cats])=>_vTeamOk(tn)&&_cnt(cats))):matchesWithClips;
+    const _vFiltHtml=`<div class="vlib-filter"><label for="vlib-team">🔎 Equipo</label><select id="vlib-team" onchange="window._vLibTeam=this.value;renderVideoLib()"><option value="">Todos los equipos · ${matchesWithClips.length} partidos</option>${[..._tm.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([k,e])=>`<option value="${_esc(k)}"${k===_vTeamF?' selected':''}>${_esc(e.name)} · ${e.n} clip${e.n!==1?'s':''} en ${e.p} partido${e.p!==1?'s':''}</option>`).join('')}</select>${_vTeamF?`<button type="button" onclick="window._vLibTeam='';renderVideoLib()">✕ Quitar filtro</button>`:''}</div>`;
     
-    el.innerHTML=matchesWithClips.map(mk=>{
+    el.innerHTML=_vFiltHtml+_vShown.map(mk=>{
         let total=0;
-        Object.values(mk.videoClips.teams||{}).forEach(t=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
+        Object.entries(mk.videoClips.teams||{}).filter(([tn])=>_vTeamOk(tn)).forEach(([,t])=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
         const mid=`vlib-${mk.id}`;
         return `<div style="border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden">
             <div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="vToggleFolder('${mid}')">
@@ -15099,11 +15189,11 @@ function renderVideoLib(){
                     ${(()=>{const n=_vPendingClips(mk).length;return n?`<button onclick="event.stopPropagation();vRegenPending('${mk.name.replace(/'/g,"\\'")}')" title="Carga el vídeo de este partido y graba los clips que se quedaron como marca de tiempo" style="background:#f59e0b;border:none;color:#fff;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:800;cursor:pointer">🔄 ${n} sin vídeo</button>`:'';})()}
                     <button onclick="event.stopPropagation();vDownloadMatch('${mk.name.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
                     <button onclick="event.stopPropagation();vDeleteMatch('${mk.name.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
-                    <span id="arr-${mid}">${_open.has(mid)?'▲':'▼'}</span>
+                    <span id="arr-${mid}">${(_open.has(mid)||_vTeamF)?'▲':'▼'}</span>
                 </div>
             </div>
-            <div id="${mid}" style="display:${_open.has(mid)?'block':'none'};padding:10px 12px">
-                ${Object.entries(mk.videoClips.teams||{}).map(([tName,cats])=>`
+            <div id="${mid}" style="display:${(_open.has(mid)||_vTeamF)?'block':'none'};padding:10px 12px">
+                ${Object.entries(mk.videoClips.teams||{}).filter(([tName])=>_vTeamOk(tName)).map(([tName,cats])=>`
                     <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
                     ${['ataque','defensa'].map(cat=>{
                         const folders=cats[cat]||{};const names=Object.keys(folders).sort();
@@ -18280,6 +18370,54 @@ async function _syncMatches(dbName, filter = q => q, onProgress) {
   return { cached: cached.length, downloaded: got, removed: gone.length };
 }
 
+// 🏀 Modo jugador: partidos de la liga del rival en versión ligera (marcador, jugadores y tiros; sin jugada a jugada)
+const _LIGA_SEL = 'id,updated_at,date:match_data->>date,competition:match_data->>competition,group:match_data->group,season:match_data->>season,homeTeam:match_data->>homeTeam,awayTeam:match_data->>awayTeam,scoreHome:match_data->scoreHome,scoreAway:match_data->scoreAway,category:match_data->>category,type:match_data->>type,homePlayers:match_data->homePlayers,awayPlayers:match_data->awayPlayers,shots:match_data->shots,placedShots:match_data->placedShots';
+// En modo jugador se descarga SOLO la Copa Catalunya del sènior A de la temporada 26/27 (por la fecha del partido)
+const _LIGA_FIJA = { name: 'COPA CATALUNYA MASCULINA · FASE PRÈVIA · 02', like: 'COPA CATALUNYA MASCULINA%FASE PR%VIA%02%', season: '2026-27' };
+const _seasonOfRow = r => { const m = String(r.match_date || '').match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/) || String(r.match_date || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) { const iso = m[1].length === 4, y = +(iso ? m[1] : m[3]), mo = +m[2], sy = mo >= 8 ? y : y - 1; return `${sy}-${String(sy + 1).slice(-2)}`; }
+  const s = String(r.season || '').match(/(20\d\d)/); return s ? `${s[1]}-${String(+s[1] + 1).slice(-2)}` : ''; };
+async function _baLeagueSync(rival, client) {
+  client = client || supabase; if (!client) return 0;
+  const todo = [{ comp: _LIGA_FIJA.name, q: q => q.ilike('competition', _LIGA_FIJA.like), season: _LIGA_FIJA.season }];
+  let got = 0;
+  for (const t of todo) got += await _baLeagueSyncComp(t.comp, t.q, client, t.season);
+  return got;
+}
+async function _baLeagueSyncComp(comp, filt, client, season) {
+  const db = 'bascat_liga_' + comp.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').slice(0, 60);
+  const full = id => { const m = S.matches.find(x => String(x.id) === String(id)); return m && !m._light; };   // ya está entero (Claret / rival)
+  const add = rows => { const nw = rows.filter(r => r && !full(r.id)); if (nw.length) { _loadMatchRows(nw); _rehashSome(nw); } return nw.length; };
+  let cached = []; try { cached = await _IDB.all(db) || []; } catch (e) {}
+  if (cached.length) add(cached);
+  // servidor: ids + fecha de cambio de esa competición (pocos KB)
+  const srv = new Map();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await filt(client.from('matches').select('id,updated_at,match_date,season')).range(from, from + 999);
+    if (error) throw error;
+    (data || []).forEach(r => { if (!season || _seasonOfRow(r) === season) srv.set(String(r.id), r.updated_at || ''); });   // solo esa temporada
+    if (!data || data.length < 1000) break;
+  }
+  const have = new Map(cached.map(r => [String(r.id), r._u || '']));
+  const gone = [...have.keys()].filter(id => !srv.has(id));
+  if (gone.length) { _removeMatchIds(gone.filter(id => !full(id))); try { await _IDB.del(db, gone); } catch (e) {} }
+  const need = [...srv.entries()].filter(([id, u]) => !full(id) && have.get(id) !== u).map(([id]) => id);
+  let got = 0;
+  for (let i = 0; i < need.length; i += 40) {
+    const { data, error } = await client.from('matches').select(_LIGA_SEL).in('id', need.slice(i, i + 40));
+    if (error) throw error;
+    const rows = (data || []).map(r => { const o = { ...r, _light: true, _u: r.updated_at || '' }; delete o.updated_at;
+      ['scoreHome', 'scoreAway'].forEach(k => { if (o[k] != null) o[k] = Number(o[k]); });
+      ['group', 'shots', 'placedShots', 'category', 'type'].forEach(k => { if (o[k] == null) delete o[k]; }); return o; });
+    try { await _IDB.put(db, rows); } catch (e) {}
+    got += add(rows);
+  }
+  if (got || cached.length) _refreshAfterSync();
+  console.log(`🏀 Liga del rival (${comp}): ${cached.length} en caché, ${got} descargados`);
+  return got;
+}
+window.__baLeagueSync = (r, c) => _baLeagueSync(r, c);
+
 async function ldLS() {
   // 🛑 TELÓN GLOBAL 🛑
   let telon = document.getElementById('telon-global');
@@ -18404,6 +18542,8 @@ async function ldLS() {
           }
           _refreshAfterSync();
           if(telon) { telon.style.transition = "opacity 0.2s ease"; telon.style.opacity = "0"; setTimeout(() => telon.remove(), 250); }
+          // después, sin bloquear: la Copa Catalunya del Claret y la liga del rival (para comparar con los 14 equipos)
+          _baLeagueSync(rivalSemana).catch(e => console.warn('Liga del rival no disponible:', e));
           
       } else {
           
@@ -18512,6 +18652,7 @@ async function svL() {
         const matchesToUpsert = [];
         const _byM = _shotsByMatch();
         for (const m of [...S.matches, ...(S.videoLibs || [])]) {
+          if (m && m._light) continue;   // partidos ligeros de la liga (modo jugador): NUNCA se suben, pisarían el partido entero
           const mIdStr = String(m.id);
           const placedShots = _byM.get(mIdStr) || [];
           const fullMatch = { ...m, placedShots };
@@ -26409,6 +26550,8 @@ Acta Canvis
     ctx.strokeStyle = 'rgba(255,100,70,.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(BX, BY + 11, 12, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = lc; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(BX, CH - PAD, 1.8 * SC, Math.PI, 0, false); ctx.stroke();
   }
+  // piezas para otros mapas (cruce del partido, lo que concede): zonas, líneas, colores
+  window.__baZoneKit = { shotZone: s => shotZone(s), lines: ctx => appCourtLines(ctx), vsColor: t => vsColor(t), tOf: (p, l) => tOf(p, l), rgb: c => rgb(c), ZN, CW, CH, ok: s => ok(s) };
   function drawZoneLike(ctx, shots) {
     ctx.fillStyle = '#0b0b20'; ctx.fillRect(0, 0, CW, CH);
     const zs = {}; shots.forEach(s => { const z = shotZone(s); (zs[z] = zs[z] || { m: 0, a: 0 }).a++; if (s.made) zs[z].m++; });
@@ -26871,7 +27014,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     if (u && (await pinHash(u.uid, L.pin)) === u.pin) { enter(u.uid); return; }
     login = { ...L, pin: '', err: 'PIN incorrecto' }; render();
   }
-  function enter(uid) { UID = uid; try { localStorage.setItem(LS_UID, uid); } catch (e) { } login = { step: 'list', pin: '', err: '' }; curJ = null; render(); resetView(); }
+  function enter(uid) { setTimeout(() => logVisit(true), 0); UID = uid; try { localStorage.setItem(LS_UID, uid); } catch (e) { } login = { step: 'list', pin: '', err: '' }; curJ = null; render(); resetView(); }
 
   // ── pantalla de la jornada ──
   let spy = false;   // staff: ver las elecciones de todos antes del partido (botón abajo del todo; se apaga al recargar)
@@ -26912,12 +27055,13 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
             <li>Los resultados se ponen solos con el acta o el directo.</li></ul></details>
         </aside>
       </div>
-      ${isStaff() ? `<div class="q-spyw"><button type="button" class="q-spy${spy ? ' on' : ''}" id="q-spy">${spy ? '🙈 Ocultar lo que ha elegido cada uno' : '👁 Ver lo que ha elegido cada uno · solo staff'}</button></div>` : ''}`;
+      ${isStaff() ? `<div class="q-spyw"><button type="button" class="q-spy" id="q-seen">🕒 Quién entra a la web · solo staff</button><button type="button" class="q-spy${spy ? ' on' : ''}" id="q-spy">${spy ? '🙈 Ocultar lo que ha elegido cada uno' : '👁 Ver lo que ha elegido cada uno · solo staff'}</button></div>` : ''}`;
     setSave(saveState);
     el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { curJ = Math.min(CAL.length, Math.max(FIRST_J, curJ + +b.dataset.j)); render(); });
     $('#q-out').onclick = () => { if (!confirm('¿Salir de tu usuario en este móvil? Para volver a entrar te pedirá el PIN.')) return; UID = null; try { localStorage.removeItem(LS_UID); } catch (e) { } render(); };
     $('#q-wa-mine').onclick = () => share(waMine(J));
     $('#q-std').onclick = showStandings;
+    const sn = $('#q-seen'); if (sn) sn.onclick = showSeen;
     const sp = $('#q-spy'); if (sp) sp.onclick = () => { spy = !spy; render(); if (spy) el.querySelector('.q-list').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     bindCards(el);
   }
@@ -27016,7 +27160,52 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   new MutationObserver(playerSwitch).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', playerSwitch); else playerSwitch();
 
-  window.__baQuiniDbg = { autoResults, resultOf, D: () => D };
+  // ── Registro de entradas: quién entra a la web y cuándo (con el usuario de la quiniela de ese móvil) ──
+  // Fila «acceso_<id>» en metadata: últimas 200 entradas. Como mucho una cada 30 min por móvil, para no llenarlo.
+  const LS_SEEN = 'ba_seen_last', GAP = 30 * 60 * 1000;
+  async function logVisit(force) {
+    const c = sb(); if (!c || !UID) return false;
+    let last = 0; try { last = +localStorage.getItem(LS_SEEN) || 0; } catch (e) { }
+    if (!force && Date.now() - last < GAP) return false;
+    try { localStorage.setItem(LS_SEEN, String(Date.now())); } catch (e) { }
+    const u = D.users[UID], v = { t: Date.now(), r: isStaff() ? 'staff' : 'jugador', d: matchMedia('(pointer: coarse)').matches ? 'móvil' : 'ordenador' };
+    try {
+      const cur = await c.from('metadata').select('data').eq('id', 'acceso_' + UID).maybeSingle();
+      const old = (cur && cur.data && cur.data.data) || {};
+      const visits = [v, ...(old.visits || [])].slice(0, 200);
+      const { error } = await c.from('metadata').upsert({ id: 'acceso_' + UID, data: { uid: UID, name: u ? u.name : (old.name || UID), col: u ? u.col : old.col, last: v.t, visits } });
+      return !error;
+    } catch (e) { return false; }
+  }
+  // al abrir la web (cuando ya está la conexión) y al volver a la pestaña
+  (function waitSb(n) { if (sb()) { logVisit(false); return; } if (n < 60) setTimeout(() => waitSb(n + 1), 500); })(0);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) logVisit(false); });
+
+  const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const when = t => { const d = new Date(t), now = new Date(), hm = d.toTimeString().slice(0, 5), y = new Date(now); y.setDate(now.getDate() - 1);
+    const same = (a, b) => a.toDateString() === b.toDateString();
+    return same(d, now) ? `hoy ${hm}` : same(d, y) ? `ayer ${hm}` : `${DIAS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1} ${hm}`; };
+  const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'ahora' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  async function showSeen() {
+    if (!isStaff()) return;
+    const ov = document.createElement('div'); ov.className = 'q-modal';
+    ov.innerHTML = `<div class="q-mbox q-seen" role="dialog" aria-label="Quién entra a la web"><header><b>🕒 Quién entra a la web</b><button type="button" class="q-mx" aria-label="Cerrar">✕</button></header><div class="q-seenb"><p class="q-mut">Cargando…</p></div></div>`;
+    ov.onclick = e => { if (e.target === ov || e.target.closest('.q-mx')) ov.remove(); };
+    document.body.appendChild(ov);
+    const box = ov.querySelector('.q-seenb'), c = sb();
+    let rows = [];
+    try { const r = c ? await c.from('metadata').select('id,data').like('id', 'acceso_%') : { data: [] }; rows = ((r && r.data) || []).map(x => x.data).filter(x => x && x.visits && x.visits.length); } catch (e) { }
+    const wk = Date.now() - 7 * 864e5, seen = new Set(rows.map(r => r.uid));
+    rows.sort((a, b) => (b.last || 0) - (a.last || 0));
+    const never = Object.values(D.users).filter(u => !seen.has(u.uid)).sort((a, b) => a.name.localeCompare(b.name));
+    box.innerHTML = (rows.length ? rows.map((r, i) => { const v7 = r.visits.filter(v => v.t >= wk).length, l = r.visits[0];
+      return `<details class="q-sr"><summary>${av({ name: r.name, col: r.col })}<span class="nm">${esc(r.name)}</span><span class="w"><b>${when(r.last)}</b><small>${ago(r.last)} · ${l.d === 'móvil' ? '📱' : '💻'}${l.r === 'staff' ? ' · staff' : ''}</small></span><span class="n" title="Entradas en los últimos 7 días">${v7}<small>7 días</small></span></summary>
+        <ol>${r.visits.slice(0, 25).map(v => `<li>${when(v.t)} <small>${v.d === 'móvil' ? '📱' : '💻'} ${v.r}</small></li>`).join('')}</ol></details>`; }).join('') : '<p class="q-mut">Todavía no hay entradas registradas.</p>')
+      + (never.length ? `<p class="q-mut q-never">Sin entradas registradas: ${never.map(u => esc(u.name)).join(', ')}</p>` : '')
+      + `<p class="q-mut">Solo se registran los móviles u ordenadores donde alguien ha entrado con su usuario de la quiniela (como mucho una entrada cada 30 min).</p>`;
+  }
+
+  window.__baQuiniDbg = { autoResults, resultOf, D: () => D, logVisit };
   window.baQuiniRender = async () => { render(); if (await pull()) render(); };
   window.baQuiniOpen = () => { if (window.baShowPage) window.baShowPage('t-quini'); };
   setInterval(() => { const t = $('#t-quini'); if (t && t.classList.contains('active') && !document.hidden && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#q-main input')))
@@ -27044,7 +27233,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   // temporada como «2026-27» venga como venga («2026-2027», «2026/27», «26-27», vacía → por la fecha)
   const nSeason = s => { const t = String(s || ''); let m = t.match(/(20\d\d)/); if (m) return `${m[1]}-${String(+m[1] + 1).slice(-2)}`; m = t.match(/\b(\d\d)\s*[-/]\s*\d\d\b/); return m ? `20${m[1]}-${String(+m[1] + 1).slice(-2)}` : ''; };
   const dateAny = d => { const s = String(d || ''); let m = s.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/); if (m) return new Date(+m[3], +m[2] - 1, +m[1]); m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
-  const seasonOf = m => { const s = nSeason(m.season); if (s) return s; const d = dateAny(m.date); if (!d) return ''; const y = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; return `${y}-${String(y + 1).slice(-2)}`; };
+  // la temporada sale de la FECHA (fiable); la etiqueta guardada solo si no hay fecha (el importador puede guardar la temporada que estuviera elegida en Importar)
+  const seasonOf = m => { const d = dateAny(m.date); if (d) { const y = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; return `${y}-${String(y + 1).slice(-2)}`; } return nSeason(m.season); };
   const sameLeague = (m, comp, grp, season) => (!comp || nComp(m.competition) === nComp(comp)) && (!grp || nGrp(m.group) === nGrp(grp)) && (!season || !nSeason(season) || !seasonOf(m) || seasonOf(m) === nSeason(season));   // sin temporada ni fecha: cuenta
 
   // escudo: los del grupo (quiniela) o un círculo con iniciales
@@ -27102,15 +27292,15 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       ['pace', 'Ritmo', 'Posesiones por partido (estimadas). Más = juego más rápido', t => ADV(t) ? t.poss / t.ga : null, fmt1, -1],
     ]],
     ['Tiro', [
-      ['t3', 'Triples', 'Triples anotados por partido', t => t.gp ? (t.o.t3m || 0) / t.gp : null, fmt2, -1],
-      ['t3a', 'Intentos de triple', 'Triples intentados por partido', t => ADV(t) ? (t.a.t3a || 0) / t.ga : null, fmt2, -1],
-      ['t3p', '% de triples', 'Triples anotados / intentados', t => ADV(t) ? pct(t.a.t3m, t.a.t3a) : null, fmtP, -1],
-      ['t2', 'Tiros de 2', 'Canastas de 2 por partido', t => t.gp ? (t.o.t2m || 0) / t.gp : null, fmt2, -1],
-      ['t2a', 'Intentos de 2', 'Tiros de 2 intentados por partido', t => ADV(t) ? (t.a.t2a || 0) / t.ga : null, fmt2, -1],
-      ['t2p', '% de tiros de 2', 'Tiros de 2 anotados / intentados', t => ADV(t) ? pct(t.a.t2m, t.a.t2a) : null, fmtP, -1],
-      ['tl', 'Tiros libres', 'Tiros libres anotados por partido', t => t.gp ? (t.o.ftm || 0) / t.gp : null, fmt2, -1],
-      ['tla', 'Intentos de TL', 'Tiros libres intentados por partido', t => ADV(t) ? (t.a.fta || 0) / t.ga : null, fmt2, -1],
-      ['tlp', '% de tiros libres', 'Tiros libres anotados / intentados', t => ADV(t) ? pct(t.a.ftm, t.a.fta) : null, fmtP, -1],
+      ['t3', 'Aciertos T3', 'Triples anotados por partido', t => t.gp ? (t.o.t3m || 0) / t.gp : null, fmt2, -1],
+      ['t3a', 'Intentos T3', 'Triples intentados por partido', t => ADV(t) ? (t.a.t3a || 0) / t.ga : null, fmt2, -1],
+      ['t3p', '% T3', 'Triples anotados / intentados', t => ADV(t) ? pct(t.a.t3m, t.a.t3a) : null, fmtP, -1],
+      ['t2', 'Aciertos T2', 'Canastas de 2 por partido', t => t.gp ? (t.o.t2m || 0) / t.gp : null, fmt2, -1],
+      ['t2a', 'Intentos T2', 'Tiros de 2 intentados por partido', t => ADV(t) ? (t.a.t2a || 0) / t.ga : null, fmt2, -1],
+      ['t2p', '% T2', 'Tiros de 2 anotados / intentados', t => ADV(t) ? pct(t.a.t2m, t.a.t2a) : null, fmtP, -1],
+      ['tl', 'Aciertos TL', 'Tiros libres anotados por partido', t => t.gp ? (t.o.ftm || 0) / t.gp : null, fmt2, -1],
+      ['tla', 'Intentos TL', 'Tiros libres intentados por partido', t => ADV(t) ? (t.a.fta || 0) / t.ga : null, fmt2, -1],
+      ['tlp', '% TL', 'Tiros libres anotados / intentados', t => ADV(t) ? pct(t.a.ftm, t.a.fta) : null, fmtP, -1],
       ['efg', 'eFG%', 'Acierto de campo ajustado: el triple vale 1,5 tiros de 2', t => ADV(t) ? efg(t.a) : null, fmtP, -1],
       ['ts', 'True shooting %', 'Acierto real contando triples y tiros libres: PTS / (2 × (TC + 0,44 × TL))', t => ADV(t) ? pct(t.ptsA, 2 * ((t.a.t2a || 0) + (t.a.t3a || 0) + 0.44 * (t.a.fta || 0))) : null, fmtP, -1],
       ['r3', 'Tasa de triples', '% de los tiros de campo que son triples', t => ADV(t) ? pct(t.a.t3a, (t.a.t2a || 0) + (t.a.t3a || 0)) : null, fmtP, -1],
@@ -27118,7 +27308,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     ]],
     ['Defensa', [
       ['oefg', 'eFG% del rival', 'Acierto ajustado que le dejan al rival (menos es mejor)', t => ADV(t) ? efg(t.oa) : null, fmtP, 1],
-      ['o3p', '% triples del rival', 'Acierto en triples que le dejan al rival (menos es mejor)', t => ADV(t) ? pct(t.oa.t3m, t.oa.t3a) : null, fmtP, 1],
+      ['o3p', '% T3 del rival', 'Acierto en triples que le dejan al rival (menos es mejor)', t => ADV(t) ? pct(t.oa.t3m, t.oa.t3a) : null, fmtP, 1],
       ['ofta', 'TL concedidos', 'Tiros libres que intenta el rival cada 100 tiros de campo (menos es mejor)', t => ADV(t) ? pct(t.oa.fta, (t.oa.t2a || 0) + (t.oa.t3a || 0)) : null, fmt1, 1],
       ['fc', 'Menos faltas', 'Faltas cometidas por partido', t => t.gp ? (t.o.fc || 0) / t.gp : null, fmt2, 1],
     ]],
@@ -27228,8 +27418,9 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const [comp, grp, season] = best[0].split('§');
     const ms = ((window.S && window.S.matches) || []).filter(m => !fr(m) && m.competition && sameLeague(m, comp, grp, season));
     const table = teamTable(ms), stand = table.slice().sort(standOrder);
-    return { comp, grp, season, table, stand };
+    return { comp, grp, season, table, stand, ms };
   }
+  window.__baLeagueCtx = m => leagueCtx(m); window.__baSameTeam = (a, b) => sameTeam(a, b);   // los usa zonas.js
   const rowIn = (tbl, n) => tbl.find(t => t.name === n) || tbl.find(t => sameTeam(t.name, n));
   const ALLM = Object.fromEntries(CARDS.flatMap(([, cs]) => cs).map(c => [c[0], c]));
   // las mismas estadísticas que tenía la comparativa de siempre (AST/PER/TAP/ROB solo si los dos equipos tienen datos del directo)
@@ -27275,6 +27466,86 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       <div class="rc-foot">Barra más larga = mejor en esa estadística (también en las de «menos es mejor», como puntos en contra). El nº es la posición en la liga.${league && league.length < 8 ? ' ⚠️ Solo hay importados partidos de ' + league.length + ' equipos de este grupo.' : ''}</div></div>`;
   };
 
+  // ── Cruce del partido (solo staff): lo que hace cada uno AJUSTADO por los rivales que ha tenido + lo que concede ──
+  // Ajuste: en cada partido se compara lo que hizo el equipo con lo que ese rival suele conceder en SUS OTROS partidos.
+  // Esperable = media de la liga + ajuste del ataque de uno + ajuste de la defensa del otro.
+  const MU = [
+    ['pts', 'Puntos', 'n', 4, 'anotación'], ['efg', 'eFG%', 'p', 3, 'eFG%'], ['t3p', '% de triple', 'p', 3, '% de triple'], ['t3a', 'Intentos de triple', 'n', 2, 'volumen de triple'],
+    ['t2p', '% de 2', 'p', 3, '% de 2'], ['fta', 'Tiros libres intentados', 'n', 2, 'tiros libres provocados'],
+  ];
+  function aggSides(ss) {
+    const n = ss.length; if (!n) return null; const s = k => ss.reduce((a, x) => a + (x[k] || 0), 0);
+    const t2m = s('t2m'), t2a = s('t2a'), t3m = s('t3m'), t3a = s('t3a');
+    return { pts: s('pts') / n, t3a: t3a / n, fta: s('fta') / n, t3p: t3a ? t3m / t3a * 100 : null, t2p: t2a ? t2m / t2a * 100 : null, efg: (t2a + t3a) ? (t2m + t3m + 0.5 * t3m) / (t2a + t3a) * 100 : null };
+  }
+  function gameLog(ms) {   // un registro por equipo y partido, solo si los dos equipos tienen tiros intentados
+    const L = [];
+    ms.forEach((m, i) => { if (m.scoreHome == null || m.scoreAway == null) return; const H = sideOf(m, true), A = sideOf(m, false); if (!H.att || !A.att) return;
+      L.push({ g: i, team: m.homeTeam, opp: m.awayTeam, me: H, op: A }, { g: i, team: m.awayTeam, opp: m.homeTeam, me: A, op: H }); });
+    return L;
+  }
+  function adjusted(L, name) {
+    const mine = L.filter(r => sameTeam(r.team, name)); if (!mine.length) return null;
+    const off = aggSides(mine.map(r => r.me)), all = aggSides(mine.map(r => r.op));
+    const eo = {}, ed = {};
+    MU.forEach(([k]) => {   // por partido: lo que concede / lo que mete ese rival en sus otros partidos
+      const xo = [], xd = [];
+      mine.forEach(r => { const other = L.filter(x => sameTeam(x.team, r.opp) && x.g !== r.g); if (!other.length) return;
+        const c = aggSides(other.map(x => x.op)), o = aggSides(other.map(x => x.me)); if (c && c[k] != null) xo.push(c[k]); if (o && o[k] != null) xd.push(o[k]); });
+      eo[k] = xo.length ? xo.reduce((a, b) => a + b, 0) / xo.length : null; ed[k] = xd.length ? xd.reduce((a, b) => a + b, 0) / xd.length : null;
+    });
+    return { n: mine.length, off, all, eo, ed };
+  }
+  window.__baMatchupHTML = ({ my, rival, rivMatches, myHome }) => {
+    const ctx = leagueCtx(rivMatches); if (!ctx) return '';
+    const L = gameLog(ctx.ms), lg = aggSides(L.map(r => r.me)), R = adjusted(L, rival), Y = adjusted(L, my);
+    if (!R || !Y || !lg) return '';
+    const fmt = (v, t) => v == null ? '—' : (t === 'p' ? nf(v, 1) + '%' : nf(v, 1)), sg = (v, t) => v == null ? '' : `${v > 0 ? '+' : ''}${nf(v, 1)}${t === 'p' ? '' : ''}`;
+    const rName = esc(rival), yName = esc(my);
+    // ajuste del ataque (real − lo que conceden sus rivales) y de la defensa (concedido − lo que meten sus rivales)
+    const aO = (T, k) => T.off[k] != null && T.eo[k] != null ? T.off[k] - T.eo[k] : (T.off[k] != null ? T.off[k] - lg[k] : 0);
+    const aD = (T, k) => T.all[k] != null && T.ed[k] != null ? T.all[k] - T.ed[k] : (T.all[k] != null ? T.all[k] - lg[k] : 0);
+    const keys = [], adj = { att: [{}, {}], def: [{}, {}] };   // ajustes por estadística: los usa el cruce por zonas
+    const zl = (dir, k, kind, sign) => (window.__baZoneLink ? window.__baZoneLink(ctx, rival, my, dir, k, kind, sign) : '');
+    const withZone = (h, z) => (z ? h.replace(/\.$/, '') + z : h);   // la clave de estadística + la zona que la explica
+    const block = (A, D, aName, dName, ours) => MU.map(([k, lab, t, th, low]) => {
+      if (lg[k] == null) return '';
+      // con pocos partidos el ajuste se «encoge» hacia la media de la liga: peso = partidos ÷ (partidos + 4)
+      const oa = aO(A, k), da = aD(D, k), wA = A.n / (A.n + 4), wD = D.n / (D.n + 4);
+      const exp = Math.max(0, lg[k] + oa * wA + da * wD), dv = exp - lg[k];
+      const good = ours ? dv > 0 : dv < 0, strong = Math.abs(dv) >= th, dir = ours ? 1 : 0;
+      if (A.eo[k] != null) adj.att[dir][k] = oa; if (D.ed[k] != null) adj.def[dir][k] = da;
+      // claves: lo que más se sale de la media
+      if (Math.abs(oa) * wA >= th * 0.6) keys.push({ s: Math.abs(oa) * wA / th, h: withZone(ours
+        ? `${oa > 0 ? '💪' : '⚠️'} Nuestro <b>${low}</b> ${oa > 0 ? 'es mejor' : 'es peor'} de lo que parece: ${fmt(A.off[k], t)} contra rivales que conceden ${fmt(A.eo[k], t)} (<b>${sg(oa, t)}</b>).`
+        : `${oa > 0 ? '🔥' : '🧊'} Su <b>${low}</b> ${oa > 0 ? 'es real: rinden por encima' : 'está inflado: rinden por debajo'} de lo que conceden sus rivales: ${fmt(A.off[k], t)} vs ${fmt(A.eo[k], t)} (<b>${sg(oa, t)}</b>).`, zl(dir, k, 'att', Math.sign(oa))) });
+      if (Math.abs(da) * wD >= th * 0.6) keys.push({ s: Math.abs(da) * wD / th, h: withZone(ours
+        ? `${da < 0 ? '🛡️' : '🚪'} Su defensa ${da < 0 ? 'aprieta' : 'concede'} en <b>${low}</b>: dejan ${fmt(D.all[k], t)} a rivales que suelen hacer ${fmt(D.ed[k], t)} (<b>${sg(da, t)}</b>).`
+        : `${da < 0 ? '🛡️' : '🚪'} Nuestra defensa ${da < 0 ? 'aprieta' : 'concede'} en <b>${low}</b>: dejamos ${fmt(D.all[k], t)} a rivales que suelen hacer ${fmt(D.ed[k], t)} (<b>${sg(da, t)}</b>).`, zl(dir, k, 'def', Math.sign(da))) });
+      return `<div class="cx-row${strong ? (good ? ' g' : ' b') : ''}">
+        <span class="cx-lab">${lab}</span>
+        <span class="cx-c"><b>${fmt(A.off[k], t)}</b><small>${A.eo[k] != null ? `ajust. <i>${sg(oa, t)}</i>` : ''}</small></span>
+        <span class="cx-c"><b>${fmt(D.all[k], t)}</b><small>${D.ed[k] != null ? `ajust. <i>${sg(da, t)}</i>` : ''}</small></span>
+        <span class="cx-c cx-x"><b>~${fmt(exp, t)}</b><small>liga ${fmt(lg[k], t)}</small></span></div>`;
+    }).join('');
+    const head = (a, d) => `<div class="cx-row cx-hd"><span></span><span>${a}<small>ataque</small></span><span>${d}<small>concede</small></span><span>Esperable<small>en el partido</small></span></div>`;
+    const b1 = block(R, Y, rName, yName, false), b2 = block(Y, R, yName, rName, true);
+    keys.sort((a, b) => b.s - a.s);
+    const few = Math.min(R.n, Y.n) < 4;
+    return `<div class="card cx-card">
+      <div class="ct">🎯 Cruce del partido <span class="cx-staff">Solo staff</span></div>
+      <p class="cx-intro">Cada estadística está <b>ajustada por los rivales</b> que ha tenido cada equipo: se compara lo que hizo en cada partido con lo que ese rival suele conceder en sus otros partidos. <b>Esperable</b> = media de la liga + ajuste de un ataque + ajuste de la otra defensa (con pocos partidos se acerca más a la media de la liga, para que un partido raro no lo dispare).</p>
+      ${few ? `<div class="cx-warn">⚠️ Muestra pequeña (${R.n} y ${Y.n} partidos con datos). Tómalo como orientación; a partir de 5–6 jornadas es más fiable.</div>` : ''}
+      ${keys.length ? `<div class="cx-keys"><h5>Claves</h5>${keys.slice(0, 6).map(x => `<p>${x.h}</p>`).join('')}</div>` : ''}
+      <div class="cx-grid">
+        <section><h5>Su ataque contra nuestra defensa</h5>${head(rName, yName)}${b1}</section>
+        <section><h5>Nuestro ataque contra su defensa</h5>${head(yName, rName)}${b2}</section>
+      </div>
+      ${window.__baZoneCross ? window.__baZoneCross(ctx, rival, my, adj) : ''}
+      <p class="cx-foot">Verde = favorable para nosotros · rojo = desfavorable. «ajust.» = diferencia con lo que conceden (o meten) sus rivales: + en ataque es bueno, − en defensa es bueno. Solo partidos de la liga con tiros intentados de los dos equipos.</p>
+    </div>`;
+  };
+
   // ── clasificación ──
   window.__baStandingsHTML = ({ liga, g, matches }) => {
     const T = {};
@@ -27300,6 +27571,221 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     return `<div class="bs-wrap"><div class="bs-ttl">${esc(liga)} · Grupo ${esc(g)} <span>· ${matches.length} partido${matches.length !== 1 ? 's' : ''}</span></div>
       <div class="bs-scroll"><table class="bs-tbl"><thead><tr><th><span class="l">Posición</span><span class="s">#</span></th><th class="tm">Equipo</th><th><span class="l">Jugados</span><span class="s">PJ</span></th><th><span class="l">Ganados</span><span class="s">G</span></th><th><span class="l">Perdidos</span><span class="s">P</span></th><th>% Vict.</th><th>P. Favor</th><th>P. Contra</th><th>+/-</th><th>Local</th><th>Visitante</th><th>Racha</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>`;
+  };
+})();
+
+/* BasketApp · zonas de tiro: lo que hace y lo que CONCEDE cada equipo por zona, y el cruce del partido por zonas.
+   Zonas = las 9 de la FCBQ (las mismas de los mapas de la app). El acierto por zona se «encoge» hacia la media de
+   la liga en esa zona según los intentos (15 tiros de la liga de peso; el esperable, como mucho ±15 puntos sobre la liga), para que 2/3 no parezca un 67% real.
+   Esperable en el cruce = liga + (lo que mete el atacante − liga) + (lo que concede el defensor − liga). */
+(function () {
+  'use strict';
+  if (window.__baZonas) return; window.__baZonas = true;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const K = () => window.__baZoneKit;
+  const ZORD = ['5', '6', '7', '8', '9', '1', '3', '4', '2'];
+  const PTS = z => (+z >= 5 ? 3 : 2);
+  const ZN = z => (K() ? K().ZN[z] : z);
+  const P = v => Math.round(v * 100) + '%';
+  const MINZ = 4;   // tiros mínimos en una zona para colorearla o sacar una frase
+
+  function shotsOf(m) {
+    const extra = ((window.S && window.S.shots) || []).filter(s => String(s.mId || s.matchId) === String(m.id));
+    return [...(m.shots || []), ...extra].filter(s => K().ok(s));
+  }
+  const add = (acc, z, made) => { acc.a++; if (made) acc.m++; const e = acc.z[z] || (acc.z[z] = { a: 0, m: 0 }); e.a++; if (made) e.m++; };
+  const blank = n => ({ name: n, a: 0, m: 0, z: {} });
+  // por equipo: lo que tira (own), lo que le tiran (con) y por jugador; y la liga
+  function zoneTable(ms) {
+    const T = {}, lg = blank('liga');
+    const get = n => T[n] || (T[n] = { name: n, own: blank(n), con: blank(n), pl: {}, g: new Set() });
+    ms.forEach(m => shotsOf(m).forEach(s => {
+      const tn = s.team === 'home' ? m.homeTeam : s.team === 'away' ? m.awayTeam : null; if (!tn) return;
+      const on = tn === m.homeTeam ? m.awayTeam : m.homeTeam, z = K().shotZone(s);
+      add(lg, z, s.made); add(get(tn).own, z, s.made); add(get(on).con, z, s.made); get(tn).g.add(m.id); get(on).g.add(m.id);
+      if (s.player) { const pl = get(tn).pl; add(pl[s.player] || (pl[s.player] = blank(s.player)), z, s.made); }
+    }));
+    lg.tg = Object.values(T).reduce((a, t) => a + t.g.size, 0);   // partidos-equipo de la liga
+    return { T, lg };
+  }
+  const find = (T, n) => T[n] || Object.values(T).find(t => window.__baSameTeam && window.__baSameTeam(t.name, n));
+  const lgP = (lg, z) => { const e = lg.z[z]; return e && e.a >= 10 ? e.m / e.a : (lg.a ? lg.m / lg.a : 0.45); };
+  const SHR = 15;   // peso de la liga: con 15 tiros en una zona, la mitad es lo del equipo y la mitad la media
+  const sp = (e, l) => ((e ? e.m : 0) + SHR * l) / ((e ? e.a : 0) + SHR);   // acierto encogido hacia la liga
+  const pc = e => (e && e.a ? `${P(e.m / e.a)} (${e.m}/${e.a})` : 'sin tiros');
+  const share = (acc, z) => (acc.a ? (acc.z[z] ? acc.z[z].a : 0) / acc.a : 0);
+
+  // un sentido del cruce: A ataca, D defiende
+  function cross(A, D, lg) {
+    return ZORD.map(z => {
+      const l = lgP(lg, z), aE = A.own.z[z] || { a: 0, m: 0 }, dE = D.con.z[z] || { a: 0, m: 0 };
+      const exp = Math.min(l + 0.15, Math.max(l - 0.15, l + (sp(aE, l) - l) + (sp(dE, l) - l)));   // como mucho ±15 puntos sobre la liga
+      const sh = (share(A.own, z) + share(D.con, z)) / 2;
+      return { z, l, aE, dE, exp, shA: share(A.own, z), shD: share(D.con, z), sh, val: sh * PTS(z) * (exp - l), n: aE.a + dE.a, gA: A.g.size || 1, gD: D.g.size || 1 };
+    });
+  }
+  // ── presentación en lenguaje de pizarra: colores desde NUESTRO punto de vista y fracciones en vez de % ──
+  // nombres de zona en castellano (E. = izquierda del dibujo, D. = derecha)
+  const ZT = { 1: 'Media distancia izquierda', 2: 'Bajo el aro', 3: 'Media distancia frontal', 4: 'Media distancia derecha', 5: 'Esquina izquierda', 6: '45º izquierdo (triple)', 7: 'Triple frontal', 8: '45º derecho (triple)', 9: 'Esquina derecha' };
+  const ZL = { 1: 'la media distancia izquierda', 2: 'debajo del aro', 3: 'la media distancia frontal', 4: 'la media distancia derecha', 5: 'la esquina izquierda', 6: 'el 45º izquierdo de tres', 7: 'el triple frontal', 8: 'el 45º derecho de tres', 9: 'la esquina derecha' };
+  const de = e => (e && e.a ? `${e.m} de ${e.a}` : 'sin tiros');
+  const freq = s => (s < 0.04 ? 'casi nunca' : `1 de cada ${Math.max(2, Math.round(1 / s))} tiros`);
+  const lvl = (e, l) => { if (!e || e.a < 3) return 0; const d = sp(e, l) - l; return d >= 0.07 ? 2 : d >= 0.03 ? 1 : d <= -0.05 ? -1 : 0; };
+  // palabras según el nivel (2 mucho · 1 bastante · 0 normal · −1 poco)
+  const W = {
+    theyMake: { 2: 'la meten mucho', 1: 'la meten bien', 0: 'la meten lo normal', '-1': 'les cuesta' },
+    weMake: { 2: 'la metemos mucho', 1: 'la metemos bien', 0: 'la metemos lo normal', '-1': 'nos cuesta' },
+    weAllow: { 2: 'concedemos mucho', 1: 'concedemos bastante', 0: 'concedemos lo normal', '-1': 'la defendemos bien' },
+    theyAllow: { 2: 'conceden mucho', 1: 'conceden bastante', 0: 'conceden lo normal', '-1': 'defienden bien' },
+  };
+  // veredicto de cada zona para nosotros: dir 0 su ataque · 1 nuestro ataque · 2 lo que conceden ellos · 3 lo que concedemos
+  const VERD = [
+    { up: ['bad', 'PELIGRO'], down: ['good', 'CONTROLADA'], sub: r => `ellos ${r.aE.m}/${r.aE.a}` },
+    { up: ['good', 'ATACAR'], down: ['bad', 'EVITAR'], sub: r => `nosotros ${r.aE.m}/${r.aE.a}` },
+    { up: ['good', 'CONCEDEN'], down: ['bad', 'DEFIENDEN'], sub: r => `les meten ${r.dE.m}/${r.dE.a}` },
+    { up: ['bad', 'CONCEDEMOS'], down: ['good', 'DEFENDEMOS'], sub: r => `nos meten ${r.dE.m}/${r.dE.a}` },
+  ];
+  const few = (r, i) => (i < 2 ? r.n < 2 * MINZ : r.n < MINZ);
+  const verdict = (r, i) => { if (few(r, i)) return ['few', '']; const dv = r.exp - r.l; return dv >= 0.04 ? VERD[i].up : dv <= -0.04 ? VERD[i].down : ['mid', 'NORMAL']; };
+  const zE = (r, i) => (i < 2 ? r.aE : r.dE);   // el dato que se pinta: acierto del que ataca (o lo que concede)
+  const zfill = (r, i) => { const e = r && zE(r, i); if (!e || e.a < MINZ) return 'rgba(148,163,184,.13)'; const c = K().vsColor(K().tOf(e.m / e.a, r.l)); return `rgba(${c.map(Math.round).join(',')},.82)`; };
+  const FILL = { bad: 'rgba(239,68,68,.80)', good: 'rgba(34,197,94,.78)', mid: 'rgba(248,250,252,.90)', few: 'rgba(148,163,184,.13)' };
+  function drawMap(cv, rows, i) {
+    const k = K(); if (!k || !cv) return;
+    cv.width = k.CW; cv.height = k.CH; const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#0b0b20'; ctx.fillRect(0, 0, k.CW, k.CH);
+    const by = Object.fromEntries(rows.map(r => [r.z, r])), cen = {};
+    for (let y = 0; y < k.CH; y += 4) for (let x = 0; x < k.CW; x += 4) {
+      const z = k.shotZone({ x: x + 2, y: y + 2 }), r = by[z]; ctx.fillStyle = zfill(r, i); ctx.fillRect(x, y, 4, 4);
+      const c = cen[z] || (cen[z] = { x: 0, y: 0, n: 0 }); c.x += x; c.y += y; c.n++;
+    }
+    k.lines(ctx); ctx.textAlign = 'center';
+    Object.entries(cen).forEach(([z, c]) => {
+      const r = by[z]; if (!r || zE(r, i).a < MINZ) return;
+      // esquinas: pegadas a su esquina (la zona es estrecha); el resto, en el centro de la zona
+      const x = z === '5' ? 38 : z === '9' ? k.CW - 38 : Math.min(k.CW - 46, Math.max(46, c.x / c.n)), y = (z === '5' || z === '9') ? 60 : c.y / c.n;
+      const L = labels(r, i); ctx.fillStyle = '#0f172a'; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 3;
+      ctx.font = i < 2 ? '900 14px system-ui' : '900 16px system-ui'; ctx.strokeText(L[0], x, y - 4); ctx.fillText(L[0], x, y - 4);
+      ctx.font = '700 9.5px system-ui'; [L[1]].forEach((t, j) => { ctx.strokeText(t, x, y + 9 + j * 11); ctx.fillText(t, x, y + 9 + j * 11); });
+    });
+  }
+  // grande: % de acierto del que ataca · pequeño: % que concede el que defiende · tiros por partido (hace vs deja)
+  const pct = e => (e && e.a ? Math.round(e.m / e.a * 100) + '%' : '—');
+  const pg = v => v.toFixed(1).replace('.', ',');
+  function labels(r, i) {   // grande: el %; pequeño: tiros por partido (el que ataca vs lo que deja el que defiende; o recibidos vs liga)
+    if (i < 2) return [`${pct(r.aE)}/${pct(r.dE)}`, `${pg(r.aE.a / r.gA)} vs ${pg(r.dE.a / r.gD)}`];   // acierto del que ataca / lo que concede el que defiende
+    return [pct(r.dE), `${pg(r.dE.a / r.gD)} vs ${pg(r.lgPg)}`];
+  }
+  const KEY = ['Arriba: <b>% de acierto de ellos / % que concedemos</b> en cada zona (el color es el de ellos). Debajo: <b>tiros por partido que hacen ellos vs los que dejamos nosotros</b>.',
+    'Arriba: <b>nuestro % de acierto / % que conceden ellos</b> en cada zona (el color es el nuestro). Debajo: <b>tiros por partido que hacemos nosotros vs los que dejan ellos</b>.',
+    'Número y color: <b>% que les meten</b> en cada zona. Debajo: <b>tiros por partido que reciben vs la media de la liga</b>.',
+    'Número y color: <b>% que nos meten</b> en cada zona. Debajo: <b>tiros por partido que recibimos vs la media de la liga</b>.'];
+  const LEG = '<div class="zx-leg"><span><i style="background:rgb(59,130,246)"></i>por debajo de la liga</span><span><i style="background:#fff;border:1px solid #cbd5e1"></i>como la liga</span><span><i style="background:rgb(255,70,70)"></i>por encima</span><span><i style="background:#1e2235"></i>pocos tiros</span></div>';
+
+  // ── datos del cruce (se calculan una vez y los usan el cruce de estadísticas y el de zonas) ──
+  const G3 = ['5', '6', '7', '8', '9'], G2 = ['1', '2', '3', '4'];
+  const GRP = { t3p: G3, t3a: G3, t2p: G2, efg: ZORD, pts: ZORD };
+  function conRows(T, lg) {
+    return ZORD.map(z => { const l = lgP(lg, z), dE = T.con.z[z] || { a: 0, m: 0 };
+      const le = lg.z[z] || { a: 0, m: 0 };
+      return { z, l, dE, aE: { a: 0, m: 0 }, exp: sp(dE, l), shD: share(T.con, z), ls: share(lg, z), n: dE.a, gD: T.g.size || 1, lgPg: lg.tg ? le.a / lg.tg : 0 }; });
+  }
+  let cache = null;
+  function data(ctx, rival, my) {
+    if (!K() || !ctx) return null;
+    if (cache && cache.ms === ctx.ms && cache.r === rival && cache.m === my) return cache.d;
+    const { T, lg } = zoneTable(ctx.ms), R = find(T, rival), Y = find(T, my);
+    const d = R && Y && R.own.a >= 20 && Y.own.a >= 20 ? { R, Y, lg, dirs: [cross(R, Y, lg), cross(Y, R, lg)], con: [conRows(R, lg), conRows(Y, lg)] } : null;
+    cache = { ms: ctx.ms, r: rival, m: my, d }; return d;
+  }
+  // para las claves de estadísticas: la zona que explica esa estadística
+  // dir 0 = su ataque vs nuestra defensa · dir 1 = nuestro ataque vs su defensa · kind 'att' (el que ataca) o 'def' (el que defiende)
+  window.__baZoneLink = (ctx, rival, my, dir, metric, kind, sign) => {
+    const d = data(ctx, rival, my), grp = GRP[metric]; if (!d || !grp || !sign) return '';
+    const att = kind === 'att', side = r => (att ? r.aE : r.dE);
+    const r = d.dirs[dir].filter(x => grp.includes(x.z) && side(x).a >= MINZ)
+      .map(x => ({ x, dv: sp(side(x), x.l) - x.l })).filter(o => Math.sign(o.dv) === sign)
+      .sort((a, b) => Math.abs(b.dv) * side(b.x).a - Math.abs(a.dv) * side(a.x).a)[0];
+    if (!r) return ''; const z = `<b>${ZL[r.x.z]}</b>`, e = de(side(r.x));
+    if (dir === 0) return att ? (sign > 0 ? ` → sobre todo desde ${z} (${e}).` : ` → les cuesta sobre todo desde ${z} (${e}).`)
+                              : (sign < 0 ? ` → donde mejor defendemos: ${z} (nos meten ${e}).` : ` → donde más concedemos: ${z} (nos meten ${e}).`);
+    return att ? (sign > 0 ? ` → sobre todo desde ${z} (${e}).` : ` → nos cuesta sobre todo desde ${z} (${e}).`)
+               : (sign < 0 ? ` → donde mejor defienden: ${z} (les meten ${e}).` : ` → su agujero: ${z} (les meten ${e}).`);
+  };
+
+  // frase que une la zona con el cruce de estadísticas (sin números)
+  function corr(z, adj, dir, cls) {
+    if (!adj) return ''; const t3 = G3.includes(z), a = adj.att[dir] && adj.att[dir][t3 ? 't3p' : 't2p']; if (a == null) return '';
+    const tipo = t3 ? 'triple' : 'tiro de 2', strong = dir === 0 ? cls === 'bad' : cls === 'good', who = dir === 0 ? 'su' : 'nuestro', whoP = dir === 0 ? 'tiran' : 'tiramos';
+    if (strong && a >= 3) return ` <span class="zx-ctx">✔ Cuadra con el cruce: ${who} ${tipo} es bueno de verdad.</span>`;
+    if (strong && a <= -3) return ` <span class="zx-ctx">⚠ Ojo: en general ${whoP} mal de ${t3 ? 'tres' : 'dos'}, esta zona es la excepción.</span>`;
+    if (!strong && a <= -3) return ` <span class="zx-ctx">✔ Cuadra con el cruce: ${who} ${tipo} en general es flojo.</span>`;
+    if (!strong && a >= 3) return ` <span class="zx-ctx">⚠ Ojo: en general ${whoP} bien de ${t3 ? 'tres' : 'dos'}, aquí no tanto.</span>`;
+    return '';
+  }
+  // frases de zona: las 3 que más pesan (tiros que salen de ahí × puntos de más o de menos)
+  function zoneKeys(rows, dir, adj) {
+    return rows.map(r => ({ r, v: verdict(r, dir) })).filter(o => o.v[0] === 'bad' || o.v[0] === 'good').sort((a, b) => Math.abs(b.r.val) - Math.abs(a.r.val)).slice(0, 3).map(({ r, v }) => {
+      const t = corr(r.z, adj, dir, v[0]), z = `<b>${ZT[r.z]}</b>`;
+      if (dir === 0) return (v[0] === 'bad'
+        ? `🔴 ${z} → <b>zona a cerrar</b>. Tiran desde ahí ${freq(r.shA)} y ${W.theyMake[lvl(r.aE, r.l)]} (${de(r.aE)}). Nosotros ahí ${W.weAllow[lvl(r.dE, r.l)]} (nos meten ${de(r.dE)}).`
+        : `🟢 ${z} → <b>se la podemos dejar</b>. ${W.theyMake[lvl(r.aE, r.l)].replace(/^./, c => c.toUpperCase())} (${de(r.aE)}) y nosotros ahí ${W.weAllow[lvl(r.dE, r.l)]} (nos meten ${de(r.dE)}).`) + t;
+      return (v[0] === 'good'
+        ? `🟢 ${z} → <b>zona para atacar</b>. Ellos ahí ${W.theyAllow[lvl(r.dE, r.l)]} (les meten ${de(r.dE)}) y nosotros ${W.weMake[lvl(r.aE, r.l)]} (${de(r.aE)}).`
+        : `⛔ ${z} → <b>mejor evitarla</b>. Ellos ahí ${W.theyAllow[lvl(r.dE, r.l)]} (les meten ${de(r.dE)}) y nosotros ${W.weMake[lvl(r.aE, r.l)]} (${de(r.aE)}).`) + t;
+    });
+  }
+  function playerKeys(A, D, lg, ours) {
+    const out = [];
+    Object.values(A.pl).forEach(p => ZORD.forEach(z => {
+      const e = p.z[z]; if (!e || e.a < MINZ) return; const l = lgP(lg, z), pp = e.m / e.a, dc = sp(D.con.z[z], l);
+      if (pp >= l + 0.08 && dc >= l - 0.02) out.push({ s: (pp - l) * e.a + (dc - l) * 4, h: ours
+        ? `🏹 Busca a <b>${esc(p.name)}</b> en ${ZL[z]}: mete ${e.m} de ${e.a}, y ellos ahí ${W.theyAllow[lvl(D.con.z[z], l)]}.`
+        : `🎯 Ojo con <b>${esc(p.name)}</b> en ${ZL[z]}: mete ${e.m} de ${e.a}, y nosotros ahí ${W.weAllow[lvl(D.con.z[z], l)]}.` });
+    }));
+    return out.sort((a, b) => b.s - a.s).slice(0, 4).map(x => x.h);
+  }
+  // lo que concede un equipo, en frases sin %
+  const de10 = s => Math.round(s * 10);
+  function conKeys(rows, T, lg, ours) {
+    const keys = [], who = ours ? 'Nos' : 'Les';
+    rows.map(r => ({ r, v: verdict(r, ours ? 3 : 2) })).filter(o => o.v[0] === 'bad' || o.v[0] === 'good').sort((a, b) => Math.abs(b.r.exp - b.r.l) * b.r.n - Math.abs(a.r.exp - a.r.l) * a.r.n).slice(0, 3)
+      .forEach(({ r }) => keys.push(r.exp > r.l ? `🚪 <b>${ZT[r.z]}</b>: ${who.toLowerCase()} meten mucho (${de(r.dE)}).` : `🧱 <b>${ZT[r.z]}</b>: ${ours ? 'la defendemos' : 'la defienden'} bien (${who.toLowerCase()} meten ${de(r.dE)}).`));
+    rows.filter(r => r.n >= MINZ && Math.abs(r.shD - r.ls) >= 0.04).sort((a, b) => Math.abs(b.shD - b.ls) - Math.abs(a.shD - a.ls)).slice(0, 2).forEach(r => keys.push(r.shD > r.ls
+      ? `↗️ ${who} tiran mucho desde ${ZL[r.z]}: ${freq(r.shD)} (lo normal en la liga: ${freq(r.ls)}).`
+      : `↘️ ${who} tiran poco desde ${ZL[r.z]}: ${freq(r.shD)} (lo normal en la liga: ${freq(r.ls)}).`));
+    const s3 = G3.reduce((a, z) => a + share(T.con, z), 0), l3 = G3.reduce((a, z) => a + share(lg, z), 0);
+    if (Math.abs(s3 - l3) >= 0.05) keys.push(`${s3 > l3 ? '🎯' : '🛡️'} ${who} tiran ${s3 > l3 ? 'mucho' : 'poco'} de tres: ${de10(s3)} de cada 10 tiros que ${ours ? 'recibimos' : 'reciben'} son triples (lo normal: ${de10(l3)} de cada 10).`);
+    return keys;
+  }
+  const later = fn => setTimeout(fn, 0);   // los <canvas> se dibujan cuando el HTML ya está en la página
+
+  // ── Cruce por zonas (dentro de «🎯 Cruce del partido», solo staff): 2 cruces + lo que concede cada uno ──
+  window.__baZoneCross = (ctx, rival, my, adj) => {
+    const d = data(ctx, rival, my); if (!d) return '';
+    const { R, Y, lg, dirs, con } = d;
+    const keys = [zoneKeys(dirs[0], 0, adj), zoneKeys(dirs[1], 1, adj)], pk = [playerKeys(R, Y, lg, false), playerKeys(Y, R, lg, true)];
+    const ck = [conKeys(con[0], R, lg, false), conKeys(con[1], Y, lg, true)];
+    const id = 'zx' + Math.random().toString(36).slice(2, 8), fewT = Math.min(R.own.a, Y.own.a) < 150;
+    later(() => {
+      const box = document.getElementById(id); if (!box) return;
+      box.querySelectorAll('canvas[data-i]').forEach(cv => { const i = +cv.dataset.i; drawMap(cv, i < 2 ? dirs[i] : con[i - 2], i); });
+      box.querySelectorAll('[data-zt]').forEach(b => b.onclick = () => {
+        box.querySelectorAll('[data-zt]').forEach(x => x.classList.toggle('on', x === b));
+        box.querySelectorAll('[data-zp]').forEach(p => { p.hidden = p.dataset.zp !== b.dataset.zt; });
+      });
+    });
+    const list = (arr, empty) => arr.map(h => `<p>${h}</p>`).join('') || `<p class="zx-none">${empty}</p>`;
+    const pane = (i, body) => `<div class="zx-pane" data-zp="${i}"${i ? ' hidden' : ''}><div class="zx-map"><p class="zx-key">${KEY[i]}</p><canvas data-i="${i}" aria-label="Mapa por zonas"></canvas>${LEG}</div><div class="zx-txt">${body}</div></div>`;
+    const tabs = ['Su ataque vs nuestra defensa', 'Nuestro ataque vs su defensa', 'Lo que conceden ellos', 'Lo que concedemos'];
+    return `<div class="zx" id="${id}"><h4 class="zx-ttl">🗺️ Cruce por zonas</h4>
+      <p class="zx-intro">Cada zona junta <b>lo que mete el que ataca</b> y <b>lo que concede el que defiende</b>, comparado con lo normal en la liga. Colores como en el resto de mapas: <b style="color:#dc2626">rojo</b> = acierto por encima de la liga, <b style="color:#2563eb">azul</b> = por debajo.${fewT ? ' <b>⚠️ Todavía hay pocos tiros</b>: con más jornadas será más fiable.' : ''}</p>
+      <div class="zx-tabs">${tabs.map((t, i) => `<button type="button"${i ? '' : ' class="on"'} data-zt="${i}">${t}</button>`).join('')}</div>
+      ${pane(0, `<h5>Dónde nos pueden hacer daño</h5>${list(keys[0], 'Ninguna zona se sale de lo normal todavía.')}<h5>Sus tiradores contra nuestros agujeros</h5>${list(pk[0], `Ningún jugador con al menos ${MINZ} tiros en una zona que destaque.`)}`)}
+      ${pane(1, `<h5>Dónde atacarles</h5>${list(keys[1], 'Ninguna zona se sale de lo normal todavía.')}<h5>Nuestros tiradores contra sus agujeros</h5>${list(pk[1], `Ningún jugador con al menos ${MINZ} tiros en una zona que destaque.`)}`)}
+      ${pane(2, `<h5>Lo que concede ${esc(R.name)}</h5><p class="zx-sub">${R.con.a} tiros recibidos · verde = zonas donde les meten más de lo normal</p>${list(ck[0], 'Nada que destaque todavía.')}`)}
+      ${pane(3, `<h5>Lo que concede ${esc(Y.name)}</h5><p class="zx-sub">${Y.con.a} tiros recibidos · rojo = zonas donde nos meten más de lo normal</p>${list(ck[1], 'Nada que destaque todavía.')}`)}
+    </div>`;
   };
 })();
 

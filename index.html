@@ -3598,6 +3598,28 @@ body.player-mode .cx-card{display:none!important}
 .vm-m{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
 .vm-m select{flex:1;min-width:150px;padding:7px;border:1.5px solid #cbd5e1;border-radius:8px}
 
+/* 📈 clasificación por jornada (ventana animada) */
+.bs-ttl{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.bs-bump-btn{border:1.5px solid #e5e7eb;background:#fff;color:#334155;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:800;letter-spacing:0;text-transform:none;cursor:pointer;line-height:1.6}
+.bs-bump-btn:hover{border-color:#cbd5e1;background:#f8fafc}
+.bb-ov{position:fixed;inset:0;z-index:5000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.bb-box{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.35);width:100%;max-width:min(1180px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}
+.bb-box header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid #eef0f3}
+.bb-box header b{display:block;font-size:15px;color:#0f172a}.bb-box header small{display:block;font-size:11px;color:#64748b;font-weight:600;margin-top:2px}
+.bb-x{border:0;background:#f1f5f9;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0}
+.bb-sc{overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 4px;flex:1;min-height:0}
+.bb-sc svg{margin:0 auto}
+.bb-sc g.tl{cursor:pointer}
+.bb-sc svg.hl g.tl{opacity:.12}
+.bb-sc svg.hl g.tl.on{opacity:1}
+.bb-ctl{display:flex;align-items:center;gap:10px;padding:8px 18px}
+.bb-ctl button{border:0;background:#0f172a;color:#fff;border-radius:10px;width:38px;height:34px;font-size:15px;cursor:pointer;flex-shrink:0}
+.bb-ctl .bb-re{background:#f1f5f9;color:#334155}
+.bb-rg{flex:1;accent-color:#f59e0b;min-width:0}
+.bb-j{font-size:13px;font-weight:900;color:#0f172a;min-width:34px;text-align:right}
+.bb-ft{font-size:10.5px;color:#94a3b8;margin:0;padding:0 18px 14px;line-height:1.45}
+@media (max-width:700px){.bb-ov{padding:0}.bb-box{border-radius:0;max-height:100vh;height:100%}}
+
 </style>
 </head>
 <body>
@@ -26912,6 +26934,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   const codeOf = name => { const n = norm(name); if (FULLN[n]) return FULLN[n]; for (const [k, v] of Object.entries(TEAMS)) if (v[2].test(n)) return k; return null; };
   const SN = k => TEAMS[k][1];
   window.__baTeamCode = codeOf;   // escudos en líderes y clasificación
+  window.__baTeamShort = k => (TEAMS[k] ? TEAMS[k][1] : '');   // nombre corto (gráfico de la clasificación)
   const crest = (k, cls = '') => { const src = (window.__baCrests || {})[k];
     return `<span class="q-cr ${cls}">${src ? `<img src="${src}" alt="">` : `<b>${esc(SN(k).slice(0, 3).toUpperCase())}</b>`}</span>`; };
 
@@ -27668,6 +27691,127 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     </div>`;
   };
 
+
+  // ── 📈 clasificación jornada a jornada (calendario del grupo, el de la quiniela) ──
+  // La jornada de cada partido sale del calendario (local-visitante), no de la fecha: si una jornada se aplaza, sus
+  // resultados cuentan en su jornada. El gráfico se corta cuando hay 2 jornadas seguidas sin ningún resultado.
+  // Se abre en una ventana y se anima: las líneas avanzan jornada a jornada (W/L en cada punto) y el balance se actualiza.
+  const BUMP = {}; let bumpN = 0;
+  const BUMP_COL = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c', '#0891b2', '#db2777', '#65a30d', '#7c3aed', '#ca8a04', '#0d9488', '#e11d48', '#4f46e5', '#57534e'];
+  const rankOf = rs => rs.slice().sort((x, y) => (y.v - x.v) || (x.d - y.d) || ((y.pf - y.pc) - (x.pf - x.pc)) || (y.pf - x.pf) || x.name.localeCompare(y.name));
+  function bumpData(matches, names) {
+    const CAL = window.__baQuiniCal; if (!CAL || !window.__baTeamCode) return null;
+    const codes = names.map(n => code(n));
+    if (codes.some(c => !c) || new Set(codes).size !== names.length) return null;   // no es el grupo del calendario
+    const where = {}; CAL.forEach(J => J.forEach(c => { where[c.h + '-' + c.a] = c.j; }));
+    const byJ = {}; let hit = 0;
+    matches.forEach(m => { const j = where[code(m.homeTeam) + '-' + code(m.awayTeam)]; if (!j) return; hit++; (byJ[j] = byJ[j] || []).push(m); });
+    if (!hit || hit < matches.length * 0.8) return null;
+    let last = 0;
+    for (let j = 1; j <= CAL.length; j++) { if (byJ[j]) last = j; else if (!byJ[j + 1]) break; }
+    if (!last) return null;
+    const S = Object.fromEntries(names.map(n => [n, { name: n, v: 0, d: 0, pf: 0, pc: 0 }]));
+    const cols = [];
+    for (let j = 1; j <= last; j++) {
+      const res = {};
+      (byJ[j] || []).forEach(m => { const h = S[m.homeTeam], a = S[m.awayTeam], sh = num(m.scoreHome), sa = num(m.scoreAway); if (!h || !a) return;
+        h.pf += sh; h.pc += sa; a.pf += sa; a.pc += sh; if (sh > sa) { h.v++; a.d++; } else if (sa > sh) { a.v++; h.d++; }
+        res[m.homeTeam] = { r: sh > sa ? 'W' : sa > sh ? 'L' : 'E', t: `${sh}-${sa} vs ${m.awayTeam}` };
+        res[m.awayTeam] = { r: sa > sh ? 'W' : sh > sa ? 'L' : 'E', t: `${sa}-${sh} en ${m.homeTeam}` }; });
+      const r = rankOf(Object.values(S)), pos = {};
+      r.forEach((t, i) => { pos[t.name] = { p: i + 1, v: t.v, d: t.d, df: t.pf - t.pc, res: res[t.name] || null }; });
+      cols.push({ j, n: (byJ[j] || []).length, pos });
+    }
+    return { cols, names };
+  }
+  // un fotograma: t = 0 … nº de jornadas − 1 (con decimales mientras avanza de una jornada a la siguiente)
+  function bumpFrame(D, t, hl) {
+    const N = D.names.length, C = D.cols.length, rowH = 34, top = 38, colW = C > 14 ? 64 : 84, L = 160, R = 200;
+    const W = L + Math.max(C - 1, 1) * colW + R, H = top + N * rowH + 10;
+    const X = i => L + i * colW, Y = p => top + (p - 0.5) * rowH;
+    const order = D.names.slice().sort((a, b) => code(a).localeCompare(code(b)));
+    const col = n => ours(n) ? '#f59e0b' : BUMP_COL[order.indexOf(n) % BUMP_COL.length];
+    const short = n => (window.__baTeamShort && window.__baTeamShort(code(n))) || n;
+    const img = (n, x, y) => { const s = (window.__baCrests || {})[code(n)]; return s ? `<image href="${s}" x="${x}" y="${y - 10}" width="20" height="20"/>` : ''; };
+    const k = Math.min(C - 1, Math.floor(t + 1e-6)), u = t - k;   // jornada alcanzada y avance hacia la siguiente
+    const lerp = (a, b, f) => a + (b - a) * f;
+    const grid = D.cols.map((c, i) => { const on = i <= k + (u > 0 ? 1 : 0);
+      return `<line x1="${X(i)}" x2="${X(i)}" y1="${top - 6}" y2="${H - 8}" stroke="${c.n ? '#e9edf2' : '#f3f4f6'}" ${c.n ? '' : 'stroke-dasharray="3 4"'}/>
+      <text x="${X(i)}" y="17" text-anchor="middle" font-size="12" font-weight="900" fill="${!c.n ? '#cbd5e1' : on ? '#0f172a' : '#cbd5e1'}">J${c.j}</text>
+      ${c.n ? '' : `<text x="${X(i)}" y="30" text-anchor="middle" font-size="9" fill="#94a3b8">sin jugar</text>`}`; }).join('');
+    const rows = Array.from({ length: N }, (_, i) => i % 2 ? '' : `<rect x="0" y="${top + i * rowH}" width="${W}" height="${rowH}" fill="#f8fafc"/>`).join('');
+    const heads = [];
+    const lines = order.map(n => {
+      const c = col(n), me = ours(n), P = D.cols.map((cc, i) => [X(i), Y(cc.pos[n].p)]);
+      let d = `M${P[0][0]},${P[0][1]}`, hx = P[0][0], hy = P[0][1];
+      for (let i = 1; i <= k; i++) { const mx = (P[i - 1][0] + P[i][0]) / 2; d += ` C${mx},${P[i - 1][1]} ${mx},${P[i][1]} ${P[i][0]},${P[i][1]}`; }
+      hx = P[k][0]; hy = P[k][1];
+      if (u > 0 && k + 1 < C) {   // tramo a medias (de Casteljau sobre la curva de esta jornada a la siguiente)
+        const [x0, y0] = P[k], [x3, y3] = P[k + 1], mx = (x0 + x3) / 2;
+        const a1 = [lerp(x0, mx, u), lerp(y0, y0, u)], b1 = [lerp(mx, mx, u), lerp(y0, y3, u)], c1 = [lerp(mx, x3, u), lerp(y3, y3, u)];
+        const a2 = [lerp(a1[0], b1[0], u), lerp(a1[1], b1[1], u)], b2 = [lerp(b1[0], c1[0], u), lerp(b1[1], c1[1], u)], e = [lerp(a2[0], b2[0], u), lerp(a2[1], b2[1], u)];
+        d += ` C${a1[0]},${a1[1]} ${a2[0]},${a2[1]} ${e[0]},${e[1]}`; hx = e[0]; hy = e[1];
+      }
+      const dots = D.cols.slice(0, k + 1).map((cc, i) => { const q = cc.pos[n], rr = q.res, R0 = me ? 10.5 : 9.5;
+        const tip = `<title>${esc(n)} · J${cc.j}: ${q.p}º (${q.v}-${q.d}, ${q.df > 0 ? '+' : ''}${q.df})${rr ? ' · ' + esc(rr.t) : ' · no jugó'}</title>`;
+        return rr ? `<g>${tip}<circle cx="${P[i][0]}" cy="${P[i][1]}" r="${R0}" fill="${c}" stroke="#fff" stroke-width="1.5"/><text x="${P[i][0]}" y="${P[i][1] + 3.8}" text-anchor="middle" font-size="10.5" font-weight="900" fill="#fff">${rr.r}</text></g>`
+          : `<g>${tip}<circle cx="${P[i][0]}" cy="${P[i][1]}" r="4.5" fill="#fff" stroke="${c}" stroke-width="2.5"/></g>`; }).join('');
+      const f = D.cols[0].pos[n], now = D.cols[k].pos[n];
+      heads.push({ n, me, c, hx, hy, now });
+      return { w: hl === n ? 2 : me ? 1 : 0, h: `<g class="tl${me ? ' me' : ''}${hl === n ? ' on' : ''}" data-n="${esc(n)}">
+        <path d="${d}" fill="none" stroke="${c}" stroke-width="${me ? 5 : 3}" stroke-linecap="round" opacity="${me ? 1 : 0.85}"/>
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="16"/>${dots}
+        <text x="${L - 46}" y="${Y(f.p) + 4.5}" text-anchor="end" font-size="12.5" font-weight="${me ? 900 : 700}" fill="#1e293b">${esc(short(n))}</text>${img(n, L - 40, Y(f.p))}</g>` };
+    });
+    // cabezas: posición, escudo, nombre y balance, siguiendo a cada línea
+    const headSvg = heads.map(h => `<g class="tl${h.me ? ' me' : ''}${hl === h.n ? ' on' : ''}" data-n="${esc(h.n)}">
+        ${u > 0 ? `<circle cx="${h.hx}" cy="${h.hy}" r="${h.me ? 6 : 5}" fill="${h.c}"/>` : ''}
+        <text x="${h.hx + 16}" y="${h.hy + 4.5}" font-size="12" font-weight="900" fill="${h.c}">${h.now.p}º</text>${img(h.n, h.hx + 40, h.hy)}
+        <text x="${h.hx + 65}" y="${h.hy + 4.5}" font-size="12.5" font-weight="${h.me ? 900 : 700}" fill="#1e293b">${esc(short(h.n))}<tspan dx="6" font-size="11.5" font-weight="800" fill="#64748b">${h.now.v}-${h.now.d}</tspan></text></g>`).join('');
+    return { W, H, svg: `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="${hl ? 'hl' : ''}" style="display:block;font-family:inherit">${rows}${grid}${lines.sort((a, b) => a.w - b.w).map(x => x.h).join('')}${headSvg}</svg>`, headX: X(k) + (u > 0 ? colW * u : 0) };
+  }
+  window.__baBump = btn => {
+    const D = BUMP[btn.dataset.k]; if (!D) return;
+    document.querySelectorAll('.bb-ov').forEach(x => x.remove());
+    const C = D.cols.length, pl = D.cols.filter(c => c.n).length;
+    const ov = document.createElement('div'); ov.className = 'bb-ov';
+    ov.innerHTML = `<div class="bb-box" role="dialog" aria-label="Clasificación por jornada">
+      <header><div><b>📈 Clasificación jornada a jornada</b><small>${esc(btn.dataset.t || '')}</small></div><button type="button" class="bb-x" title="Cerrar">✕</button></header>
+      <div class="bb-sc"></div>
+      <div class="bb-ctl"><button type="button" class="bb-play" title="Reproducir / pausar">⏸</button><button type="button" class="bb-re" title="Desde el principio">↺</button>
+        <input type="range" class="bb-rg" min="0" max="${Math.max(C - 1, 0)}" step="0.01" value="0"><span class="bb-j">J${D.cols[0].j}</span></div>
+      <p class="bb-ft">Posición al acabar cada jornada del calendario (${pl} jugada${pl !== 1 ? 's' : ''}${C > pl ? '; en gris, aún sin resultados' : ''}). <b>W</b> ganó · <b>L</b> perdió · punto blanco = no jugó esa jornada. Al lado del nombre, su balance. Pasa el ratón o toca una línea para resaltarla.</p></div>`;
+    document.body.appendChild(ov);
+    const sc = ov.querySelector('.bb-sc'), rg = ov.querySelector('.bb-rg'), pb = ov.querySelector('.bb-play'), jl = ov.querySelector('.bb-j');
+    let t = 0, playing = C > 1, hl = '', pin = '', raf = 0, last = 0, hold = 0;
+    const SEG = 1100, HOLD = 450;   // ms por jornada y pausa en cada una
+    const draw = () => { const f = bumpFrame(D, t, hl || pin); sc.innerHTML = f.svg; rg.value = t; jl.textContent = 'J' + D.cols[Math.min(C - 1, Math.round(t))].j;
+      if (playing && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, f.headX - sc.clientWidth * 0.55); };
+    const tick = now => {
+      if (!playing) return; const dt = last ? now - last : 0; last = now;
+      if (hold > 0) hold -= dt;
+      else { const k0 = Math.floor(t + 1e-6); t = Math.min(C - 1, t + dt / SEG); if (Math.floor(t + 1e-6) > k0) { t = Math.floor(t + 1e-6); hold = HOLD; } }
+      draw();
+      if (t >= C - 1) { playing = false; pb.textContent = '▶'; return; }
+      raf = requestAnimationFrame(tick);
+    };
+    const play = () => { if (t >= C - 1) t = 0; playing = true; pb.textContent = '⏸'; last = 0; hold = HOLD; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
+    const pause = () => { playing = false; pb.textContent = '▶'; cancelAnimationFrame(raf); };
+    const close = () => { pause(); ov.remove(); document.removeEventListener('keydown', key); };
+    const key = e => { if (e.key === 'Escape') close(); else if (e.key === ' ') { e.preventDefault(); playing ? pause() : play(); } };
+    pb.onclick = () => (playing ? pause() : play());
+    ov.querySelector('.bb-re').onclick = () => { t = 0; draw(); play(); };
+    rg.oninput = () => { pause(); t = +rg.value; draw(); };
+    rg.onchange = () => { t = Math.round(+rg.value); draw(); };
+    ov.querySelector('.bb-x').onclick = close; ov.onclick = e => { if (e.target === ov) close(); };
+    document.addEventListener('keydown', key);
+    sc.onmouseover = e => { const g = e.target.closest && e.target.closest('g.tl'); const n = g ? g.dataset.n : ''; if (n !== hl) { hl = n; if (!playing) draw(); } };
+    sc.onmouseleave = () => { if (hl) { hl = ''; if (!playing) draw(); } };
+    sc.onclick = e => { const g = e.target.closest && e.target.closest('g.tl'); const n = g ? g.dataset.n : ''; pin = pin === n ? '' : n; hl = ''; if (!playing) draw(); };
+    if (!playing) pb.textContent = '▶';
+    draw(); if (playing) { hold = HOLD; raf = requestAnimationFrame(tick); }
+  };
+
   // ── clasificación ──
   window.__baStandingsHTML = ({ liga, g, matches }) => {
     const T = {};
@@ -27690,7 +27834,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
         <td>${t.hv}-${t.hd}</td><td>${t.av}-${t.ad}</td>
         <td class="rk">${t.res.slice(-5).map(r => `<i class="${r.w ? 'w' : 'l'}" title="${r.w ? 'Victoria' : 'Derrota'} ${esc(r.txt)}"></i>`).join('')}</td></tr>`;
     }).join('');
-    return `<div class="bs-wrap"><div class="bs-ttl">${esc(liga)} · Grupo ${esc(g)} <span>· ${matches.length} partido${matches.length !== 1 ? 's' : ''}</span></div>
+    const bd = bumpData(matches, Object.keys(T)), bk = bd ? 'b' + (++bumpN) : ''; if (bd) BUMP[bk] = bd;
+    return `<div class="bs-wrap"><div class="bs-ttl">${esc(liga)} · Grupo ${esc(g)} <span>· ${matches.length} partido${matches.length !== 1 ? 's' : ''}</span>${bd ? `<button type="button" class="bs-bump-btn" data-k="${bk}" data-t="${esc(liga)} · Grupo ${esc(g)}" onclick="__baBump(this)" title="Ver cómo ha ido cambiando la clasificación jornada a jornada">📈 Por jornada</button>` : ''}</div>
       <div class="bs-scroll"><table class="bs-tbl"><thead><tr><th><span class="l">Posición</span><span class="s">#</span></th><th class="tm">Equipo</th><th><span class="l">Jugados</span><span class="s">PJ</span></th><th><span class="l">Ganados</span><span class="s">G</span></th><th><span class="l">Perdidos</span><span class="s">P</span></th><th>% Vict.</th><th>P. Favor</th><th>P. Contra</th><th>+/-</th><th>Local</th><th>Visitante</th><th>Racha</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>`;
   };

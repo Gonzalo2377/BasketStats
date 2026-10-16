@@ -3582,6 +3582,22 @@ body.player-mode .cx-card{display:none!important}
 .vlib-filter button{border:0;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
 .zx-key{font-size:11px;color:#475569;margin:0 0 6px;line-height:1.4;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px}
 
+/* Vídeo: juntar equipos */
+.vlib-filter .vlib-merge{background:#eef2ff;color:#3730a3}
+.vm-ov{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.vm-box{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3);padding:0 16px 16px}
+.vm-box header{position:sticky;top:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #eef0f3;font-size:15px}
+.vm-x{border:0;background:#f1f5f9;border-radius:50%;width:30px;height:30px;cursor:pointer}
+.vm-p{font-size:12px;color:#64748b;margin:10px 0}
+.vm-box h5{margin:14px 0 6px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#0f172a}
+.vm-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;font-size:13px}
+.vm-s>span:first-child{flex:1;min-width:180px}.vm-s small{color:#94a3b8}
+.vm-b{display:flex;gap:6px;flex-wrap:wrap}
+.vm-box button:not(.vm-x){border:0;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer;background:#0f172a;color:#fff}
+.vm-box button.sec{background:#f1f5f9;color:#334155}
+.vm-m{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.vm-m select{flex:1;min-width:150px;padding:7px;border:1.5px solid #cbd5e1;border-radius:8px}
+
 </style>
 </head>
 <body>
@@ -4457,7 +4473,7 @@ body.player-mode .cx-card{display:none!important}
   </div>
   <div class="g2" style="gap:10px;margin-bottom:10px">
     <div class="card"><div class="ct">🖐 Mejores Combinaciones (+/-)</div><div id="cl-lineups"></div></div>
-    <div class="card"><div class="ct">⚡ Impacto por minuto</div><div id="cl-impact"></div></div>
+    <div class="card"><div class="ct">📈 +/- por partido</div><div id="cl-impact"></div></div>
   </div>
   <div class="card" style="margin-bottom:10px">
     <div class="ct">🤝 Parejas con más asistencias entre ellas</div>
@@ -11714,21 +11730,35 @@ function renderScouting() {
           </div>`;
       }).join('') : '<div style="font-size:11px;color:var(--t3);padding:10px 0">Sin datos suficientes.</div>';
 
+      const TA = _scoutTechAnti(matches, _scoutRival);
+      const tg = TA.games || 1, tot = k => TA.list.reduce((a, p) => a + p[k], 0);
+      const chip = (n, bg, fg, lbl) => n ? `<span title="${lbl}" style="display:inline-flex;align-items:center;gap:3px;background:${bg};color:${fg};border-radius:5px;padding:1px 6px;font-size:10px;font-weight:800">${n} ${lbl}</span>` : '';
+      const htmlTA = !TA.games ? '<div style="font-size:11px;color:var(--t3);padding:10px 0">Sin jugada a jugada en estos partidos.</div>'
+        : !TA.list.length ? `<div style="font-size:11px;color:var(--gn);font-weight:600;padding:10px 0">✅ Ninguna técnica ni antideportiva en ${TA.games} partidos.</div>`
+        : TA.list.slice(0, 7).map(p => {
+            const pl = rpList.find(r => r.name === p.name), g = pl ? pl.games : 0, hot = p.d || p.a >= 2 || p.t + p.a >= 3;
+            return `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:11px">
+              <span style="flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hot ? '⚠️ ' : ''}${_esc(p.name)}${g ? ` <span style="font-size:9px;color:var(--t3);font-weight:500">${g} PJ</span>` : ''}</span>
+              ${chip(p.t, '#fef9c3', '#854d0e', 'TEC')}${chip(p.a, '#fee2e2', '#b91c1c', 'ANTI')}${chip(p.d, '#7f1d1d', '#fff', 'DESC')}
+            </div>`; }).join('');
+
       b8.innerHTML = `<div class="card" style="padding:16px; margin:0">
           <div class="ct" style="margin-bottom:16px; font-size:13px; display:flex; align-items:center; gap:6px; justify-content:flex-start">
              <span style="font-size:18px; color:#be185d">🎯</span> ANALÍTICA AVANZADA (PLAY-BY-PLAY)
           </div>
           
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-              
-              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
+                    <style>.pbp23{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}.pbp23>.s3{grid-column:span 3}.pbp23>.s2{grid-column:span 2}
+            @media(max-width:1100px){.pbp23>.s2{grid-column:span 3}.pbp23>.s2:last-child{grid-column:1/-1}}@media(max-width:760px){.pbp23{grid-template-columns:1fr}.pbp23>.s2,.pbp23>.s3{grid-column:auto}}</style>
+          <div class="pbp23">
+
+              <div class="s3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
                      <span style="font-size:14px">📊</span> Tendencia por cuartos
                   </div>
                   <div style="flex:1">${runSvg}</div>
               </div>
 
-              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
+                            <div class="s3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:var(--nv); margin-bottom:4px; text-transform:uppercase">
                      <span style="font-size:14px; color:#2563eb">🔄</span> Segundas Oportunidades
                   </div>
@@ -11761,14 +11791,14 @@ function renderScouting() {
                   </div>
               </div>
 
-              <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px">
+                            <div class="s2" style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px">
                   <div style="font-size:11px; font-weight:800; color:var(--nv); margin-bottom:16px; text-transform:uppercase; display:flex; align-items:center; gap:6px">
                      <span style="font-size:14px; color:#3b82f6">🛡️</span> Faltas Recibidas (Top 5)
                   </div>
                   ${htmlFD}
               </div>
               
-              <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
+                            <div class="s2" style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
                   <div style="font-size:11px; font-weight:800; color:var(--nv); margin-bottom:0; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-shrink:0">
                      <span style="font-size:14px; color:#f59e0b">⚡</span> Impacto de las Pérdidas
                   </div>
@@ -11794,6 +11824,14 @@ function renderScouting() {
                           <div style="font-size:10px;color:#991b1b;margin-top:5px">Pierden ${(advFCBQ.toFor/nG).toFixed(1)} balones/p${advFCBQ.toFor ? ` · <b>${(advFCBQ.potConceded/advFCBQ.toFor).toFixed(2)} pts encajados por pérdida</b>` : ''}</div>
                       </div>
                   </div>
+              </div>
+
+              <div class="s2" style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column">
+                  <div style="font-size:11px; font-weight:800; color:var(--nv); text-transform:uppercase; display:flex; align-items:center; gap:6px">
+                     <span style="font-size:14px">🟨</span> Técnicas y antideportivas
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin:4px 0 8px;line-height:1.3">Por jugador en ${TA.games} partidos con jugada a jugada${TA.list.length ? ` · equipo: <b>${(tot('t') / tg).toFixed(1)}</b> téc./p · <b>${(tot('a') / tg).toFixed(1)}</b> anti./p` : ''}. ⚠️ = cuidado (2+ antideportivas, 3+ en total o descalificado): se le puede buscar la falta.</div>
+                  ${htmlTA}
               </div>
 
           </div>
@@ -13543,6 +13581,7 @@ function renderClub(){
   
   _frButton('cl-sf', 'cl');
   if (!_frOn('cl')) { const off = ours.filter(o => !_isFriendly(o.m)); if (off.length) ours.splice(0, ours.length, ...off); }   // amistosos fuera salvo que se activen
+  window._oursCache = ours;   // las demás secciones de la pestaña (parejas de asistencias, avanzadas…) usan estos mismos partidos
   const G = ours.length;
   const kEl = document.getElementById('cl-kpis');
   if(!G){
@@ -13651,31 +13690,28 @@ function renderClub(){
   _clRenderRows();
   if(typeof renderClubLineups === 'function') renderClubLineups(ours);
 
-  const imp = _clPlayers.filter(p => (p._secs / 60) >= 15).sort((a, b) => b.per10 - a.per10).slice(0, 8);
+  // 📈 +/- por partido: cuánto gana (o pierde) el equipo de media con cada jugador en pista
   const ie = document.getElementById('cl-impact');
-  
-  if(ie){
-      if(imp.length){
-          let impHtml = '';
-          imp.forEach((p, i) => {
-              const bg = i < 3 ? 'var(--gn)' : 'var(--nv)';
-              const dName = p.name.split(' ')[0];
-              const pMinDec = Math.round(p._secs / 60);
-              const p10 = p.per10;
-              const p10C = p10 > 0 ? 'var(--gn)' : '#dc2626';
-              const p10S = p10 > 0 ? '+' : '';
-              impHtml += `
-                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">
-                  <span style="width:18px;height:18px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span>
-                  <span style="flex:1;font-weight:600">${dName}</span>
-                  <span style="font-size:10px;color:var(--t3)">${pMinDec}min</span>
-                  <b style="color:${p10C}">${p10S}${p10.toFixed(1)}/10min</b>
-                </div>`;
-          });
-          impHtml += '<div style="font-size:9px;color:var(--t3);margin-top:5px">+/- por cada 10 minutos en pista (mín. 15 min jugados)</div>';
-          ie.innerHTML = impHtml;
-      } else {
-          ie.innerHTML = '<div class="empty">Faltan minutos jugados</div>';
+  if (ie) {
+      const pl = _clPlayers.filter(p => p.g > 0 && p._secs >= 60).map(p => ({ p, v: p.pm / p.g, mpg: p._secs / 60 / p.g }));
+      if (!pl.length || !pl.some(x => x.p.pm)) ie.innerHTML = '<div class="empty">Faltan datos de +/- (se calculan con el jugada a jugada o el directo)</div>';
+      else {
+          pl.sort((x, y) => y.v - x.v);
+          const show = pl.length > 8 ? [...pl.slice(0, 5), null, ...pl.slice(-3)] : pl;
+          const mx = Math.max(1, ...pl.map(x => Math.abs(x.v)));
+          const teamPm = (ptsF - ptsA) / G;
+          const row = (x, i) => {
+              if (!x) return '<div style="text-align:center;color:var(--t3);font-size:10px;padding:2px 0">···</div>';
+              const c = x.v > 0.05 ? 'var(--gn)' : x.v < -0.05 ? '#dc2626' : 'var(--t3)', w = Math.abs(x.v) / mx * 50;
+              return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px">
+                <span style="flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(x.p.name.split(' ')[0])} <span style="font-size:9px;color:var(--t3);font-weight:400">${x.p.g} PJ · ${Math.round(x.mpg)} min/p</span></span>
+                <span style="width:70px;height:7px;background:#f1f5f9;border-radius:4px;position:relative;flex-shrink:0"><span style="position:absolute;top:0;height:7px;border-radius:4px;background:${c};${x.v >= 0 ? 'left:50%' : 'right:50%'};width:${w}%"></span><span style="position:absolute;left:50%;top:-2px;width:1px;height:11px;background:#cbd5e1"></span></span>
+                <b style="color:${c};width:44px;text-align:right">${x.v > 0 ? '+' : ''}${x.v.toFixed(1)}</b>
+              </div>`;
+          };
+          ie.innerHTML = `<div style="font-size:11px;margin-bottom:6px">Equipo: <b style="color:${teamPm >= 0 ? 'var(--gn)' : '#dc2626'}">${teamPm > 0 ? '+' : ''}${teamPm.toFixed(1)}</b> por partido</div>`
+            + show.map(row).join('')
+            + '<div style="font-size:9px;color:var(--t3);margin-top:5px">Diferencia de puntos media del equipo con el jugador en pista, por partido jugado. Por encima del equipo = suma; por debajo = resta.</div>';
       }
   }
 
@@ -15169,17 +15205,20 @@ function renderVideoLib(){
     // 🔎 Buscador por equipo: solo equipos que ya tienen clips; al elegir uno, solo sus partidos y sus carpetas (abiertas)
     const _nk=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
     const _cnt=t=>Object.values(t||{}).reduce((a,c)=>a+Object.values(c||{}).reduce((b,arr)=>b+(arr||[]).length,0),0);
-    const _tm=new Map();
-    matchesWithClips.forEach(mk=>Object.entries(mk.videoClips.teams||{}).forEach(([tn,cats])=>{const n=_cnt(cats);if(!n)return;const k=_nk(tn);const e=_tm.get(k)||{name:tn,n:0,p:0};if(tn===tn.toUpperCase())e.name=tn;e.n+=n;e.p++;_tm.set(k,e);}));
+    // todos los equipos con algún clip asociado: los que tienen carpetas propias y los que salen como rival en un partido con clips
+    const _tm=new Map(), _put=(tn,n,mk)=>{const k=_nk(tn);if(!k)return;const e=_tm.get(k)||{name:tn,n:0,ps:new Set()};if(tn===tn.toUpperCase())e.name=tn;e.n+=n;e.ps.add(mk);_tm.set(k,e);};
+    matchesWithClips.forEach(mk=>{Object.entries(mk.videoClips.teams||{}).forEach(([tn,cats])=>{const n=_cnt(cats);if(n)_put(tn,n,mk);});[mk.homeTeam,mk.awayTeam].forEach(tn=>{if(tn)_put(tn,0,mk);});});
     if(window._vLibTeam&&!_tm.has(window._vLibTeam))window._vLibTeam='';
     const _vTeamF=window._vLibTeam||'';
-    const _vTeamOk=tn=>!_vTeamF||_nk(tn)===_vTeamF;
-    const _vShown=_vTeamF?matchesWithClips.filter(mk=>Object.entries(mk.videoClips.teams||{}).some(([tn,cats])=>_vTeamOk(tn)&&_cnt(cats))):matchesWithClips;
-    const _vFiltHtml=`<div class="vlib-filter"><label for="vlib-team">🔎 Equipo</label><select id="vlib-team" onchange="window._vLibTeam=this.value;renderVideoLib()"><option value="">Todos los equipos · ${matchesWithClips.length} partidos</option>${[..._tm.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([k,e])=>`<option value="${_esc(k)}"${k===_vTeamF?' selected':''}>${_esc(e.name)} · ${e.n} clip${e.n!==1?'s':''} en ${e.p} partido${e.p!==1?'s':''}</option>`).join('')}</select>${_vTeamF?`<button type="button" onclick="window._vLibTeam='';renderVideoLib()">✕ Quitar filtro</button>`:''}</div>`;
+    const _vOwn=mk=>Object.entries(mk.videoClips.teams||{}).some(([tn,cats])=>_nk(tn)===_vTeamF&&_cnt(cats));
+    // en cada partido: sus carpetas; si en ese partido no tiene carpetas propias (es el rival), se ven todas
+    const _vTeamOk=(tn,mk)=>!_vTeamF||_nk(tn)===_vTeamF||(mk&&!_vOwn(mk));
+    const _vShown=_vTeamF?matchesWithClips.filter(mk=>_tm.get(_vTeamF).ps.has(mk)):matchesWithClips;
+    const _vFiltHtml=`<div class="vlib-filter"><label for="vlib-team">🔎 Equipo</label><select id="vlib-team" onchange="window._vLibTeam=this.value;renderVideoLib()"><option value="">Todos los equipos · ${matchesWithClips.length} partidos</option>${[..._tm.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([k,e])=>`<option value="${_esc(k)}"${k===_vTeamF?' selected':''}>${_esc(e.name)} · ${e.n?`${e.n} clip${e.n!==1?'s':''} en ${e.ps.size} partido${e.ps.size!==1?'s':''}`:`rival en ${e.ps.size} partido${e.ps.size!==1?'s':''}`}</option>`).join('')}</select>${_vTeamF?`<button type="button" onclick="window._vLibTeam='';renderVideoLib()">✕ Quitar filtro</button>`:''}<button type="button" class="vlib-merge" onclick="vMergeTeams()" title="Si el mismo equipo está escrito de dos formas">🔗 Juntar equipos</button></div>`;
     
     el.innerHTML=_vFiltHtml+_vShown.map(mk=>{
         let total=0;
-        Object.entries(mk.videoClips.teams||{}).filter(([tn])=>_vTeamOk(tn)).forEach(([,t])=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
+        Object.entries(mk.videoClips.teams||{}).filter(([tn])=>_vTeamOk(tn,mk)).forEach(([,t])=>Object.values(t).forEach(cat=>Object.values(cat).forEach(arr=>total+=arr.length)));
         const mid=`vlib-${mk.id}`;
         return `<div style="border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden">
             <div style="background:var(--nv);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="vToggleFolder('${mid}')">
@@ -15193,7 +15232,7 @@ function renderVideoLib(){
                 </div>
             </div>
             <div id="${mid}" style="display:${(_open.has(mid)||_vTeamF)?'block':'none'};padding:10px 12px">
-                ${Object.entries(mk.videoClips.teams||{}).filter(([tName])=>_vTeamOk(tName)).map(([tName,cats])=>`
+                ${Object.entries(mk.videoClips.teams||{}).filter(([tName])=>_vTeamOk(tName,mk)).map(([tName,cats])=>`
                     <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
                     ${['ataque','defensa'].map(cat=>{
                         const folders=cats[cat]||{};const names=Object.keys(folders).sort();
@@ -15261,6 +15300,57 @@ function vRegenPending(mkKey){
 }
 // Si se cierra la pestaña con clips a medias, se quedarían en 🕐: avisamos antes
 window.addEventListener('beforeunload',e=>{if(_vJobs.length||_vBusy){e.preventDefault();e.returnValue='';}});
+// 🔗 Juntar dos nombres del mismo equipo en la biblioteca de clips: clips y carpetas del primero pasan al segundo
+const _vNk=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
+const _vCnt=t=>Object.values(t||{}).reduce((a,c)=>a+Object.values(c||{}).reduce((b,arr)=>b+(arr||[]).length,0),0);
+const _vAllLibs=()=>[...(S.videoLibs||[]),...S.matches.filter(x=>x.videoClips)];
+function _vTeamNames(){
+  const m=new Map();
+  _vAllLibs().forEach(mk=>{ Object.entries((mk.videoClips||{}).teams||{}).forEach(([tn,c])=>{ const e=m.get(tn)||{name:tn,n:0}; e.n+=_vCnt(c); m.set(tn,e); });
+    if(mk.type==='video_only'&&_vLibCount(mk)) [mk.homeTeam,mk.awayTeam].forEach(tn=>{ if(tn&&!m.has(tn)) m.set(tn,{name:tn,n:0}); }); });
+  return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
+const _vAddClips=(dst,cats)=>{ Object.entries(cats||{}).forEach(([cat,fs])=>{ dst[cat]=dst[cat]||{}; Object.entries(fs||{}).forEach(([f,arr])=>{ dst[cat][f]=(dst[cat][f]||[]).concat(arr||[]); }); }); };
+function _vMergeTeam(from,to){
+  let moved=0;
+  _vAllLibs().forEach(mk=>{
+    const T=mk.videoClips&&mk.videoClips.teams;
+    if(T&&T[from]&&from!==to){ moved+=_vCnt(T[from]); _vAddClips(T[to]||(T[to]={}),T[from]); delete T[from]; }
+    if(mk.type==='video_only'){ let ch=false; if(mk.homeTeam===from){mk.homeTeam=to;ch=true;} if(mk.awayTeam===from){mk.awayTeam=to;ch=true;}
+      if(ch){ const old=mk.name; mk.name=`${mk.homeTeam} vs ${mk.awayTeam}`; if(_vMatchKey===old)_vMatchKey=mk.name; } }
+  });
+  // dos carpetas de partido que ahora se llaman igual → una sola
+  const seen=new Map();
+  (S.videoLibs||[]).slice().forEach(mk=>{ const o=seen.get(mk.name); if(!o){seen.set(mk.name,mk);return;}
+    Object.entries(mk.videoClips.teams||{}).forEach(([tn,cats])=>_vAddClips(o.videoClips.teams[tn]||(o.videoClips.teams[tn]={}),cats)); _vDropLib(mk); });
+  svL(); if(typeof syncFirebase==='function') syncFirebase();
+  return moved;
+}
+function vMergeTeams(){
+  const names=_vTeamNames(); if(names.length<2){ toast('No hay equipos para juntar'); return; }
+  // sugerencias: un nombre es el otro con algo más («CASTELLET» / «CASTELLET A») o es el mismo equipo del grupo (mismo escudo)
+  const code=n=>window.__baTeamCode?window.__baTeamCode(n):null, sug=[];
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++){
+    const a=names[i], b=names[j], x=_vNk(a.name), y=_vNk(b.name); if(!x||!y) continue;
+    if(x===y||y.startsWith(x+' ')||x.startsWith(y+' ')||(code(a.name)&&code(a.name)===code(b.name))) sug.push(a.name.length<=b.name.length?[a,b]:[b,a]);
+  }
+  const lab=n=>`${_esc(n.name)} <small>(${n.n} clip${n.n!==1?'s':''})</small>`;
+  const opt=()=>names.map(n=>`<option value="${_esc(n.name)}">${_esc(n.name)} · ${n.n} clip${n.n!==1?'s':''}</option>`).join('');
+  const ov=document.createElement('div'); ov.className='vm-ov';
+  ov.innerHTML=`<div class="vm-box" role="dialog" aria-label="Juntar equipos"><header><b>🔗 Juntar equipos</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+    <p class="vm-p">Si el mismo equipo está escrito de dos formas, júntalos: sus clips y carpetas pasan al nombre que elijas y los partidos se renombran. No se borra ningún clip.</p>
+    ${sug.length?`<h5>Parecen el mismo equipo</h5>${sug.map(([s,l])=>`<div class="vm-s"><span>${lab(s)} y ${lab(l)}</span><span class="vm-b"><button type="button" data-f="${_esc(s.name)}" data-t="${_esc(l.name)}">Juntar en «${_esc(l.name)}»</button><button type="button" class="sec" data-f="${_esc(l.name)}" data-t="${_esc(s.name)}">en «${_esc(s.name)}»</button></span></div>`).join('')}`:'<p class="vm-p">No he encontrado nombres parecidos.</p>'}
+    <h5>A mano</h5><div class="vm-m"><select id="vm-from" aria-label="Equipo que desaparece">${opt()}</select><span>pasa a ser</span><select id="vm-to" aria-label="Nombre que se queda">${opt()}</select><button type="button" id="vm-go">Juntar</button></div></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.onclick=e=>{ if(e.target===ov||e.target.closest('.vm-x')) close(); };
+  const go=(f,t)=>{
+    if(!f||!t||f===t){ toast('Elige dos equipos distintos','err'); return; }
+    if(!confirm(`¿Juntar «${f}» en «${t}»?\n\nLos clips y carpetas de «${f}» pasan a «${t}» y los partidos se renombran. No se borra ningún clip.`)) return;
+    const n=_vMergeTeam(f,t); close(); window._vLibTeam=''; renderVideoLib(); toast(`✅ «${f}» juntado en «${t}»${n?` (${n} clip${n!==1?'s':''})`:''}`,'ok');
+  };
+  ov.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>go(b.dataset.f,b.dataset.t));
+  ov.querySelector('#vm-go').onclick=()=>go(ov.querySelector('#vm-from').value,ov.querySelector('#vm-to').value);
+}
 function vToggleFolder(id){
   const el=document.getElementById(id);const a=document.getElementById('arr-'+id);
   if(!el)return;const open=el.style.display!=='none';
@@ -15905,14 +15995,12 @@ function renderClubAstPairs(){
   const el=document.getElementById('cl-astpairs');if(!el)return;
   const pairs={};       // clave: "A|B" ordenada · valor: {a,b,ab,ba}
   let anyAst=false;
-  S.matches.forEach(m=>{
-    const sides=[['home',m.homeTeam],['away',m.awayTeam]];
-    (m.events||[]).forEach(ev=>{
+  (window._oursCache||[]).forEach(o=>{   // mismos partidos que el resto de la pestaña (equipo, temporada y amistosos)
+    (o.m.events||[]).forEach(ev=>{
       if(ev.type!=='ast')return;
       anyAst=true;
       if(!ev.to||!ev.player)return;
-      const tName=(sides.find(s=>s[0]===ev.team)||[])[1];
-      if(!tName||!isOurTeam(tName))return;   // solo nuestro equipo
+      if(ev.team!==o.side)return;   // solo nuestro equipo
       const [x,y]=[ev.player,ev.to].sort();
       const k=`${x}|${y}`;
       if(!pairs[k])pairs[k]={a:x,b:y,total:0,fwd:0,bwd:0};
@@ -19067,7 +19155,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRegenPending,vRenameClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
@@ -19632,10 +19720,9 @@ function _renderAdvancedPlayerTable(scope){
     const clSeason = clSeasonEl ? clSeasonEl.value : '';
     const _kSel = _ourTeamKey();
     window._clSelKey = _kSel;
-    source = S.matches.filter(m => {
-      const isCl = [m.homeTeam, m.awayTeam].some(n => isOurTeam(n) && (!_kSel || _ourKeyOf(m, n) === _kSel));
-      return isCl && (!clSeason || m.season === clSeason);
-    });
+    const _ours = window._oursCache || [];   // mismos partidos que la tabla clásica (equipo, temporada y amistosos)
+    window._clSides = new Set(_ours.map(o => o.m.id + '|' + o.side));
+    source = _ours.map(o => o.m);
   }
 
   const norm = t => String(t ? t : '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -19677,7 +19764,7 @@ function _renderAdvancedPlayerTable(scope){
       const team = data[1];
       const players = data[2];
       
-      if(scope === 'cl' && !(isOurTeam(team) && (!window._clSelKey || _ourKeyOf(m, team) === window._clSelKey))) return;
+      if(scope === 'cl' && !window._clSides.has(m.id + '|' + side)) return;
 
       const tPts = Number(team === m.homeTeam ? m.scoreHome : m.scoreAway) || 0;
       const oppPts = Number(team === m.homeTeam ? m.scoreAway : m.scoreHome) || 0;
@@ -20814,6 +20901,35 @@ function _analyzeAdvancedFCBQ(matches, rivalTeam) {
     });
 
     return stats.games ? stats : null;
+}
+
+// 🟨 Técnicas, antideportivas y descalificantes del rival por jugador (acta FCBQ o directo)
+function _scoutTechAnti(matches, rival) {
+    const P = {}; let games = 0;
+    const add = (n, k) => { n = String(n || '').trim() || 'Banquillo / entrenador'; (P[n] = P[n] || { name: n, t: 0, a: 0, d: 0 })[k]++; };
+    const kindOf = txt => { const t = String(txt || '').trim(), l = t.toLowerCase();
+        if (/desqualific|descalific|^DI\d?$/.test(t) || /desqualific|descalific/.test(l)) return 'd';
+        if (/antiesportiv|antideportiv|^FL\d?$|^U\d$/.test(t) || /antiesportiv|antideportiv/.test(l)) return 'a';
+        if (/compensad/.test(l) || /^TC$/.test(t)) return null;
+        if (/t[eè]cnica|^T\d{0,2}$/.test(t) || /t[eè]cnica/.test(l)) return 't';
+        return null; };
+    matches.forEach(m => {
+        const home = m.homeTeam === rival;
+        const byD = {}; ((home ? m.homePlayers : m.awayPlayers) || []).forEach(p => { if (p.dorsal != null) byD[String(Number(p.dorsal))] = p.name; });
+        if (Array.isArray(m.fcbqMoves) && m.fcbqMoves.length) {
+            games++;
+            const R = String(home ? m.localId : m.visitId);
+            m.fcbqMoves.forEach(mv => { if (String(mv.idTeam) !== R) return; const k = kindOf(mv.move); if (!k) return;
+                add((mv.actorName && String(mv.actorName).trim()) || byD[String(Number(mv.actorShirtNumber))] || '', k); });
+        } else if ((m.events || []).length >= 5) {
+            games++;
+            const side = home ? 'home' : 'away';
+            m.events.forEach(e => { if (e.team !== side) return;
+                const k = /^tech/.test(e.type) ? 't' : e.type === 'anti' ? 'a' : /^(disq|dq)/.test(e.type) ? 'd' : null;
+                if (k) add(/^(entrenador|banquillo)$/i.test(e.player || '') ? 'Banquillo / entrenador' : e.player, k); });
+        }
+    });
+    return { games, list: Object.values(P).sort((x, y) => (y.d * 3 + y.a * 2 + y.t) - (x.d * 3 + x.a * 2 + x.t) || x.name.localeCompare(y.name)) };
 }
 
 // Puntos a favor / en contra por cuarto (marcador oficial por cuarto si lo hay, si no el de las jugadas)

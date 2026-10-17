@@ -3389,6 +3389,18 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
 .q-sr ol li{margin:2px 0}
 .q-never{margin-top:10px!important}
 
+/* horarios reales y marcador en directo (calendaris.cat) */
+.q-chg { font: 800 10px/1 var(--fn, system-ui); color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 4px 6px; border-radius: 6px; margin-left: 6px }
+/* marcador en directo dentro de la tarjeta */
+.q-src.onair { color: #fff; background: #dc2626; animation: qOnAir 1.6s ease-in-out infinite }
+@keyframes qOnAir { 50% { opacity: .65 } }
+.q-team.lead .sc { color: #dc2626 }
+.q-pt.prov { background: #fff7ed; color: #c2410c; font-weight: 800 }
+.q-parts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px }
+.q-parts span { font: 800 12px/1 var(--fn, system-ui); color: #334155; background: #f1f5f9; border-radius: 7px; padding: 5px 7px }
+.q-parts small { font-weight: 700; color: #94a3b8; margin-right: 4px; font-size: 10px }
+.q-wait { margin-top: 8px; font: 700 12px/1.3 var(--fn, system-ui); color: #94a3b8 }
+
 /* ── Líderes por equipo ── */
 .bl-mode{display:inline-flex;gap:4px;margin-left:auto}
 .bl-mode button{border:1.5px solid var(--b2,#cbd5e1);background:#fff;color:var(--t2,#475569);border-radius:999px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer}
@@ -26975,10 +26987,40 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     return { j: ji + 1, i, key: `${ji + 1}-${i}`, h, a, at: new Date(y, +mo - 1, +d, +hh, +mi).getTime(), cla: h === 'CLA' || a === 'CLA' };
   }));
   const ALL = CAL.flat();
+
+  // ── horarios reales: los cambios de día/hora de cada finde y el link al marcador en directo (calendaris.cat,
+  //    a través de /api/cal-proxy, con caché de 1 h). Si no responde, se queda el calendario de arriba. ──
+  const LS_CAL = 'ba_quini_cal';
+  function applyCal(list) {
+    let n = 0;
+    (list || []).forEach(m => {
+      const h = codeOf(m.h), a = codeOf(m.a), c = h && a && ALL.find(x => x.h === h && x.a === a); if (!c) return;
+      const x = /^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/.exec(m.d || ''); if (!x) return;
+      const at = new Date(+x[1], +x[2] - 1, +x[3], +x[4], +x[5]).getTime();
+      if (c.at0 == null) c.at0 = c.at;
+      if (at !== c.at) { c.at = at; n++; }
+      if (/^https:\/\/calendaris\.cat\/marcador\//.test(m.mk || '')) { c.mk = m.mk; c.cid = (m.mk.match(/calendari\/[\d-]+\/(\d+)/) || [])[1] || null; }
+    });
+    return n;
+  }
+  try { const c0 = JSON.parse(localStorage.getItem(LS_CAL) || 'null'); if (c0 && c0.matches) applyCal(c0.matches); } catch (e) { }
+  async function syncCal() {
+    const url = window.__CAL_PROXY__ || (location.protocol === 'https:' ? '/api/cal-proxy' : '');
+    if (!url) return;
+    try {
+      const r = await fetch(url); if (!r.ok) return; const j = await r.json(); if (!j || !Array.isArray(j.matches) || !j.matches.length) return;
+      applyCal(j.matches); try { localStorage.setItem(LS_CAL, JSON.stringify({ at: Date.now(), matches: j.matches })); } catch (e) { }
+      const t = $('#t-quini'); if (t && t.classList.contains('active') && typeof render === 'function') render();
+      if (window.__baQuiniLiveTick) window.__baQuiniLiveTick();   // ya se sabe qué partidos han empezado: a por su marcador
+    } catch (e) { console.warn('Quiniela: no se pudieron leer los horarios', e); }
+  }
+  setTimeout(syncCal, 1500); setInterval(syncCal, 2 * 36e5);
+  window.__baQuiniSyncCal = syncCal;
   window.__baQuiniCal = CAL;
 
   // ── puntos: acierto 3; prórroga y fallo 1; comodín ×2 ──
   function points(p, r) {
+    if (r && r.live) return null;   // en directo: aún no puntúa
     if (!p || !p.w || !r || r.h == null || r.a == null || r.h === r.a) return null;
     const win = r.h > r.a ? 'h' : 'a';
     let pts = p.w === win ? 3 : r.ot ? 1 : 0;
@@ -27060,20 +27102,45 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       if (Object.keys(nw).length) { Object.assign(D.res, nw); keep(); clearTimeout(autoResults.t); autoResults.t = setTimeout(pushRes, 1500); } }
     return map;
   }
+  const LIVE = {};   // id de calendaris.cat → { state, h, a, period, reg, ot, clock, parts }
+  const LIVE_WIN = 4 * 36e5;   // se mira hasta 4 h después de la hora de inicio
+  const liveCands = () => ALL.filter(c => c.cid && Date.now() >= c.at && Date.now() < c.at + LIVE_WIN && !autoResults()[c.key] && !D.res[c.key]);
+  async function pollLive() {
+    const cs = liveCands(); if (!cs.length) return false;
+    const base = window.__LIVE_PROXY__ || (location.protocol === 'https:' ? '/api/live-proxy' : ''); if (!base) return false;
+    let ch = false;
+    for (let i = 0; i < cs.length; i += 8) {
+      try {
+        const r = await fetch(base + '?ids=' + cs.slice(i, i + 8).map(c => c.cid).join(',')); if (!r.ok) continue;
+        const j = await r.json();
+        (j.matches || []).forEach(m => { if (!m || !m.id || m.state === 'error') return; const o = LIVE[m.id];
+          if (!o || o.state !== m.state || o.h !== m.h || o.a !== m.a || o.period !== m.period || o.clock !== m.clock) { LIVE[m.id] = m; ch = true; } });
+      } catch (e) { }
+    }
+    // el staff deja el resultado final en la fila común (así queda aunque nadie lo esté mirando después)
+    if (ch && isStaff()) { let nw = 0; cs.forEach(c => { const m = LIVE[c.cid]; if (m && m.state === 'final' && m.h !== m.a && !D.res[c.key]) { D.res[c.key] = { h: m.h, a: m.a, ot: !!m.ot, src: 'FCBQ', ts: Date.now() }; nw++; } });
+      if (nw) { keep(); pushRes(); } }
+    return ch;
+  }
+  const qLabel = m => m.ot ? 'Prórroga' + (m.period > m.reg + 1 ? ' ' + (m.period - m.reg) : '') : (m.period ? m.period + 'Q' : '');
   function resultOf(c) {
     const a = autoResults()[c.key]; if (a) return a;
     if (D.res[c.key]) return D.res[c.key];
+    const L = c.cid && LIVE[c.cid];
+    if (L && L.state === 'final' && L.h !== L.a) return { h: L.h, a: L.a, ot: !!L.ot, src: 'FCBQ' };
+    if (L && L.state !== 'waiting' && L.h != null && Date.now() >= c.at) return { h: L.h, a: L.a, live: true, q: qLabel(L), clock: L.clock && L.clock !== '00:00' ? L.clock : '', parts: L.parts, src: 'En directo' };
     if (CAL_RES[c.key]) return { h: CAL_RES[c.key][0], a: CAL_RES[c.key][1], src: 'Calendario' };
     return null;
   }
   const locked = c => Date.now() >= c.at || !!resultOf(c);
+  const fin = r => !!r && !r.live;   // resultado definitivo (no el marcador en directo)
 
   // ── clasificación ──
   function table() {
     const T = Object.values(D.users).map(u => ({ uid: u.uid, name: u.name, col: u.col, pts: 0, hits: 0, byJ: {}, won: 0, played: 0 }));
     const by = Object.fromEntries(T.map(t => [t.uid, t]));
-    ALL.forEach(c => { const r = resultOf(c); if (!r) return; Object.values(D.users).forEach(u => { const s = points(u.picks && u.picks[c.key], r); if (!s) return; const t = by[u.uid]; t.pts += s.pts; t.played++; t.byJ[c.j] = (t.byJ[c.j] || 0) + s.pts; if (s.hit) t.hits++; }); });
-    CAL.forEach(J => { if (!J.every(c => resultOf(c))) return; const best = Math.max(0, ...T.map(t => t.byJ[J[0].j] || 0)); if (best > 0) T.forEach(t => { if ((t.byJ[J[0].j] || 0) === best) t.won++; }); });
+    ALL.forEach(c => { const r = resultOf(c); if (!fin(r)) return; Object.values(D.users).forEach(u => { const s = points(u.picks && u.picks[c.key], r); if (!s) return; const t = by[u.uid]; t.pts += s.pts; t.played++; t.byJ[c.j] = (t.byJ[c.j] || 0) + s.pts; if (s.hit) t.hits++; }); });
+    CAL.forEach(J => { if (!J.every(c => fin(resultOf(c)))) return; const best = Math.max(0, ...T.map(t => t.byJ[J[0].j] || 0)); if (best > 0) T.forEach(t => { if ((t.byJ[J[0].j] || 0) === best) t.won++; }); });
     return T.sort((a, b) => b.pts - a.pts || b.hits - a.hits || a.name.localeCompare(b.name));
   }
 
@@ -27170,7 +27237,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     if (curJ == null) curJ = defaultJ();
     const U = me(), J = CAL[curJ - 1], mine = U.picks || (U.picks = {}), tb = table();
     const nOpen = J.filter(c => !locked(c)).length, nDone = J.filter(c => mine[c.key] && mine[c.key].w).length;
-    const first = Math.min(...J.map(c => c.at)), allRes = J.every(c => resultOf(c));
+    const first = Math.min(...J.map(c => c.at)), allRes = J.every(c => fin(resultOf(c)));
     const status = allRes ? '<b class="q-pill done">Jornada cerrada</b>' : nOpen === J.length ? `<b class="q-pill open">Abierta · el primer partido empieza en ${untilTxt(first)}</b>` : nOpen ? `<b class="q-pill live">En juego · ${nOpen} partido${nOpen > 1 ? 's' : ''} aún abierto${nOpen > 1 ? 's' : ''}</b>` : '<b class="q-pill live">Esperando resultados</b>';
     const jt = tb.map(t => ({ ...t, p: t.byJ[curJ] || 0 })).sort((a, b) => b.p - a.p || a.name.localeCompare(b.name));
     const x2used = J.find(c => mine[c.key] && mine[c.key].x2);
@@ -27214,23 +27281,27 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     p = p || {}; const r = resultOf(c), lk = locked(c);
     const users = Object.values(D.users);
     const seeAll = lk || (isStaff() && spy);   // el staff, si lo activa abajo del todo, ve las elecciones antes del partido; los jugadores, no
-    const team = sd => { const k = sd === 'h' ? c.h : c.a, won = r && (sd === 'h' ? r.h > r.a : r.a > r.h);
+    const live = r && r.live;
+    const team = sd => { const k = sd === 'h' ? c.h : c.a, ahead = r && (sd === 'h' ? r.h > r.a : r.a > r.h), won = ahead && !live;
       const who = seeAll ? users.filter(u => u.picks && u.picks[c.key] && u.picks[c.key].w === sd) : [];
-      return `<button type="button" class="q-team${p.w === sd ? ' on' : ''}${won ? ' won' : ''}" data-k="${c.key}" data-w="${sd}" ${lk ? 'disabled' : ''}>
+      return `<button type="button" class="q-team${p.w === sd ? ' on' : ''}${won ? ' won' : ''}${live && ahead ? ' lead' : ''}" data-k="${c.key}" data-w="${sd}" ${lk ? 'disabled' : ''}>
         ${crest(k)}<span class="tn">${esc(SN(k))}</span>${r ? `<b class="sc">${sd === 'h' ? r.h : r.a}</b>` : ''}
         ${seeAll ? `<span class="q-who2">${who.slice(0, 12).map(u => `<span class="q-avw" title="${esc(u.name)}${u.picks[c.key].x2 ? ' · comodín ×2' : ''}">${av(u, 1)}${u.picks[c.key].x2 ? '<i class="q-x2b">⭐</i>' : ''}</span>`).join('')}${who.length > 12 ? `<em>+${who.length - 12}</em>` : ''}${who.length ? '' : '<em>nadie</em>'}</span>` : ''}</button>`; };
     let foot = '';
     if (lk) {
       const s = r ? points(p, r) : null;
-      foot = `<div class="q-mine">${p.w ? `Tu elección: <b>${esc(SN(p.w === 'h' ? c.h : c.a))}</b>${p.x2 ? ' ⭐' : ''}${s ? ` <span class="q-pt${s.pts ? ' ok' : ''}">+${s.pts}${s.det.includes('prórroga') ? ' · prórroga' : ''}</span>` : ''}` : '<span class="q-mut">No elegiste en este partido</span>'}${r && r.ot ? '<span class="q-ot">PRÓRROGA</span>' : ''}</div>`;
+      const prov = live && p.w && r.h !== r.a ? points(p, { ...r, live: false, ot: r.q && r.q.startsWith('Prórroga') }) : null;   // lo que sumaría si acabara así
+      foot = `<div class="q-mine">${p.w ? `Tu elección: <b>${esc(SN(p.w === 'h' ? c.h : c.a))}</b>${p.x2 ? ' ⭐' : ''}${s ? ` <span class="q-pt${s.pts ? ' ok' : ''}">+${s.pts}${s.det.includes('prórroga') ? ' · prórroga' : ''}</span>` : ''}${prov ? ` <span class="q-pt prov" title="Lo que sumarías si acabara ahora">si acaba así: +${prov.pts}</span>` : ''}` : '<span class="q-mut">No elegiste en este partido</span>'}${r && r.ot ? '<span class="q-ot">PRÓRROGA</span>' : ''}</div>`;
+      if (live && r.parts && r.parts.length) foot += `<div class="q-parts">${r.parts.map((x, i) => `<span><small>${i < 4 ? i + 1 + 'Q' : 'PR'}</small>${x[0]}-${x[1]}</span>`).join('')}</div>`;
+      else if (!r && c.cid && Date.now() < c.at + LIVE_WIN) foot += '<div class="q-wait">⏳ Esperando el marcador en directo…</div>';
       if (!r && Date.now() >= c.at && isStaff()) foot += `<div class="q-man"><span>Staff · ¿sin acta? Resultado:</span><input type="number" inputmode="numeric" data-mh="${c.key}" placeholder="${esc(SN(c.h))}"><input type="number" inputmode="numeric" data-ma="${c.key}" placeholder="${esc(SN(c.a))}"><label><input type="checkbox" data-mot="${c.key}"> prórroga</label><button type="button" class="q-btn sm" data-man="${c.key}">Guardar</button></div>`;
     }
     const others = !lk ? (() => { const n = users.filter(u => u.uid !== UID && u.picks && u.picks[c.key] && u.picks[c.key].w).length;
       if (isStaff() && spy) return `<span class="q-oth staff" title="Los jugadores no ven lo que han elegido los demás hasta que empieza el partido">👁 Solo staff · ${n} ${n === 1 ? 'ha' : 'han'} elegido</span>`;
       return n ? `<span class="q-oth">${n} ya ${n === 1 ? 'ha' : 'han'} elegido</span>` : ''; })() : '';
     return `<article class="q-m${c.cla ? ' cla' : ''}${lk ? ' lk' : ''}${p.x2 ? ' x2' : ''}">
-      <header><span class="d">${fmtDay(c.at)} · ${fmtHour(c.at)}</span>${c.cla ? '<span class="q-tag">Partido del Claret</span>' : ''}
-        ${r ? `<span class="q-src">${esc(r.src || 'Resultado')}</span>` : lk ? '<span class="q-src live">En juego</span>' : others}
+      <header><span class="d">${fmtDay(c.at)} · ${fmtHour(c.at)}</span>${c.at0 != null && c.at0 !== c.at ? `<span class="q-chg" title="Antes: ${esc(fmtDay(c.at0) + ' · ' + fmtHour(c.at0))}">🕒 cambio de horario</span>` : ''}${c.cla ? '<span class="q-tag">Partido del Claret</span>' : ''}
+        ${live ? `<span class="q-src onair">🔴 En directo${r.q ? ' · ' + esc(r.q) : ''}${r.clock ? ' · ' + esc(r.clock) : ''}</span>` : r ? `<span class="q-src">${esc(r.src || 'Resultado')}</span>` : lk ? '<span class="q-src live">En juego</span>' : others}
         ${!lk ? `<button type="button" class="q-x2${p.x2 ? ' on' : ''}" data-k="${c.key}" data-x2="1" ${x2Blocked ? 'disabled title="Ya usaste el comodín en esta jornada"' : 'title="Comodín: este partido vale doble"'}>⭐ ×2</button>` : ''}</header>
       <div class="q-teams">${team('h')}<i>vs</i>${team('a')}</div>${foot}</article>`;
   }
@@ -27249,7 +27320,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   function showStandings() {
     const T = {}; Object.keys(TEAMS).forEach(k => T[k] = { k, w: 0, l: 0, pf: 0, pc: 0 });
     let n = 0;
-    ALL.forEach(c => { const r = resultOf(c); if (!r || r.h == null || r.a == null || +r.h === +r.a) return; n++;
+    ALL.forEach(c => { const r = resultOf(c); if (!fin(r) || r.h == null || r.a == null || +r.h === +r.a) return; n++;
       const h = T[c.h], a = T[c.a]; h.pf += +r.h; h.pc += +r.a; a.pf += +r.a; a.pc += +r.h; if (+r.h > +r.a) { h.w++; a.l++; } else { a.w++; h.l++; } });
     const rows = Object.values(T).sort((x, y) => (y.w - x.w) || (x.l - y.l) || ((y.pf - y.pc) - (x.pf - x.pc)) || (y.pf - x.pf) || SN(x.k).localeCompare(SN(y.k)));
     const ov = document.createElement('div'); ov.className = 'q-modal';
@@ -27351,10 +27422,15 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   }
 
   window.__baQuiniDbg = { autoResults, resultOf, D: () => D, logVisit };
-  window.baQuiniRender = async () => { render(); if (await pull()) render(); };
+  window.baQuiniRender = async () => { render(); setTimeout(() => window.__baQuiniLiveTick && window.__baQuiniLiveTick(), 0); if (await pull()) render(); };
   window.baQuiniOpen = () => { if (window.baShowPage) window.baShowPage('t-quini'); };
   setInterval(() => { const t = $('#t-quini'); if (t && t.classList.contains('active') && !document.hidden && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#q-main input')))
     pull().then(ok => { if (ok) render(); }); }, 30000);
+  const liveTick = () => { const t = $('#t-quini'); if (!t || !t.classList.contains('active') || document.hidden) return;
+    pollLive().then(ch => { if (ch && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#q-main input'))) render(); }); };
+  setInterval(liveTick, 20000); setTimeout(liveTick, 2500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) liveTick(); });
+  window.__baQuiniLive = { pollLive, LIVE }; window.__baQuiniLiveTick = liveTick;
   setTimeout(() => pull(), 4000);
 })();
 

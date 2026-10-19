@@ -3886,6 +3886,7 @@ body.player-mode .cx-card{display:none!important}
           <div id="i-fcbq-bridge-state" style="margin-bottom:4px"></div>
           Instalar una vez: arrastra este botón a la barra de marcadores 👉
           <a id="i-fcbq-bookmarklet" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#15803d;color:#fff;font-weight:800;text-decoration:none;cursor:grab">→ BasketApp</a>
+          <div style="margin-top:6px">✂️ Para clipear los vídeos de la FCBQ (AiBasket) sin descargarlos, arrastra también este 👉 <a class="bm-clips-link" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en la página del vídeo de basquetcatala.cat');}return false;" style="display:inline-block;padding:3px 10px;border-radius:6px;background:#f59e0b;color:#111;font-weight:800;text-decoration:none">✂️ Clips FCBQ</a></div>
           <div style="margin-top:4px">Luego, en basquetcatala.cat pulsa el marcador: en la página de un partido importa ese partido; en la página de resultados de un grupo importa todos los partidos jugados que aparezcan. Con el puente activo, la caja de links de arriba también funciona.</div>
         </div>
       </div>
@@ -4681,6 +4682,10 @@ body.player-mode .cx-card{display:none!important}
 
 <!-- ═══ TAB: VIDEO ═══ -->
 <div id="t-video" class="tab"><div class="main">
+  <div class="card" style="margin-bottom:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;font-size:11.5px;color:#92400e;line-height:1.45">
+    ✂️ <b>Clipear vídeos de la FCBQ (AiBasket) sin descargarlos:</b> arrastra 👉 <a class="bm-clips-link" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en la página del vídeo de basquetcatala.cat');}return false;" style="display:inline-block;padding:2px 9px;border-radius:6px;background:#f59e0b;color:#111;font-weight:800;text-decoration:none">✂️ Clips FCBQ</a> a la barra de marcadores.
+    En la página del vídeo del partido en basquetcatala.cat púlsalo y usa las teclas: <b>L</b> +5 s · <b>J</b> −5 s · <b>ESPACIO</b> pausa · <b>B</b> inicio/fin del clip (al acabarlo eliges equipo, ataque/defensa, carpeta y descripción). Funciona también en pantalla completa. Luego «📤 Enviar a BasketApp». Los clips aparecen aquí abajo en la biblioteca con <b>▶ FCBQ</b>: se ven sobre el reproductor de la FCBQ (pulsa otra vez el marcador allí y salta solo al clip).
+  </div>
 
   <div class="card" style="margin-bottom:10px">
     <div class="ct">🎬 Vídeo del partido
@@ -15372,7 +15377,9 @@ function renderVideoLib(){
                                     </div>
                                     ${clips.map(cl=>`
                                     <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
-                                        <button onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.homeTeam+" vs "+mk.awayTeam)},"")'
+                                        ${cl.fcbq ? `<button onclick='window.open(${JSON.stringify(cl.fcbq + "#bascat=" + cl.timeSecs + "-" + cl.timeEnd)} + "-" + Date.now().toString(36),"bascat_fcbq_video")' title="Se ve sobre el vídeo de la FCBQ, siempre en la misma pestaña. La primera vez pulsa allí el marcador «✂️ Clips FCBQ»; después cada clip salta solo"
+                                            style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:#f59e0b;color:#111;border:none;border-radius:6px;cursor:pointer">▶ FCBQ ${cl.dur ? cl.dur + 's' : cl.time}</button>` : ''}
+                                        <button ${cl.fcbq ? 'hidden ' : ''}onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.homeTeam+" vs "+mk.awayTeam)},"")'
                                             style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
                                             ${cl.videoUrl?'▶':'🕐'} ${cl.dur?cl.dur+'s':cl.time}
                                         </button>
@@ -15391,7 +15398,7 @@ function renderVideoLib(){
 function _vPendingClips(mk){
     const out=[];
     Object.entries(mk?.videoClips?.teams||{}).forEach(([tName,cats])=>Object.entries(cats||{}).forEach(([cat,folders])=>Object.entries(folders||{}).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{
-        if(!cl.videoUrl&&cl.timeEnd>cl.timeSecs) out.push({tName,cat,folder,cl});
+        if(!cl.videoUrl&&!cl.fcbq&&cl.timeEnd>cl.timeSecs) out.push({tName,cat,folder,cl});   // los de la FCBQ no se graban
     }))));
     return out;
 }
@@ -18193,6 +18200,31 @@ window.addEventListener('message', e => {
       if (ta) { ta.value = todo.map(id => `https://www.basquetcatala.cat/estadistica/partit/${id}`).join('\n'); importFromFCBQ(); }
     });
   }
+  if (d.type === 'bascat-clips' && Array.isArray(d.clips)) {
+    const src = e.source, org = e.origin;
+    _whenReadyForImport(() => {
+      const clean = v => String(v == null ? '' : v).replace(/[<>]/g, '').trim().slice(0, 120);
+      const key = clean(d.key) || 'Vídeo FCBQ', url = /^https:\/\/(www\.)?basquetcatala\.cat\//.test(d.url || '') ? d.url : '';
+      const o = _vLib(key, true);
+      if (!o.homeTeam || o.homeTeam === 'Local') o.homeTeam = clean(d.home) || o.homeTeam;
+      if (!o.awayTeam || o.awayTeam === 'Visitante') o.awayTeam = clean(d.away) || o.awayTeam;
+      const f = s => { s = Math.max(0, Math.round(+s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+      const ids = []; let n = 0;
+      d.clips.forEach(c => {
+        const s0 = +c.s, s1 = +c.e; if (!(s1 > s0)) return;
+        const tName = c.side === 'visit' ? o.awayTeam : o.homeTeam, cat = c.cat === 'defensa' ? 'defensa' : 'ataque', folder = clean(c.folder) || 'Clips FCBQ';
+        const T = o.videoClips.teams = o.videoClips.teams || {}; const arr = ((T[tName] = T[tName] || {})[cat] = T[tName][cat] || {})[folder] = (T[tName][cat][folder] || []);
+        const id = 'fcbq_' + clean(c.id);
+        if (!arr.some(x => x.id === id)) { arr.push({ id, time: f(s0), timeSecs: s0, timeEnd: s1, timeEndFmt: f(s1), dur: Math.round(s1 - s0), label: clean(c.label), note: '', fcbq: url }); n++; }
+        ids.push(c.id);
+      });
+      svL(); if (typeof syncFirebase === 'function') syncFirebase();
+      try { if (typeof ST === 'function') ST('t-video'); } catch (err) {}
+      try { renderVideoLib(); } catch (err) {}
+      toast(n ? `✂️ ${n} clip${n > 1 ? 's' : ''} de la FCBQ guardado${n > 1 ? 's' : ''} en la biblioteca (${key})` : '✂️ Esos clips ya estaban en la biblioteca', 'ok');
+      try { src.postMessage({ type: 'bascat-clips-ok', ids }, org); } catch (err) {}
+    });
+  }
   if (d.type === 'bascat-data' && _bridgePending[d.req]) {
     const p = _bridgePending[d.req]; delete _bridgePending[d.req];
     d.error ? p.rej(new Error(d.error)) : p.res(d);
@@ -18200,7 +18232,7 @@ window.addEventListener('message', e => {
 });
 
 // Si nos ha abierto el marcador, avisamos a la pestaña de la FCBQ de que ya estamos
-if (new URLSearchParams(location.search).has('fcbqBridge') && window.opener) {
+if ((new URLSearchParams(location.search).has('fcbqBridge') || new URLSearchParams(location.search).has('fcbqClips')) && window.opener) {
   try { window.opener.postMessage({ type: 'bascat-ready' }, '*'); } catch (err) {}
 }
 
@@ -18208,6 +18240,10 @@ if (new URLSearchParams(location.search).has('fcbqBridge') && window.opener) {
 function _installBookmarkletLink() {
   const a = document.getElementById('i-fcbq-bookmarklet');
   if (a) a.href = 'javascript:' + encodeURIComponent(_FCBQ_BOOKMARKLET.replace('__APP__', location.origin));
+  const bmc = document.getElementById('bm-clips-src');
+  // los clips siempre van a la web publicada (si la app se abre como archivo, location.origin no sirve para enviarlos)
+  const appUrl = /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : (window.__BM_APP__ || 'https://www.basketapp.es');
+  if (bmc) setTimeout(() => document.querySelectorAll('.bm-clips-link').forEach(l => { l.href = 'javascript:' + encodeURIComponent(bmc.textContent.replace('__APP__', appUrl).replace('__FOLDERS__', JSON.stringify(window._vFolders || {}))); }), 0);   // después de cargar las carpetas por defecto
   _bridgeUI();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _installBookmarkletLink);
@@ -26521,6 +26557,130 @@ Acta Canvis
     };
     reader.readAsText(file);
 };
+</script>
+<script type="text/plain" id="bm-clips-src">
+(()=>{
+/* ✂️ Clips FCBQ (marcador de BasketApp): clipear un vídeo de la FCBQ SIN descargarlo, como en la pestaña Vídeo de la web.
+   Teclas: L +5 s · J −5 s · ESPACIO pausa/play · B inicio/fin del clip → ventanita (equipo, ataque/defensa, carpeta, descripción).
+   Funciona también con el vídeo en pantalla completa. Los clips se guardan en este navegador y se envían a la biblioteca de BasketApp. */
+const APP='__APP__';
+const DEF_FOLDERS=__FOLDERS__;
+if(window.__bcClips){window.__bcClips.toggle();return;}
+const v=document.querySelector('video');
+if(!v){alert('Abre la página del vídeo del partido en basquetcatala.cat (AiBasket) y vuelve a pulsar el marcador.');return;}
+const uuid=new URLSearchParams(location.search).get('matchCallUuid')||location.pathname;
+const pageUrl=location.origin+location.pathname+'?matchCallUuid='+encodeURIComponent(uuid);
+const leaf=[...document.querySelectorAll('body *')].filter(e=>e.children.length===0&&e.textContent.trim());
+const ci=leaf.findIndex(e=>e.textContent.trim()==='Competició');
+let H=ci>=2?leaf[ci-2].textContent.trim():'',A=ci>=1?leaf[ci-1].textContent.trim():'';
+if(!H||!A||H.length>70||A.length>70){H=prompt('Equipo LOCAL',H||'')||'Local';A=prompt('Equipo VISITANTE',A||'')||'Visitante';}
+const di=leaf.findIndex(e=>e.textContent.trim()==='Data i hora');const date=di>=0&&leaf[di+1]?leaf[di+1].textContent.trim().slice(0,10):'';
+const KEY='bascat_clips_'+uuid,KF='bascat_clips_folders';
+let S=null;try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+S=S||{clips:[]};
+let MYF={ataque:[],defensa:[]};try{MYF=Object.assign(MYF,JSON.parse(localStorage.getItem(KF)||'{}'));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KF,JSON.stringify(MYF));}catch(e){}};
+const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const st={start:null,end:null,side:null,cat:null,newF:false,folder:'',wasPlaying:false};
+let stopAt=null,modal=null;
+const css=document.createElement('style');
+css.textContent='#bc-bar{position:fixed;right:14px;bottom:14px;z-index:2147483646;display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(15,23,42,.92);color:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font:12px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;cursor:move;user-select:none}'
++'#bc-bar *,#bc-modal *{box-sizing:border-box}#bc-bar button,#bc-modal button{font:inherit;cursor:pointer}'
++'#bc-bar .tb{font:900 13px ui-monospace,monospace;background:#fff;color:#0f172a;border-radius:6px;padding:3px 8px}#bc-bar .rec{font:800 11px ui-monospace,monospace;color:#fff;background:#dc2626;border-radius:6px;padding:3px 7px;animation:bcp 1s infinite}@keyframes bcp{50%{opacity:.55}}'
++'#bc-bar .b{border:0;border-radius:7px;background:#1e293b;color:#e2e8f0;padding:5px 8px;font-weight:800}#bc-bar .b.se{background:#f59e0b;color:#111}#bc-bar .b.se:disabled{opacity:.4;cursor:default}'
++'#bc-bar .kb{font-size:10px;color:#94a3b8;white-space:nowrap}#bc-bar.min .hide{display:none}'
++'#bc-modal{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.45);font:13px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}'
++'#bc-modal .form{width:min(380px,92vw);max-height:88vh;overflow:auto;background:#0f172a;border-radius:12px;padding:14px;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.5)}'
++'#bc-modal .ft{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}#bc-modal .ft span{color:#22c55e;font-family:ui-monospace,monospace}'
++'#bc-modal .lb{font-size:10px;font-weight:700;color:#94a3b8;margin:8px 0 5px;text-transform:uppercase}#bc-modal .two{display:flex;gap:6px}'
++'#bc-modal .op{flex:1;min-width:0;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:800;border:2px solid #475569;background:transparent;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#bc-modal .op small{display:block;font-size:9.5px;font-weight:600;opacity:.8;overflow:hidden;text-overflow:ellipsis}'
++'#bc-modal select,#bc-modal input{flex:1;min-width:0;padding:7px 9px;border-radius:8px;font:inherit;font-size:12px;border:none;color:#0f172a;background:#fff}#bc-modal input.nf{border:2px solid #f59e0b}'
++'#bc-modal .nb{background:#334155;border:none;color:#fff;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:700;white-space:nowrap}'
++'#bc-modal .sv{background:#2563eb;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:800;white-space:nowrap}#bc-modal .cn{background:#334155;border:none;color:#cbd5e1;border-radius:8px;padding:8px 11px}'
++'#bc-modal .hint{font-size:10px;color:#94a3b8;margin-top:8px}'
++'#bc-modal .it{display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #1e293b}#bc-modal .it .pl{font:800 10px ui-monospace,monospace;padding:3px 8px;background:#2563eb;color:#fff;border:none;border-radius:6px}'
++'#bc-modal .it .tx{flex:1;min-width:0;font-size:11.5px}#bc-modal .it .tx small{display:block;color:#94a3b8;font-size:10px}#bc-modal .it .dl{background:none;border:none;color:#94a3b8}#bc-modal .ok{color:#4ade80;font-size:10px;font-weight:800}';
+document.head.appendChild(css);
+const bar=document.createElement('div');bar.id='bc-bar';
+// que los clics/teclas en la barra y en la ventanita no lleguen al reproductor de la FCBQ (pausaría el vídeo)
+const guard=el=>['click','mousedown','pointerdown','pointerup','touchstart','dblclick','keydown','keyup'].forEach(t=>el.addEventListener(t,e=>e.stopPropagation()));guard(bar);
+// dentro de la pantalla completa (si el que se pone en grande es el propio <video>, se pone en grande su contenedor para poder verse encima)
+const host=()=>{const f=document.fullscreenElement||document.webkitFullscreenElement;return f&&f.tagName!=='VIDEO'?f:document.body;};
+const place=()=>{const h=host();if(bar.parentNode!==h)h.appendChild(bar);if(modal&&modal.parentNode!==h)h.appendChild(modal);};
+document.addEventListener('fullscreenchange',()=>{const f=document.fullscreenElement;if(f&&f.tagName==='VIDEO'){const p=v.parentElement;document.exitFullscreen().then(()=>p&&p.requestFullscreen&&p.requestFullscreen()).catch(()=>{});return;}place();});
+document.addEventListener('webkitfullscreenchange',place);
+const renderBar=()=>{const n=S.clips.filter(c=>!c.sent).length,rec=st.start!=null&&st.end==null;
+  bar.innerHTML='<span class="tb">'+fmt(v.currentTime)+'</span>'+(rec?'<span class="rec">⏺ REC '+fmt(st.start)+'</span>':'')
+  +'<span class="hide kb" title="L +5 s · J −5 s · ESPACIO pausa · B inicio/fin del clip">L +5 · J −5 · ␣ · <b>B</b> clip</span>'
+  +'<button class="b hide" data-a="list" title="Ver los clips de este partido">📋 '+S.clips.length+'</button>'
+  +'<button class="b se" data-a="send"'+(n?'':' disabled')+' title="Enviar los clips nuevos a la biblioteca de BasketApp">📤 Enviar'+(n?' ('+n+')':'')+'</button>'
+  +'<button class="b" data-a="min" title="Minimizar">'+(bar.classList.contains('min')?'✂️':'–')+'</button>';};
+const tick=()=>{const t=bar.querySelector('.tb');if(t)t.textContent=fmt(v.currentTime);};
+const foldersFor=cat=>[...new Set([...(DEF_FOLDERS[cat]||[]),...(MYF[cat]||[]),...S.clips.filter(c=>c.cat===cat).map(c=>c.folder)])].filter(Boolean);
+const closeModal=()=>{if(modal){modal.remove();modal=null;}};
+const openForm=()=>{closeModal();modal=document.createElement('div');modal.id='bc-modal';
+  const opt=(k,val,lab,col,sub)=>'<button class="op" data-a="'+k+'" data-v="'+val+'" style="'+(st[k]===val?'background:'+col+';color:#fff;border-color:'+col:'')+'">'+lab+(sub?'<small>'+esc(sub)+'</small>':'')+'</button>';
+  modal.innerHTML='<div class="form"><div class="ft">✂️ Nuevo clip <span>['+fmt(st.start)+' - '+fmt(st.end)+']</span></div>'
+  +'<div class="lb">¿De quién es el clip?</div><div class="two">'+opt('side','local','LOCAL','#3b82f6',H)+opt('side','away','VISITANTE','#f59e0b',A)+'</div>'
+  +'<div class="lb">Categoría</div><div class="two">'+opt('cat','ataque','⚔️ Ataque','#22c55e')+opt('cat','defensa','🛡️ Defensa','#ef4444')+'</div>'
+  +'<div class="lb">Carpeta</div><div class="two">'+(st.newF?'<input class="nf" id="bc-newf" placeholder="Nombre carpeta (P&amp;R, Zona, Banda...)" value="'+esc(st.newName||'')+'">':'<select id="bc-fsel"><option value="">— Selecciona Carpeta —</option>'+foldersFor(st.cat||'ataque').map(f=>'<option'+(f===st.folder?' selected':'')+'>'+esc(f)+'</option>').join('')+'</select>')+'<button class="nb" data-a="newf">'+(st.newF?'↩ Lista':'+ Nueva')+'</button></div>'
+  +'<div class="lb">Descripción</div><div class="two"><input id="bc-label" placeholder="Descripción (opcional)..." value="'+esc(st.label||'')+'"><button class="sv" data-a="save">✂️ Guardar</button><button class="cn" data-a="cancel">✕</button></div>'
+  +'<div class="hint">Intro guarda · Esc cancela</div></div>';
+  guard(modal);host().appendChild(modal);};
+const openList=()=>{closeModal();modal=document.createElement('div');modal.id='bc-modal';const cs=S.clips.slice().sort((a,b)=>a.s-b.s);
+  modal.innerHTML='<div class="form"><div class="ft">📋 Clips · '+esc(H)+' vs '+esc(A)+'</div>'+(cs.length?cs.map(c=>'<div class="it"><button class="pl" data-a="play" data-id="'+c.id+'">▶ '+Math.round(c.e-c.s)+'s</button><span class="tx">'+esc(c.label||c.folder)+' <small>'+fmt(c.s)+'→'+fmt(c.e)+' · '+esc(c.side==='local'?H:A)+' · '+(c.cat==='ataque'?'⚔️ Ataque':'🛡️ Defensa')+' · 📁 '+esc(c.folder)+(c.sent?' · <span class="ok">✓ en BasketApp</span>':'')+'</small></span><button class="dl" data-a="del" data-id="'+c.id+'" title="Borrar">🗑</button></div>').join(''):'<div class="hint">Aún no hay clips. Pulsa B al empezar la jugada y otra vez al acabar.</div>')
+  +'<div class="two" style="margin-top:10px"><button class="sv" data-a="send" style="flex:1;background:#f59e0b;color:#111">📤 Enviar a BasketApp ('+S.clips.filter(c=>!c.sent).length+')</button><button class="cn" data-a="cancel">Cerrar</button></div></div>';
+  guard(modal);host().appendChild(modal);};
+const keepForm=()=>{if(!modal)return;const s=modal.querySelector('#bc-fsel');if(s)st.folder=s.value;const l=modal.querySelector('#bc-label');if(l)st.label=l.value;const nf=modal.querySelector('#bc-newf');if(nf)st.newName=nf.value;};
+const resetClip=()=>Object.assign(st,{start:null,end:null,newF:false,label:'',newName:''});
+const cancel=()=>{closeModal();resetClip();renderBar();};
+const saveClip=()=>{keepForm();if(!st.side){alert('⚠️ Selecciona LOCAL o VISITANTE');return;}if(!st.cat){alert('⚠️ Selecciona ATAQUE o DEFENSA');return;}
+  const folder=(st.newF?st.newName:st.folder||'').trim();if(!folder){alert('⚠️ Selecciona o escribe el nombre de la carpeta');return;}
+  if(!(MYF[st.cat]||[]).includes(folder))(MYF[st.cat]=MYF[st.cat]||[]).push(folder);
+  S.clips.push({id:Date.now().toString(36),s:Math.round(st.start*10)/10,e:Math.round(st.end*10)/10,side:st.side==='away'?'visit':'local',cat:st.cat,folder,label:(st.label||'').trim()});
+  st.folder=folder;const resume=st.wasPlaying;resetClip();save();closeModal();renderBar();if(resume)v.play().catch(()=>{});};
+const clipMark=()=>{if(st.start==null||st.end!=null){st.start=v.currentTime;st.end=null;renderBar();return;}
+  const e=v.currentTime;if(e-st.start<0.5){alert('⚠️ Clip muy corto');return;}st.end=e;st.wasPlaying=!v.paused;v.pause();renderBar();openForm();
+  const s=modal.querySelector('#bc-fsel')||modal.querySelector('#bc-newf');if(s)s.blur();};
+const seek=d=>{v.currentTime=Math.max(0,Math.min(v.duration||1e9,v.currentTime+d));tick();};
+const playClip=c=>{v.currentTime=c.s;stopAt=c.e;v.play().catch(()=>{});};
+v.addEventListener('timeupdate',()=>{if(stopAt!=null&&v.currentTime>=stopAt){v.pause();stopAt=null;}tick();});
+const onClick=ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;keepForm();
+  if(a==='min'){bar.classList.toggle('min');renderBar();return;}if(a==='list')return openList();if(a==='send'){closeModal();return send();}
+  if(a==='side'||a==='cat'){st[a]=b.dataset.v;if(a==='cat'&&!st.newF&&!foldersFor(st.cat).includes(st.folder))st.folder='';openForm();return;}
+  if(a==='newf'){st.newF=!st.newF;openForm();const i=modal.querySelector('#bc-newf');if(i)i.focus();return;}
+  if(a==='save')return saveClip();if(a==='cancel')return modal&&modal.querySelector('[data-a="save"]')?cancel():closeModal();
+  if(a==='play'){const c=S.clips.find(x=>x.id===b.dataset.id);if(c){closeModal();playClip(c);}return;}
+  if(a==='del'){if(!confirm('¿Borrar este clip?'))return;S.clips=S.clips.filter(x=>x.id!==b.dataset.id);save();openList();renderBar();return;}};
+bar.addEventListener('click',onClick);document.addEventListener('click',ev=>{if(modal&&modal.contains(ev.target)){if(ev.target===modal)return;onClick(ev);}},true);
+// teclas (en fase de captura: se adelantan a las del reproductor de la FCBQ)
+window.addEventListener('keydown',ev=>{if(bar.style.display==='none')return;const tag=((ev.target||{}).tagName||'');
+  if(modal){if(ev.key==='Escape'){ev.preventDefault();ev.stopImmediatePropagation();modal.querySelector('[data-a="save"]')?cancel():closeModal();}
+    else if(ev.key==='Enter'&&modal.querySelector('[data-a="save"]')){ev.preventDefault();ev.stopImmediatePropagation();saveClip();}
+    return;}
+  if(/INPUT|TEXTAREA|SELECT/.test(tag))return;const c=ev.code;let hit=true;
+  if(c==='KeyL')seek(5);else if(c==='KeyJ')seek(-5);else if(c==='Space'){v.paused?v.play().catch(()=>{}):v.pause();}else if(c==='KeyB')clipMark();else hit=false;
+  if(hit){ev.preventDefault();ev.stopImmediatePropagation();}},true);
+// mover la barra
+bar.addEventListener('mousedown',ev=>{if(ev.target.closest('button'))return;const r=bar.getBoundingClientRect(),dx=ev.clientX-r.left,dy=ev.clientY-r.top;
+  const mv=e=>{bar.style.left=Math.max(0,e.clientX-dx)+'px';bar.style.top=Math.max(0,e.clientY-dy)+'px';bar.style.right='auto';bar.style.bottom='auto';};
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+// enviar a BasketApp: se abre la app y se le pasan los clips (la app los guarda en su biblioteca)
+let win=null;
+const OK=[APP,APP.replace('://','://www.'),APP.replace('://www.','://')];
+window.addEventListener('message',e=>{if(!OK.includes(e.origin)||e.source!==win)return;const d=e.data||{};
+  if(d.type==='bascat-ready'){win.postMessage({type:'bascat-clips',key:H+' vs '+A,home:H,away:A,date,url:pageUrl,clips:S.clips.filter(c=>!c.sent)},e.origin);}
+  if(d.type==='bascat-clips-ok'){const ids=new Set(d.ids||[]);S.clips.forEach(c=>{if(ids.has(c.id))c.sent=true;});save();renderBar();}});
+const send=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});win=window.open(APP+'/?fcbqClips=1','bascat_clips');if(!win)alert('El navegador ha bloqueado la ventana: permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar «Enviar».');};
+window.__bcClips={toggle:()=>{bar.style.display=bar.style.display==='none'?'':'none';}};
+renderBar();place();
+// abierto desde la biblioteca de BasketApp: #bascat=inicio-fin → saltar ahí y parar al final
+// (y si la pestaña ya estaba abierta con el marcador activo, cada clic en la biblioteca solo cambia el #: salta sin recargar)
+const fromHash=()=>{const h=(location.hash.match(/bascat=([\d.]+)-([\d.]+)/)||[]);if(!h[1])return;closeModal();const go=()=>playClip({s:+h[1],e:+h[2]});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});};
+window.addEventListener('hashchange',fromHash);fromHash();
+})();
+
 </script>
 <script id="basketapp-shell">
 ﻿/* BasketApp · nueva distribución: barra lateral agrupada, cabecera de sección e Inicio.

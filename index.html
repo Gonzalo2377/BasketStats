@@ -18262,6 +18262,8 @@ window._fcbqOpenClip = (url, s, e) => {
   const w = window._fcbqWin && !window._fcbqWin.closed ? window._fcbqWin : null;
   if (w && window._fcbqWinUrl === url) { try { w.postMessage({ type: 'bascat-seek', s, e }, '*'); w.focus(); return; } catch (err) {} }
   window._fcbqWin = window.open(url + '#bascat=' + s + '-' + e + '-' + Date.now().toString(36), 'bascat_fcbq_video'); window._fcbqWinUrl = url;
+  const mm = x => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+  toast(`👉 En la pestaña de la FCBQ pulsa el marcador «✂️ Clips FCBQ» y saltará al ${mm(s)} (solo la primera vez; luego cada clip salta solo)`, 'ok');
   [600, 2000].forEach(ms => setTimeout(() => { try { window._fcbqWin && window._fcbqWin.postMessage({ type: 'bascat-seek', s, e }, '*'); } catch (err) {} }, ms));
 };
 
@@ -26651,6 +26653,8 @@ const renderBar=()=>{const n=S.clips.filter(c=>!c.sent).length,rec=st.start!=nul
   +'<button class="b hide" data-a="list" title="Ver los clips de este partido">📋 '+S.clips.length+'</button>'
   +'<button class="b se" data-a="send"'+(n?'':' disabled')+' title="Enviar los clips nuevos a la biblioteca de BasketApp">📤 Enviar'+(n?' ('+n+')':'')+'</button>'
   +'<button class="b" data-a="min" title="Minimizar">'+(bar.classList.contains('min')?'✂️':'–')+'</button>';};
+// aviso corto en la barra (p. ej. «▶ Clip 10:00–10:12» al llegar un clip desde BasketApp)
+const flash=t=>{const f=document.createElement('span');f.textContent=t;f.style.cssText='font:800 11px ui-monospace,monospace;background:#16a34a;color:#fff;border-radius:6px;padding:3px 7px';bar.insertBefore(f,bar.children[1]||null);setTimeout(()=>f.remove(),4000);};
 const tick=()=>{const t=bar.querySelector('.tb');if(t)t.textContent=fmt(v.currentTime);};
 const foldersFor=cat=>[...new Set([...(DEF_FOLDERS[cat]||[]),...(MYF[cat]||[]),...S.clips.filter(c=>c.cat===cat).map(c=>c.folder)])].filter(Boolean);
 const closeModal=()=>{if(modal){modal.remove();modal=null;}};
@@ -26710,13 +26714,13 @@ window.addEventListener('message',e=>{if(!OK.includes(e.origin)||e.source!==win)
   if(d.type==='bascat-clips-ok'){const ids=new Set(d.ids||[]);S.clips.forEach(c=>{if(ids.has(c.id))c.sent=true;});save();renderBar();}
   if(d.type==='bascat-clips-err'){alert('❌ BasketApp no ha podido guardar los clips en la nube. Vuelve a pulsar «📤 Enviar».');}});
 // BasketApp (biblioteca) dice a qué clip ir: salta y para al final
-window.addEventListener('message',e=>{const d=e.data||{};if(d.type!=='bascat-seek'||!OK.includes(e.origin))return;closeModal();const go=()=>playClip({s:+d.s,e:+d.e});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});});
+window.addEventListener('message',e=>{const d=e.data||{};if(d.type!=='bascat-seek'||!OK.includes(e.origin))return;closeModal();flash('▶ Clip '+fmt(+d.s)+'–'+fmt(+d.e));const go=()=>playClip({s:+d.s,e:+d.e});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});});
 const send=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});win=window.open(APP+'/?fcbqClips=1','bascat_clips');if(!win)alert('El navegador ha bloqueado la ventana: permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar «Enviar».');};
 window.__bcClips={toggle:()=>{bar.style.display=bar.style.display==='none'?'':'none';}};
 renderBar();place();
 // abierto desde la biblioteca de BasketApp: #bascat=inicio-fin → saltar ahí y parar al final
 // (y si la pestaña ya estaba abierta con el marcador activo, cada clic en la biblioteca solo cambia el #: salta sin recargar)
-const fromHash=()=>{const h=(location.hash.match(/bascat=([\d.]+)-([\d.]+)/)||[]);if(!h[1])return;closeModal();const go=()=>playClip({s:+h[1],e:+h[2]});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});};
+const fromHash=()=>{const h=(location.hash.match(/bascat=([\d.]+)-([\d.]+)/)||[]);if(!h[1])return;closeModal();flash('▶ Clip '+fmt(+h[1])+'–'+fmt(+h[2]));const go=()=>playClip({s:+h[1],e:+h[2]});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});};
 window.addEventListener('hashchange',fromHash);fromHash();
 // abierta desde la biblioteca: pedir a BasketApp el clip pendiente (la FCBQ borra el # al pasar su verificación de seguridad)
 try{if(window.opener)window.opener.postMessage({type:'bascat-clip-want'},'*');}catch(e){}

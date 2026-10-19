@@ -15377,7 +15377,7 @@ function renderVideoLib(){
                                     </div>
                                     ${clips.map(cl=>`
                                     <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
-                                        ${cl.fcbq ? `<button onclick='window.open(${JSON.stringify(cl.fcbq + "#bascat=" + cl.timeSecs + "-" + cl.timeEnd)} + "-" + Date.now().toString(36),"bascat_fcbq_video")' title="Se ve sobre el vídeo de la FCBQ, siempre en la misma pestaña. La primera vez pulsa allí el marcador «✂️ Clips FCBQ»; después cada clip salta solo"
+                                        ${cl.fcbq ? `<button onclick='_fcbqOpenClip(${JSON.stringify(cl.fcbq)},${+cl.timeSecs},${+cl.timeEnd})' title="Se ve sobre el vídeo de la FCBQ, siempre en la misma pestaña. La primera vez pulsa allí el marcador «✂️ Clips FCBQ»; después cada clip salta solo"
                                             style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:#f59e0b;color:#111;border:none;border-radius:6px;cursor:pointer">▶ FCBQ ${cl.dur ? cl.dur + 's' : cl.time}</button>` : ''}
                                         <button ${cl.fcbq ? 'hidden ' : ''}onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.homeTeam+" vs "+mk.awayTeam)},"")'
                                             style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:${cl.videoUrl?'#16a34a':'var(--nv)'};color:#fff;border:none;border-radius:6px;cursor:pointer" title="${cl.videoUrl?'Clip guardado':'Solo marca de tiempo'}">
@@ -18202,7 +18202,10 @@ window.addEventListener('message', e => {
   }
   if (d.type === 'bascat-clips' && Array.isArray(d.clips)) {
     const src = e.source, org = e.origin;
-    _whenReadyForImport(() => {
+    const reply = m => { try { src.postMessage(m, org); } catch (err) {} };
+    _whenReadyForImport(async () => {
+      // esperar a tener la biblioteca descargada (si no, un 2º envío del mismo partido crearía otra carpeta igual)
+      for (let i = 0; i < 120 && !window._libsSynced; i++) { if (i === 2) toast('⏳ Cargando la biblioteca para guardar los clips…', 'ok'); await new Promise(r => setTimeout(r, 500)); }
       const clean = v => String(v == null ? '' : v).replace(/[<>]/g, '').trim().slice(0, 120);
       const key = clean(d.key) || 'Vídeo FCBQ', url = /^https:\/\/(www\.)?basquetcatala\.cat\//.test(d.url || '') ? d.url : '';
       const o = _vLib(key, true);
@@ -18218,18 +18221,49 @@ window.addEventListener('message', e => {
         if (!arr.some(x => x.id === id)) { arr.push({ id, time: f(s0), timeSecs: s0, timeEnd: s1, timeEndFmt: f(s1), dur: Math.round(s1 - s0), label: clean(c.label), note: '', fcbq: url }); n++; }
         ids.push(c.id);
       });
-      svL(); if (typeof syncFirebase === 'function') syncFirebase();
       try { if (typeof ST === 'function') ST('t-video'); } catch (err) {}
       try { renderVideoLib(); } catch (err) {}
-      toast(n ? `✂️ ${n} clip${n > 1 ? 's' : ''} de la FCBQ guardado${n > 1 ? 's' : ''} en la biblioteca (${key})` : '✂️ Esos clips ya estaban en la biblioteca', 'ok');
-      try { src.postMessage({ type: 'bascat-clips-ok', ids }, org); } catch (err) {}
+      // subirla YA a la nube (sin esperar al guardado automático): solo se da por enviada cuando la nube confirma
+      try {
+        const md = { ...o, placedShots: [] };
+        const { error } = await supabase.from('matches').upsert({ id: o.id, home_team: o.homeTeam || '', away_team: o.awayTeam || '', season: o.season || 'Sin temporada',
+          competition: o.competition || '', match_date: o.date || '', match_data: md });
+        if (error) throw error;
+        try { _matchHashes[String(o.id)] = _hash(JSON.stringify(md)); } catch (err) {}
+        if (window._cacheDb) _IDB.put(window._cacheDb, [md]).catch(() => {});
+      } catch (err) {
+        console.error('Clips FCBQ: no se han podido guardar en la nube', err);
+        toast('❌ No se han podido guardar los clips en la nube. Vuelve a pulsar «Enviar» en la página de la FCBQ.', 'err');
+        reply({ type: 'bascat-clips-err', msg: String(err && err.message || err) }); return;
+      }
+      toast(n ? `✂️ ${n} clip${n > 1 ? 's' : ''} de la FCBQ guardado${n > 1 ? 's' : ''} en la nube (${key})` : '✂️ Esos clips ya estaban en la biblioteca', 'ok');
+      reply({ type: 'bascat-clips-ok', ids, n });
+      // la pestaña la abrió el marcador solo para guardar: se cierra sola (tu pestaña de BasketApp los recibe al momento o al refrescar)
+      if (window.opener && /[?&]fcbqClips=1/.test(location.search)) {
+        document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;color:#fff;font:800 18px system-ui;text-align:center;padding:20px">✅ ${n || 'Los'} clip${n === 1 ? '' : 's'} guardado${n === 1 ? '' : 's'} en la nube.<br><small style="font-weight:600;font-size:13px;opacity:.85">Esta pestaña se cierra sola. Los verás en BasketApp → Vídeo.</small></div>`);
+        setTimeout(() => { try { window.close(); } catch (err) {} }, 2500);
+      }
     });
+  }
+  // la pestaña de la FCBQ pide el clip pendiente (se abrió desde la biblioteca y acaban de pulsar el marcador)
+  if (d.type === 'bascat-clip-want' && window._fcbqPending && Date.now() - window._fcbqPending.t < 15 * 60e3) {
+    try { e.source.postMessage({ type: 'bascat-seek', s: window._fcbqPending.s, e: window._fcbqPending.e }, e.origin); } catch (err) {}
   }
   if (d.type === 'bascat-data' && _bridgePending[d.req]) {
     const p = _bridgePending[d.req]; delete _bridgePending[d.req];
     d.error ? p.rej(new Error(d.error)) : p.res(d);
   }
 });
+
+// ▶ FCBQ: el vídeo se ve en UNA pestaña de la FCBQ. Si ya está abierta (con el marcador), se le dice a qué segundo ir;
+// si no, se abre y, al pulsar allí el marcador, este pide el clip pendiente (la FCBQ borra el #… al pasar su verificación).
+window._fcbqOpenClip = (url, s, e) => {
+  window._fcbqPending = { s, e, t: Date.now() };
+  const w = window._fcbqWin && !window._fcbqWin.closed ? window._fcbqWin : null;
+  if (w && window._fcbqWinUrl === url) { try { w.postMessage({ type: 'bascat-seek', s, e }, '*'); w.focus(); return; } catch (err) {} }
+  window._fcbqWin = window.open(url + '#bascat=' + s + '-' + e + '-' + Date.now().toString(36), 'bascat_fcbq_video'); window._fcbqWinUrl = url;
+  [600, 2000].forEach(ms => setTimeout(() => { try { window._fcbqWin && window._fcbqWin.postMessage({ type: 'bascat-seek', s, e }, '*'); } catch (err) {} }, ms));
+};
 
 // Si nos ha abierto el marcador, avisamos a la pestaña de la FCBQ de que ya estamos
 if ((new URLSearchParams(location.search).has('fcbqBridge') || new URLSearchParams(location.search).has('fcbqClips')) && window.opener) {
@@ -18948,7 +18982,7 @@ async function ldLS() {
                       if (n % 50 === 0 && typeof toast === 'function') toast(`⏳ Descargando partidos nuevos/cambiados... (${n})`, 'ok');
                   });
                   if (typeof toast === 'function') toast(r.downloaded ? `✅ ${r.downloaded} partidos actualizados` : '✅ Todo al día (caché local)', 'ok');
-                  _vCleanupEmptyLibs();
+                  _vCleanupEmptyLibs(); window._libsSynced = true;
               } catch (e) {
                   console.warn('Sync incremental no disponible (¿falta updated_at?). Carga completa:', e);
                   try {
@@ -18956,6 +18990,7 @@ async function ldLS() {
                       await fetchEnLotes(supabase.from('matches').select('match_data'), 50);
                       if (typeof toast === 'function') toast('✅ Base de datos histórica completa', 'ok');
                   } catch (e2) { console.error("Error en carga de fondo:", e2); }
+                  window._libsSynced = true;
               }
           }, 300);
       }
@@ -26630,7 +26665,7 @@ const openForm=()=>{closeModal();modal=document.createElement('div');modal.id='b
   guard(modal);host().appendChild(modal);};
 const openList=()=>{closeModal();modal=document.createElement('div');modal.id='bc-modal';const cs=S.clips.slice().sort((a,b)=>a.s-b.s);
   modal.innerHTML='<div class="form"><div class="ft">📋 Clips · '+esc(H)+' vs '+esc(A)+'</div>'+(cs.length?cs.map(c=>'<div class="it"><button class="pl" data-a="play" data-id="'+c.id+'">▶ '+Math.round(c.e-c.s)+'s</button><span class="tx">'+esc(c.label||c.folder)+' <small>'+fmt(c.s)+'→'+fmt(c.e)+' · '+esc(c.side==='local'?H:A)+' · '+(c.cat==='ataque'?'⚔️ Ataque':'🛡️ Defensa')+' · 📁 '+esc(c.folder)+(c.sent?' · <span class="ok">✓ en BasketApp</span>':'')+'</small></span><button class="dl" data-a="del" data-id="'+c.id+'" title="Borrar">🗑</button></div>').join(''):'<div class="hint">Aún no hay clips. Pulsa B al empezar la jugada y otra vez al acabar.</div>')
-  +'<div class="two" style="margin-top:10px"><button class="sv" data-a="send" style="flex:1;background:#f59e0b;color:#111">📤 Enviar a BasketApp ('+S.clips.filter(c=>!c.sent).length+')</button><button class="cn" data-a="cancel">Cerrar</button></div></div>';
+  +'<div class="two" style="margin-top:10px"><button class="sv" data-a="send" style="flex:1;background:#f59e0b;color:#111">📤 Enviar a BasketApp ('+S.clips.filter(c=>!c.sent).length+')</button><button class="cn" data-a="cancel">Cerrar</button></div>'+(S.clips.some(c=>c.sent)?'<div class="two" style="margin-top:6px"><button class="nb" data-a="resend" style="flex:1" title="Por si no aparecen en BasketApp: los vuelve a enviar todos (no se duplican)">↻ Reenviar todos</button></div>':'')+'</div>';
   guard(modal);host().appendChild(modal);};
 const keepForm=()=>{if(!modal)return;const s=modal.querySelector('#bc-fsel');if(s)st.folder=s.value;const l=modal.querySelector('#bc-label');if(l)st.label=l.value;const nf=modal.querySelector('#bc-newf');if(nf)st.newName=nf.value;};
 const resetClip=()=>Object.assign(st,{start:null,end:null,newF:false,label:'',newName:''});
@@ -26652,6 +26687,7 @@ const onClick=ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.
   if(a==='newf'){st.newF=!st.newF;openForm();const i=modal.querySelector('#bc-newf');if(i)i.focus();return;}
   if(a==='save')return saveClip();if(a==='cancel')return modal&&modal.querySelector('[data-a="save"]')?cancel():closeModal();
   if(a==='play'){const c=S.clips.find(x=>x.id===b.dataset.id);if(c){closeModal();playClip(c);}return;}
+  if(a==='resend'){S.clips.forEach(c=>{c.sent=false;});save();renderBar();closeModal();return send();}
   if(a==='del'){if(!confirm('¿Borrar este clip?'))return;S.clips=S.clips.filter(x=>x.id!==b.dataset.id);save();openList();renderBar();return;}};
 bar.addEventListener('click',onClick);document.addEventListener('click',ev=>{if(modal&&modal.contains(ev.target)){if(ev.target===modal)return;onClick(ev);}},true);
 // teclas (en fase de captura: se adelantan a las del reproductor de la FCBQ)
@@ -26671,7 +26707,10 @@ let win=null;
 const OK=[APP,APP.replace('://','://www.'),APP.replace('://www.','://')];
 window.addEventListener('message',e=>{if(!OK.includes(e.origin)||e.source!==win)return;const d=e.data||{};
   if(d.type==='bascat-ready'){win.postMessage({type:'bascat-clips',key:H+' vs '+A,home:H,away:A,date,url:pageUrl,clips:S.clips.filter(c=>!c.sent)},e.origin);}
-  if(d.type==='bascat-clips-ok'){const ids=new Set(d.ids||[]);S.clips.forEach(c=>{if(ids.has(c.id))c.sent=true;});save();renderBar();}});
+  if(d.type==='bascat-clips-ok'){const ids=new Set(d.ids||[]);S.clips.forEach(c=>{if(ids.has(c.id))c.sent=true;});save();renderBar();}
+  if(d.type==='bascat-clips-err'){alert('❌ BasketApp no ha podido guardar los clips en la nube. Vuelve a pulsar «📤 Enviar».');}});
+// BasketApp (biblioteca) dice a qué clip ir: salta y para al final
+window.addEventListener('message',e=>{const d=e.data||{};if(d.type!=='bascat-seek'||!OK.includes(e.origin))return;closeModal();const go=()=>playClip({s:+d.s,e:+d.e});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});});
 const send=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});win=window.open(APP+'/?fcbqClips=1','bascat_clips');if(!win)alert('El navegador ha bloqueado la ventana: permite las ventanas emergentes de basquetcatala.cat y vuelve a pulsar «Enviar».');};
 window.__bcClips={toggle:()=>{bar.style.display=bar.style.display==='none'?'':'none';}};
 renderBar();place();
@@ -26679,6 +26718,8 @@ renderBar();place();
 // (y si la pestaña ya estaba abierta con el marcador activo, cada clic en la biblioteca solo cambia el #: salta sin recargar)
 const fromHash=()=>{const h=(location.hash.match(/bascat=([\d.]+)-([\d.]+)/)||[]);if(!h[1])return;closeModal();const go=()=>playClip({s:+h[1],e:+h[2]});v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});};
 window.addEventListener('hashchange',fromHash);fromHash();
+// abierta desde la biblioteca: pedir a BasketApp el clip pendiente (la FCBQ borra el # al pasar su verificación de seguridad)
+try{if(window.opener)window.opener.postMessage({type:'bascat-clip-want'},'*');}catch(e){}
 })();
 
 </script>

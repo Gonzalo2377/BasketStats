@@ -26683,7 +26683,19 @@ const clipMark=()=>{if(st.start==null||st.end!=null){st.start=v.currentTime;st.e
   const e=v.currentTime;if(e-st.start<0.5){alert('⚠️ Clip muy corto');return;}st.end=e;st.wasPlaying=!v.paused;v.pause();renderBar();openForm();
   const s=modal.querySelector('#bc-fsel')||modal.querySelector('#bc-newf');if(s)s.blur();};
 const seek=d=>{v.currentTime=Math.max(0,Math.min(v.duration||1e9,v.currentTime+d));tick();};
-const playClip=c=>{v.currentTime=c.s;stopAt=c.e;v.play().catch(()=>{});};
+// saltar al clip y COMPROBAR que se queda (el reproductor de la FCBQ puede volver al principio mientras carga);
+// si no se queda, pulsar su botón «+5» las veces necesarias. Se recuerda el último clip por si se recarga (F5).
+let seekGen=0;
+const plusBtn=()=>[...document.querySelectorAll('button,[role=button],div,span')].find(e=>e.children.length===0&&/^\+\s?5s?$/.test(e.textContent.trim())&&!e.closest('#bc-bar,#bc-modal'));
+const playClip=c=>{const g=++seekGen,s0=+c.s,e0=+c.e;stopAt=e0;
+  try{sessionStorage.setItem('bascat_last',JSON.stringify({s:s0,e:e0,t:Date.now()}));}catch(err){}
+  const go=()=>{try{v.currentTime=s0;}catch(err){}v.play().catch(()=>{});};
+  const ok=()=>v.currentTime>=s0-1.5&&v.currentTime<=Math.max(e0,s0)+1.5;
+  go();
+  [400,1200,2500,4000].forEach((ms,i)=>setTimeout(()=>{if(g!==seekGen||ok()||stopAt==null&&v.currentTime>e0)return;
+    if(i<3){go();return;}
+    // último recurso: pulsar «+5» de la FCBQ hasta llegar
+    const b=plusBtn();if(!b){go();return;}const n=Math.max(0,Math.round((s0-v.currentTime)/5));for(let k=0;k<n&&k<1200;k++)b.click();stopAt=e0;v.play().catch(()=>{});},ms));};
 v.addEventListener('timeupdate',()=>{if(stopAt!=null&&v.currentTime>=stopAt){v.pause();stopAt=null;}tick();});
 const onClick=ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;keepForm();
   if(a==='min'){bar.classList.toggle('min');renderBar();return;}if(a==='list')return openList();if(a==='send'){closeModal();return send();}
@@ -26724,6 +26736,9 @@ const fromHash=()=>{const h=(location.hash.match(/bascat=([\d.]+)-([\d.]+)/)||[]
 window.addEventListener('hashchange',fromHash);fromHash();
 // abierta desde la biblioteca: pedir a BasketApp el clip pendiente (la FCBQ borra el # al pasar su verificación de seguridad)
 try{if(window.opener)window.opener.postMessage({type:'bascat-clip-want'},'*');}catch(e){}
+// recargada con F5 (o sin BasketApp detrás): volver al último clip que se abrió en esta pestaña
+if(!/bascat=/.test(location.hash))setTimeout(()=>{if(seekGen)return;let L=null;try{L=JSON.parse(sessionStorage.getItem('bascat_last')||'null');}catch(e){}
+  if(L&&Date.now()-L.t<3*36e5){flash('▶ Clip '+fmt(L.s)+'–'+fmt(L.e));const go=()=>playClip(L);v.readyState>0?go():v.addEventListener('loadedmetadata',go,{once:true});}},1500);
 })();
 
 </script>

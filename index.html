@@ -3674,6 +3674,50 @@ body.player-mode .cx-card{display:none!important}
 .mr-foot{font-size:10.5px;color:#94a3b8;margin:8px 0 0;line-height:1.45}
 @media (max-width:600px){.mr-score{grid-template-columns:1fr}}
 
+/* ── 🎨 Canva: tríptico del partido ── */
+.zx-tabs .zx-canva{margin-left:auto;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff}
+.tp-ov{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
+.tp-box{background:#fff;border-radius:16px;max-width:1180px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:16px 18px 18px;color:#0f172a}
+.tp-h{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:10px}
+.tp-h small{display:block;font-size:10.5px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em}
+.tp-h b{display:block;font-size:18px;font-weight:900}
+.tp-h span{font-size:11px;color:#64748b}
+.tp-hb{display:flex;gap:6px;flex-shrink:0}
+.tp-hb button{border:1.5px solid #cbd5e1;background:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;color:#0f172a}
+.tp-hb .tp-all{background:#0f172a;color:#fff;border-color:#0f172a}
+.tp-hint{font-size:11.5px;color:#475569;margin:8px 0 12px}
+.tp-hint .g{color:#16a34a}.tp-hint .b{color:#dc2626}
+.tp-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px}
+.tp-wide{grid-column:1/-1}
+.tp-col{border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;min-width:0}
+.tp-col h4{margin:0 0 6px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.tp-col h5{margin:10px 0 4px;font-size:11.5px;font-weight:900;color:#334155}
+.tp-col h5 small{font-weight:700;color:#94a3b8}
+.tp-sub{font-size:11px;color:#64748b;margin:0 0 6px}
+.tp-l{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.4;padding:4px 6px;border-radius:7px;margin:2px 0;background:#f8fafc}
+.tp-l span{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
+.tp-l.g{background:#f0fdf4;color:#166534}.tp-l.b{background:#fef2f2;color:#b91c1c}.tp-l.t{background:#eff6ff;color:#1e3a8a}.tp-l.i{background:#0f172a;color:#fff}
+.tp-cp{border:0;background:transparent;cursor:pointer;font-size:12px;padding:0 2px;opacity:.65;flex-shrink:0}
+.tp-cp:hover{opacity:1}
+.tp-worst{font-size:10.5px;font-weight:800;color:#dc2626;margin:6px 0 2px}
+.tp-none{font-size:11px;color:#94a3b8;margin:4px 0}
+.tp-pls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tp-pl{border:1.5px solid #0f172a;border-radius:14px;padding:8px 10px}
+.tp-pl h5{margin:0;font-size:13px}
+@media (max-width:760px){.tp-grid,.tp-pls{grid-template-columns:minmax(0,1fr)}.tp-ov{padding:8px}.tp-box{padding:12px}.tp-h b{font-size:15px}.zx-tabs .zx-canva{margin-left:0}}
+.tp-sv{display:inline-flex;gap:4px;margin:2px 0 4px}
+.tp-sv button{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer}
+.tp-sv button.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.tp-chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 8px}
+.tp-chips button{border:1.5px solid #cbd5e1;background:#fff;color:#64748b;border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;cursor:pointer}
+.tp-chips button.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.tp-img{display:block;width:100%;height:auto;border:1px solid #e2e8f0;border-radius:10px}
+.tp-ib{display:flex;gap:6px;margin:8px 0}
+.tp-ib button{border:1.5px solid #0f172a;background:#fff;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:800;cursor:pointer;color:#0f172a}
+.tp-ib .tp-dl{background:#0f172a;color:#fff}
+.tp-more{margin-top:6px;font-size:11.5px}
+.tp-more summary{cursor:pointer;font-weight:800;color:#475569;margin-bottom:4px}
+
 </style>
 </head>
 <body>
@@ -20738,6 +20782,8 @@ function renderLeaders(){
 }
 window.renderLeaders=renderLeaders;
 window.__baIsFriendly=m=>_isFriendly(m);window.__baIsOur=n=>isOurTeam(n);
+// los usa triptico.js (🎨 Canva): titulares/suplentes, clutch y segundas oportunidades
+window._starterSplit=_starterSplit;window._leagueKey=_leagueKey;window._leagueStarterAvg=_leagueStarterAvg;window._analyzeAdvancedFCBQ=_analyzeAdvancedFCBQ;
 
 let _advancedMode={st:false,cl:false};
 
@@ -28210,6 +28256,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     return { comp, grp, season, table, stand, ms };
   }
   window.__baLeagueCtx = m => leagueCtx(m); window.__baSameTeam = (a, b) => sameTeam(a, b);   // los usa zonas.js
+  window.__baTeamKit = { teamTable, get ALLM() { return ALLM; }, sameTeam, seasonOf, standOrder, sameLeague };   // lo usa triptico.js
   const rowIn = (tbl, n) => tbl.find(t => t.name === n) || tbl.find(t => sameTeam(t.name, n));
   const ALLM = Object.fromEntries(CARDS.flatMap(([, cs]) => cs).map(c => [c[0], c]));
   // las mismas estadísticas que tenía la comparativa de siempre (AST/PER/TAP/ROB solo si los dos equipos tienen datos del directo)
@@ -28650,7 +28697,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   ];
   const few = (r, i) => (i < 2 ? r.n < 2 * MINZ : r.n < MINZ);
   const verdict = (r, i) => { if (few(r, i)) return ['few', '']; const dv = r.exp - r.l; return dv >= 0.04 ? VERD[i].up : dv <= -0.04 ? VERD[i].down : ['mid', 'NORMAL']; };
-  const zE = (r, i) => (i < 2 ? r.aE : r.dE);   // el dato que se pinta: acierto del que ataca (o lo que concede)
+  const zE = (r, i) => (i < 2 || i === 4 ? r.aE : r.dE);   // el dato que se pinta: acierto del que ataca (o lo que concede)
   const zfill = (r, i) => { const e = r && zE(r, i); if (!e || e.a < MINZ) return 'rgba(148,163,184,.13)'; const c = K().vsColor(K().tOf(e.m / e.a, r.l)); return `rgba(${c.map(Math.round).join(',')},.82)`; };
   const FILL = { bad: 'rgba(239,68,68,.80)', good: 'rgba(34,197,94,.78)', mid: 'rgba(248,250,252,.90)', few: 'rgba(148,163,184,.13)' };
   function drawMap(cv, rows, i) {
@@ -28676,6 +28723,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   const pct = e => (e && e.a ? Math.round(e.m / e.a * 100) + '%' : '—');
   const pg = v => v.toFixed(1).replace('.', ',');
   function labels(r, i) {   // grande: el %; pequeño: tiros por partido (el que ataca vs lo que deja el que defiende; o recibidos vs liga)
+    if (i === 4) return [pct(r.aE), `${r.aE.m}/${r.aE.a}`];   // mapa propio (tríptico)
     if (i < 2) return [`${pct(r.aE)}/${pct(r.dE)}`, `${pg(r.aE.a / r.gA)} vs ${pg(r.dE.a / r.gD)}`];   // acierto del que ataca / lo que concede el que defiende
     return [pct(r.dE), `${pg(r.dE.a / r.gD)} vs ${pg(r.lgPg)}`];
   }
@@ -28701,6 +28749,15 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const d = R && Y && R.own.a >= 20 && Y.own.a >= 20 ? { R, Y, lg, dirs: [cross(R, Y, lg), cross(Y, R, lg)], con: [conRows(R, lg), conRows(Y, lg)] } : null;
     cache = { ms: ctx.ms, r: rival, m: my, d }; return d;
   }
+  window.__baZoneData = (ctx, rival, my) => data(ctx, rival, my);   // lo usa triptico.js (tendencias de tiro por jugador)
+  window.__baZoneNames = ZT;
+  // tríptico: mapa del acierto del rival por zonas frente a la liga + lo más llamativo
+  window.__baOwnMap = (ctx, rival, my) => {
+    const d = data(ctx, rival, my); if (!d) return null;
+    const rows = ZORD.map(zz => ({ z: zz, l: lgP(d.lg, zz), aE: d.R.own.z[zz] || { a: 0, m: 0 }, dE: { a: 0, m: 0 }, gA: d.R.g.size || 1, gD: 1 }));
+    const dev = rows.filter(r => r.aE.a >= 8).map(r => ({ z: r.z, e: r.aE, d: sp(r.aE, r.l) - r.l, l: r.l })).sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+    return { rows, dev, max: dev.length ? Math.abs(dev[0].d) : 0, draw: cv => drawMap(cv, rows, 4), name: zz => ZT[zz] };
+  };
   // para las claves de estadísticas: la zona que explica esa estadística
   // dir 0 = su ataque vs nuestra defensa · dir 1 = nuestro ataque vs su defensa · kind 'att' (el que ataca) o 'def' (el que defiende)
   window.__baZoneLink = (ctx, rival, my, dir, metric, kind, sign) => {
@@ -28773,6 +28830,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     later(() => {
       const box = document.getElementById(id); if (!box) return;
       box.querySelectorAll('canvas[data-i]').forEach(cv => { const i = +cv.dataset.i; drawMap(cv, i < 2 ? dirs[i] : con[i - 2], i); });
+      const cv = box.querySelector('.zx-canva'); if (cv) cv.onclick = () => window.__baTriptych && window.__baTriptych(ctx, rival, my);
       box.querySelectorAll('[data-zt]').forEach(b => b.onclick = () => {
         box.querySelectorAll('[data-zt]').forEach(x => x.classList.toggle('on', x === b));
         box.querySelectorAll('[data-zp]').forEach(p => { p.hidden = p.dataset.zp !== b.dataset.zt; });
@@ -28783,13 +28841,390 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const tabs = ['Su ataque vs nuestra defensa', 'Nuestro ataque vs su defensa', 'Lo que conceden ellos', 'Lo que concedemos'];
     return `<div class="zx" id="${id}"><h4 class="zx-ttl">🗺️ Cruce por zonas</h4>
       <p class="zx-intro">Cada zona junta <b>lo que mete el que ataca</b> y <b>lo que concede el que defiende</b>, comparado con lo normal en la liga. Colores como en el resto de mapas: <b style="color:#dc2626">rojo</b> = acierto por encima de la liga, <b style="color:#2563eb">azul</b> = por debajo.${fewT ? ' <b>⚠️ Todavía hay pocos tiros</b>: con más jornadas será más fiable.' : ''}</p>
-      <div class="zx-tabs">${tabs.map((t, i) => `<button type="button"${i ? '' : ' class="on"'} data-zt="${i}">${t}</button>`).join('')}</div>
+      <div class="zx-tabs">${tabs.map((t, i) => `<button type="button"${i ? '' : ' class="on"'} data-zt="${i}">${t}</button>`).join('')}${window.__baTriptych ? '<button type="button" class="zx-canva" title="Qué poner en cada apartado del tríptico del partido">🎨 Canva</button>' : ''}</div>
       ${pane(0, `<h5>Dónde nos pueden hacer daño</h5>${list(keys[0], 'Ninguna zona se sale de lo normal todavía.')}<h5>Sus tiradores contra nuestros agujeros</h5>${list(pk[0], `Ningún jugador con al menos ${MINZ} tiros en una zona que destaque.`)}`)}
       ${pane(1, `<h5>Dónde atacarles</h5>${list(keys[1], 'Ninguna zona se sale de lo normal todavía.')}<h5>Nuestros tiradores contra sus agujeros</h5>${list(pk[1], `Ningún jugador con al menos ${MINZ} tiros en una zona que destaque.`)}`)}
       ${pane(2, `<h5>Lo que concede ${esc(R.name)}</h5><p class="zx-sub">${R.con.a} tiros recibidos · verde = zonas donde les meten más de lo normal</p>${list(ck[0], 'Nada que destaque todavía.')}`)}
       ${pane(3, `<h5>Lo que concede ${esc(Y.name)}</h5><p class="zx-sub">${Y.con.a} tiros recibidos · rojo = zonas donde nos meten más de lo normal</p>${list(ck[1], 'Nada que destaque todavía.')}`)}
     </div>`;
   };
+})();
+
+/* BasketApp · 🎨 Canva: qué poner en cada apartado del tríptico del partido (Próximo rival → Cruce por zonas, solo staff).
+   1) Tiro libre y triple: los 3 mejores y los peores tiradores del rival (con un mínimo de intentos).
+   2) Estadísticas del equipo: acierto con su posición en la liga, la temporada pasada, titulares/suplentes, sexto hombre,
+      anotadores… ordenadas por lo que más se sale de lo normal (⭐ = a destacar).
+   3) Jugadores importantes: lo bueno (verde), lo flojo (rojo), tendencias de tiro por zonas y una idea para defenderle.
+   Todo sale de los partidos importados (S.matches); cada línea se copia con un clic. */
+(function () {
+  'use strict';
+  if (window.__baTrip) return; window.__baTrip = true;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = v => +v || 0;
+  const P0 = v => Math.round(v * 100) + '%';
+  const f1 = v => v.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const fr = m => (window.__baIsFriendly ? window.__baIsFriendly(m) : /amistos|friendly|pretemporad/i.test(String((m && m.competition) || '')));
+  const minN = v => (typeof window._minNum === 'function' ? window._minNum(v) : (() => { const s = String(v || ''); const m = s.match(/^(\d+):(\d+)/); return m ? +m[1] + +m[2] / 60 : num(s); })());
+  const nName = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Wilson: para ordenar tiradores sin que un 3/3 gane a un 40/50
+  const wil = (m, a, lo) => { if (!a) return 0; const z = 1.28, p = m / a, d = 1 + z * z / a, c = p + z * z / (2 * a), r = z * Math.sqrt(p * (1 - p) / a + z * z / (4 * a * a)); return (lo ? c - r : c + r) / d; };
+
+  // ── jugadores de un equipo en unos partidos ──
+  function playersOf(ms, isTeam) {
+    const P = {}; let games = 0;
+    ms.forEach(m => {
+      const side = isTeam(m.homeTeam) ? 'home' : isTeam(m.awayTeam) ? 'away' : null; if (!side) return;
+      if (m.scoreHome == null || m.scoreAway == null) return; games++;
+      const ps = (side === 'home' ? m.homePlayers : m.awayPlayers) || [];
+      ps.forEach(p => {
+        if (!p || !p.name) return;
+        const played = minN(p.min) > 0 || num(p.pts) > 0 || num(p.t2Att) + num(p.t3Att) + num(p.tlAtt) > 0 || num(p.fc) > 0; if (!played) return;
+        const k = nName(p.name), e = P[k] || (P[k] = { name: p.name, k, g: 0, pts: 0, min: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, fc: 0, dors: {} });
+        e.g++; e.pts += num(p.pts); e.min += minN(p.min); e.t2m += num(p.t2Made); e.t2a += num(p.t2Att); e.t3m += num(p.t3Made); e.t3a += num(p.t3Att);
+        e.ftm += num(p.tlMade); e.fta += num(p.tlAtt); e.fc += num(p.fc);
+        const d = String(p.dorsal == null ? '' : p.dorsal).trim(); if (d) e.dors[d] = (e.dors[d] || 0) + 1;
+      });
+    });
+    Object.values(P).forEach(e => { e.dorsal = Object.entries(e.dors).sort((a, b) => b[1] - a[1])[0]?.[0] || ''; e.ppg = e.pts / e.g; e.mpg = e.min / e.g; });
+    return { P, games };
+  }
+  const tag = p => `${p.name}${p.dorsal ? ' #' + p.dorsal : ''}`;
+  const ma = (m, a) => `${m}/${a}`;
+
+  // ── 1) mejores y peores tiradores ──
+  function shooters(pl, games, kind) {
+    const mk = kind === 'tl' ? ['ftm', 'fta'] : ['t3m', 't3a'];
+    const minA = kind === 'tl' ? Math.max(4, Math.round(games * 0.8)) : Math.max(6, Math.round(games * 1.5));
+    const L = Object.values(pl).filter(p => p[mk[1]] >= minA).map(p => ({ p, m: p[mk[0]], a: p[mk[1]], pc: p[mk[0]] / p[mk[1]] }));
+    const best = L.slice().sort((x, y) => wil(y.m, y.a, true) - wil(x.m, x.a, true)).slice(0, 3);
+    const worst = L.filter(x => !best.includes(x)).sort((x, y) => wil(x.m, x.a, false) - wil(y.m, y.a, false)).slice(0, 2);
+    return { best, worst, minA };
+  }
+
+  // ── 2) estadísticas del equipo ──
+  const STAT = [   // clave de lideres.js · cómo se llama · lo que se cuenta (anotados/intentados) para la línea
+    ['t2p', 'T2%', t => ma(t.a.t2m || 0, t.a.t2a || 0)], ['t3p', 'T3%', t => ma(t.a.t3m || 0, t.a.t3a || 0)], ['tlp', 'TL%', t => ma(t.a.ftm || 0, t.a.fta || 0)],
+    ['atk', 'Puntos a favor', null], ['def', 'Puntos en contra', null], ['r3', 'Tiros que son triples', null], ['t3a', 'Triples intentados/p', null],
+    ['ftr', 'TL provocados (cada 100 tiros)', null], ['pace', 'Ritmo (posesiones/p)', null], ['o3p', 'T3% que dejan al rival', null], ['oefg', 'eFG% que dejan al rival', null], ['fc', 'Faltas/p', null],
+  ];
+  const short = n => String(n || '').replace(/^(C\.?B\.?|U\.?E\.?|C\.?E\.?B?|F\.?C\.?|A\.?E\.?|CB|CE|UE|CEB)\s+/i, '').split(/\s+-\s+/)[0].trim();
+  function teamStats(K, ctx, rival) {
+    const table = K.teamTable(ctx.ms), me = table.find(t => K.sameTeam(t.name, rival)); if (!me) return [];
+    return STAT.map(([k, lab, cnt]) => {
+      const c = K.ALLM[k]; if (!c) return null; const [, , help, val, f, dir] = c;
+      const vals = table.map(t => ({ t, v: val(t) })).filter(x => x.v != null && isFinite(x.v)); const mine = vals.find(x => x.t === me);
+      if (!mine || vals.length < 4) return null;
+      const sorted = vals.slice().sort((a, b) => dir * (a.v - b.v)), r = 1 + vals.filter(x => (dir < 0 ? x.v > mine.v : x.v < mine.v)).length, n = vals.length;
+      const top = sorted[0], last = sorted[sorted.length - 1];
+      const ext = Math.min(r - 1, n - r) / Math.max(1, (n - 1) / 2);   // 0 = el mejor o el peor de la liga · 1 = en medio
+      const txt = `${lab}: ${f(mine.v)}${cnt ? ` (${cnt(me)})` : ''} · ${r}º de ${n} · 1º ${f(top.v)} (${short(top.t.name)}) · últ. ${f(last.v)} (${short(last.t.name)})`;
+      return { k, lab, r, n, ext, star: r <= 3 || r > n - 3, good: r <= Math.ceil(n / 2), txt, help, v: mine.v, f, top, last, cnt: cnt ? cnt(me) : '' };
+    }).filter(Boolean);
+  }
+  // temporada pasada del mismo equipo (partidos oficiales, cualquier competición)
+  function lastSeason(K, rival, cur) {
+    const [y] = String(cur || '').split('-'); if (!y) return null; const prev = `${+y - 1}-${String(+y).slice(-2)}`;
+    const ms = ((window.S && window.S.matches) || []).filter(m => !fr(m) && K.seasonOf(m) === prev && [m.homeTeam, m.awayTeam].some(n => K.sameTeam(n, rival)));
+    if (!ms.length) return null;
+    const t = K.teamTable(ms).find(x => K.sameTeam(x.name, rival)); if (!t || !t.gp) return null;
+    const o = t.o, pc = (m, a) => (a ? `${P0(m / a)} (${m}/${a})` : '—');
+    return { prev, ms, g: t.g, txt: `${prev.replace(/^20(\d\d)-(\d\d)$/, '$1/$2')} (${t.g} partidos): T2 ${pc(o.t2m || 0, o.t2a || 0)} · T3 ${pc(o.t3m || 0, o.t3a || 0)} · TL ${pc(o.ftm || 0, o.fta || 0)} · ${f1(t.pts / t.g)} pts/p` };
+  }
+  function benchInfo(ctx, rival, K) {
+    if (typeof window._starterSplit !== 'function') return null;
+    let st = 0, bn = 0, used = 0; const bench = {}; const keys = {};
+    ctx.ms.forEach(m => {
+      const side = K.sameTeam(m.homeTeam, rival) ? 'home' : K.sameTeam(m.awayTeam, rival) ? 'away' : null; if (!side) return;
+      const s = window._starterSplit(m, side); if (!s) return; used++; st += s.st; bn += s.bn;
+      if (typeof window._leagueKey === 'function') { const lk = window._leagueKey(m.competition); keys[lk] = (keys[lk] || 0) + 1; }
+      ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => {
+        if (s.starters.has(p.name) || !(num(p.pts) || minN(p.min) > 0)) return;
+        const e = bench[p.name] || (bench[p.name] = { name: p.name, dorsal: p.dorsal, pts: 0, g: 0 }); e.pts += num(p.pts); e.g++;
+      });
+    });
+    if (!used || !(st + bn)) return null;
+    const pct = st / (st + bn) * 100, lk = Object.entries(keys).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const avg = lk && typeof window._leagueStarterAvg === 'function' ? window._leagueStarterAvg(lk) : null;
+    const six = Object.values(bench).filter(p => p.g >= Math.max(1, Math.ceil(used * 0.3))).map(p => ({ ...p, ppg: p.pts / p.g })).sort((a, b) => b.ppg - a.ppg)[0];
+    return { pct, avg: avg ? avg.pct : null, used, six };
+  }
+
+  // ── 3) jugadores importantes ──
+  const LEFT = ['1', '5', '6'], RIGHT = ['4', '8', '9'], THREE = ['5', '6', '7', '8', '9'];
+  function important(pl, games, lgPl, zd, rival, lastPl) {
+    const ZT = window.__baZoneNames || {};
+    const lgT3 = lgPl.t3a ? lgPl.t3m / lgPl.t3a : 0.32, lgT2 = lgPl.t2a ? lgPl.t2m / lgPl.t2a : 0.48, lgTL = lgPl.fta ? lgPl.ftm / lgPl.fta : 0.68;
+    const teamPts = Object.values(pl).reduce((a, p) => a + p.pts, 0) || 1;
+    const lgRank = p => 1 + lgPl.list.filter(x => x.g >= Math.max(2, games * 0.4) && x.ppg > p.ppg).length;
+    const zPl = zd && zd.R ? zd.R.pl : {}, zKey = {}; Object.keys(zPl).forEach(n => { zKey[nName(n)] = zPl[n]; });
+    return Object.values(pl).filter(p => p.g >= Math.max(1, Math.ceil(games * 0.4))).sort((a, b) => b.ppg - a.ppg).slice(0, 4).map(p => {
+      const g = [], b = [], tnd = [], fga = p.t2a + p.t3a;
+      const head = `${f1(p.ppg)} pts/p${p.mpg ? ` · ${Math.round(p.mpg)} min` : ''} · ${Math.round(p.pts / teamPts * 100)}% de los puntos del equipo · ${lgRank(p)}º anotador de la liga`;
+      const t3p = p.t3a ? p.t3m / p.t3a : 0, t2p = p.t2a ? p.t2m / p.t2a : 0, tlp = p.fta ? p.ftm / p.fta : 0;
+      // lo bueno
+      if (p.t3a >= Math.max(6, games * 1.5) && t3p >= lgT3 + 0.04) g.push(`TIRADOR: T3 ${ma(p.t3m, p.t3a)} (${P0(t3p)}) · ${f1(p.t3a / p.g)} triples/p`);
+      if (p.t2a >= Math.max(10, games * 3) && t2p >= lgT2 + 0.05) g.push(`Muy eficaz de 2: ${ma(p.t2m, p.t2a)} (${P0(t2p)})`);
+      if (p.fta >= Math.max(8, games * 2) && tlp >= Math.max(0.75, lgTL + 0.05)) g.push(`Buen TL: ${ma(p.ftm, p.fta)} (${P0(tlp)})`);
+      if (fga && p.fta / fga >= 0.4 && p.fta >= games * 2) g.push(`Provoca muchas faltas: ${f1(p.fta / p.g)} TL/p`);
+      if (p.pts / teamPts >= 0.25) g.push(`Asume muchos tiros: ${f1(fga / p.g)} tiros de campo/p`);
+      // lo flojo
+      if (p.fta >= Math.max(8, games * 2) && tlp <= Math.min(0.62, lgTL - 0.06)) b.push(`MAL TL: ${ma(p.ftm, p.fta)} (${P0(tlp)})`);
+      if (p.t3a >= Math.max(6, games * 1.5) && t3p <= lgT3 - 0.05) b.push(`Tira triples pero falla: T3 ${ma(p.t3m, p.t3a)} (${P0(t3p)})`);
+      if (fga >= 10 && p.t3a / fga < 0.08) b.push(`Casi no tira de 3 (${ma(p.t3m, p.t3a)})`);
+      if (p.t2a >= Math.max(10, games * 3) && t2p <= lgT2 - 0.06) b.push(`Flojo de 2: ${ma(p.t2m, p.t2a)} (${P0(t2p)})`);
+      if (p.fc / p.g >= 3) b.push(`Muchas faltas: ${f1(p.fc / p.g)}/p`);
+      // tendencias de tiro (mapa de tiros)
+      const z = zKey[p.k];
+      if (z && z.a >= 10) {
+        const cnt = zs => zs.reduce((a, k) => a + (z.z[k] ? z.z[k].a : 0), 0), l = cnt(LEFT), r = cnt(RIGHT), th = cnt(THREE), rim = z.z['2'] ? z.z['2'].a : 0;
+        if (th / z.a >= 0.6) tnd.push(`Exterior: ${Math.round(th / z.a * 10)} de cada 10 tiros son triples`);
+        else if (rim / z.a >= 0.45) tnd.push(`Juega cerca del aro: ${Math.round(rim / z.a * 10)} de cada 10 tiros debajo`);
+        if (l + r >= 8 && Math.max(l, r) / (l + r) >= 0.66) tnd.push(`Tira sobre todo desde la ${l > r ? 'izquierda' : 'derecha'} del mapa (${Math.max(l, r)} de ${l + r} tiros laterales)`);
+        const hot = Object.entries(z.z).filter(([, e]) => e.a >= 5).map(([k, e]) => ({ k, e, p: e.m / e.a })).sort((a, b) => b.p - a.p)[0];
+        if (hot && hot.p >= (THREE.includes(hot.k) ? lgT3 + 0.08 : lgT2 + 0.1)) tnd.push(`Zona caliente: ${(ZT[hot.k] || hot.k).toLowerCase()} (${ma(hot.e.m, hot.e.a)})`);
+      }
+      // temporada pasada
+      const lp = lastPl && lastPl[p.k];
+      const last = lp && lp.g >= 3 ? `Temporada pasada: ${f1(lp.ppg)} pts/p · T2 ${ma(lp.t2m, lp.t2a)} · T3 ${ma(lp.t3m, lp.t3a)} (${lp.t3a ? P0(lp.t3m / lp.t3a) : '—'}) · TL ${ma(lp.ftm, lp.fta)} (${lp.fta ? P0(lp.ftm / lp.fta) : '—'})` : '';
+      if (last) g.push(last);
+      // idea para defenderle (sugerencia, la decide el entrenador)
+      const shooter = p.t3a >= Math.max(6, games * 1.5) && t3p >= lgT3 + 0.02, driver = (z && z.z['2'] && z.z['2'].a / z.a >= 0.35) || (fga && p.t3a / fga < 0.15);
+      let idea = '';
+      if (shooter && !driver) idea = 'Defenderle encima: mejor que bote y ataque a que tire.';
+      else if (driver && !shooter) idea = 'Pasar por detrás y cerrar el aro: mejor que tire de fuera.';
+      else if (p.fc / p.g >= 3) idea = 'Atacarle: se carga de faltas.';
+      if (p.fta >= Math.max(8, games * 2) && tlp <= 0.62) idea += (idea ? ' ' : '') + 'Si hay que hacer falta, a él.';
+      return { p, head, g, b, tnd, idea };
+    });
+  }
+
+  // ── tarjetas de estadísticas (imagen para pegar en Canva) ──
+  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  const cut = (c, t, w) => { t = String(t); if (c.measureText(t).width <= w) return t; while (t.length > 1 && c.measureText(t + '…').width > w) t = t.slice(0, -1); return t + '…'; };
+  function ring(c, x, y, R, frac, colA, colB, lw) {
+    c.lineWidth = lw; c.lineCap = 'butt';
+    c.strokeStyle = colB; c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = colA; c.beginPath(); c.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, frac))); c.stroke();
+  }
+  function drawCards(cv, items, season) {
+    const W = 380, H = 178, G = 14, cols = items.length > 1 ? 2 : 1, rows = Math.ceil(items.length / cols) || 1, S2 = 2;
+    cv.width = (cols * W + (cols + 1) * G) * S2; cv.height = (rows * H + (rows + 1) * G) * S2;
+    cv.style.maxWidth = (cols * W + (cols + 1) * G) + 'px';
+    const c = cv.getContext('2d'); c.setTransform(S2, 0, 0, S2, 0, 0); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+    const F = (w, s) => `${w} ${s}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+    items.forEach((it, i) => {
+      const x = G + (i % cols) * (W + G), y = G + Math.floor(i / cols) * (H + G), bench = it.kind !== 'stat' && it.kind !== 'second';
+      const good = it.kind === 'second' ? it.r <= Math.ceil(it.n / 2) : bench ? true : it.st.good, main = bench ? '#0f172a' : good ? '#16a34a' : '#dc2626';
+      c.fillStyle = bench ? '#f8fafc' : good ? '#f0fdf4' : '#fef2f2'; rr(c, x, y, W, H, 14); c.fill();
+      c.strokeStyle = bench ? '#e2e8f0' : good ? '#bbf7d0' : '#fecaca'; c.lineWidth = 1.5; c.stroke();
+      c.textAlign = 'right'; c.fillStyle = '#94a3b8'; c.font = F(800, 10); c.fillText(season, x + W - 12, y + 18);
+      c.textAlign = 'center'; c.fillStyle = main; c.font = F(900, 15); c.fillText({ bench: 'TITULARES / SUPLENTES', map: 'ACIERTO POR ZONAS', clutch: 'CLUTCH', second: '2ª OPORTUNIDADES' }[it.kind] || it.title, x + W / 2, y + 24);
+      const cx = x + W / 2, cy = y + 92;
+      if (it.kind === 'bench') {
+        const b = it.bi, rx0 = x + 80; ring(c, rx0, cy, 44, b.pct / 100, '#0ea5e9', '#f59e0b', 15);
+        c.fillStyle = '#0f172a'; c.font = F(900, 20); c.fillText(Math.round(b.pct) + '%', rx0, cy + 4); c.font = F(800, 8.5); c.fillStyle = '#64748b'; c.fillText('TITULARES', rx0, cy + 17);
+        c.textAlign = 'left'; const lx = x + 150; c.font = F(700, 12);
+        const dot = (yy, col, t) => { c.fillStyle = col; c.beginPath(); c.arc(lx + 5, yy - 4, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#0f172a'; c.fillText(t, lx + 15, yy); };
+        dot(cy - 24, '#0ea5e9', `Titulares ${Math.round(b.pct)}%`); dot(cy - 4, '#f59e0b', `Suplentes ${Math.round(100 - b.pct)}%`);
+        c.fillStyle = '#475569'; c.font = F(700, 11); c.fillText(`Media liga ${Math.round(b.avg)}% titulares`, lx + 15, cy + 16);
+        c.font = F(800, 10.5); c.fillStyle = b.pct > b.avg ? '#dc2626' : '#16a34a'; c.fillText(b.pct > b.avg ? 'Dependen de los titulares' : 'Reparten al banquillo', lx + 15, cy + 32);
+        if (b.six) { c.textAlign = 'center'; c.fillStyle = '#0f172a'; c.font = F(800, 11); c.fillText(cut(c, `Mejor suplente: ${b.six.name} · ${f1(b.six.ppg)} pts/p`, W - 24), x + W / 2, y + H - 14); }
+        return;
+      }
+      if (it.kind === 'map') {
+        const off = document.createElement('canvas'); it.om.draw(off);
+        const mh = H - 40, mw = off.width * mh / off.height; c.drawImage(off, x + 12, y + 32, mw, mh);
+        c.textAlign = 'left'; let ty = y + 50; const tx = x + mw + 26, tw = W - mw - 36;
+        const hi = it.om.dev.filter(d => d.d > 0).slice(0, 2), lo = it.om.dev.filter(d => d.d < 0).slice(0, 2);
+        const row = (t, col, bold) => { c.fillStyle = col; c.font = F(bold ? 900 : 700, bold ? 11.5 : 10.5); c.fillText(cut(c, t, tw), tx, ty); ty += bold ? 16 : 14; };
+        if (hi.length) { row('Muy fuertes desde:', '#dc2626', true); hi.forEach(d => row(`${it.om.name(d.z)} ${d.e.m}/${d.e.a} (${Math.round(d.e.m / d.e.a * 100)}%)`, '#0f172a')); ty += 6; }
+        if (lo.length) { row('Les cuesta desde:', '#2563eb', true); lo.forEach(d => row(`${it.om.name(d.z)} ${d.e.m}/${d.e.a} (${Math.round(d.e.m / d.e.a * 100)}%)`, '#0f172a')); }
+        c.fillStyle = '#94a3b8'; c.font = F(700, 9); c.fillText('rojo = por encima de la liga · azul = por debajo', tx, y + H - 12);
+        return;
+      }
+      if (it.kind === 'clutch') {
+        const C = it.C, pcx = (m, a) => (a ? Math.round(m / a * 100) + '%' : '—');
+        c.fillStyle = '#0f172a'; c.font = F(900, 28); c.fillText(`${C.w}-${C.l}`, x + 70, cy - 4);
+        c.fillStyle = '#64748b'; c.font = F(700, 10); c.fillText(`en ${C.games} final${C.games > 1 ? 'es' : ''} igualado${C.games > 1 ? 's' : ''}`, x + 70, cy + 12);
+        c.fillText(`(de ${it.g} partidos)`, x + 70, cy + 25);
+        const t3bad = C.t3a >= 4 && C.t3m / C.t3a <= 0.2;
+        c.fillStyle = t3bad ? '#dc2626' : '#0f172a'; c.font = F(900, 15); c.fillText(`${C.t3m}/${C.t3a} T3`, x + 168, cy - 12);
+        c.fillStyle = '#0f172a'; c.font = F(800, 12); c.fillText(`${C.t2m}/${C.t2a} T2 · ${C.ftm}/${C.fta} TL`, x + 168, cy + 6);
+        c.fillStyle = '#64748b'; c.font = F(700, 10); c.fillText(`T3 ${pcx(C.t3m, C.t3a)} en el clutch`, x + 168, cy + 22);
+        const top = Object.entries(C.scorers).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        c.textAlign = 'left'; c.fillStyle = '#0f172a'; c.font = F(900, 10); c.fillText('LA PIDEN AL FINAL', x + 252, cy - 30);
+        top.forEach(([n, p], j) => { c.fillStyle = '#dc2626'; c.beginPath(); c.arc(x + 258, cy - 12 + j * 18, 6, 0, Math.PI * 2); c.fill(); c.fillStyle = '#fff'; c.font = F(900, 8); c.textAlign = 'center'; c.fillText(j + 1, x + 258, cy - 9 + j * 18);
+          c.textAlign = 'left'; c.fillStyle = '#0f172a'; c.font = F(700, 9.5); c.fillText(cut(c, `${n.split(/\s+/).slice(0, 2).join(' ')} ${p}p`, 106), x + 268, cy - 8 + j * 18); });
+        c.fillStyle = '#94a3b8'; c.font = F(700, 9); c.textAlign = 'center'; c.fillText('Últimos 5 min + prórroga con el marcador a ±5', x + W / 2, y + H - 12);
+        return;
+      }
+      if (it.kind === 'second') {
+        const A2 = it.A, tot = A2.scPts || 1, parts = [[A2.scT3, '#0ea5e9', 'T3'], [A2.scT2, '#e8402a', 'T2'], [A2.scFT, '#f59e0b', 'TL']];
+        c.fillStyle = '#0f172a'; c.font = F(900, 34); c.fillText(f1(it.per), x + 68, cy + 2); c.fillStyle = '#64748b'; c.font = F(700, 10); c.fillText('pts por partido', x + 68, cy + 18);
+        c.fillText(`${A2.scPts} pts en total`, x + 68, cy + 31);
+        let a0 = -Math.PI / 2; c.lineWidth = 13;
+        parts.forEach(([v, col]) => { if (!v) return; const a1 = a0 + Math.PI * 2 * v / tot; c.strokeStyle = col; c.beginPath(); c.arc(x + 180, cy, 30, a0, a1); c.stroke(); a0 = a1; });
+        c.textAlign = 'left'; parts.forEach(([v, col, lab], j) => { c.fillStyle = col; c.font = F(900, 11); c.fillText(`${Math.round(v / tot * 100)}% ${lab}`, x + 222, cy - 14 + j * 15); });
+        c.textAlign = 'center'; const rx2 = x + W - 52;
+        if (it.n >= 4) { c.fillStyle = main; c.font = F(900, 15); c.fillText(`${it.r}º de ${it.n}`, rx2, cy - 6); c.fillStyle = '#64748b'; c.font = F(700, 9.5); c.fillText('en la liga', rx2, cy + 8); }
+        c.fillStyle = '#dc2626'; c.font = F(800, 10.5); c.fillText(`Conceden ${f1(it.ag)}/p`, rx2, cy + 28);
+        c.fillStyle = '#94a3b8'; c.font = F(700, 9); c.fillText('Puntos tras rebote ofensivo', x + W / 2, y + H - 12);
+        return;
+      }
+      const st = it.st, fm = it.pct ? st.f : f1;
+      if (it.pct) {
+        ring(c, cx, cy, 42, st.v / 100, '#22c55e', '#ef4444', 13);
+        c.fillStyle = '#0f172a'; c.font = F(900, 21); c.fillText(Math.round(st.v) + '%', cx, cy + 7);
+      } else {
+        c.fillStyle = main; c.font = F(900, 32); c.fillText(fm(st.v), cx, cy + 6); c.fillStyle = '#64748b'; c.font = F(700, 11); c.fillText(it.unit, cx, cy + 24);
+      }
+      if (st.cnt) { c.fillStyle = '#0f172a'; c.font = F(900, 16); c.fillText(st.cnt, x + 62, cy + 2); c.fillStyle = '#64748b'; c.font = F(700, 10.5); c.fillText('anotados', x + 62, cy + 17); }
+      const rx = x + W - 70;
+      if (st.r > 1) { c.fillStyle = '#64748b'; c.font = F(700, 10); c.fillText(cut(c, `1º ${fm(st.top.v)} (${short(st.top.t.name)})`, 128), rx, cy - 26); }
+      c.fillStyle = main; c.font = F(900, 17); c.fillText(`${st.r}º de ${st.n}`, rx, cy + 5);
+      if (st.r < st.n) { c.fillStyle = '#64748b'; c.font = F(700, 10); c.fillText(cut(c, `Últ. ${fm(st.last.v)} (${short(st.last.t.name)})`, 128), rx, cy + 32); }
+      else { c.fillStyle = main; c.font = F(800, 10.5); c.fillText('el último de la liga', rx, cy + 26); }
+      if (st.r === 1) { c.fillStyle = main; c.font = F(800, 10.5); c.fillText('el mejor de la liga', rx, cy - 18); }
+      if (it.prev != null) { c.fillStyle = '#475569'; c.font = F(800, 11); c.fillText(`${it.prevLab}: ${Math.round(it.prev * 100)}%`, x + W / 2, y + H - 14); }
+    });
+  }
+
+  // ── la ventana ──
+  function line(txt, cls) { return `<div class="tp-l ${cls || ''}"><span>${esc(txt)}</span><button type="button" class="tp-cp" title="Copiar" data-t="${esc(txt)}">📋</button></div>`; }
+  window.__baTriptych = (ctx, rival, my) => {
+    const K = window.__baTeamKit; if (!K || !ctx) return;
+    const isR = n => K.sameTeam(n, rival);
+    const { P: pl, games } = playersOf(ctx.ms, isR);
+    // liga: todos los jugadores (para el % normal y la posición de anotador)
+    const lgPl = { t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, list: [] };
+    const teams = new Set(); ctx.ms.forEach(m => { teams.add(m.homeTeam); teams.add(m.awayTeam); });
+    teams.forEach(tn => { const r = playersOf(ctx.ms, n => n === tn); Object.values(r.P).forEach(p => { lgPl.list.push(p); ['t2m', 't2a', 't3m', 't3a', 'ftm', 'fta'].forEach(k => lgPl[k] += p[k]); }); });
+    const tl = shooters(pl, games, 'tl'), t3 = shooters(pl, games, 't3');
+    // acumulado total: todas las temporadas importadas de este equipo (partidos oficiales), solo jugadores que siguen
+    let both = null;
+    const allMs = ((window.S && window.S.matches) || []).filter(m => !fr(m) && [m.homeTeam, m.awayTeam].some(isR));
+    if (allMs.length > ctx.ms.filter(m => [m.homeTeam, m.awayTeam].some(isR)).length) {
+      const all = playersOf(allMs, isR), sum = {};
+      Object.values(all.P).forEach(p => { if (pl[p.k]) sum[p.k] = { ...p, dorsal: pl[p.k].dorsal }; });
+      const seas = [...new Set(allMs.map(m => K.seasonOf(m)).filter(Boolean))].sort().map(x => x.replace(/^20(\d\d)-(\d\d)$/, '$1/$2'));
+      both = { tl: shooters(sum, all.games, 'tl'), t3: shooters(sum, all.games, 't3'), lab: seas.join(' + ') };
+    }
+    const curLab = String(ctx.season || '').replace(/^20(\d\d)-(\d\d)$/, '$1/$2') || 'Esta temporada';
+    const stats = teamStats(K, ctx, rival).sort((a, b) => a.ext - b.ext);
+    const ls = lastSeason(K, rival, ctx.season);
+    const bi = benchInfo(ctx, rival, K);
+    const zd = window.__baZoneData ? window.__baZoneData(ctx, rival, my) : null;
+    const lastPl = ls ? playersOf(ls.ms, isR).P : null;
+    const imp = important(pl, games, lgPl, zd, rival, lastPl);
+    const top5 = Object.values(pl).filter(p => p.g >= Math.max(1, Math.ceil(games * 0.3))).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
+
+    const shoot = (lab, s, kind) => `<div class="tp-sh"><h5>${lab} <small>mín. ${s.minA} intentos</small></h5>
+      ${s.best.length ? s.best.map((x, i) => line(`${i + 1}. ${tag(x.p)}  ${ma(x.m, x.a)}  ${P0(x.pc)}`, 'g')).join('') : '<p class="tp-none">Nadie llega al mínimo de intentos todavía.</p>'}
+      ${s.worst.length ? `<div class="tp-worst">↓ el que peor ${kind}</div>${s.worst.map(x => line(`${tag(x.p)}  ${ma(x.m, x.a)}  ${P0(x.pc)}`, 'b')).join('')}` : ''}</div>`;
+    const stRows = stats.map(s => line(`${s.star ? '⭐ ' : ''}${s.txt}`, s.star ? (s.good ? 'g' : 'b') : '')).join('');
+    const extra = [];
+    if (bi) extra.push(line(`Titulares ${Math.round(bi.pct)}% de los puntos · suplentes ${Math.round(100 - bi.pct)}%${bi.avg != null ? ` · media liga ${Math.round(bi.avg)}% titulares (${bi.pct > bi.avg ? 'dependen más de los titulares' : 'reparten más al banquillo'})` : ''}`, bi.avg != null && Math.abs(bi.pct - bi.avg) >= 8 ? 'g' : ''));
+    if (bi && bi.six) extra.push(line(`Mejor suplente · sexto jugador: ${bi.six.name}${bi.six.dorsal ? ' #' + bi.six.dorsal : ''} · ${f1(bi.six.ppg)} pts/p desde el banquillo`));
+    if (top5.length) extra.push(line(`Máximos anotadores: ${top5.map(p => `${p.name}${p.dorsal ? ' #' + p.dorsal : ''} ${f1(p.ppg)}`).join(' · ')}`));
+    if (ls) extra.push(line(`Año pasado ${ls.txt}`));
+    const cards = imp.map(x => `<section class="tp-pl">
+        <h5>${esc(tag(x.p))}</h5><p class="tp-sub">${esc(x.head)}</p>
+        ${x.g.map(t => line(t, 'g')).join('')}${x.b.map(t => line(t, 'b')).join('')}${x.tnd.map(t => line('↪ ' + t, 't')).join('')}
+        ${x.idea ? line('Idea: ' + x.idea, 'i') : ''}
+        ${!x.g.length && !x.b.length && !x.tnd.length ? '<p class="tp-none">Nada que se salga de lo normal.</p>' : ''}</section>`).join('');
+    // tarjetas candidatas: lo que más se sale + titulares/suplentes; sin repetir la misma idea
+    const SAME = { r3: 't3a', t3a: 'r3', o3p: 'oefg', oefg: 'o3p' };
+    const NAMEC = { t2p: 'T2%', t3p: 'T3%', tlp: 'TL%', atk: 'PUNTOS A FAVOR', def: 'PUNTOS EN CONTRA', r3: 'TIROS QUE SON TRIPLES', t3a: 'TRIPLES INTENTADOS', ftr: 'TL PROVOCADOS', pace: 'RITMO', o3p: 'T3% DEL RIVAL', oefg: 'eFG% DEL RIVAL', fc: 'FALTAS' };
+    const UNIT = { atk: 'pts/p', def: 'pts/p', t3a: 'por partido', ftr: 'cada 100 tiros', pace: 'posesiones/p', fc: 'por partido' };
+    const lsT = ls ? K.teamTable(ls.ms).find(x => K.sameTeam(x.name, rival)) : null;
+    const prevPct = { t2p: lsT && lsT.o.t2a ? lsT.o.t2m / lsT.o.t2a : null, t3p: lsT && lsT.o.t3a ? lsT.o.t3m / lsT.o.t3a : null, tlp: lsT && lsT.o.fta ? lsT.o.ftm / lsT.o.fta : null };
+    const prevLab = ls ? ls.prev.replace(/^20(\d\d)-(\d\d)$/, '$1/$2') : '';
+    const cand = [];
+    stats.forEach(st => { if (cand.some(c => SAME[c.k] === st.k)) return;
+      cand.push({ k: st.k, chip: NAMEC[st.k] || st.lab, score: 1 - st.ext, star: st.star, kind: 'stat', st, title: NAMEC[st.k] || st.lab, pct: ['t2p', 't3p', 'tlp', 'r3', 'o3p', 'oefg'].includes(st.k), unit: UNIT[st.k] || '', prev: prevPct[st.k], prevLab }); });
+    if (bi && bi.avg != null) cand.push({ k: 'bench', chip: 'TITULARES / SUPLENTES', score: 0.35 + Math.min(0.6, Math.abs(bi.pct - bi.avg) / 20), star: Math.abs(bi.pct - bi.avg) >= 8, kind: 'bench', bi });
+    // mapa de zonas: solo si hay alguna zona muy por encima o por debajo de la liga
+    const om = window.__baOwnMap ? window.__baOwnMap(ctx, rival, my) : null;
+    if (om && om.dev.length) cand.push({ k: 'map', chip: 'MAPA DE ZONAS', score: Math.min(1, om.max / 0.12), star: om.max >= 0.08, kind: 'map', om });
+    // jugada a jugada: clutch y segundas oportunidades (con la posición en la liga)
+    const realName = (() => { for (const m of ctx.ms) { if (isR(m.homeTeam)) return m.homeTeam; if (isR(m.awayTeam)) return m.awayTeam; } return rival; })();
+    const rMs = ctx.ms.filter(m => [m.homeTeam, m.awayTeam].some(isR));
+    const A = typeof window._analyzeAdvancedFCBQ === 'function' ? window._analyzeAdvancedFCBQ(rMs, realName) : null;
+    if (A && A.clutch && A.clutch.games) {
+      const C = A.clutch, ext3 = C.t3a >= 4 && (C.t3m / C.t3a <= 0.15 || C.t3m / C.t3a >= 0.45);
+      cand.push({ k: 'clutch', chip: 'CLUTCH', score: 0.45 + (C.games >= 2 ? 0.2 : 0) + (ext3 ? 0.3 : 0), star: C.games >= 2 || ext3, kind: 'clutch', C, g: A.games });
+    }
+    if (A && A.games && A.scPts) {
+      const per = A.scPts / A.games, lgv = [];
+      teams.forEach(tn => { const ms = ctx.ms.filter(m => m.homeTeam === tn || m.awayTeam === tn); const B = ms.length ? window._analyzeAdvancedFCBQ(ms, tn) : null; if (B && B.games) lgv.push({ tn, v: B.scPts / B.games }); });
+      const n = lgv.length, r = 1 + lgv.filter(x => x.v > per + 1e-9).length, ext = n >= 4 ? Math.min(r - 1, n - r) / Math.max(1, (n - 1) / 2) : 0.6;
+      cand.push({ k: 'second', chip: '2ª OPORTUNIDADES', score: 1 - ext, star: n >= 4 && (r <= 3 || r > n - 3), kind: 'second', A, per, r, n, ag: A.scAg / A.games });
+    }
+    // siempre T2% y T3% primero; luego hasta 2 más, lo que más destaque (o titulares/suplentes si nada destaca)
+    const base = ['t2p', 't3p'].map(k => cand.findIndex(c => c.k === k)).filter(i => i >= 0);
+    // lo que se suele poner en el tríptico va por delante de las estadísticas genéricas (puntos, faltas, ritmo…), que solo entran si son el 1º o el último
+    const PRI = { tlp: 1, bench: 1, map: 1, clutch: 1, second: 1 }, pri = c => PRI[c.k] || 0.5;
+    const ok = c => PRI[c.k] ? c.star : c.kind === 'stat' && (c.st.r === 1 || c.st.r === c.st.n);
+    const rest = cand.map((c, i) => i).filter(i => !base.includes(i)).sort((x, y) => cand[y].score * pri(cand[y]) - cand[x].score * pri(cand[x]));
+    const order = [...base, ...rest];
+    let pick = [...base, ...rest.filter(i => ok(cand[i])).slice(0, 2)];
+    if (pick.length < 3) { const b = cand.findIndex(c => c.k === 'bench'); if (b >= 0 && !pick.includes(b)) pick.push(b); }
+    // texto plano para «Copiar todo»
+    const plain = [
+      `TRÍPTICO · ${rival}`, '', `TIRO LIBRE ${curLab}`, ...tl.best.map((x, i) => `${i + 1}. ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`), ...tl.worst.map(x => `↓ ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`),
+      '', `TRIPLE ${curLab}`, ...t3.best.map((x, i) => `${i + 1}. ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`), ...t3.worst.map(x => `↓ ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`),
+      ...(both ? ['', `TIRO LIBRE (acumulado ${both.lab})`, ...both.tl.best.map((x, i) => `${i + 1}. ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`), ...both.tl.worst.map(x => `↓ ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`),
+        '', `TRIPLE (acumulado ${both.lab})`, ...both.t3.best.map((x, i) => `${i + 1}. ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`), ...both.t3.worst.map(x => `↓ ${tag(x.p)} ${ma(x.m, x.a)} ${P0(x.pc)}`)] : []),
+      '', 'ESTADÍSTICAS', ...stats.map(s => `${s.star ? '⭐ ' : ''}${s.txt}`),
+      ...(bi ? [`Titulares ${Math.round(bi.pct)}% · suplentes ${Math.round(100 - bi.pct)}%${bi.avg != null ? ` (media liga ${Math.round(bi.avg)}%)` : ''}`] : []),
+      ...(bi && bi.six ? [`Sexto jugador: ${bi.six.name} ${f1(bi.six.ppg)} pts/p`] : []),
+      ...(top5.length ? [`Anotadores: ${top5.map(p => `${p.name} ${f1(p.ppg)}`).join(' · ')}`] : []), ...(ls ? [`Año pasado ${ls.txt}`] : []),
+      '', 'JUGADORES IMPORTANTES', ...imp.flatMap(x => [`${tag(x.p)} — ${x.head}`, ...x.g.map(t => `  + ${t}`), ...x.b.map(t => `  − ${t}`), ...x.tnd.map(t => `  ↪ ${t}`), ...(x.idea ? [`  • ${x.idea}`] : []), '']),
+    ].join('\n');
+
+    document.getElementById('tp-ov') && document.getElementById('tp-ov').remove();
+    const ov = document.createElement('div'); ov.id = 'tp-ov'; ov.className = 'tp-ov';
+    ov.innerHTML = `<div class="tp-box" role="dialog" aria-label="Tríptico del partido">
+      <header class="tp-h"><div><small>🎨 Para el tríptico (Canva)</small><b>${esc(rival)}</b><span>${games} partidos de ${esc(ctx.comp || 'la liga')}${ctx.grp ? ' · Grupo ' + esc(ctx.grp) : ''} · ${esc(ctx.season || '')}</span></div>
+        <div class="tp-hb"><button type="button" class="tp-all">📋 Copiar todo</button><button type="button" class="tp-x" aria-label="Cerrar">✕</button></div></header>
+      <p class="tp-hint">Toca 📋 para copiar una línea y pegarla en Canva. <b class="g">Verde</b> = lo que hacen bien · <b class="b">rojo</b> = lo flojo · ⭐ = lo que más se sale de lo normal en la liga (lo primero que pondría).</p>
+      <div class="tp-grid">
+        <section class="tp-col"><h4>1 · Tiradores</h4>
+          ${both ? `<div class="tp-sv"><button type="button" class="on" data-sv="0">${esc(curLab)}</button><button type="button" data-sv="1">Acumulado total</button></div>` : ''}
+          <div data-svp="0">${shoot('TIR 1P · tiro libre', tl, 'tira los libres')}${shoot('TIR 3P · triple', t3, 'tira de tres')}</div>
+          ${both ? `<div data-svp="1" hidden><p class="tp-sub">Acumulado ${esc(both.lab)} · solo jugadores que siguen en el equipo.</p>${shoot('TIR 1P · tiro libre', both.tl, 'tira los libres')}${shoot('TIR 3P · triple', both.t3, 'tira de tres')}</div>` : ''}</section>
+        <section class="tp-col"><h4>2 · Estadísticas del equipo</h4>
+          ${cand.length ? `<p class="tp-sub">Lo que más se sale de lo normal en la liga, ya elegido. Toca una etiqueta para quitarla o añadirla (máx. 4).</p>
+          <div class="tp-chips">${order.map(i => `<button type="button" data-ci="${i}"${pick.includes(i) ? ' class="on"' : ''}>${esc(cand[i].chip)}</button>`).join('')}</div>
+          <canvas class="tp-img" aria-label="Tarjetas de estadísticas"></canvas>
+          <div class="tp-ib"><button type="button" class="tp-dl">⬇️ Descargar imagen</button><button type="button" class="tp-ci">📋 Copiar imagen</button></div>` : '<p class="tp-none">Faltan partidos de la liga importados.</p>'}
+          <details class="tp-more"><summary>Todas las estadísticas en texto</summary>${stRows}${extra.join('')}</details></section>
+        <section class="tp-col tp-wide"><h4>3 · Jugadores importantes</h4><div class="tp-pls">${cards || '<p class="tp-none">Sin jugadores con suficientes partidos.</p>'}</div>
+          ${zd ? '' : '<p class="tp-none">Las tendencias de tiro salen del mapa de tiros: este rival todavía tiene pocos tiros con posición.</p>'}</section>
+      </div></div>`;
+    document.body.appendChild(ov);
+    const redraw = () => { const cv = ov.querySelector('.tp-img'); if (cv) drawCards(cv, pick.map(i => cand[i]), curLab); };
+    redraw();
+    const close = () => ov.remove();
+    ov.addEventListener('click', e => {
+      if (e.target === ov || e.target.closest('.tp-x')) return close();
+      const sv = e.target.closest('[data-sv]');
+      if (sv) { ov.querySelectorAll('[data-sv]').forEach(x => x.classList.toggle('on', x === sv)); ov.querySelectorAll('[data-svp]').forEach(p => { p.hidden = p.dataset.svp !== sv.dataset.sv; }); return; }
+      const ch = e.target.closest('[data-ci]');
+      if (ch) { const i = +ch.dataset.ci; if (pick.includes(i)) pick = pick.filter(x => x !== i); else if (pick.length < 4) pick = [...pick, i]; else return;
+        ov.querySelectorAll('[data-ci]').forEach(x => x.classList.toggle('on', pick.includes(+x.dataset.ci))); redraw(); return; }
+      if (e.target.closest('.tp-dl')) { const a = document.createElement('a'); a.download = `estadisticas_${short(rival).replace(/[^\w]+/g, '_')}.png`; a.href = ov.querySelector('.tp-img').toDataURL('image/png'); a.click(); return; }
+      const cib = e.target.closest('.tp-ci');
+      if (cib) { ov.querySelector('.tp-img').toBlob(bl => { const ok = () => { cib.textContent = '✔ Copiada'; setTimeout(() => { cib.textContent = '📋 Copiar imagen'; }, 1200); };
+        try { navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })]).then(ok, () => { cib.textContent = 'Usa «Descargar»'; }); } catch (er) { cib.textContent = 'Usa «Descargar»'; } }, 'image/png'); return; }
+      const b = e.target.closest('.tp-cp, .tp-all'); if (!b) return;
+      const t = b.classList.contains('tp-all') ? plain : b.dataset.t;
+      const done = () => { const o = b.textContent; b.textContent = '✔'; setTimeout(() => { b.textContent = o; }, 900); };
+      try { navigator.clipboard.writeText(t).then(done, () => { fallback(t); done(); }); } catch (er) { fallback(t); done(); }
+    });
+    const onKey = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } }; document.addEventListener('keydown', onKey);
+  };
+  function fallback(t) { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { } ta.remove(); }
 })();
 
 </script>

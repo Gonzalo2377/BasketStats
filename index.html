@@ -27522,6 +27522,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       if (c.at0 == null) c.at0 = c.at;
       if (at !== c.at) { c.at = at; n++; }
       if (/^https:\/\/calendaris\.cat\/marcador\//.test(m.mk || '')) { c.mk = m.mk; c.cid = (m.mk.match(/calendari\/[\d-]+\/(\d+)/) || [])[1] || null; }
+      // desde la J5 calendaris.cat ya no pone el enlace «Marcador:» en el calendario: el nº de partido (match1670) es el mismo del marcador
+      else if (/^\d{1,6}$/.test(String(m.id || ''))) { c.cid = String(m.id); c.mk = `https://calendaris.cat/marcador/calendari/${SEASON}/${m.id}`; }
     });
     return n;
   }

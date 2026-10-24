@@ -18,8 +18,9 @@ function parse(ics) {
     const uid = get('UID'), start = get('DTSTART'), sum = get('SUMMARY').replace(/^[^A-Za-z0-9]*/u, '');
     const desc = get('DESCRIPTION').replace(/\\n/g, '\n').replace(/\\,/g, ',');
     const vs = sum.split(' vs ');
-    const mk = (desc.match(/Marcador:\s*(https:\/\/calendaris\.cat\/marcador\/\S+)/) || [])[1] || '';
     const id = (uid.match(/match(\d+)/) || [])[1] || '';
+    // el enlace «Marcador:» ya no viene siempre en la descripción: el nº de partido es el mismo del marcador
+    const mk = (desc.match(/Marcador:\s*(https:\/\/calendaris\.cat\/marcador\/\S+)/) || [])[1] || (id ? `https://calendaris.cat/marcador/calendari/2026-27/${id}` : '');
     if (vs.length !== 2 || !/^\d{8}T\d{4}/.test(start)) return null;
     const CH = /\s*\(canvi[^)]*\)\s*$/i;   // calendaris.cat marca así los partidos con cambio de día u hora
     const h = vs[0].trim(), a = vs[1].trim();

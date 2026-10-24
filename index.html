@@ -3423,6 +3423,8 @@ body.player-mode.ba-pq #t-quini, body.player-mode.ba-pq #q-main { width: 100% !i
 .q-photo{max-width:480px}
 .q-photo img{display:block;width:calc(100% - 24px);margin:12px auto 0;border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,.25)}
 .q-photo-b{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px 12px 0}
+/* móvil (staff): los botones de abajo de la quiniela quedaban debajo de la barra de pestañas fija */
+@media (max-width: 899px) { body:not(.player-mode) .q-spyw { margin-bottom: calc(90px + env(safe-area-inset-bottom)) } }
 
 /* ── Líderes por equipo ── */
 .bl-mode{display:inline-flex;gap:4px;margin-left:auto}

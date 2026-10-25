@@ -17605,13 +17605,18 @@ const _FCBQ_CODE_TXT = {
   // eventTypeId 524 · tiros (confirmado con un PBP real de la FCBQ)
   D1:'Cistella de 1', D2:'Cistella de 2', D3:'Cistella de 3',
   MA:'Cistella de 2 (esmaixada)',   // mate: es un tiro (524) y el marcador sube 2
+  MF:'Intent fallat de 2 (mate)',   // sin «esmaixada»: _fcbqPoints daría 2 puntos · mate fallado: también es un tiro (524) y el marcador no sube
   F1:'Intent fallat de 1', F2:'Intent fallat de 2', F3:'Intent fallat de 3',
   // 531 · faltas (entre paréntesis los tiros libres que conceden)
   P:'Personal (0 TL)', P1:'Personal (1 TL)', P2:'Personal (2 TL)', P3:'Personal (3 TL)',
   FL1:'Falta antiesportiva (1 TL)', FL2:'Falta antiesportiva (2 TL)', FL3:'Falta antiesportiva (3 TL)',
   AT:'Falta en atac', T11:'Falta tècnica (1 TL)',
   T21:'Falta tècnica (1 TL)',                 // técnica a un jugador: el rival tira 1 libre (visto en actas reales)
-  T1C:'Falta tècnica compensada (0 TL)',      // dos técnicas a la vez, una de cada equipo, sin tiros libres C1:'Falta tècnica a la banqueta (1 TL)',
+  T1C:'Falta tècnica compensada (0 TL)',      // dos técnicas a la vez, una de cada equipo, sin tiros libres
+  C1:"Falta tècnica a l'entrenador (1 TL)",   // sin jugador, a nombre del equipo; justo después el rival tira 1 libre (antes quedaba dentro del comentario de arriba)
+  PC:'Personal compensada (0 TL)',            // como T1C: faltas a la vez de los dos equipos, sin tiros libres
+  GD:'Desqualificació per acumulació',   // sin «tècnica/antiesportiva» en el texto para no contar otra falta · va justo después de la 2ª técnica/antideportiva del mismo jugador o del banquillo
+  DESQ1:"Desqualificació amb informe (anotada a l'acta)",            // al final del acta, sin jugador ni equipo
   B1:'Falta tècnica a la banqueta (1 TL)', B2:'Falta tècnica a la banqueta (2 TL)',
   DI0:'Falta desqualificant (0 TL)', DI1:'Falta desqualificant (1 TL)', DI2:'Falta desqualificant (2 TL)', DI3:'Falta desqualificant (3 TL)',
   FR:'Falta rebuda',
@@ -20724,8 +20729,14 @@ const _leaderCategories={
   reb:['REBOTES',p=>p.reb,v=>v.toFixed(1)],
   ast:['ASISTENCIAS',p=>p.ast,v=>v.toFixed(1)],
   t2:['T2%',p=>p.t2a?p.t2m/p.t2a*100:0,v=>v.toFixed(1)+'%'],
+  t2m:['T2 ANOTADOS',p=>p.t2m,v=>v.toFixed(1)],
+  t2a:['T2 INTENTADOS',p=>p.t2a,v=>v.toFixed(1)],
   t3:['T3%',p=>p.t3a?p.t3m/p.t3a*100:0,v=>v.toFixed(1)+'%'],
+  t3m:['T3 ANOTADOS',p=>p.t3m,v=>v.toFixed(1)],
+  t3a:['T3 INTENTADOS',p=>p.t3a,v=>v.toFixed(1)],
   tl:['TL%',p=>p.tla?p.tlm/p.tla*100:0,v=>v.toFixed(1)+'%'],
+  tlm:['TL ANOTADOS',p=>p.tlm,v=>v.toFixed(1)],
+  tla:['TL INTENTADOS',p=>p.tla,v=>v.toFixed(1)],
   pm:['+/-',p=>p.pm,v=>`${v>0?'+':''}${v.toFixed(1)}`],
   blk:['TAPONES',p=>p.blk,v=>v.toFixed(1)],
   stl:['ROBOS',p=>p.stl,v=>v.toFixed(1)],
@@ -20772,7 +20783,7 @@ function renderLeaders(){
   });
   const metric=_leaderCategories[category]||_leaderCategories.pts;
   // Estos son los que se dividen por el número de partidos
-  const perGame=new Set(['min','pts','reb','ast','pm','blk','stl','to','fc','fr']); 
+  const perGame=new Set(['min','pts','reb','ast','pm','blk','stl','to','fc','fr','t2m','t2a','t3m','t3a','tlm','tla']); 
   const valueOf=p=>perGame.has(category)?metric[1](p)/Math.max(p.g,1):metric[1](p);
   const shotAttempts={t2:p=>p.t2a,t3:p=>p.t3a,tl:p=>p.tla};
   
@@ -20780,7 +20791,7 @@ function renderLeaders(){
   const eligible=[...totals.values()].filter(p=>p.g>=minGames && (!shotAttempts[category]||shotAttempts[category](p)>=minShots));
   const leaders=eligible.sort((a,b)=>valueOf(b)-valueOf(a)).slice(0,10);
   
-  body.innerHTML=leaders.length?`<div style="font-size:10px;color:var(--t3);margin-bottom:7px">Top 10 · ${metric[0]}${perGame.has(category)?' por partido':''}${['t2','t3','tl'].includes(category)?` · mínimo ${minShots} intentos`:''}</div><div style="display:grid;gap:5px">${leaders.map((p,i)=>{const value=valueOf(p),teamLabel=[...p.teams].join(', ')||'Equipo no indicado';return `<div onclick="openPlayerProfile(this.dataset.n,'__ALL__','')" data-n="${_esc(p.name)}" title="Ver historial del jugador" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:${i===0?'#fffbeb':'#fff'};cursor:pointer"><b style="width:18px;color:var(--t3)">${i+1}</b><span style="flex:1;min-width:0;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#${_esc(p.dorsal||'—')} ${_esc(p.name)} <span style="font-weight:500;color:var(--t3)">(${_esc(teamLabel)})</span></span><span style="font-size:10px;color:var(--t3)">${p.g} PJ</span><b style="font-size:14px;color:${category==='pm'?(value>=0?'var(--gn)':'#dc2626'):'var(--nv)'}">${metric[2](value)}</b></div>`;}).join('')}</div>`:'<div class="empty">No hay datos para estos filtros.</div>';
+  body.innerHTML=leaders.length?`<div style="font-size:10px;color:var(--t3);margin-bottom:7px">Top 10 · ${metric[0]}${perGame.has(category)?' por partido':''}${['t2','t3','tl'].includes(category)?` · mínimo ${minShots} intentos`:''}</div><div style="display:grid;gap:5px">${leaders.map((p,i)=>{const value=valueOf(p),teamLabel=[...p.teams].join(', ')||'Equipo no indicado';return `<div onclick="openPlayerProfile(this.dataset.n,'__ALL__','')" data-n="${_esc(p.name)}" title="Ver historial del jugador" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:${i===0?'#fffbeb':'#fff'};cursor:pointer"><b style="width:18px;color:var(--t3)">${i+1}</b><span style="flex:1;min-width:0;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#${_esc(p.dorsal||'—')} ${_esc(p.name)} <span style="font-weight:500;color:var(--t3)">(${_esc(teamLabel)})</span></span><span style="font-size:10px;color:var(--t3)">${(()=>{const sk={t2:'t2',t2m:'t2',t2a:'t2',t3:'t3',t3m:'t3',t3a:'t3',tl:'tl',tlm:'tl',tla:'tl'}[category];return sk?`${p[sk+'m']}/${p[sk+'a']} · `:''})()}${p.g} PJ</span><b style="font-size:14px;color:${category==='pm'?(value>=0?'var(--gn)':'#dc2626'):'var(--nv)'}">${metric[2](value)}</b></div>`;}).join('')}</div>`:'<div class="empty">No hay datos para estos filtros.</div>';
 }
 window.renderLeaders=renderLeaders;
 window.__baIsFriendly=m=>_isFriendly(m);window.__baIsOur=n=>isOurTeam(n);

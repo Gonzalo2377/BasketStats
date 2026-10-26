@@ -8979,7 +8979,8 @@ function _parcTimeline(m) {
       let sc = null;
       if (typeof mv.score === 'string') { const x = mv.score.match(/(\d+)\s*-\s*(\d+)/); if (x) sc = { h: +x[1], a: +x[2] }; }
       else if (mv.score) sc = { h: Number(mv.score.local ?? mv.score.h ?? 0), a: Number(mv.score.visitor ?? mv.score.a ?? 0) };
-      if (sc && (sc.h + sc.a) > (last.h + last.a)) {
+      // solo jugadas de un equipo: la FCBQ mete apuntes del acta sin equipo (p. ej. «DESQ1») con el marcador FINAL fechado en el 1r cuarto
+      if (side && sc && (sc.h + sc.a) > (last.h + last.a)) {
         states.push({ t, h: sc.h, a: sc.a, seq: i, oc: { home: [...on.home], away: [...on.away] } });
         last = sc;
       }
@@ -11523,6 +11524,7 @@ function renderScouting() {
       document.getElementById('sc-content').innerHTML = '<div class="empty">Sin datos válidos.</div>';
       return;
   }
+  window._scMatches = matches;   // la misma lista (temporada, categoría y amistosos sí/no) para local/visitante, victorias/derrotas, posesiones y mapas por jugador
 
   // 🚀 MOTOR MANUAL PARA PUNTOS Y PORCENTAJES (Tolera empates perfectamente)
   const advData = { n: matches.length, pts: 0, opp: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0 };
@@ -12283,6 +12285,17 @@ function renderScoutTimeout(matches) {
 
 // ── AUXILIARES Y RENDERIZADORES DE SCOUTING ──
 
+// partidos del rival que está viendo el Scouting, con los mismos filtros que la página (temporada, categoría y amistosos)
+function _scPool() {
+  const r = _scoutRival;
+  const ok = m => m && (m.homeTeam === r || m.awayTeam === r);
+  if (Array.isArray(window._scMatches) && window._scMatches.length && window._scMatches.every(ok)) return window._scMatches;
+  const sfEff = document.getElementById('sc-sf')?.value || '';
+  let ms = S.matches.filter(m => ok(m) && _scCatOk(m) && (!sfEff || m.season === sfEff));
+  const of = ms.filter(m => !_isFriendly(m)); if (of.length && !_frOn('sc')) ms = of;
+  return ms;
+}
+window._scPool = _scPool;
 window.setScoutSplit = function(mode) {
     window._scoutSplitMode = mode;
     const btnHA = document.getElementById('sc-split-btn-ha');
@@ -12293,8 +12306,7 @@ window.setScoutSplit = function(mode) {
     const cont = document.getElementById('sc-split-content');
     if(!cont) return;
 
-    const sfEff = document.getElementById('sc-sf')?.value || '';
-    const matches = S.matches.filter(m => (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m) && (!sfEff || m.season === sfEff));
+    const matches = _scPool();
     
     if (mode === 'ha') cont.innerHTML = _generateHomeAwayHTML(_scoutRival, matches);
     else cont.innerHTML = _v4AnalyzeTeamSplits(matches, _scoutRival).htmlSplit;
@@ -12305,11 +12317,11 @@ window.toggleScoutPl = function(idx, name) {
     if(!r) return;
     if(r.style.display === 'none') {
         r.style.display = 'table-row';
-        const sfEff = document.getElementById('sc-sf')?.value || '';
-        let shots = [...S.shots, ...S.matches.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
+        const pool = _scPool();
+        let shots = [...S.shots, ...pool.flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))];
         shots = shots.filter(s => {
-            const m = S.matches.find(m => m.id === (s.mId || s.matchId));
-            return m && s.player === name && (m.homeTeam === _scoutRival || m.awayTeam === _scoutRival) && _scCatOk(m) && (!sfEff || m.season === sfEff);
+            const m = pool.find(m => m.id === (s.mId || s.matchId));
+            return m && s.player === name;
         });
         if(shots.length >= 3) drawHeatmap(`sc-cv-heat-${idx}`, shots);
         else {
@@ -21067,7 +21079,7 @@ function _renderScoutPossessionClocksSeguro() {
   const sfEff = document.getElementById('sc-sf')?.value || '';
   let matches = S.matches || [];
   const rName = currentRival.trim().toLowerCase();
-  const teamMatches = matches.filter(m => (m.homeTeam?.toLowerCase() === rName || m.awayTeam?.toLowerCase() === rName) && _scCatOk(m) && (!sfEff || m.season === sfEff));
+  const teamMatches = _scoutRival ? _scPool() : matches.filter(m => (m.homeTeam?.toLowerCase() === rName || m.awayTeam?.toLowerCase() === rName) && _scCatOk(m) && (!sfEff || m.season === sfEff));   // mismos filtros que el resto (amistosos incluidos)
 
   const data = _analyzePossessionClocks(teamMatches, currentRival);
   if (!data || !data.statsByZone['24-14']) return;

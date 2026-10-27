@@ -3730,6 +3730,58 @@ body.player-mode .cx-card{display:none!important}
 .tp-more{margin-top:6px;font-size:11.5px}
 .tp-more summary{cursor:pointer;font-weight:800;color:#475569;margin-bottom:4px}
 
+/* ── 🎬 Vídeo de scouting (Próximo rival) ── */
+.scv{margin-bottom:14px;border-left:4px solid #e8402a}
+.scv-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.scv-h b{font-size:14px;font-weight:900;color:#0f172a}
+.scv-up,.scv-go,.scv-go2{border:0;border-radius:999px;background:#0f172a;color:#fff;font-weight:800;font-size:12px;padding:7px 14px;cursor:pointer}
+.scv-go2:disabled{opacity:.5;cursor:default}
+.scv-login{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px}
+.scv-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.scv-it{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;min-width:0}
+.scv-th{position:relative;display:block;width:100%;aspect-ratio:16/9;border:0;padding:0;background:#0f172a;cursor:pointer;overflow:hidden}
+.scv-th img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85}
+.scv-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(232,64,42,.92);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;padding-left:4px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.scv-dur{position:absolute;right:8px;bottom:8px;background:rgba(15,23,42,.85);color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px}
+.scv-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.3)}
+.scv-bar i{display:block;height:100%;background:#e8402a}
+.scv-inf{padding:8px 10px}
+.scv-inf b{display:block;font-size:13px;font-weight:900;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scv-inf small{display:block;font-size:11px;color:#64748b;margin-top:1px}
+.scv-acts{display:flex;gap:6px;align-items:center;margin-top:6px}
+.scv-who{border:1.5px solid #cbd5e1;background:#fff;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:800;cursor:pointer;color:#0f172a}
+.scv-del{border:0;background:transparent;cursor:pointer;font-size:14px;opacity:.55;margin-left:auto}
+.scv-del:hover{opacity:1}
+.scv-me{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#f1f5f9;color:#64748b}
+.scv-me.half{background:#fff7ed;color:#c2410c}.scv-me.ok{background:#dcfce7;color:#15803d}
+.scv-none{font-size:12px;color:#94a3b8;margin:4px 0}
+.scv-more{margin-top:12px}
+.scv-more summary{cursor:pointer;font-size:12px;font-weight:800;color:#475569;margin-bottom:8px}
+.scv-ov{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.scv-box{background:#fff;border-radius:16px;width:100%;max-width:1000px;max-height:100%;overflow:auto;padding:12px 14px 14px;color:#0f172a;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.scv-box header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.scv-box header b{font-size:15px;font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scv-x{border:0;background:#f1f5f9;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;flex-shrink:0}
+.scv-box video{width:100%;max-height:72vh;background:#000;border-radius:10px;display:block}
+.scv-note{font-size:11.5px;color:#64748b;margin:8px 2px 0}
+.scv-wbox,.scv-ubox{max-width:560px}
+.scv-sum{font-size:12.5px;margin:0 0 10px;color:#334155}
+.scv-row{display:grid;grid-template-columns:28px minmax(0,1fr) 90px 42px;grid-template-areas:"av nm bar pc" "av sm sm sm";align-items:center;column-gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9}
+.scv-row .scv-av{grid-area:av}.scv-row .nm{grid-area:nm;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scv-row .scv-pbar{grid-area:bar}.scv-row .pc{grid-area:pc;font-size:12.5px;text-align:right}.scv-row small{grid-area:sm;font-size:10.5px;color:#94a3b8}
+.scv-av{width:28px;height:28px;border-radius:50%;background:var(--c);color:#fff;font-style:normal;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.scv-pbar{height:7px;border-radius:99px;background:#f1f5f9;overflow:hidden}
+.scv-pbar i{display:block;height:100%;background:#f59e0b;border-radius:99px}.scv-pbar i.ok{background:#16a34a}
+.scv-never{font-size:12px;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:8px 10px;margin:10px 0 6px}
+.scv-ubox label{display:block;font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:10px}
+.scv-ubox select,.scv-ubox input{display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;text-transform:none;font-weight:600;box-sizing:border-box}
+.scv-info{font-size:12px;color:#334155;background:#f8fafc;border-radius:8px;padding:8px 10px;line-height:1.5}
+.scv-prog{position:relative;height:26px;border-radius:8px;background:#f1f5f9;overflow:hidden;margin:10px 0}
+.scv-prog i{position:absolute;left:0;top:0;bottom:0;background:#fecaca;transition:width .3s}
+.scv-prog span{position:relative;display:block;font-size:11.5px;font-weight:800;line-height:26px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scv-ubt{display:flex;justify-content:flex-end}
+@media (max-width:600px){.scv-list{grid-template-columns:1fr}.scv-ov{padding:8px}.scv-box{padding:10px}}
+
 </style>
 </head>
 <body>
@@ -14885,7 +14937,8 @@ function renderCompare() {
     const matchupsHtml = _renderMatchups(ourList, rivList, _muOrdered(S.nextMatch), rival, myTeamName);
 
     const _muHtml = (!_playerMode && window.__baMatchupHTML) ? window.__baMatchupHTML({my: myTeamName, rival, myMatches, rivMatches, myHome: isMyTeamHome}) : '';
-    tabMain.innerHTML = configHtml + headHtml + compHtml + _muHtml + mapsHtml + matchupsHtml + rosterHtml;
+    const _scvHtml = window.__baScVidHTML ? window.__baScVidHTML(rival) : '';
+    tabMain.innerHTML = configHtml + headHtml + _scvHtml + compHtml + _muHtml + mapsHtml + matchupsHtml + rosterHtml;
 
     setTimeout(() => {
         if (rivalShots.length >= 3) drawHeatmap('nm-cv-heat', rivalShots);
@@ -28074,6 +28127,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   }
 
   window.__baQuiniDbg = { autoResults, resultOf, D: () => D, logVisit };
+  window.__baQuiniMe = me;                 // vídeo de scouting: quién lo está viendo
+  window.__baQuiniUsers = () => D.users;
   window.baQuiniRender = async () => { render(); setTimeout(() => window.__baQuiniLiveTick && window.__baQuiniLiveTick(), 0); if (await pull()) render(); };
   window.baQuiniOpen = () => { if (window.baShowPage) window.baShowPage('t-quini'); };
   setInterval(() => { const t = $('#t-quini'); if (t && t.classList.contains('active') && !document.hidden && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#q-main input')))
@@ -29368,6 +29423,249 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const onKey = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } }; document.addEventListener('keydown', onKey);
   };
   function fallback(t) { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { } ta.remove(); }
+})();
+
+/* BasketApp · 🎬 Vídeo de scouting (pestaña Próximo rival, staff y jugadores).
+   El staff sube el vídeo del rival (Cloudinary; si pasa de ~95 MB se comprime antes en el navegador a 720p) y los jugadores
+   lo ven en la web. Cada jugador cuenta con su usuario de la quiniela: se guarda qué trozos ha visto (de 5 en 5 s),
+   cuántas veces lo ha abierto y cuándo. El staff ve «quién lo ha visto» con el % de cada uno y quién no lo ha abierto.
+   Filas en «metadata»: scvid_list (la lista de vídeos) y scvid_v_<usuario> (lo visto por cada uno). */
+(function () {
+  'use strict';
+  if (window.__baScVid) return; window.__baScVid = true;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const toast = (m, t) => { if (typeof window.toast === 'function') window.toast(m, t); };
+  const sb = () => window.__baSb || null;
+  const isStaff = () => { let r = null; try { r = localStorage.getItem('bascatRole'); } catch (e) { } return r !== 'player' && !document.body.classList.contains('player-mode'); };
+  const me = () => (window.__baQuiniMe ? window.__baQuiniMe() : null);
+  const users = () => (window.__baQuiniUsers ? window.__baQuiniUsers() : {}) || {};
+  const SEG = 5, MAXMB = 95, CLOUD = 'yyfhdwlg', PRESET = 'bascat', LS_LIST = 'ba_scvid_list';
+  const codeOf = n => (window.__baTeamCode && window.__baTeamCode(n)) || String(n || '').toUpperCase().trim();
+  const shortOf = n => { const k = window.__baTeamCode && window.__baTeamCode(n); return (k && window.__baTeamShort && window.__baTeamShort(k)) || n; };
+  const mmss = s => { s = Math.round(s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const MB = b => (b / 1048576).toFixed(0) + ' MB';
+  const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const when = t => { const d = new Date(t), now = new Date(), hm = d.toTimeString().slice(0, 5), y = new Date(now); y.setDate(now.getDate() - 1);
+    const same = (a, b) => a.toDateString() === b.toDateString();
+    return same(d, now) ? `hoy ${hm}` : same(d, y) ? `ayer ${hm}` : `${DIAS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1} ${hm}`; };
+  const ini = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const avatar = u => `<i class="scv-av" style="--c:${esc(u.col || '#64748b')}">${esc(ini(u.name))}</i>`;
+  // % visto: trozos de 5 s marcados («1») sobre el total del vídeo
+  const pctOf = (s, dur) => { const n = Math.max(1, Math.ceil((dur || 0) / SEG)); let k = 0; for (let i = 0; i < n; i++) if (s && s[i] === '1') k++; return Math.min(100, Math.round(k / n * 100)); };
+  const orSeg = (a, b) => { a = a || ''; b = b || ''; let o = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) o += (a[i] === '1' || b[i] === '1') ? '1' : '0'; return o; };
+
+  // ── lista de vídeos ──
+  let LIST = []; try { LIST = JSON.parse(localStorage.getItem(LS_LIST) || '[]') || []; } catch (e) { }
+  const keepList = () => { try { localStorage.setItem(LS_LIST, JSON.stringify(LIST)); } catch (e) { } };
+  async function pullList() {
+    const c = sb(); if (!c) return false;
+    try { const r = await c.from('metadata').select('data').eq('id', 'scvid_list').maybeSingle(); if (r.error) throw r.error;
+      const items = (r.data && r.data.data && r.data.data.items) || [];
+      const ch = JSON.stringify(items) !== JSON.stringify(LIST); LIST = items; keepList(); return ch;
+    } catch (e) { console.warn('Vídeo scouting: no se pudo leer la lista', e); return false; }
+  }
+  // cambio sobre la lista más reciente de la nube (por si otro del staff ha subido algo mientras tanto)
+  async function editList(fn) {
+    const c = sb(); if (!c) throw new Error('Sin conexión con la nube');
+    const r = await c.from('metadata').select('data').eq('id', 'scvid_list').maybeSingle(); if (r.error) throw r.error;
+    const items = fn(((r.data && r.data.data && r.data.data.items) || []).slice());
+    const { error } = await c.from('metadata').upsert({ id: 'scvid_list', data: { items, ts: Date.now() } }); if (error) throw error;
+    LIST = items; keepList();
+  }
+
+  // ── lo visto por cada uno ──
+  let MINE = null;   // fila del usuario de este móvil { uid, name, col, v: { idVídeo: { s, n, f, l } } }
+  async function pullMine() {
+    const u = me(), c = sb(); if (!u || !c) return null;
+    if (MINE && MINE.uid === u.uid) return MINE;
+    try { const r = await c.from('metadata').select('data').eq('id', 'scvid_v_' + u.uid).maybeSingle();
+      MINE = Object.assign({ uid: u.uid, name: u.name, col: u.col, v: {} }, (r.data && r.data.data) || {}); MINE.v = MINE.v || {};
+    } catch (e) { MINE = { uid: u.uid, name: u.name, col: u.col, v: {} }; }
+    return MINE;
+  }
+  async function pushMine() {
+    const u = me(), c = sb(); if (!u || !c || !MINE) return false;
+    try { // se mezcla con lo que haya en la nube (el mismo usuario puede verlo en el móvil y en el ordenador)
+      const r = await c.from('metadata').select('data').eq('id', 'scvid_v_' + u.uid).maybeSingle();
+      const old = (r.data && r.data.data && r.data.data.v) || {};
+      Object.entries(old).forEach(([k, o]) => { const m = MINE.v[k]; if (!m) { MINE.v[k] = o; return; }
+        m.s = orSeg(m.s, o.s); m.n = Math.max(m.n || 0, o.n || 0); m.f = Math.min(m.f || Infinity, o.f || Infinity); m.l = Math.max(m.l || 0, o.l || 0); });
+      const { error } = await c.from('metadata').upsert({ id: 'scvid_v_' + u.uid, data: { uid: u.uid, name: u.name, col: u.col, ts: Date.now(), v: MINE.v } });
+      return !error;
+    } catch (e) { return false; }
+  }
+
+  // ── tarjeta en «Próximo rival» ──
+  let CUR = '';
+  window.__baScVidHTML = rival => {
+    CUR = rival || '';
+    setTimeout(() => { paint(); pullList().then(ch => { if (ch) paint(); }); pullMine().then(m => { if (m) paint(); }); }, 0);
+    return '<div id="scv-card"></div>';
+  };
+  function tile(it, staff) {
+    const mine = MINE && MINE.v[it.id], p = mine ? pctOf(mine.s, it.dur) : 0;
+    const st = staff ? `<button type="button" class="scv-who" data-who="${esc(it.id)}">👀 Quién lo ha visto</button><button type="button" class="scv-del" data-del="${esc(it.id)}" title="Quitar de la lista">🗑</button>`
+      : (me() ? `<span class="scv-me ${p >= 90 ? 'ok' : p ? 'half' : ''}">${p >= 90 ? '✓ Visto' : p ? `Visto ${p}%` : 'Sin ver'}</span>` : '');
+    return `<div class="scv-it"><button type="button" class="scv-th" data-play="${esc(it.id)}" aria-label="Ver ${esc(it.title)}">${it.thumb ? `<img src="${esc(it.thumb)}" alt="">` : ''}<span class="scv-pl">▶</span><span class="scv-dur">${mmss(it.dur)}</span>${p ? `<span class="scv-bar"><i style="width:${p}%"></i></span>` : ''}</button>
+      <div class="scv-inf"><b>${esc(it.title)}</b><small>${esc(shortOf(it.rival))} · subido ${esc(when(it.t))}</small><div class="scv-acts">${st}</div></div></div>`;
+  }
+  function paint() {
+    const box = $('#scv-card'); if (!box) return;
+    const staff = isStaff(), code = codeOf(CUR);
+    const here = LIST.filter(it => it.code === code).sort((a, b) => b.t - a.t), other = LIST.filter(it => it.code !== code).sort((a, b) => b.t - a.t);
+    if (!here.length && !other.length && !staff) { box.className = ''; box.innerHTML = ''; return; }
+    box.className = 'card scv';
+    const login = !staff && !me() && here.length ? `<div class="scv-login">Para que cuente que lo has visto, entra con tu usuario de la quiniela. <button type="button" class="scv-go">🏆 Entrar</button></div>` : '';
+    box.innerHTML = `<div class="scv-h"><b>🎬 Vídeo de scouting${CUR ? ' · ' + esc(shortOf(CUR)) : ''}</b>${staff ? '<button type="button" class="scv-up">⬆️ Subir vídeo</button><input type="file" accept="video/*" class="scv-file" hidden>' : ''}</div>
+      ${login}${here.length ? `<div class="scv-list">${here.map(it => tile(it, staff)).join('')}</div>` : `<p class="scv-none">${staff ? 'Todavía no hay vídeo de este rival. Súbelo y los jugadores lo verán aquí.' : 'Todavía no hay vídeo de este rival.'}</p>`}
+      ${other.length ? `<details class="scv-more"><summary>Vídeos de otros rivales (${other.length})</summary><div class="scv-list">${other.map(it => tile(it, staff)).join('')}</div></details>` : ''}`;
+    box.querySelectorAll('[data-play]').forEach(b => b.onclick = () => play(b.dataset.play));
+    box.querySelectorAll('[data-who]').forEach(b => b.onclick = () => who(b.dataset.who));
+    box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
+    const go = box.querySelector('.scv-go'); if (go) go.onclick = () => { const q = $('#ba-pswitch [data-v="q"]'); if (q) q.click(); else if (window.baQuiniOpen) window.baQuiniOpen(); };
+    const up = box.querySelector('.scv-up'), f = box.querySelector('.scv-file');
+    if (up) { up.onclick = () => f.click(); f.onchange = () => { if (f.files[0]) uploadDlg(f.files[0]); f.value = ''; }; }
+  }
+
+  // ── ver el vídeo (y apuntar lo visto) ──
+  async function play(id) {
+    const it = LIST.find(x => x.id === id); if (!it) return;
+    const ov = document.createElement('div'); ov.className = 'scv-ov';
+    ov.innerHTML = `<div class="scv-box" role="dialog" aria-label="${esc(it.title)}"><header><b>${esc(it.title)}</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header>
+      <video src="${esc(it.url)}" controls playsinline preload="metadata"></video><p class="scv-note"></p></div>`;
+    document.body.appendChild(ov);
+    const v = ov.querySelector('video'), note = ov.querySelector('.scv-note');
+    const u = me(); let rec = null, dirty = false, saveT = null, last = null;
+    if (u && !isStaff()) { await pullMine(); rec = MINE.v[id] = MINE.v[id] || { s: '', n: 0, f: Date.now(), l: 0 }; rec.n = (rec.n || 0) + 1; rec.l = Date.now(); dirty = true; }
+    const show = () => { if (!rec) { note.textContent = isStaff() ? 'Staff: lo que veas aquí no cuenta como visto de ningún jugador.' : 'Sin usuario de la quiniela: no consta que lo hayas visto.'; return; }
+      note.textContent = `Llevas visto el ${pctOf(rec.s, it.dur || v.duration)}% del vídeo`; };
+    const flush = () => { clearTimeout(saveT); saveT = null; if (dirty && rec) { dirty = false; pushMine(); } };
+    // cuenta el trozo de 5 s cuando se ha pasado entero reproduciendo, sin saltos desde su principio (run = desde dónde va seguido)
+    let run = null;
+    const mark = (a, b, end) => { let s = rec.s; for (let i = Math.floor(a / SEG); i < (end ? Math.floor(b / SEG) + 1 : Math.floor(b / SEG)); i++) { if (run == null || i * SEG < run - 0.5) continue; while (s.length <= i) s += '0'; if (s[i] !== '1') { s = s.slice(0, i) + '1' + s.slice(i + 1); dirty = true; } } rec.s = s; rec.l = Date.now(); };
+    v.addEventListener('timeupdate', () => {
+      const t = v.currentTime;
+      const cont = last != null && t >= last && t - last < 2 * (v.playbackRate || 1) + 1;
+      if (rec && !v.seeking && !v.paused && cont) { mark(last, t); show(); if (!saveT) saveT = setTimeout(flush, 15000); }
+      else if (!v.seeking && !cont) run = t;
+      last = v.seeking ? null : t;
+    });
+    v.addEventListener('seeking', () => { last = null; run = null; });
+    v.addEventListener('pause', flush);
+    v.addEventListener('ended', () => { if (rec && last != null) mark(last, v.duration - 0.01, true); show(); flush(); });
+    const vis = () => { if (document.hidden) flush(); };
+    document.addEventListener('visibilitychange', vis); window.addEventListener('pagehide', flush);
+    const close = () => { v.pause(); flush(); document.removeEventListener('visibilitychange', vis); window.removeEventListener('pagehide', flush); ov.remove(); paint(); };
+    ov.onclick = e => { if (e.target === ov || e.target.closest('.scv-x')) close(); };
+    show(); flush(); v.play().catch(() => { });
+  }
+
+  // ── staff: quién lo ha visto ──
+  async function who(id) {
+    const it = LIST.find(x => x.id === id); if (!it) return;
+    const ov = document.createElement('div'); ov.className = 'scv-ov';
+    ov.innerHTML = `<div class="scv-box scv-wbox" role="dialog" aria-label="Quién lo ha visto"><header><b>👀 ${esc(it.title)}</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header><div class="scv-wb"><p class="scv-none">Cargando…</p></div></div>`;
+    ov.onclick = e => { if (e.target === ov || e.target.closest('.scv-x')) ov.remove(); };
+    document.body.appendChild(ov);
+    const box = ov.querySelector('.scv-wb'), c = sb(); let rows = [];
+    try { const r = c ? await c.from('metadata').select('id,data').like('id', 'scvid_v_%') : { data: [] }; rows = ((r && r.data) || []).map(x => x.data).filter(x => x && x.uid && x.v && x.v[id]); } catch (e) { }
+    const seen = rows.map(r => ({ uid: r.uid, name: (users()[r.uid] || {}).name || r.name, col: (users()[r.uid] || {}).col || r.col, ...r.v[id], p: pctOf(r.v[id].s, it.dur) })).sort((a, b) => b.p - a.p || (b.l || 0) - (a.l || 0));
+    const ids = new Set(seen.map(r => r.uid)), never = Object.values(users()).filter(u => u && u.uid && !ids.has(u.uid)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    const full = seen.filter(r => r.p >= 90).length;
+    box.innerHTML = `<p class="scv-sum"><b>${full}</b> lo han visto entero · <b>${seen.length - full}</b> a medias · <b>${never.length}</b> sin abrir</p>`
+      + (seen.length ? seen.map(r => `<div class="scv-row">${avatar(r)}<span class="nm">${esc(r.name)}</span><span class="scv-pbar"><i class="${r.p >= 90 ? 'ok' : ''}" style="width:${r.p}%"></i></span><b class="pc">${r.p}%</b><small>${r.n || 1} ${(r.n || 1) === 1 ? 'vez' : 'veces'} · ${esc(when(r.l || r.f))}</small></div>`).join('') : '<p class="scv-none">Nadie lo ha abierto todavía.</p>')
+      + (never.length ? `<p class="scv-never"><b>Sin abrir:</b> ${never.map(u => esc(u.name)).join(', ')}</p>` : '')
+      + `<p class="scv-none">Cuenta lo que cada uno ve con su usuario de la quiniela, de 5 en 5 segundos (saltar adelante no cuenta).</p>`;
+  }
+  async function del(id) {
+    const it = LIST.find(x => x.id === id); if (!it || !confirm(`¿Quitar «${it.title}» de la web? Los jugadores dejarán de verlo.`)) return;
+    try { await editList(items => items.filter(x => x.id !== id)); paint(); toast('🗑 Vídeo quitado'); } catch (e) { toast('No se ha podido quitar: ' + (e.message || e), 'err'); }
+  }
+
+  // ── staff: subir ──
+  const meta = file => new Promise((res, rej) => { const v = document.createElement('video'); v.preload = 'metadata'; v.muted = true; v.src = URL.createObjectURL(file);
+    v.onloadedmetadata = () => res(v); v.onerror = () => rej(new Error('No se puede leer este vídeo')); });
+  const thumbOf = v => new Promise(res => { const go = () => { try { const w = 320, h = Math.round(w * (v.videoHeight || 9) / (v.videoWidth || 16)), cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(v, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.7)); } catch (e) { res(''); } };
+    v.addEventListener('seeked', go, { once: true }); v.currentTime = Math.min(3, (v.duration || 4) / 4); setTimeout(() => res(''), 8000); });
+  // vídeo grande → 720p con el tamaño justo para que quepa (se reproduce entero: tarda lo que dura)
+  function compress(file, v, onP) {
+    return new Promise((res, rej) => {
+      const H = Math.min(720, v.videoHeight || 720), W = Math.round((v.videoWidth || 1280) * H / (v.videoHeight || 720) / 2) * 2;
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+      const stream = cv.captureStream(30);
+      try { const a = (v.captureStream ? v.captureStream() : v.mozCaptureStream()).getAudioTracks(); a.forEach(t => stream.addTrack(t)); } catch (e) { }
+      const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+      if (!mime) { rej(new Error('Este navegador no puede comprimir vídeo: usa Chrome o Edge en el ordenador')); return; }
+      const bps = Math.max(600000, Math.min(2500000, Math.floor((MAXMB - 7) * 1048576 * 8 / (v.duration || 1)) - 128000));
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 96000 }), chunks = [];
+      rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = () => { const b = new Blob(chunks, { type: mime.split(';')[0] });
+        if (b.size < 100000) rej(new Error('La compresión ha salido vacía: vuelve a probar con la pestaña a la vista (Chrome o Edge)')); else res(b); };
+      rec.onerror = () => rej(new Error('Error al comprimir'));
+      let done = false;
+      const draw = () => { if (done) return; x.drawImage(v, 0, 0, W, H); onP(v.currentTime / v.duration);
+        if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(draw); else requestAnimationFrame(draw); };
+      v.onended = () => { done = true; setTimeout(() => rec.state !== 'inactive' && rec.stop(), 300); };
+      v.currentTime = 0; v.playbackRate = 1;
+      v.play().then(() => { rec.start(1000); draw(); }).catch(() => rej(new Error('No se pudo reproducir el vídeo para comprimirlo')));
+    });
+  }
+  // Cloudinary por trozos de 20 MB (si un trozo falla, se reintenta)
+  async function upload(blob, onP) {
+    const uid = 'scv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), CH = 20 * 1048576, size = blob.size; let out = null;
+    for (let s = 0; s < size; s += CH) {
+      const e = Math.min(size, s + CH);
+      for (let k = 0; ; k++) {
+        try { out = await new Promise((res, rej) => {
+          const fd = new FormData(); fd.append('file', blob.slice(s, e), 'scouting'); fd.append('upload_preset', PRESET); fd.append('folder', 'bascat/scouting');
+          const xhr = new XMLHttpRequest(); xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD}/video/upload`);
+          xhr.setRequestHeader('X-Unique-Upload-Id', uid); xhr.setRequestHeader('Content-Range', `bytes ${s}-${e - 1}/${size}`);
+          xhr.upload.onprogress = ev => { if (ev.lengthComputable) onP((s + ev.loaded) / size); };
+          xhr.onload = () => { let r = {}; try { r = JSON.parse(xhr.responseText); } catch (er) { } xhr.status < 300 ? res(r) : rej(new Error((r.error && r.error.message) || 'Cloudinary rechazó la subida')); };
+          xhr.onerror = () => rej(new Error('Fallo de red al subir')); xhr.send(fd); });
+          break;
+        } catch (er) { if (k >= 2 || /rechaz|too large|exceed/i.test(er.message)) throw er; await new Promise(r => setTimeout(r, 1500 * (k + 1))); }
+      }
+    }
+    if (!out || !out.secure_url) throw new Error('Cloudinary no ha devuelto el vídeo');
+    return out;
+  }
+  async function uploadDlg(file) {
+    let v; try { v = await meta(file); } catch (e) { toast(e.message, 'err'); return; }
+    const big = file.size > MAXMB * 1048576, teams = (window.__baGroupTeams || []).filter(n => !/CLARET/i.test(n));
+    if (CUR && !teams.some(n => codeOf(n) === codeOf(CUR))) teams.unshift(CUR);
+    const ov = document.createElement('div'); ov.className = 'scv-ov';
+    ov.innerHTML = `<div class="scv-box scv-ubox" role="dialog" aria-label="Subir vídeo de scouting"><header><b>⬆️ Subir vídeo de scouting</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header>
+      <label>Rival<select class="scv-riv">${teams.map(n => `<option value="${esc(n)}"${codeOf(n) === codeOf(CUR) ? ' selected' : ''}>${esc(shortOf(n))}</option>`).join('')}</select></label>
+      <label>Título<input class="scv-tit" maxlength="80" value="${esc(file.name.replace(/\.[^.]+$/, ''))}"></label>
+      <p class="scv-info">${esc(file.name)} · ${MB(file.size)} · ${mmss(v.duration)}${big ? `<br><b>Pasa de ${MAXMB} MB</b>: antes de subirlo se comprime aquí mismo a 720p. Tarda lo que dura el vídeo (${mmss(v.duration)}): deja esta pestaña abierta y a la vista.` : '<br>Se sube tal cual.'}</p>
+      <div class="scv-prog" hidden><i></i><span></span></div>
+      <div class="scv-ubt"><button type="button" class="scv-go2">${big ? 'Comprimir y subir' : 'Subir'}</button></div></div>`;
+    document.body.appendChild(ov);
+    let busy = false;
+    const close = () => { if (busy && !confirm('Se está subiendo. ¿Cancelar?')) return; busy = false; v.pause(); URL.revokeObjectURL(v.src); ov.remove(); };
+    ov.onclick = e => { if (e.target === ov || e.target.closest('.scv-x')) close(); };
+    const pg = ov.querySelector('.scv-prog'), bar = pg.querySelector('i'), lab = pg.querySelector('span');
+    const prog = (p, t) => { pg.hidden = false; bar.style.width = Math.round(p * 100) + '%'; lab.textContent = t; };
+    ov.querySelector('.scv-go2').onclick = async e => {
+      const rival = ov.querySelector('.scv-riv').value, title = ov.querySelector('.scv-tit').value.trim() || file.name;
+      e.target.disabled = true; busy = true;
+      try {
+        const thumb = await thumbOf(v); let blob = file;
+        if (big) { blob = await compress(file, v, p => prog(p, `Comprimiendo… ${Math.round(p * 100)}% (${mmss(v.currentTime)} de ${mmss(v.duration)})`));
+          if (!busy) return;
+          if (blob.size > 99 * 1048576) throw new Error(`Comprimido sigue ocupando ${MB(blob.size)}: córtalo en dos partes`); }
+        const r = await upload(blob, p => prog(p, `Subiendo… ${Math.round(p * 100)}% de ${MB(blob.size)}`));
+        if (!busy) return;
+        const it = { id: 'v' + Date.now().toString(36), code: codeOf(rival), rival, title, url: r.secure_url, pid: r.public_id, dur: r.duration || v.duration, size: blob.size, thumb, t: Date.now() };
+        await editList(items => [...items, it]);
+        busy = false; ov.remove(); URL.revokeObjectURL(v.src); paint(); toast('✅ Vídeo subido: ya lo pueden ver los jugadores');
+      } catch (er) { busy = false; e.target.disabled = false; prog(0, '❌ ' + (er.message || er)); }
+    };
+  }
+  window.__baScVidDbg = { pctOf, orSeg, list: () => LIST, mine: () => MINE, compress, upload, paint };
 })();
 
 </script>

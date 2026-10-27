@@ -3676,6 +3676,16 @@ body.player-mode .cx-card{display:none!important}
 .mr-foot{font-size:10.5px;color:#94a3b8;margin:8px 0 0;line-height:1.45}
 @media (max-width:600px){.mr-score{grid-template-columns:1fr}}
 
+/* conclusiones del partido: tabla de equipo y pestañas nuestros/rival */
+.mr-h5{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 6px;font-size:11.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#0f172a}
+.mr-tabs{display:inline-flex;gap:4px;margin-left:auto;text-transform:none;letter-spacing:0}
+.mr-tabs button{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr-tabs button.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.mr-team td small{display:block;font-size:9.5px;color:#94a3b8;font-weight:600}
+.mr-team tr.big td:first-child{font-weight:800}
+.mr-est{font-style:normal;font-size:9px;font-weight:800;color:#94a3b8;border:1px solid #e2e8f0;border-radius:4px;padding:0 3px}
+.mr-sub{font-size:10.5px;color:#64748b;margin:4px 0 0}
+
 /* ── 🎨 Canva: tríptico del partido ── */
 .zx-tabs .zx-canva{margin-left:auto;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff}
 .tp-ov{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
@@ -14131,9 +14141,12 @@ const _MEDIT_COLS = [
   {k:'tlMade',label:'TL✓'},{k:'tlAtt',label:'TLi'},
   {k:'t2Made',label:'T2✓'},{k:'t2Att',label:'T2i'},
   {k:'t3Made',label:'T3✓'},{k:'t3Att',label:'T3i'},
-  {k:'reb',   label:'REB'},{k:'ast',label:'AST'},
-  {k:'fc',    label:'FC'}, {k:'fr', label:'FR'}, {k:'pm', label:'+/-'},
+  {k:'ro',    label:'RO', t:'Rebotes ofensivos'},{k:'rd',label:'RD', t:'Rebotes defensivos'},
+  {k:'ast',   label:'AST', t:'Asistencias'},{k:'stl',label:'ROB', t:'Robos'},{k:'blk',label:'TAP', t:'Tapones'},{k:'to',label:'PÉR', t:'Pérdidas'},
+  {k:'fc',    label:'FC', t:'Faltas cometidas'}, {k:'fr', label:'FR', t:'Faltas recibidas'}, {k:'pm', label:'+/-'},
 ];
+// rebotes: si el partido solo tiene el total (REB) sin separar, sale todo como defensivo para no perderlo
+const _meditVal = (p, k) => k === 'rd' && p.rd == null && p.reb != null ? Math.max(0, (Number(p.reb) || 0) - (Number(p.ro) || 0)) : p[k];
 
 function openMatchEdit(id){
   const m = S.matches.find(x => x.id === id);
@@ -14194,7 +14207,7 @@ function renderMatchEditBody(){
   const block = (side, tName, players) => {
       let colsHtml = '';
       _MEDIT_COLS.forEach(c => {
-          colsHtml += `<th style="text-align:center">${c.label}</th>`;
+          colsHtml += `<th style="text-align:center"${c.t ? ` title="${c.t}"` : ''}>${c.label}</th>`;
       });
       
       let rowsHtml = '';
@@ -14209,7 +14222,7 @@ function renderMatchEditBody(){
               const isMin = c.k === 'min';
               const inpType = isMin ? 'text' : 'number';
               const step = isMin ? '' : 'step="1"';
-              let val = p[c.k];
+              let val = _meditVal(p, c.k);
               if (val === undefined || val === null) {
                   val = isMin ? '0:00' : 0;
               } else if (isMin) {
@@ -14235,7 +14248,7 @@ function renderMatchEditBody(){
       const tN = tName ? tName : side;
       return `<div style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${_esc(tN)}</div>
-        <div class="tw medit-tw"><table style="min-width:1080px">
+        <div class="tw medit-tw"><table style="min-width:1260px">
           <thead><tr><th style="text-align:left">Jugador</th>${colsHtml}<th></th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table></div>
@@ -14347,11 +14360,9 @@ function saveMatchEdit(){
     p.t2Pct = at2 ? (pt2 / at2) : null;
     p.t3Pct = at3 ? (pt3 / at3) : null;
     
-    const reb = p.reb ? p.reb : 0;
-    const ast = p.ast ? p.ast : 0;
-    const fc = p.fc ? p.fc : 0;
+    p.reb = (p.ro || 0) + (p.rd || 0);   // el total sale de ofensivos + defensivos
     const miss = (at1 - pt1) + (at2 - pt2) + (at3 - pt3);
-    p.val = p.pts + reb + ast - miss - fc;
+    p.val = p.pts + p.reb + (p.ast || 0) + (p.stl || 0) + (p.blk || 0) + (p.fr || 0) - miss - (p.to || 0) - (p.fc || 0);   // la misma valoración que el resto de la app
   });
   
   let nh = 0;
@@ -28434,6 +28445,57 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const fga = s.t2a + s.t3a;
     return { pts: s.pts, t3a: s.t3a, fta: s.fta, t3p: s.t3a ? s.t3m / s.t3a * 100 : null, t2p: s.t2a ? s.t2m / s.t2a * 100 : null, efg: fga ? (s.t2m + 1.5 * s.t3m) / fga * 100 : null, t3m: s.t3m, t2a: s.t2a, ftm: s.ftm };
   }
+  // ── caja de equipo de un partido: lo del acta + rebotes ofensivos y posesiones sin tiro.
+  //    Si el partido trae rebotes/pérdidas reales (directo) se usan; si no, se ESTIMAN del jugada a jugada de la FCBQ:
+  //    rebote ofensivo = un equipo falla y el siguiente tiro vuelve a ser suyo · posesión sin tiro = un equipo anota (o comete
+  //    falta en ataque) y el siguiente tiro es otra vez del mismo equipo, o sea, el otro tuvo el balón y no llegó a tirar.
+  function pbpEst(m) {
+    const mv = Array.isArray(m.fcbqMoves) ? m.fcbqMoves : [];
+    if (mv.length < 20 || m.localId == null) return null;
+    const L = String(m.localId), V = m.visitId != null ? String(m.visitId) : null;
+    const el = x => { const p = +x.period || 1, ln = p <= 4 ? 600 : 300, b = p <= 4 ? (p - 1) * 600 : 2400 + (p - 5) * 300; return b + ln - ((+x.min || 0) * 60 + (+x.sec || 0)); };
+    const seq = [];
+    mv.map((x, i) => ({ x, i, t: el(x) })).sort((a, b) => a.t - b.t || a.i - b.i).forEach(({ x }) => {
+      const id = x.idTeam == null ? '' : String(x.idTeam), tm = id === L ? 'home' : (V ? id === V : id) ? 'away' : null; if (!tm) return;
+      const t = String(x.move || '').toLowerCase();
+      const k = /cistella de [23]|esmaixada/.test(t) ? 'FGM' : /intent fallat de [23]/.test(t) ? 'FGX' : /cistella de 1/.test(t) ? 'FTM' : /intent fallat de 1/.test(t) ? 'FTX' : /falta en atac/.test(t) ? 'OF' : '';
+      if (!k) return;
+      const pv = seq[seq.length - 1];
+      if (k[0] === 'F' && k[1] === 'T' && pv && pv.k[1] === 'T' && pv.tm === tm) { seq[seq.length - 1] = { tm, k }; return; }   // una tanda de libres = su último tiro
+      seq.push({ tm, k });
+    });
+    if (seq.length < 20) return null;
+    const ro = { home: 0, away: 0 }, empty = { home: 0, away: 0 }, oth = t => (t === 'home' ? 'away' : 'home');
+    for (let i = 0; i + 1 < seq.length; i++) {
+      const a = seq[i], b = seq[i + 1];
+      if (a.k === 'FGX' || a.k === 'FTX') { if (b.tm === a.tm && b.k !== 'OF') ro[a.tm]++; }
+      else if (a.k === 'FGM' || a.k === 'FTM') { if (b.tm === a.tm) empty[oth(a.tm)]++; }
+      else if (a.k === 'OF') empty[a.tm]++;
+    }
+    return { ro, empty };
+  }
+  function boxOf(m, home) {
+    const s = sideOf(m, home), ps = (home ? m.homePlayers : m.awayPlayers) || [];
+    const realRo = ps.reduce((a, p) => a + num(p.ro), 0), realTo = ps.reduce((a, p) => a + num(p.to), 0);
+    const E = pbpEst(m), side = home ? 'home' : 'away';
+    const b = { pts: s.pts, fga: s.t2a + s.t3a, fgm: s.t2m + s.t3m, t3a: s.t3a, t3m: s.t3m, fta: s.fta, ftm: s.ftm, fc: s.fc, att: s.att,
+      ro: null, to: null, est: false, ast: s.ast || null, stl: s.stl || null, blk: s.blk || null };
+    if (realRo || realTo) { b.ro = realRo; b.to = realTo; }
+    else if (E) { b.ro = E.ro[side]; b.to = E.empty[side]; b.est = true; }
+    b.poss = b.att && b.ro != null ? b.fga + 0.44 * b.fta - b.ro + b.to : null;
+    return b;
+  }
+  // media de un equipo en los partidos oficiales anteriores de la temporada
+  function boxAvg(team, m) {
+    const t0 = dmy(m.date), season = seasonOf(m), acc = {}, cnt = {};
+    ((window.S && window.S.matches) || []).forEach(x => {
+      if (x === m || x.id === m.id || fr(x) || !t0 || !dmy(x.date) || dmy(x.date) >= t0 || seasonOf(x) !== season || x.scoreHome == null) return;
+      const h = sameTeam(x.homeTeam, team) ? true : sameTeam(x.awayTeam, team) ? false : null; if (h === null) return;
+      const b = boxOf(x, h); if (!b.att) return;
+      Object.entries(b).forEach(([k, v]) => { if (typeof v === 'number' && isFinite(v)) { acc[k] = (acc[k] || 0) + v; cnt[k] = (cnt[k] || 0) + 1; } });
+    });
+    const out = {}; Object.keys(acc).forEach(k => { out[k] = acc[k] / cnt[k]; }); out.n = cnt.fga || 0; return out;
+  }
   const minOf = v => { if (v == null) return 0; if (typeof v === 'number') return v; const x = String(v).match(/(\d+):(\d+)/); return x ? +x[1] + +x[2] / 60 : +v || 0; };
   const played = p => p && (minOf(p.min) > 0 || num(p.pts) > 0 || num(p.t2Att) + num(p.t3Att) + num(p.tlAtt) > 0);
   window.__baMatchReviewHTML = (m, mySide) => {
@@ -28472,14 +28534,57 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       imp.filter(x => Math.abs(x.v) >= 2.5).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 3).forEach(x => bullets.push(x.h(x.v)));
     } else bullets.push(`ℹ️ Sin previsión de equipo: ${esc(F.why || 'faltan partidos anteriores de la liga')}.`);
 
-    // ── jugadores: su media previa de la temporada (≥2 partidos), escalada a la anotación esperada del equipo ──
+    // ── 📊 equipo: lo que marcó el partido (los dos equipos, y frente a su media de la temporada) ──
+    const bMy = boxOf(m, home), bRiv = boxOf(m, !home), avMy = boxAvg(my, m), avRiv = boxAvg(riv, m), teamB = [];
+    const hasEst = bMy.ro != null && bRiv.ro != null, estW = bMy.est ? ' <i class="mr-est">estimado</i>' : '';
+    if (bMy.att && bRiv.att) {
+      const dF = bMy.fga - bRiv.fga;
+      if (Math.abs(dF) >= 8) {
+        let why = '';
+        if (hasEst) {
+          const dR = bMy.ro - bRiv.ro, dE = bRiv.to - bMy.to, parts = [];
+          if (Math.abs(dR) >= 3) parts.push(`los <b>rebotes ofensivos</b> (${bMy.ro} nuestros por ${bRiv.ro} suyos)`);
+          if (Math.abs(dE) >= 3) parts.push(`las <b>posesiones que acabaron sin tiro</b> (${bMy.to} nuestras por ${bRiv.to} suyas${bMy.est ? ': pérdidas, faltas en ataque…' : ''})`);
+          if (parts.length) why = ` Sale de ${parts.join(' y de ')}${bMy.est ? ' — estimado con el jugada a jugada' : ''}.`;
+        }
+        teamB.push({ s: Math.abs(dF) / 8 + 1, h: `${dF > 0 ? '🏀' : '⚠️'} <b>Volumen de tiro</b>: ${bMy.fga} tiros de campo nuestros por ${bRiv.fga} suyos (${dF > 0 ? '+' : '−'}${Math.abs(dF)}).${why}` });
+      } else if (hasEst && Math.abs(bMy.ro - bRiv.ro) >= 6) teamB.push({ s: Math.abs(bMy.ro - bRiv.ro) / 6, h: `${bMy.ro > bRiv.ro ? '💪' : '🚨'} <b>Rebote ofensivo</b>: ${bMy.ro} nuestros por ${bRiv.ro} suyos${estW}.` });
+      const dT = bMy.fta - bRiv.fta;
+      if (Math.abs(dT) >= 8) teamB.push({ s: Math.abs(dT) / 8, h: `${dT > 0 ? '🚑' : '🙅'} <b>Tiros libres</b>: ${bMy.ftm}/${bMy.fta} nuestros por ${bRiv.ftm}/${bRiv.fta} suyos (${dT > 0 ? '+' : '−'}${Math.abs(dT)} intentos).` });
+      if (avMy.n >= 2 && avMy.t3a != null && Math.abs(bMy.t3a - avMy.t3a) >= 7) teamB.push({ s: Math.abs(bMy.t3a - avMy.t3a) / 7, h: `🎯 Tiramos <b>${bMy.t3a} triples</b> (${bMy.t3m} dentro), ${bMy.t3a > avMy.t3a ? 'muchos más' : 'muchos menos'} que nuestra media de ${nf(avMy.t3a, 1)}.` });
+      if (avRiv.n >= 2 && avRiv.t3a != null && Math.abs(bRiv.t3a - avRiv.t3a) >= 7) teamB.push({ s: Math.abs(bRiv.t3a - avRiv.t3a) / 7.5, h: `🎯 El rival tiró <b>${bRiv.t3a} triples</b> (${bRiv.t3m} dentro); su media es ${nf(avRiv.t3a, 1)}.` });
+      if (avMy.n >= 2 && Math.abs(bMy.fga - avMy.fga) >= 10 && Math.abs(dF) < 8) teamB.push({ s: Math.abs(bMy.fga - avMy.fga) / 10, h: `🏀 Tiramos <b>${bMy.fga}</b> tiros de campo, ${bMy.fga > avMy.fga ? 'más' : 'menos'} que nuestra media (${nf(avMy.fga, 1)}).` });
+      const dFc = bMy.fc - bRiv.fc;
+      if (Math.abs(dFc) >= 7) teamB.push({ s: Math.abs(dFc) / 7, h: `🟨 <b>Faltas</b>: ${bMy.fc} nuestras por ${bRiv.fc} suyas.` });
+    }
+    // lo de equipo va justo después del resumen (resultado frente a lo esperado y si fue el ataque o la defensa), antes del detalle de porcentajes
+    const atB = Math.min(bullets.length, F.eMy && F.eMy.pts != null ? (bullets[1] && /Sobre todo por/.test(bullets[1]) ? 2 : 1) : bullets.length);
+    bullets.splice(atB, 0, ...teamB.sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.h));
+    const fmtB = v => (v == null || !isFinite(v) ? '—' : Math.abs(v - Math.round(v)) < 1e-9 ? String(v) : nf(v, 1));
+    const TROWS = [
+      ['Tiros de campo', b => b.fga, b => `${b.fgm}/${b.fga}`, 8],
+      ['Triples', b => b.t3a, b => `${b.t3m}/${b.t3a}`, 7],
+      ['Tiros libres', b => b.fta, b => `${b.ftm}/${b.fta}`, 8],
+      ['Rebotes ofensivos', b => b.ro, b => fmtB(b.ro), 5, true],
+      [bMy.est ? 'Posesiones sin tiro' : 'Pérdidas', b => b.to, b => fmtB(b.to), 5, true, -1],
+      ['Posesiones', b => b.poss, b => (b.poss == null ? '—' : nf(b.poss, 0)), 6, true],
+      ['Faltas', b => b.fc, b => fmtB(b.fc), 6, false, -1],
+      // asistencias, robos y tapones: si un equipo los tiene (directo o editados a mano), al otro se le cuentan 0
+      ...[['Asistencias', 'ast', 5], ['Robos', 'stl', 4], ['Tapones', 'blk', 3]].filter(([, k]) => bMy[k] != null || bRiv[k] != null).map(([lab, k, th]) => [lab, b => b[k] || 0, b => fmtB(b[k] || 0), th]),
+    ].filter(([, g]) => g(bMy) != null && g(bRiv) != null);
+    const avTxt = (av, g) => { const v = av.n >= 2 ? g(av) : null; return v != null && isFinite(v) ? `<small>media ${nf(v, 1)}</small>` : ''; };
+    const teamTbl = bMy.att && bRiv.att && TROWS.length ? `<h5 class="mr-h5">📊 Lo que marcó el partido</h5><div class="mr-tw"><table class="mr-tbl mr-team"><thead><tr><th></th><th>${esc(short2(my))}</th><th>${esc(short2(riv))}</th></tr></thead><tbody>
+      ${TROWS.map(([lab, g, f, th, est, dir]) => { const d = (g(bMy) - g(bRiv)) * (dir || 1), big = Math.abs(d) >= th;   // dir −1: menos es mejor (pérdidas, faltas)
+        return `<tr class="${big ? 'big' : ''}"><td>${lab}${est && (bMy.est || bRiv.est) ? ` <i class="mr-est" title="${bMy.est && bRiv.est ? 'estimado en los dos equipos' : bMy.est ? 'estimado el de ' + esc(short2(my)) : 'estimado el de ' + esc(short2(riv))}">est.</i>` : ''}</td><td class="${big ? (d > 0 ? 'w' : 'l') : ''}"><b>${f(bMy)}</b>${avTxt(avMy, g)}</td><td><b>${f(bRiv)}</b>${avTxt(avRiv, g)}</td></tr>`; }).join('')}
+      </tbody></table></div>${bMy.est || bRiv.est ? '<p class="mr-sub">«est.» = estimado con el jugada a jugada de la FCBQ (el acta no trae rebotes ni pérdidas): rebote ofensivo = se falla y el siguiente tiro vuelve a ser del mismo equipo; posesión sin tiro = el rival anota y el siguiente tiro vuelve a ser suyo (pérdida, falta en ataque…).</p>' : ''}` : '';
+
+    // ── jugadores (nuestros y del rival): su media previa de la temporada (≥2 partidos), escalada a la anotación esperada del equipo ──
     const t0 = dmy(m.date), season = seasonOf(m), all = (window.S && window.S.matches) || [];
-    const ps = ((home ? m.homePlayers : m.awayPlayers) || []).filter(played);
-    const scale = F.eMy && F.myAvgPts ? F.eMy.pts / F.myAvgPts : 1;
-    const rows = ps.map(p => {
+    const scaleMy = F.eMy && F.myAvgPts ? F.eMy.pts / F.myAvgPts : 1, scaleRiv = F.eRiv && F.R && F.R.off && F.R.off.pts ? F.eRiv.pts / F.R.off.pts : 1;
+    const playerRows = (isHome, team, scale) => ((isHome ? m.homePlayers : m.awayPlayers) || []).filter(played).map(p => {
       const prev = [];
       all.forEach(x => { if (x === m || x.id === m.id || !dmy(x.date) || !t0 || dmy(x.date) >= t0 || seasonOf(x) !== season) return;
-        [['home', x.homeTeam, x.homePlayers], ['away', x.awayTeam, x.awayPlayers]].forEach(([, tn, pl]) => { if (!sameTeam(tn, my)) return;
+        [['home', x.homeTeam, x.homePlayers], ['away', x.awayTeam, x.awayPlayers]].forEach(([, tn, pl]) => { if (!sameTeam(tn, team)) return;
           const q = (pl || []).find(y => y.name === p.name); if (played(q)) prev.push(q); }); });
       const n = prev.length, avg = k => prev.reduce((a, q) => a + num(q[k]), 0) / (n || 1), mins = prev.reduce((a, q) => a + minOf(q.min), 0) / (n || 1);
       const fgaP = prev.reduce((a, q) => a + num(q.t2Att) + num(q.t3Att), 0), efgP = fgaP ? prev.reduce((a, q) => a + num(q.t2Made) + 1.5 * num(q.t3Made), 0) / fgaP * 100 : null;
@@ -28487,20 +28592,31 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       const expPts = n >= 2 ? avg('pts') * scale : null;
       return { name: p.name, n, pts: num(p.pts), expPts, d: expPts == null ? null : num(p.pts) - expPts, min: minOf(p.min), expMin: n >= 2 ? mins : null, efg, efgP: n >= 2 ? efgP : null, fga };
     });
+    const rows = playerRows(home, my, scaleMy), rowsRiv = playerRows(!home, riv, scaleRiv);
     const withF = rows.filter(r => r.d != null), short = n => esc(String(n).split(' ').slice(0, 2).join(' '));
     const up = withF.filter(r => r.d >= 4).sort((a, b) => b.d - a.d).slice(0, 2), down = withF.filter(r => r.d <= -4).sort((a, b) => a.d - b.d).slice(0, 2);
     up.forEach(r => bullets.push(`⭐ <b>${short(r.name)}</b> por encima de lo esperado: ${r.pts} pts (previsión ${nf(r.expPts, 1)}, ${sgn1(r.d)}).`));
     down.forEach(r => bullets.push(`🔻 <b>${short(r.name)}</b> por debajo: ${r.pts} pts (previsión ${nf(r.expPts, 1)}, ${sgn1(r.d)})${r.expMin != null && r.min < r.expMin - 6 ? ` — jugó ${nf(r.min, 0)} min, ${nf(r.expMin - r.min, 0)} menos de lo habitual` : ''}.`));
     const minChg = withF.filter(r => r.expMin != null && Math.abs(r.min - r.expMin) >= 8).sort((a, b) => Math.abs(b.min - b.expMin) - Math.abs(a.min - a.expMin))[0];
     if (minChg && !down.includes(minChg)) bullets.push(`⏱️ <b>${short(minChg.name)}</b> jugó ${nf(minChg.min, 0)} min (${minChg.min > minChg.expMin ? 'más' : 'menos'} que sus ${nf(minChg.expMin, 0)} habituales).`);
-    const table = rows.length ? `<div class="mr-tw"><table class="mr-tbl"><thead><tr><th>Jugador</th><th>Min</th><th>Pts</th><th>Previsión</th><th>Dif.</th><th>eFG%</th></tr></thead><tbody>
-      ${rows.sort((a, b) => (b.d ?? -99) - (a.d ?? -99)).map(r => `<tr><td>${short(r.name)}</td><td>${nf(r.min, 0)}${r.expMin != null ? `<small> / ${nf(r.expMin, 0)}</small>` : ''}</td><td><b>${r.pts}</b></td>
+    // del rival: quién se salió de su media (a favor o en contra nuestra)
+    const rivF = rowsRiv.filter(r => r.d != null);
+    rivF.filter(r => r.d >= 6).sort((a, b) => b.d - a.d).slice(0, 2).forEach(r => bullets.push(`🚨 Del rival, <b>${short(r.name)}</b> se fue a ${r.pts} pts (previsión ${nf(r.expPts, 1)}, ${sgn1(r.d)}).`));
+    rivF.filter(r => r.d <= -6).sort((a, b) => a.d - b.d).slice(0, 1).forEach(r => bullets.push(`🔒 Del rival, <b>${short(r.name)}</b> se quedó en ${r.pts} pts (previsión ${nf(r.expPts, 1)}, ${sgn1(r.d)}).`));
+    const tblOf = rs => `<div class="mr-tw"><table class="mr-tbl"><thead><tr><th>Jugador</th><th>Min</th><th>Pts</th><th>Previsión</th><th>Dif.</th><th>eFG%</th></tr></thead><tbody>
+      ${rs.sort((a, b) => (b.d ?? -99) - (a.d ?? -99)).map(r => `<tr><td>${short(r.name)}</td><td>${nf(r.min, 0)}${r.expMin != null ? `<small> / ${nf(r.expMin, 0)}</small>` : ''}</td><td><b>${r.pts}</b></td>
         <td>${r.expPts != null ? nf(r.expPts, 1) : `<small>${r.n ? 'pocos partidos' : '1er partido'}</small>`}</td><td class="${r.d == null ? '' : r.d >= 2 ? 'w' : r.d <= -2 ? 'l' : ''}">${r.d == null ? '—' : sgn1(r.d)}</td>
-        <td>${r.fga ? pct1(r.efg) : '—'}${r.efgP != null && r.fga ? `<small> / ${pct1(r.efgP)}</small>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '';
+        <td>${r.fga ? pct1(r.efg) : '—'}${r.efgP != null && r.fga ? `<small> / ${pct1(r.efgP)}</small>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+    const table = rows.length || rowsRiv.length ? `<h5 class="mr-h5">👥 Jugadores <span class="mr-tabs"><button type="button" class="on" onclick="window.__baMrTab(this,0)">${esc(short2(my))}</button><button type="button" onclick="window.__baMrTab(this,1)">${esc(short2(riv))}</button></span></h5>
+      <div class="mr-pane">${rows.length ? tblOf(rows) : '<p class="mr-sub">Sin jugadores.</p>'}</div><div class="mr-pane" hidden>${rowsRiv.length ? tblOf(rowsRiv) : '<p class="mr-sub">Sin jugadores del rival en el acta.</p>'}</div>` : '';
     return `<div class="card mr-card"><div class="ct">🧾 Conclusiones del partido · ${esc(my)} vs ${esc(riv)}</div>${head}
-      <ul class="mr-list">${bullets.map(b => `<li>${b}</li>`).join('')}</ul>${table}
-      <p class="mr-foot">Previsión = lo que se esperaba <b>antes</b> del partido. Equipo: el mismo cálculo del «Cruce del partido» (cada equipo ajustado por los rivales que ha tenido), solo con los partidos de la liga anteriores a ese día${F.n ? ` (mín. ${F.n} partidos por equipo)` : ''}. Jugadores: su media de la temporada en los partidos anteriores (mín. 2), ajustada a la anotación esperada del equipo. Min y eFG%: este partido / su media.</p></div>`;
+      <ul class="mr-list">${bullets.map(b => `<li>${b}</li>`).join('')}</ul>${teamTbl}${table}
+      <p class="mr-foot">Previsión = lo que se esperaba <b>antes</b> del partido. Equipo: el mismo cálculo del «Cruce del partido» (cada equipo ajustado por los rivales que ha tenido), solo con los partidos de la liga anteriores a ese día${F.n ? ` (mín. ${F.n} partidos por equipo)` : ''}. Jugadores: su media de la temporada en los partidos anteriores (mín. 2), ajustada a la anotación esperada del equipo. Min y eFG%: este partido / su media. «media» en la tabla de equipo = la de cada equipo en sus partidos oficiales anteriores de la temporada.</p></div>`;
   };
+  const short2 = n => String(n || '').replace(/^(C\.?B\.?|U\.?E\.?|C\.?E\.?B?|F\.?C\.?|A\.?E\.?|CB|CE|UE|CEB)\s+/i, '').split(/\s+-\s+/)[0].trim();
+  window.__baMrTab = (b, i) => { const card = b.closest('.mr-card'); if (!card) return;
+    card.querySelectorAll('.mr-tabs button').forEach((x, j) => x.classList.toggle('on', j === i));
+    card.querySelectorAll('.mr-pane').forEach((p, j) => { p.hidden = j !== i; }); };
 
   // ── 📈 clasificación jornada a jornada (calendario del grupo, el de la quiniela) ──
   // La jornada de cada partido sale del calendario (local-visitante), no de la fecha: si una jornada se aplaza, sus

@@ -29426,7 +29426,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
 })();
 
 /* BasketApp · 🎬 Vídeo de scouting (pestaña Próximo rival, staff y jugadores).
-   El staff sube el vídeo del rival (Cloudinary; si pasa de ~95 MB se comprime antes en el navegador a 720p) y los jugadores
+   El staff sube el vídeo del rival (Cloudinary; si pasa de ~95 MB o pesa mucho para el móvil se recomprime antes en el navegador a 720p, fotograma a fotograma) y los jugadores
    lo ven en la web. Cada jugador cuenta con su usuario de la quiniela: se guarda qué trozos ha visto (de 5 en 5 s),
    cuántas veces lo ha abierto y cuándo. El staff ve «quién lo ha visto» con el % de cada uno y quién no lo ha abierto.
    Filas en «metadata»: scvid_list (la lista de vídeos) y scvid_v_<usuario> (lo visto por cada uno). */
@@ -29533,7 +29533,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const it = LIST.find(x => x.id === id); if (!it) return;
     const ov = document.createElement('div'); ov.className = 'scv-ov';
     ov.innerHTML = `<div class="scv-box" role="dialog" aria-label="${esc(it.title)}"><header><b>${esc(it.title)}</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header>
-      <video src="${esc(it.url)}" controls playsinline preload="metadata"></video><p class="scv-note"></p></div>`;
+      <video src="${esc(it.url)}"${it.thumb ? ` poster="${esc(it.thumb)}"` : ""} controls playsinline preload="auto"></video><p class="scv-note"></p></div>`;
     document.body.appendChild(ov);
     const v = ov.querySelector('video'), note = ov.querySelector('.scv-note');
     const u = me(); let rec = null, dirty = false, saveT = null, last = null;
@@ -29589,28 +29589,69 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   const thumbOf = v => new Promise(res => { const go = () => { try { const w = 320, h = Math.round(w * (v.videoHeight || 9) / (v.videoWidth || 16)), cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     cv.getContext('2d').drawImage(v, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.7)); } catch (e) { res(''); } };
     v.addEventListener('seeked', go, { once: true }); v.currentTime = Math.min(3, (v.duration || 4) / 4); setTimeout(() => res(''), 8000); });
-  // vídeo grande → 720p con el tamaño justo para que quepa (se reproduce entero: tarda lo que dura)
-  function compress(file, v, onP) {
-    return new Promise((res, rej) => {
-      const H = Math.min(720, v.videoHeight || 720), W = Math.round((v.videoWidth || 1280) * H / (v.videoHeight || 720) / 2) * 2;
-      const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
-      const stream = cv.captureStream(30);
-      try { const a = (v.captureStream ? v.captureStream() : v.mozCaptureStream()).getAudioTracks(); a.forEach(t => stream.addTrack(t)); } catch (e) { }
-      const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
-      if (!mime) { rej(new Error('Este navegador no puede comprimir vídeo: usa Chrome o Edge en el ordenador')); return; }
-      const bps = Math.max(600000, Math.min(2500000, Math.floor((MAXMB - 7) * 1048576 * 8 / (v.duration || 1)) - 128000));
-      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 96000 }), chunks = [];
-      rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-      rec.onstop = () => { const b = new Blob(chunks, { type: mime.split(';')[0] });
-        if (b.size < 100000) rej(new Error('La compresión ha salido vacía: vuelve a probar con la pestaña a la vista (Chrome o Edge)')); else res(b); };
-      rec.onerror = () => rej(new Error('Error al comprimir'));
-      let done = false;
-      const draw = () => { if (done) return; x.drawImage(v, 0, 0, W, H); onP(v.currentTime / v.duration);
-        if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(draw); else requestAnimationFrame(draw); };
-      v.onended = () => { done = true; setTimeout(() => rec.state !== 'inactive' && rec.stop(), 300); };
-      v.currentTime = 0; v.playbackRate = 1;
-      v.play().then(() => { rec.start(1000); draw(); }).catch(() => rej(new Error('No se pudo reproducir el vídeo para comprimirlo')));
-    });
+  // Recomprimir a 720p fotograma a fotograma (WebCodecs: decodifica → reescala → codifica H.264 → MP4 con el índice al principio).
+  // No reproduce el vídeo: no se salta ni congela nada aunque la pestaña quede en segundo plano, y suele ir más rápido que en tiempo real.
+  // El audio AAC se copia tal cual. Librerías (mp4box para leer, mp4-muxer para escribir) solo se descargan al comprimir.
+  const LIB_DEMUX = 'https://cdn.jsdelivr.net/npm/mp4box@0.5.3/+esm', LIB_MUX = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm';
+  const canTranscode = () => typeof window.VideoEncoder === 'function' && typeof window.VideoDecoder === 'function' && typeof window.OffscreenCanvas === 'function';
+  const needsTranscode = (file, v) => file.size > MAXMB * 1048576 || (v.videoHeight > 720 && file.size * 8 / (v.duration || 1) > 2.5e6) || file.size * 8 / (v.duration || 1) > 4e6;
+  async function compress(file, v, onP) {
+    if (!canTranscode()) throw new Error('Este navegador no puede comprimir vídeo: usa Chrome o Edge en el ordenador');
+    const [MP4Box, { Muxer, ArrayBufferTarget }] = await Promise.all([import(LIB_DEMUX), import(LIB_MUX)]);
+    const mp4 = MP4Box.createFile(); let info = null, failed = null;
+    const vq = [], aq = [];
+    mp4.onError = e => { failed = new Error('No se puede leer el vídeo (' + e + ')'); };
+    mp4.onReady = i => { info = i; const vt = i.videoTracks[0], at = i.audioTracks[0];
+      if (vt) mp4.setExtractionOptions(vt.id, 'v', { nbSamples: 60 }); if (at && /^mp4a/.test(at.codec)) mp4.setExtractionOptions(at.id, 'a', { nbSamples: 200 }); mp4.start(); };
+    mp4.onSamples = (id, user, samples) => { (user === 'v' ? vq : aq).push(...samples); };
+    const CH = 8 * 1048576; let off = 0;
+    const feed = async () => { if (off >= file.size) return false; const buf = await file.slice(off, off + CH).arrayBuffer(); buf.fileStart = off; off += buf.byteLength; mp4.appendBuffer(buf); if (off >= file.size) mp4.flush(); return true; };
+    while (!info && !failed && await feed()) { }
+    if (failed) throw failed;
+    const vt = info && info.videoTracks[0]; if (!vt) throw new Error('No se encuentra la imagen del vídeo (¿es un MP4?)');
+    const at = info.audioTracks[0] && /^mp4a/.test(info.audioTracks[0].codec) ? info.audioTracks[0] : null;
+    const box = (() => { const e = mp4.getTrackById(vt.id).mdia.minf.stbl.stsd.entries[0], b = e.avcC || e.hvcC || e.vpcC || e.av1C; if (!b) return undefined;
+      const s = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN); b.write(s); return new Uint8Array(s.buffer, 8); })();
+    const sw = vt.track_width || vt.video.width, sh = vt.track_height || vt.video.height;
+    const H = Math.min(720, sh) & ~1, W = Math.round(sw * H / sh / 2) * 2, dur = vt.duration / vt.timescale || v.duration || 1;
+    const fps = Math.min(60, Math.max(10, Math.round(vt.nb_samples / dur))) || 30;
+    const bps = Math.round(Math.max(700000, Math.min(1600000 * (W * H) / (1280 * 720), (MAXMB - 8) * 1048576 * 8 / dur - 130000)));
+    let cfg = null;
+    for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42e01f']) { const c = { codec, width: W, height: H, bitrate: bps, framerate: fps, avc: { format: 'avc' } };
+      try { if ((await VideoEncoder.isConfigSupported(c)).supported) { cfg = c; break; } } catch (e) { } }
+    if (!cfg) throw new Error('Este ordenador no puede codificar H.264 desde el navegador');
+    const aE = at && mp4.getTrackById(at.id).mdia.minf.stbl.stsd.entries[0];
+    let aDesc; try { aDesc = aE.esds.esd.descs[0].descs[0].data; } catch (e) { }
+    const muxer = new Muxer({ target: new ArrayBufferTarget(), fastStart: 'in-memory', firstTimestampBehavior: 'offset',
+      video: { codec: 'avc', width: W, height: H, frameRate: fps }, audio: at && aDesc ? { codec: 'aac', numberOfChannels: at.audio.channel_count, sampleRate: at.audio.sample_rate } : undefined });
+    let err = null, nIn = 0, nOut = 0, lastT = 0;
+    const enc = new VideoEncoder({ output: (c, m) => { nOut++; muxer.addVideoChunk(c, m); }, error: e => { err = e; } });
+    enc.configure(cfg);
+    const cv = new OffscreenCanvas(W, H), cx = cv.getContext('2d');
+    const dec = new VideoDecoder({ output: f => { try { cx.drawImage(f, 0, 0, W, H); const t = f.timestamp, d = f.duration || Math.round(1e6 / fps);
+        const nf = new VideoFrame(cv, { timestamp: t, duration: d }); enc.encode(nf, { keyFrame: nIn % (fps * 2) === 0 }); nf.close(); nIn++; lastT = t; } finally { f.close(); } },
+      error: e => { err = e; } });
+    dec.configure({ codec: vt.codec, codedWidth: sw, codedHeight: sh, description: box });
+    const idle = () => new Promise(r => setTimeout(r, 0));
+    let nVid = 0, aFirst = true;
+    for (;;) {
+      if (err) throw new Error('Error al comprimir: ' + (err.message || err));
+      if (vq.length) { const s = vq.shift();
+        while (dec.decodeQueueSize > 8 || enc.encodeQueueSize > 8) { await idle(); if (err) break; }
+        dec.decode(new EncodedVideoChunk({ type: s.is_sync ? 'key' : 'delta', timestamp: Math.round(s.cts * 1e6 / s.timescale), duration: Math.round(s.duration * 1e6 / s.timescale), data: s.data }));
+        nVid++; if (nVid % 30 === 0) { mp4.releaseUsedSamples(vt.id, s.number); onP(Math.min(0.99, lastT / 1e6 / dur)); } continue; }
+      if (aq.length) { const s = aq.shift();
+        if (aDesc) muxer.addAudioChunkRaw(s.data, s.is_sync ? 'key' : 'delta', Math.round(s.cts * 1e6 / s.timescale), Math.round(s.duration * 1e6 / s.timescale),
+          aFirst ? { decoderConfig: { codec: at.codec, sampleRate: at.audio.sample_rate, numberOfChannels: at.audio.channel_count, description: aDesc } } : undefined);
+        aFirst = false; continue; }
+      if (!(await feed())) break;
+    }
+    await dec.flush(); await enc.flush(); dec.close(); enc.close();
+    if (err) throw new Error('Error al comprimir: ' + (err.message || err));
+    // comprobación: tienen que salir todos los fotogramas del original (si no, se habría congelado o cortado)
+    if (nOut < vt.nb_samples * 0.98) throw new Error(`Faltan fotogramas al comprimir (${nOut} de ${vt.nb_samples}): no se sube`);
+    muxer.finalize(); onP(1);
+    return new Blob([muxer.target.buffer], { type: 'video/mp4' });
   }
   // Cloudinary por trozos de 20 MB (si un trozo falla, se reintenta)
   async function upload(blob, onP) {
@@ -29634,13 +29675,13 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   }
   async function uploadDlg(file) {
     let v; try { v = await meta(file); } catch (e) { toast(e.message, 'err'); return; }
-    const big = file.size > MAXMB * 1048576, teams = (window.__baGroupTeams || []).filter(n => !/CLARET/i.test(n));
+    const big = needsTranscode(file, v), teams = (window.__baGroupTeams || []).filter(n => !/CLARET/i.test(n));
     if (CUR && !teams.some(n => codeOf(n) === codeOf(CUR))) teams.unshift(CUR);
     const ov = document.createElement('div'); ov.className = 'scv-ov';
     ov.innerHTML = `<div class="scv-box scv-ubox" role="dialog" aria-label="Subir vídeo de scouting"><header><b>⬆️ Subir vídeo de scouting</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header>
       <label>Rival<select class="scv-riv">${teams.map(n => `<option value="${esc(n)}"${codeOf(n) === codeOf(CUR) ? ' selected' : ''}>${esc(shortOf(n))}</option>`).join('')}</select></label>
       <label>Título<input class="scv-tit" maxlength="80" value="${esc(file.name.replace(/\.[^.]+$/, ''))}"></label>
-      <p class="scv-info">${esc(file.name)} · ${MB(file.size)} · ${mmss(v.duration)}${big ? `<br><b>Pasa de ${MAXMB} MB</b>: antes de subirlo se comprime aquí mismo a 720p. Tarda lo que dura el vídeo (${mmss(v.duration)}): deja esta pestaña abierta y a la vista.` : '<br>Se sube tal cual.'}</p>
+      <p class="scv-info">${esc(file.name)} · ${MB(file.size)} · ${mmss(v.duration)}${big ? `<br>${file.size > MAXMB * 1048576 ? `<b>Pasa de ${MAXMB} MB</b>` : '<b>Pesa mucho para verlo en el móvil</b>'}: antes de subirlo se comprime aquí mismo a 720p (unos ${MB(Math.min((MAXMB - 8) * 1048576, 1.73e6 * (v.duration || 1) / 8))}), fotograma a fotograma. Suele tardar menos de lo que dura el vídeo; no cierres esta ventana.` : '<br>Se sube tal cual.'}</p>
       <div class="scv-prog" hidden><i></i><span></span></div>
       <div class="scv-ubt"><button type="button" class="scv-go2">${big ? 'Comprimir y subir' : 'Subir'}</button></div></div>`;
     document.body.appendChild(ov);
@@ -29654,7 +29695,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       e.target.disabled = true; busy = true;
       try {
         const thumb = await thumbOf(v); let blob = file;
-        if (big) { blob = await compress(file, v, p => prog(p, `Comprimiendo… ${Math.round(p * 100)}% (${mmss(v.currentTime)} de ${mmss(v.duration)})`));
+        if (big) { blob = await compress(file, v, p => prog(p, `Comprimiendo… ${Math.round(p * 100)}% (${mmss(p * v.duration)} de ${mmss(v.duration)})`));
           if (!busy) return;
           if (blob.size > 99 * 1048576) throw new Error(`Comprimido sigue ocupando ${MB(blob.size)}: córtalo en dos partes`); }
         const r = await upload(blob, p => prog(p, `Subiendo… ${Math.round(p * 100)}% de ${MB(blob.size)}`));
@@ -29665,7 +29706,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       } catch (er) { busy = false; e.target.disabled = false; prog(0, '❌ ' + (er.message || er)); }
     };
   }
-  window.__baScVidDbg = { pctOf, orSeg, list: () => LIST, mine: () => MINE, compress, upload, paint };
+  window.__baScVidDbg = { pctOf, orSeg, list: () => LIST, mine: () => MINE, compress, upload, paint, needsTranscode };
 })();
 
 </script>

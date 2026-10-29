@@ -3121,6 +3121,56 @@ td, th { font-variant-numeric: tabular-nums }
   body.player-mode #toast { bottom: calc(18px + env(safe-area-inset-bottom)) !important }
 }
 
+/* 🟡 Vista «Claret» de los jugadores: tarjetas de partidos que se deslizan + ficha del partido */
+.os .os-sub{font-size:10.5px;font-weight:600;color:var(--t3);margin-left:6px;text-transform:none;letter-spacing:0}
+.os-car{display:flex;align-items:center;gap:6px;margin:4px 0 2px}
+.os-cards{flex:1;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 30%;padding:6px 30%;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.os-cards::-webkit-scrollbar{display:none}
+.os-c{flex:0 0 150px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 10px;border:1px solid var(--bd);border-top:4px solid #16a34a;border-radius:14px;background:#fff;cursor:pointer;font:inherit;opacity:.55;transform:scale(.9);transition:transform .25s,opacity .25s,box-shadow .25s}
+.os-c.l{border-top-color:#dc2626}.os-c.sea{border-top-color:#f59e0b}
+.os-c.on{opacity:1;transform:scale(1);box-shadow:0 6px 18px rgba(15,23,42,.14)}
+.os-c small{font-size:10px;color:var(--t3);white-space:nowrap}.os-c b{font-size:19px;font-weight:900;color:var(--nv);white-space:nowrap}
+.os-c span{font-size:11.5px;font-weight:700;color:var(--t2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-ar{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--bd);background:#fff;font-size:22px;line-height:1;color:var(--nv);cursor:pointer}
+.os-dots{display:flex;justify-content:center;gap:5px;margin:4px 0 10px}.os-dots i{width:6px;height:6px;border-radius:50%;background:#cbd5e1;transition:all .2s}
+.os-dots i.on{background:var(--nv);width:16px;border-radius:3px}.os-dots i.sea.on{background:#f59e0b}
+.os-cap{font-size:11px;color:var(--t2);margin:2px 0 8px}
+.os-wrap{overflow-x:auto}
+.os-t{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
+.os-t th{font-size:9.5px;font-weight:800;color:var(--t3);text-align:right;padding:5px 6px;border-bottom:2px solid var(--bd);cursor:pointer;user-select:none}
+.os-t th.on{color:var(--nv);text-decoration:underline}.os-t th.nm,.os-t td.nm{text-align:left;position:sticky;left:0;background:#fff}
+.os-t td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--bd);font-variant-numeric:tabular-nums}
+.os-t td.nm{font-weight:700;color:var(--nv)}.os-t td.nm i{display:inline-block;min-width:24px;margin-right:3px;font-style:normal;color:var(--t3);font-size:10px}
+.os-t td.pt{font-weight:900;color:var(--nv)}.os-t td small{display:block;font-size:9px;color:var(--t3)}
+.os-t td.up{color:#15803d;font-weight:800}.os-t td.dn{color:#b91c1c;font-weight:800}
+@media (max-width:600px){.os-ar{display:none}.os-cards{padding:6px 25%;scroll-padding:0 25%}.os-c{flex-basis:44%}}
+#os-table .tw th:first-child,#os-table .tw td:first-child{position:sticky;left:0;z-index:1;background:#fff;box-shadow:1px 0 0 var(--bd)}
+#os-table .tw tfoot td:first-child{background:var(--bg)}
+#os-table .tw table{font-size:10.5px !important;min-width:0 !important}
+#os-table .tw th,#os-table .tw td{padding:5px 5px !important}
+#os-table .tw td:first-child{max-width:130px;overflow:hidden;text-overflow:ellipsis}
+#os-table .tw tbody td:nth-child(3){font-size:12.5px !important}
+#os-table .tw thead th:first-child{z-index:3 !important;background:#fafafc !important;left:0 !important;position:sticky !important}
+#os-table .tw tbody td:first-child,#os-table .tw tfoot td:first-child{z-index:2 !important}
+.os-t th.nm{position:sticky;left:0;z-index:3;background:#fff}
+.os-t td.nm{z-index:2}
+/* mapa de tiro del jugador (vista Claret) */
+.os-pop{position:fixed;inset:0;z-index:900;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:14px}
+.os-pbox{background:#fff;border-radius:16px;width:100%;max-width:420px;max-height:92vh;overflow:auto;padding:12px 14px 14px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.os-pbox header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.os-pbox header b{font-size:15px;color:var(--nv)}
+.os-pbox header span{flex:1;font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.os-px{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:#f1f5f9;font-size:14px;cursor:pointer}
+.os-pst{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.os-pst span{font-size:11px;color:var(--t2);background:#f8fafc;border:1px solid var(--bd);border-radius:999px;padding:3px 9px}
+.os-pbox canvas{width:100%;height:auto;display:block;border-radius:10px}
+.os-pleg{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10.5px;color:var(--t3);margin-top:6px}
+.os-pleg i{display:inline-block;width:10px;height:10px;border-radius:50%}.os-pleg .mk{background:#16a34a}.os-pleg .ms{background:#dc2626;margin-left:8px}
+.os-pno{font-size:12px;color:var(--t3);text-align:center;padding:24px 0}
+.os-ptabs{display:flex;gap:4px;background:#f1f5f9;border-radius:999px;padding:3px;margin-bottom:8px}
+.os-ptabs button{flex:1;border:0;background:none;border-radius:999px;padding:6px 0;font:800 11.5px/1 inherit;color:var(--t3);cursor:pointer}.os-ptabs button.on{background:#fff;color:var(--nv);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.os-psl{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;border-radius:10px}
+.os-psl::-webkit-scrollbar{display:none}.os-pslide{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always}
+.os-pdots{display:flex;justify-content:center;gap:5px;margin-top:6px}.os-pdots i{width:6px;height:6px;border-radius:50%;background:#cbd5e1;transition:all .2s}.os-pdots i.on{background:var(--nv);width:16px;border-radius:3px}
+
 /* la página mide exactamente una pantalla (html, body height:100%), así que «sticky» deja de funcionar
    al bajar: la barra superior se fija de verdad y el contenido baja 52 px */
 body:not(.player-mode) { padding-top: 52px !important }
@@ -3201,6 +3251,10 @@ body:not(.player-mode) .top { position: fixed !important; top: 0 !important; lef
 body.player-mode #ba-quinibtn, body.player-mode .q-hcard { display: none !important }
 body.player-mode.ba-pq #t-compare { display: none !important }
 body.player-mode.ba-pq #t-quini { display: block !important }
+body.player-mode.ba-pc #t-compare { display: none !important }
+body.player-mode.ba-pc #t-ours { display: block !important }
+body.player-mode #os-main::after { content: ''; display: block; height: calc(90px + env(safe-area-inset-bottom)) }
+@media (max-width: 420px) { #ba-pswitch button { padding: 11px 12px; font-size: 13px } }
 body.player-mode #t-quini .main { padding-bottom: 110px }
 /* el selector flotante «Rival | Quiniela» no tapa el final de la página (ni en Rival ni en Quiniela) */
 body.player-mode { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important }
@@ -3781,6 +3835,7 @@ body.player-mode .cx-card{display:none!important}
 .scv-prog span{position:relative;display:block;font-size:11.5px;font-weight:800;line-height:26px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scv-ubt{display:flex;justify-content:flex-end}
 @media (max-width:600px){.scv-list{grid-template-columns:1fr}.scv-ov{padding:8px}.scv-box{padding:10px}}
+.scv-store{display:flex;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11.5px;color:#64748b}.scv-store .scv-pbar{width:90px;flex:none}.scv-store .scv-pbar i{background:#3b82f6}.scv-store .scv-pbar i.warn{background:#dc2626}.scv-store b{color:#dc2626}
 
 </style>
 </head>
@@ -4941,6 +4996,8 @@ const CLOUDINARY_PRESET = 'bascat';
 const CLOUD_OK = () => !!CLOUDINARY_CLOUD && !!CLOUDINARY_PRESET;
 
 async function uploadClipToCloud(blob, rival, onProgress) {
+  // Si el almacén R2 está configurado (r2.js), los clips van allí: 10 GB gratis y verlos no gasta cuota
+  if (window.__baR2 && window.__baR2.on()) { const r = await window.__baR2.upload(blob, 'clips', p => onProgress && onProgress(Math.round(p * 100))); return { url: r.url, publicId: 'r2:' + r.key }; }
   const fd = new FormData();
   fd.append('file', blob);
   fd.append('upload_preset', CLOUDINARY_PRESET);
@@ -4960,6 +5017,7 @@ async function uploadClipToCloud(blob, rival, onProgress) {
     xhr.send(fd);
   });
 }
+window.__baUploadClip = uploadClipToCloud;   // (para las pruebas)
 
 // ═══════════════════════════════════════════
 // STATE & PERSISTENCE
@@ -5052,6 +5110,8 @@ function extractLightMatch(m) {
 
 
 function _refreshAfterSync(){
+  // vista «Claret» de los jugadores abierta: se repinta con los partidos nuevos
+  if (document.body.classList.contains('ba-pc') && window.__baOursRender) setTimeout(window.__baOursRender, 0);
   const loader = document.getElementById('st-loader');
   if(loader) loader.remove();
   window.S = S;
@@ -7943,7 +8003,7 @@ function renderLiveStatsModal() {
       });
   }
 
-  const cols=['#','Nom','MIN','PTS','T2','T3','TL','R O/D','RT','AST','ST','BLK','PER','F C/R','+/-'];
+  const cols=['#','Nom','MIN','PTS','T2','T3','TL','R O/D','RT','AST','ST','BLK','PER','F C/R','+/-','VAL'];
   const headCols=cols.map((c, i) => {
       let st = '';
       if(i===0) st='position:sticky; left:0; z-index:12; background:#fff; width:36px; min-width:36px; max-width:36px; padding:6px 0; box-sizing:border-box;';
@@ -7952,7 +8012,9 @@ function renderLiveStatsModal() {
   }).join('');
   
   let t_pts=0, t_t2m=0, t_t2a=0, t_t3m=0, t_t3a=0, t_tlm=0, t_tla=0;
-  let t_ro=0, t_rd=0, t_ast=0, t_stl=0, t_blk=0, t_to=0, t_fc=0, t_fr=0, t_pm=0, t_secs=0;
+  let t_ro=0, t_rd=0, t_ast=0, t_stl=0, t_blk=0, t_to=0, t_fc=0, t_fr=0, t_pm=0, t_secs=0, t_val=0;
+  // Valoración (la misma que la ficha del partido): PTS + REB + AST + ROB + TAP + FR − tiros fallados − TL fallados − PER − FC
+  const lvVal = (s, rt, fc, fr, t2m, t2a, t3m, t3a, tlm, tla) => (s.pts || 0) + rt + (s.ast || 0) + (s.stl || 0) + (s.blk || 0) + fr - (t2a - t2m) - (t3a - t3m) - (tla - tlm) - (s.to || 0) - fc;
 
   const jugadoresOrdenados = lv.pl[aTeam].slice().sort((a,b) => parseInt(a.dorsal) - parseInt(b.dorsal));
 
@@ -7982,6 +8044,7 @@ function renderLiveStatsModal() {
     t_pts += (s.pts || 0); t_t2m += t2m; t_t2a += t2a; t_t3m += t3m; t_t3a += t3a; t_tlm += tlm; t_tla += tla;
     t_ro += ro; t_rd += rd; t_ast += (s.ast || 0); t_stl += (s.stl || 0); t_blk += (s.blk || 0); t_to += (s.to || 0);
     t_fc += fc; t_fr += fr; t_pm += pm; t_secs += secs; 
+    const val = lvVal(s, rt, fc, fr, t2m, t2a, t3m, t3a, tlm, tla); t_val += val;
 
     const bg=lv.onCourt[aTeam].has(p.name)?'#f0fdf4':'#fff';
     return `<tr style="background:${bg}; border-bottom:1px solid var(--bd);">
@@ -7995,6 +8058,7 @@ function renderLiveStatsModal() {
       <td style="text-align:center"><b>${ro}/${rd}</b></td><td style="text-align:center"><b style="font-size:13px">${rt}</b></td><td style="text-align:center">${s.ast||0}</td><td style="text-align:center">${s.stl||0}</td>
       <td style="text-align:center">${s.blk||0}</td><td style="text-align:center">${s.to||0}</td><td style="text-align:center"><b>${fc}/${fr}</b></td>
       <td style="text-align:center;font-weight:800;color:${pm>0?'var(--gn)':pm<0?'#dc2626':'inherit'}">${pm>0?'+':''}${pm}</td>
+      <td style="text-align:center;font-weight:800;color:${val>0?'var(--gn)':val<0?'#dc2626':'inherit'}">${val>0?'+':''}${val}</td>
     </tr>`;
   }).join('');
 
@@ -8009,6 +8073,7 @@ function renderLiveStatsModal() {
       <td style="font-weight:800; text-align:center">${t_stl}</td><td style="font-weight:800; text-align:center">${t_blk}</td><td style="font-weight:800; text-align:center">${t_to}</td>
       <td style="font-weight:800; text-align:center">${t_fc}/${t_fr}</td>
       <td style="font-weight:900; text-align:center; color:${t_pm>0?'var(--gn)':t_pm<0?'#dc2626':'inherit'}">${t_pm>0?'+':''}${t_pm}</td>
+      <td style="font-weight:900; text-align:center; color:${t_val>0?'var(--gn)':t_val<0?'#dc2626':'inherit'}">${t_val>0?'+':''}${t_val}</td>
   </tr>`;
 
   const qBtn = (q, lbl) => {
@@ -12542,19 +12607,18 @@ function _recordSegment(vid, inT, outT, onProgress) {
     try { stream = vid.captureStream ? vid.captureStream() : vid.mozCaptureStream(); }
     catch (e) { reject(new Error('No se pudo capturar el vídeo')); return; }
 
-    // Máxima calidad: misma resolución que el vídeo original (1080p si el vídeo es 1080p) y
-    // bitrate alto. MP4/H.264 primero: lo codifica la tarjeta gráfica (no se come la CPU) y es
+    // Misma resolución que el vídeo original (1080p si el vídeo es 1080p). MP4/H.264 primero: lo codifica la tarjeta gráfica (no se come la CPU) y es
     // el formato que abre todo el mundo; si el navegador no puede, WebM.
     const mime = ['video/mp4;codecs=avc1.64002a,mp4a.40.2','video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4',
                   'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
       .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
     const px = (vid.videoWidth || 1920) * (vid.videoHeight || 1080);
-    // Bitrate: el doble que el vídeo original (se ve igual que el original, sin inflar el archivo),
-    // entre ~6 y ~16 Mbps en 1080p. Sin datos del original: ~8 Mbps en 1080p.
+    // Bitrate: como el original pero con tope de ~4 Mbps en 1080p (~1,8 en 720p): se sigue viendo nítido y
+    // cada clip pesa 2-4 veces menos que antes (Cloudinary gratis cobra cada MB que se ve). Mínimo 1,5 Mbps.
     const srcBps = (window._vSrcSize && vid.duration) ? window._vSrcSize * 8 / vid.duration : 0;
-    let bps = srcBps ? Math.round(srcBps * 2) : Math.round(px * 4);
-    bps = Math.min(40_000_000, Math.round(px * 8), Math.max(4_000_000, Math.round(px * 3), bps));
-    bps = Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, outT - inT + 2)));   // < 85 MB por clip (límite de Cloudinary)
+    let bps = srcBps ? Math.round(srcBps * 1.2) : Math.round(px * 2);
+    bps = Math.min(Math.round(px * 2), Math.max(1_500_000, bps));
+    bps = Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, outT - inT + 2)));   // < 85 MB por clip (límite de Cloudinary; R2 admite hasta 300 MB)
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -13262,14 +13326,22 @@ function _renderStBox(m){
   if(tog) tog.innerHTML = [['home',m.homeTeam],['away',m.awayTeam]].map(([k,n])=>
     `<button onclick="setStBoxSide('${k}')" style="padding:7px 14px;border-radius:8px;border:2px solid ${_stBoxSide===k?'var(--nv)':'var(--b2)'};background:${_stBoxSide===k?'var(--nv)':'#fff'};color:${_stBoxSide===k?'#fff':'var(--t2)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis">${_esc(n||k)}</button>`).join('');
 
-  const pl = (_stBoxSide==='home' ? m.homePlayers : m.awayPlayers) || [];
-  const tName = _stBoxSide==='home' ? m.homeTeam : m.awayTeam;
+  wrap.innerHTML = _boxTableHTML(m, _stBoxSide, _boxSort, 'boxSort', true);
+}
+
+
+// Tabla de la ficha del partido (SR, MIN, PTS, tiros, rebotes… +/- y VAL, con totales). La usan la ficha del partido y la vista «Claret» de los jugadores.
+// bs = { col, dir } para ordenar; sortFn = nombre de la función global que cambia el orden; prof = al tocar un jugador se abre su ficha
+// o.name(p) = cómo se escribe el jugador; o.noNota = sin la columna SR; o.click = función global a la que se llama con el nombre al tocar un jugador
+function _boxTableHTML(m, side, bs, sortFn, prof, o = {}) {
+  const pl = (side==='home' ? m.homePlayers : m.awayPlayers) || [];
+  const tName = side==='home' ? m.homeTeam : m.awayTeam;
 
   // 🔥 LA SOLUCIÓN: Sobreescribimos los minutos corruptos usando TU función _playerStints
   pl.forEach(p => {
       if (m.events && m.events.length > 0 && typeof _playerStints === 'function') {
           try {
-              const {stints} = _playerStints(m, p.name, _stBoxSide);
+              const {stints} = _playerStints(m, p.name, side);
               p._trueMinDec = (stints || []).reduce((acc, st) => acc + (st.b - st.a), 0);
           } catch(e) { 
               p._trueMinDec = 0; 
@@ -13298,7 +13370,7 @@ function _renderStBox(m){
   const fgM = p => (p.t2Made||0)+(p.t3Made||0);
   const fgA = p => (p.t2Att||0)+(p.t3Att||0);
 
-  const isHome = _stBoxSide === 'home';
+  const isHome = side === 'home';
   const teamScore = Number(isHome ? m.scoreHome : m.scoreAway) || 0;
   const oppScore = Number(isHome ? m.scoreAway : m.scoreHome) || 0;
   const diff = teamScore - oppScore;
@@ -13330,8 +13402,9 @@ function _renderStBox(m){
   };
   
   const valOf = (p) => {
-    switch(_boxSort.col){
+    switch(bs.col){
       case 'name': return p.name.toLowerCase();
+      case 'dorsal': return parseInt(p.dorsal, 10) || 999;
       case 'nota': return parseFloat(calcNota(p)) || 0;
       case 'min': return p._trueMinDec || 0;
       case 'pts': return p.pts || 0;
@@ -13353,8 +13426,8 @@ function _renderStBox(m){
   
   const rows = [...pl].sort((a,b) => {
     const va = valOf(a), vb = valOf(b);
-    if(typeof va === 'string') return _boxSort.dir * va.localeCompare(vb);
-    return _boxSort.dir * (va - vb);
+    if(typeof va === 'string') return bs.dir * va.localeCompare(vb);
+    return bs.dir * (va - vb);
   });
   
   let totMinsDec = 0;
@@ -13364,7 +13437,7 @@ function _renderStBox(m){
       return t;
   },{});
   
-  const arrIcon = col => _boxSort.col === col ? (_boxSort.dir > 0 ? ' ▲' : ' ▼') : '';
+  const arrIcon = col => bs.col === col ? (bs.dir > 0 ? ' ▲' : ' ▼') : '';
 
   const tMinsStr = fmtMinDec(totMinsDec);
   const tPts = tot.pts || 0;
@@ -13380,25 +13453,25 @@ function _renderStBox(m){
   const tCvCol = tCv > 0 ? 'var(--gn)' : (tCv < 0 ? '#dc2626' : 'inherit');
   const tCvSig = tCv > 0 ? '+' : '';
 
-  wrap.innerHTML=`
+  return `
     <div class="tw" style="margin-bottom:8px"><table style="min-width:940px; font-size:12px">
       <thead><tr>
-        <th onclick="boxSort('name')" style="text-align:left;cursor:pointer">Jugador${arrIcon('name')}</th>
-        <th onclick="boxSort('nota')" style="text-align:center;cursor:pointer;color:#354ce6">SR${arrIcon('nota')}</th>
-        <th onclick="boxSort('min')" style="text-align:center;cursor:pointer">MIN${arrIcon('min')}</th>
-        <th onclick="boxSort('pts')" style="text-align:center;cursor:pointer">PTS${arrIcon('pts')}</th>
-        <th onclick="boxSort('tc')" style="text-align:center;cursor:pointer">TC${arrIcon('tc')}</th>
-        <th onclick="boxSort('t2')" style="text-align:center;cursor:pointer">T2${arrIcon('t2')}</th>
-        <th onclick="boxSort('t3')" style="text-align:center;cursor:pointer">3P${arrIcon('t3')}</th>
-        <th onclick="boxSort('tl')" style="text-align:center;cursor:pointer">TL${arrIcon('tl')}</th>
-        <th onclick="boxSort('reb')" style="text-align:center;cursor:pointer">R (O/D)${arrIcon('reb')}</th>
-        <th onclick="boxSort('ast')" style="text-align:center;cursor:pointer">AST${arrIcon('ast')}</th>
-        <th onclick="boxSort('to')" style="text-align:center;cursor:pointer">PER${arrIcon('to')}</th>
-        <th onclick="boxSort('blk')" style="text-align:center;cursor:pointer">BLK${arrIcon('blk')}</th>
-        <th onclick="boxSort('stl')" style="text-align:center;cursor:pointer">STL${arrIcon('stl')}</th>
-        <th onclick="boxSort('fc')" style="text-align:center;cursor:pointer">F (C/R)${arrIcon('fc')}</th>
-        <th onclick="boxSort('pm')" style="text-align:center;cursor:pointer">+/-${arrIcon('pm')}</th>
-        <th onclick="boxSort('val')" style="text-align:center;cursor:pointer">VAL${arrIcon('val')}</th>
+        <th onclick="${sortFn}('name')" style="text-align:left;cursor:pointer">Jugador${arrIcon('name')}</th>
+${o.noNota ? '' : `        <th onclick="${sortFn}('nota')" style="text-align:center;cursor:pointer;color:#354ce6">SR${arrIcon('nota')}</th>`}
+        <th onclick="${sortFn}('min')" style="text-align:center;cursor:pointer">MIN${arrIcon('min')}</th>
+        <th onclick="${sortFn}('pts')" style="text-align:center;cursor:pointer">PTS${arrIcon('pts')}</th>
+        <th onclick="${sortFn}('tc')" style="text-align:center;cursor:pointer">TC${arrIcon('tc')}</th>
+        <th onclick="${sortFn}('t2')" style="text-align:center;cursor:pointer">T2${arrIcon('t2')}</th>
+        <th onclick="${sortFn}('t3')" style="text-align:center;cursor:pointer">3P${arrIcon('t3')}</th>
+        <th onclick="${sortFn}('tl')" style="text-align:center;cursor:pointer">TL${arrIcon('tl')}</th>
+        <th onclick="${sortFn}('reb')" style="text-align:center;cursor:pointer">R (O/D)${arrIcon('reb')}</th>
+        <th onclick="${sortFn}('ast')" style="text-align:center;cursor:pointer">AST${arrIcon('ast')}</th>
+        <th onclick="${sortFn}('to')" style="text-align:center;cursor:pointer">PER${arrIcon('to')}</th>
+        <th onclick="${sortFn}('blk')" style="text-align:center;cursor:pointer">BLK${arrIcon('blk')}</th>
+        <th onclick="${sortFn}('stl')" style="text-align:center;cursor:pointer">STL${arrIcon('stl')}</th>
+        <th onclick="${sortFn}('fc')" style="text-align:center;cursor:pointer">F (C/R)${arrIcon('fc')}</th>
+        <th onclick="${sortFn}('pm')" style="text-align:center;cursor:pointer">+/-${arrIcon('pm')}</th>
+        <th onclick="${sortFn}('val')" style="text-align:center;cursor:pointer">VAL${arrIcon('val')}</th>
       </tr></thead>
       <tbody>
         ${rows.map(p=>{
@@ -13419,9 +13492,9 @@ function _renderStBox(m){
           const notaB = getNotaBadge(calcNota(p));
           const pMins = fmtMinDec(p._trueMinDec);
 
-          return `<tr style="cursor:pointer; border-bottom:1px solid var(--bd)" data-n="${_esc(p.name)}" data-t="${_esc(tName)}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t)">
-          <td style="white-space:nowrap; padding:8px"><b>${p.dorsal?'#'+_esc(p.dorsal)+' ':''}</b>${_esc(p.name)}${p.starter?' <span style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' 📝':''}</td>
-          <td style="text-align:center">${notaB}</td>
+          return `<tr style="${prof || o.click ? 'cursor:pointer; ' : ''}border-bottom:1px solid var(--bd)" data-n="${_esc(p.name)}" data-t="${_esc(tName)}"${prof ? ' onclick="openPlayerProfile(this.dataset.n,this.dataset.t)"' : o.click ? ` onclick="${o.click}(this.dataset.n)"` : ''}>
+          <td style="white-space:nowrap; padding:8px">${o.name ? o.name(p) : `<b>${p.dorsal?'#'+_esc(p.dorsal)+' ':''}</b>${_esc(p.name)}`}${p.starter?' <span style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' 📝':''}</td>
+${o.noNota ? '' : `          <td style="text-align:center">${notaB}</td>`}
           <td style="text-align:center; color:var(--t2); font-weight:700">${pMins}</td>
           <td style="text-align:center;font-weight:900;font-size:14px;color:var(--nv)">${pts}</td>
           <td style="white-space:nowrap;text-align:center"><b>${fm}/${fa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(fm,fa)}</span></td>
@@ -13436,10 +13509,10 @@ function _renderStBox(m){
           <td style="text-align:center"><b>${fc}</b> <span style="font-size:10px;color:var(--t3)">(${fc}/${fr})</span></td>
           <td style="text-align:center;font-weight:800;color:${pmC}">${pmS}${pm}</td>
           <td style="text-align:center;font-weight:800;color:${cvC}">${cvS}${cv}</td>
-        </tr>`;}).join('')||'<tr><td colspan="16" class="no-d">Sin jugadores</td></tr>'}
+        </tr>`;}).join('')||`<tr><td colspan="${o.noNota ? 15 : 16}" class="no-d">Sin jugadores</td></tr>`}
       </tbody>
       <tfoot><tr style="border-top:2px solid var(--bd);background:var(--bg)">
-        <td colspan="2" style="white-space:nowrap; padding:10px 8px; text-align:right"><b>TOTAL</b></td>
+        <td colspan="${o.noNota ? 1 : 2}" style="white-space:nowrap; padding:10px 8px; text-align:right"><b>TOTAL</b></td>
         <td style="text-align:center;font-weight:700">${tMinsStr}</td>
         <td style="text-align:center;font-weight:900;font-size:15px">${tPts}</td>
         <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tFm}/${tFa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tFm,tFa)}</span></td>
@@ -13452,13 +13525,12 @@ function _renderStBox(m){
         <td style="text-align:center;font-weight:800">${tBlk}</td>
         <td style="text-align:center;font-weight:800">${tStl}</td>
         <td style="text-align:center;font-weight:800"><b>${tFc}</b> <span style="font-size:10px;color:var(--t3)">(${tFc}/${tFr})</span></td>
-        <td></td>
+        <td style="text-align:center;font-weight:900;color:${(tot.pm||0)>0?'var(--gn)':(tot.pm||0)<0?'#dc2626':'inherit'}" title="Suma del +/- de todos (= 5 × diferencia del partido)">${(tot.pm||0)>0?'+':''}${tot.pm||0}</td>
         <td style="text-align:center;font-weight:900;color:${tCvCol}">${tCvSig}${tCv}</td>
       </tr></tfoot>
     </table></div>
-    <div style="font-size:10px;color:var(--t3)">Toca en el título de la columna para ordenar. Toca a cualquier jugador para ver su ficha.</div>`;
+    <div style="font-size:10px;color:var(--t3)">Toca en el título de la columna para ordenar.${prof ? ' Toca a cualquier jugador para ver su ficha.' : ''}</div>`;
 }
-
 
 function openPlayerProfile(name, team, targetSeason){
  try{
@@ -14200,10 +14272,63 @@ const _MEDIT_COLS = [
 // rebotes: si el partido solo tiene el total (REB) sin separar, sale todo como defensivo para no perderlo
 const _meditVal = (p, k) => k === 'rd' && p.rd == null && p.reb != null ? Math.max(0, (Number(p.reb) || 0) - (Number(p.ro) || 0)) : p[k];
 
+// ⏱️ Tiempos muertos en el editor del partido: «min:seg» del partido (tiempo transcurrido, 0:00–40:00; prórrogas desde 40:00) + equipo.
+// Se guardan como una jugada más (type 'timeout') y salen en la cronología, en el cronograma y en «tras pedir tiempo muerto».
+let _meditTO = null;
+const _toLen = m => { const maxP = Math.max(4, ...(m.events || []).map(e => e.period || 1)); return 40 + Math.max(0, maxP - 4) * 5; };
+const _toElapsed = (m, e) => _elapsedMin(m, e.period || 1, e.time ? e.time / 60 : (e.min || 0) + (m.type !== 'live' && e.sec ? e.sec / 60 : 0), false);
+const _toFmt = t => { const s = Math.round(t * 60); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const _toQ = t => t < 40 ? Math.min(4, Math.floor(t / 10) + 1) : 5 + Math.floor((t - 40) / 5);
+function _meditTOInit(m) { _meditTO = { id: m.id, del: new Set(), add: [] }; }
+function _meditTOHtml(m) {
+  if (!_meditTO || _meditTO.id !== m.id) _meditTOInit(m);
+  const tn = s => _esc(s === 'home' ? m.homeTeam : m.awayTeam);
+  const list = [...(m.events || []).filter(e => e.type === 'timeout' && !_meditTO.del.has(e)).map(e => ({ e, team: e.team, t: _toElapsed(m, e) })),
+    ..._meditTO.add.map((a, i) => ({ a: i, team: a.team, t: a.t, nuevo: true }))].sort((x, y) => x.t - y.t);
+  const qn = t => { const q = _toQ(t); return q <= 4 ? 'Q' + q : 'PR' + (q - 4); };
+  return `<div style="margin-bottom:14px;padding:12px;background:#f8fafc;border:1px solid var(--bd);border-radius:10px">
+    <div style="font-size:11px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⏱️ Tiempos muertos <span style="font-weight:600;text-transform:none;color:var(--t3)">(${list.length})</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${list.length ? 10 : 0}px">${list.map(x => `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${x.team === 'home' ? '#dcfce7' : '#dbeafe'};color:${x.team === 'home' ? '#166534' : '#1e40af'}">
+        ${qn(x.t)} · ${_toFmt(x.t)} · ${tn(x.team)}${x.nuevo ? ' <i style="font-style:normal;opacity:.7">(nuevo)</i>' : ''}
+        <button type="button" title="Quitar" onclick="window._meditTODel(${x.nuevo ? `'a',${x.a}` : `'e',${(m.events || []).indexOf(x.e)}`})" style="border:0;background:rgba(0,0,0,.08);border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;line-height:1">✕</button></span>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input id="me-to-t" placeholder="min:seg  (ej. 27:15)" inputmode="numeric" style="width:150px;border:1px solid #cbd5e1;padding:7px;border-radius:6px;font-size:12px">
+      <select id="me-to-team" style="border:1px solid #cbd5e1;padding:7px;border-radius:6px;font-size:12px"><option value="home">${tn('home')}</option><option value="away">${tn('away')}</option></select>
+      <button type="button" class="btn bo" onclick="window._meditTOAdd()" style="padding:7px 12px">＋ Añadir tiempo muerto</button>
+      <span style="font-size:10.5px;color:var(--t3)">Minuto del partido (0:00 a ${_toFmt(_toLen(m))}). Se guarda al pulsar «Guardar cambios».</span>
+    </div></div>`;
+}
+window._meditTOAdd = () => {
+  const m = S.matches.find(x => x.id === _meditId); if (!m) return;
+  const v = (document.getElementById('me-to-t') || {}).value || '', r = v.trim().match(/^(\d{1,2})(?:[:.,'´ ](\d{1,2}))?$/);
+  const t = r ? +r[1] + (+(r[2] || 0)) / 60 : NaN;
+  if (!r || +(r[2] || 0) >= 60 || !(t >= 0 && t <= _toLen(m))) { alert(`Pon el minuto del partido como min:seg, entre 0:00 y ${_toFmt(_toLen(m))} (ej. 27:15).`); return; }
+  _meditTO.add.push({ t, team: document.getElementById('me-to-team').value });
+  _meditTORepaint(m);
+};
+window._meditTODel = (kind, i) => {
+  const m = S.matches.find(x => x.id === _meditId); if (!m) return;
+  if (kind === 'a') _meditTO.add.splice(i, 1); else if (m.events && m.events[i]) _meditTO.del.add(m.events[i]);
+  _meditTORepaint(m);
+};
+function _meditTORepaint(m) { const box = document.getElementById('me-to-box'); if (box) box.innerHTML = _meditTOHtml(m); }
+function _meditTOSave(m) {
+  if (!_meditTO || _meditTO.id !== m.id || (!_meditTO.del.size && !_meditTO.add.length)) return 0;
+  if (_meditTO.del.size) m.events = (m.events || []).filter(e => !_meditTO.del.has(e));
+  m.events = m.events || [];
+  _meditTO.add.forEach((a, k) => {
+    const q = _toQ(a.t), q0 = q <= 4 ? (q - 1) * 10 : 40 + (q - 5) * 5, len = q <= 4 ? 10 : 5, name = a.team === 'home' ? m.homeTeam : m.awayTeam;
+    const e = { id: Date.now() + k, type: 'timeout', team: a.team, period: q, manual: true, desc: `Tiempo Muerto solicitado por ${name}` };
+    if (m.type === 'live') e.min = a.t;                                   // directo: minuto transcurrido del partido
+    else { e.min = Math.round((len - (a.t - q0)) * 1000) / 1000; e.sec = 0; e.player = ''; }   // importados: reloj del cuarto (cuenta atrás)
+    m.events.push(e);
+  });
+  const n = _meditTO.del.size + _meditTO.add.length; _meditTO = null; return n;
+}
 function openMatchEdit(id){
   const m = S.matches.find(x => x.id === id);
   if(!m) { if(typeof toast==='function') toast('Partido no encontrado','err'); return; }
-  _meditId = id;
+  _meditId = id; _meditTOInit(m);
   const sub = document.getElementById('medit-sub');
   const mDate = m.date ? ' · ' + m.date : '';
   if(sub) sub.textContent = `${m.homeTeam} ${m.scoreHome}—${m.scoreAway} ${m.awayTeam}${mDate}`;
@@ -14324,7 +14449,7 @@ function renderMatchEditBody(){
       <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Temporada</label>
         <input id="me-season" list="me-season-dl" value="${_esc(m.season || '')}" placeholder="2026-27" style="${inp}"><datalist id="me-season-dl">${seasons.map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
     </div>`;
-  el.innerHTML = meta + bH + bA;
+  el.innerHTML = meta + `<div id="me-to-box">${_meditTOHtml(m)}</div>` + bH + bA;
 }
 
 // Cambia el nombre y/o dorsal de un jugador en TODO el partido (plantilla, jugadas del directo, quintetos en pista,
@@ -14425,6 +14550,7 @@ function saveMatchEdit(){
   m.scoreHome = nh;
   m.scoreAway = na;
   m.name = `${m.homeTeam} vs ${m.awayTeam}`;
+  _meditTOSave(m);
   m.editedAt = Date.now();
   
   if(typeof svL === 'function') svL();
@@ -15775,6 +15901,125 @@ function _srAMatches(name) {
     return n === name ? m : Object.assign({}, m, sd === 'home' ? { homeTeam: name } : { awayTeam: name });
   });
 }
+// 🟡 Vista «Claret» de los jugadores (botón Rival · Quiniela · Claret): partidos oficiales del sènior A de esta temporada en tarjetas
+// que se deslizan; debajo, la ficha del partido elegido (la misma tabla que la ficha del partido) o la tabla de toda la temporada.
+function _osSeasonOf(m) {
+  const r = String(m.date || '').match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/), i = String(m.date || '').match(/^(\d{4})-(\d{1,2})/);
+  const y = r ? +r[3] : i ? +i[1] : 0, mo = r ? +r[2] : i ? +i[2] : 0;
+  if (y && mo) { const s = mo >= 8 ? y : y - 1; return `${s}-${String(s + 1).slice(-2)}`; }
+  return m.season || '';
+}
+const _osDayN = m => { const r = String(m.date || '').match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/); return r ? +r[3] * 10000 + +r[2] * 100 + +r[1] : 0; };
+function _osData() {
+  const our = _nextMatchOurTeam().name, cy = new Date().getFullYear(), cur = new Date().getMonth() >= 7 ? `${cy}-${String(cy + 1).slice(-2)}` : `${cy - 1}-${String(cy).slice(-2)}`;
+  const games = _srAMatches(our).filter(m => !_isFriendly(m) && _osSeasonOf(m) === cur && (m.scoreHome || m.scoreAway)).sort((a, b) => _osDayN(a) - _osDayN(b));
+  return { cur, games: games.map(m => { const home = m.homeTeam === our;
+    return { m, id: String(m.id), date: m.date, rival: home ? m.awayTeam : m.homeTeam, home, my: +(home ? m.scoreHome : m.scoreAway) || 0, op: +(home ? m.scoreAway : m.scoreHome) || 0, players: (home ? m.homePlayers : m.awayPlayers) || [] }; }) };
+}
+const _osShot = (p, k) => { const s = String(p[k] || '').match(/(\d+)\s*\/\s*(\d+)/); return s ? [+s[1], +s[2]] : [+p[k + 'Made'] || 0, +p[k + 'Att'] || 0]; };
+// Vista Claret: solo el primer apellido («ORDOBÀS», «DEL VALLE»), salvo los que en el equipo se llaman por el nombre
+const _OS_BY_NAME = { 44: 'GONZALO', 3: 'SOWKIN', 12: 'ORIOL', 6: 'MARTI', 5: 'HECTOR', 9: 'ARMAK' };
+const _osShort = (n, dorsal) => { const w = String(n || '').trim().split(/\s+/); if (w.length < 2) return w[0] || '';
+  const byName = _OS_BY_NAME[String(dorsal || '').trim()]; const nrm = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); if (byName && nrm(w[0]) === byName) return w[0];
+  let k = 1; while (k < w.length - 1 && /^(DE|DEL|LA|LAS|LOS|DA|DOS|I|Y|VAN|VON|MC)$/i.test(w[k])) k++; return w.slice(1, k + 1).join(' '); };
+function _osRows(games) {
+  const by = {};
+  games.forEach(g => g.players.forEach(p => { const min = _minNum(p.min); if (!(min > 0) && !(+p.pts > 0)) return;
+    const k = String(p.name || '').trim().toUpperCase(); if (!k) return;
+    const r = by[k] || (by[k] = { name: p.name, dorsal: p.dorsal, pj: 0, min: 0, pts: 0, max: 0, t2: [0, 0], t3: [0, 0], tl: [0, 0], fc: 0, pm: 0, pmN: 0 });
+    r.pj++; r.min += min || 0; r.pts += +p.pts || 0; r.max = Math.max(r.max, +p.pts || 0); r.fc += +p.fc || 0; if (p.dorsal) r.dorsal = p.dorsal;
+    ['t2', 't3', 'tl'].forEach(t => { const [a, b] = _osShot(p, t); r[t][0] += a; r[t][1] += b; });
+    if (p.pm != null && p.pm !== '') { r.pm += +p.pm || 0; r.pmN++; } }));
+  return Object.values(by);
+}
+// por defecto, ordenados por dorsal (de menor a mayor); tocando una columna se ordena por ella
+window._osState = window._osState || { sel: null, sort: 'dorsal' };
+window._osBs = window._osBs || { col: 'dorsal', dir: 1 };
+window._osSort = k => { window._osState.sort = k; _osTable(); };
+window._osBoxSort = col => { const bs = window._osBs; if (bs.col === col) bs.dir *= -1; else { bs.col = col; bs.dir = -1; } _osTable(); };
+// tabla de toda la temporada (medias por partido)
+function _osSeasonTable(D) {
+  const rows = _osRows(D.games), st = window._osState, pct = ([a, b]) => b ? Math.round(a / b * 100) + '%' : '–';
+  const val = { dorsal: r => -(parseInt(r.dorsal, 10) || 999), pts: r => r.pts / r.pj, min: r => r.min / r.pj, max: r => r.max, pj: r => r.pj, t3: r => r.t3[0], tl: r => r.tl[1] ? r.tl[0] / r.tl[1] : -1, t2: r => r.t2[0], pm: r => r.pm, tot: r => r.pts, fc: r => r.fc / r.pj };
+  rows.sort((a, b) => (val[st.sort] || val.pts)(b) - (val[st.sort] || val.pts)(a) || b.pts - a.pts);
+  const mmss = m => `${Math.floor(m)}:${String(Math.round((m % 1) * 60)).padStart(2, '0')}`;
+  const th = (k, lab, tip) => `<th title="${tip}" onclick="window._osSort('${k}')" class="${st.sort === k ? 'on' : ''}">${lab}</th>`;
+  return `<div class="os-wrap"><table class="os-t"><thead><tr><th class="nm">Jugador</th>${th('pj', 'PJ', 'Partidos jugados')}${th('min', 'MIN/P', 'Minutos por partido')}${th('pts', 'PTS/P', 'Puntos por partido')}${th('tot', 'PTS', 'Puntos totales')}${th('max', 'MÁX', 'Máximo en un partido')}
+      ${th('t2', 'T2', 'Tiros de 2')}${th('t3', 'T3', 'Triples')}${th('tl', 'TL', 'Tiros libres')}${th('fc', 'FC/P', 'Faltas por partido')}${th('pm', '+/-', 'Diferencia del marcador con él en pista')}</tr></thead>
+    <tbody>${rows.map(r => `<tr><td class="nm"><i>${r.dorsal ? '#' + _esc(r.dorsal) : ''}</i>${_esc(_osShort(r.name, r.dorsal))}</td><td>${r.pj}</td><td>${mmss(r.min / r.pj)}</td><td class="pt">${(r.pts / r.pj).toFixed(1)}</td><td>${r.pts}</td><td>${r.max}</td>
+      <td>${r.t2[0]}/${r.t2[1]}<small>${pct(r.t2)}</small></td><td>${r.t3[0]}/${r.t3[1]}<small>${pct(r.t3)}</small></td><td>${r.tl[0]}/${r.tl[1]}<small>${pct(r.tl)}</small></td>
+      <td>${(r.fc / r.pj).toFixed(1)}</td><td class="${r.pm > 0 ? 'up' : r.pm < 0 ? 'dn' : ''}">${r.pmN ? (r.pm > 0 ? '+' : '') + r.pm : '–'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="os-cap">Toca el título de una columna para ordenar.</div>`;
+}
+function _osTable() {
+  const box = document.getElementById('os-table'); if (!box) return;
+  const D = window._osD || _osData(), sel = window._osState.sel, g = D.games.find(x => x.id === sel);
+  box.innerHTML = g ? `<div class="os-cap"><b>${g.my > g.op ? 'Victoria' : 'Derrota'} ${g.my}-${g.op}</b> ${g.home ? 'contra' : 'en casa de'} ${_esc(g.rival)} · ${_esc(g.date)}</div>${_boxTableHTML(g.m, g.home ? 'home' : 'away', window._osBs, 'window._osBoxSort', false, { noNota: true, click: 'window._osShotPop', name: p => `<b>${p.dorsal ? '#' + _esc(p.dorsal) + ' ' : ''}</b>${_esc(_osShort(p.name, p.dorsal))}` })}`
+    : `<div class="os-cap"><b>Toda la temporada</b> · ${D.games.length} partidos oficiales (medias por partido)</div>${_osSeasonTable(D)}`;
+  // en la ficha de un partido, el aviso es «toca un jugador» (en vez del «desliza la tabla» general)
+  const tw = g && box.querySelector('.tw'); if (tw) { tw.dataset.baSw = '1'; tw.insertAdjacentHTML('beforebegin', '<div class="ba-swipe">👆 Toca el nombre de un jugador para ver su mapa de tiro · ↔ desliza la tabla para ver más columnas</div>'); }
+}
+// la tarjeta centrada en el carrusel es la elegida
+function _osPick(id, scroll) {
+  window._osState.sel = id || '';
+  document.querySelectorAll('#os-cards .os-c').forEach(c => c.classList.toggle('on', c.dataset.id === window._osState.sel));
+  document.querySelectorAll('#os-dots i').forEach(d => d.classList.toggle('on', d.dataset.id === window._osState.sel));
+  if (scroll) { const c = document.querySelector(`#os-cards .os-c[data-id="${window._osState.sel}"]`); if (c) c.scrollIntoView({ behavior: scroll === 'now' ? 'auto' : 'smooth', inline: 'center', block: 'nearest' }); }
+  _osTable();
+}
+window._osPick = _osPick;
+window._osStep = d => { const ids = [...document.querySelectorAll('#os-cards .os-c')].map(c => c.dataset.id), i = ids.indexOf(window._osState.sel); const j = Math.max(0, Math.min(ids.length - 1, i + d)); if (j !== i) _osPick(ids[j], true); };
+function _osRender() {
+  const el = document.getElementById('os-main'); if (!el) return;
+  const D = window._osD = _osData();
+  if (!D.games.length) { el.innerHTML = `<div class="card"><div class="empty">Todavía no hay partidos oficiales del Claret esta temporada.</div></div>`; return; }
+  const W = D.games.filter(g => g.my > g.op).length, short = n => _esc((window.__baTeamShort && window.__baTeamCode && window.__baTeamShort(window.__baTeamCode(n))) || n);
+  const st = window._osState; if (st.sel == null || (st.sel && !D.games.some(g => g.id === st.sel))) st.sel = D.games[D.games.length - 1].id;
+  const card = g => `<button type="button" class="os-c ${g.my > g.op ? 'w' : 'l'}" data-id="${g.id}" onclick="window._osPick('${g.id}', true)">
+      <small>${_esc(String(g.date || '').replace(/\/20(\d\d)$/, '/$1'))} · ${g.home ? '🏠 casa' : '✈️ fuera'}</small>
+      <b>${g.my > g.op ? 'V' : 'D'} ${g.my}-${g.op}</b><span>${short(g.rival)}</span></button>`;
+  el.innerHTML = `<div class="card os">
+    <div class="ct">🟡 Claret <span class="os-sub">${D.cur} · ${D.games.length} partidos oficiales · ${W}V-${D.games.length - W}D</span></div>
+    <div class="os-car"><button type="button" class="os-ar" aria-label="Anterior" onclick="window._osStep(-1)">‹</button>
+      <div id="os-cards" class="os-cards">${D.games.map(card).join('')}<button type="button" class="os-c sea" data-id="" onclick="window._osPick('', true)"><small>${D.cur}</small><b>📊 Temporada</b><span>${W}V-${D.games.length - W}D · medias</span></button></div>
+      <button type="button" class="os-ar" aria-label="Siguiente" onclick="window._osStep(1)">›</button></div>
+    <div id="os-dots" class="os-dots">${D.games.map(g => `<i data-id="${g.id}"></i>`).join('')}<i data-id="" class="sea"></i></div>
+    <div id="os-table"></div></div>`;
+  // al deslizar con el dedo, se elige la tarjeta que queda en el centro
+  const sc = document.getElementById('os-cards'); let t = 0;
+  sc.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => { const mid = sc.getBoundingClientRect().left + sc.clientWidth / 2; let best = null, bd = 1e9;
+    sc.querySelectorAll('.os-c').forEach(c => { const r = c.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - mid); if (d < bd) { bd = d; best = c; } });
+    if (best && best.dataset.id !== window._osState.sel) _osPick(best.dataset.id, false); }, 120); }, { passive: true });
+  _osPick(st.sel, 'now');
+}
+window.__baOursRender = _osRender;
+// mapa de tiro del jugador en el partido elegido (popup con ✕; también se cierra tocando fuera o con Esc).
+// Dos mapas que se deslizan como las tarjetas: los tiros (anotados/fallados) y las zonas (% de acierto, colores de siempre).
+window._osShotPop = name => {
+  const D = window._osD || _osData(), g = D.games.find(x => x.id === window._osState.sel); if (!g) return;
+  const side = g.home ? 'home' : 'away', p = g.players.find(x => x.name === name) || { name };
+  const shots = (g.m.shots || []).filter(s => s.team === side && s.player === name && s.x != null && s.y != null);
+  const st = t => { const a = shots.filter(s => s.type === t), k = a.filter(s => s.made).length; return `${k}/${a.length}`; };
+  const ov = document.createElement('div'); ov.className = 'os-pop';
+  ov.innerHTML = `<div class="os-pbox" role="dialog" aria-label="Mapa de tiro"><header><b>${p.dorsal ? '#' + _esc(p.dorsal) + ' ' : ''}${_esc(_osShort(name, p.dorsal))}</b>
+      <span>${g.my > g.op ? 'V' : 'D'} ${g.my}-${g.op} · ${_esc(g.rival)}</span><button type="button" class="os-px" aria-label="Cerrar">✕</button></header>
+    ${shots.length ? `<div class="os-pst"><span>T2 <b>${st('T2')}</b></span><span>T3 <b>${st('T3')}</b></span><span>TL <b>${_osShot(p, 'tl').join('/')}</b></span><span>${p.pts || 0} PTS</span></div>
+      <div class="os-ptabs"><button type="button" class="on" data-i="0">🎯 Tiros</button><button type="button" data-i="1">🗺 Zonas</button></div>
+      <div class="os-psl"><div class="os-pslide"><canvas id="os-pshot" width="${CW}" height="${CH}"></canvas><div class="os-pleg"><i class="mk"></i> anotado <i class="ms"></i> fallado</div></div>
+        <div class="os-pslide"><canvas id="os-pzone" data-ba-plain="1" width="${CW}" height="${CH}"></canvas><div class="os-pleg">% de acierto por zona</div></div></div>
+      <div class="os-pdots"><i class="on"></i><i></i></div>`
+      : '<p class="os-pno">No hay tiros ubicados de este jugador en este partido.</p>'}</div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.remove(); document.removeEventListener('keydown', esc); }, esc = e => { if (e.key === 'Escape') close(); };
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.os-px')) close(); };
+  document.addEventListener('keydown', esc);
+  const cv = ov.querySelector('#os-pshot'); if (!cv) return;
+  const ctx = cv.getContext('2d'); drawCourt(ctx); drawShots(ctx, shots); drawZoneMap('os-pzone', shots);
+  const sl = ov.querySelector('.os-psl'), tabs = [...ov.querySelectorAll('.os-ptabs button')], dots = [...ov.querySelectorAll('.os-pdots i')];
+  const mark = i => { tabs.forEach((b, k) => b.classList.toggle('on', k === i)); dots.forEach((d, k) => d.classList.toggle('on', k === i)); };
+  sl.addEventListener('scroll', () => mark(Math.round(sl.scrollLeft / sl.clientWidth)), { passive: true });
+  tabs.forEach((b, k) => b.onclick = () => { sl.scrollTo({ left: k * sl.clientWidth, behavior: 'smooth' }); mark(k); });
+};
 function _ourTeamCat() { return (_ourTeamKey().split('|')[1]) || ''; }
 function _ourTeamKey() {
   const list = _ourTeamsList();
@@ -26950,7 +27195,7 @@ if(!/bascat=/.test(location.hash))setTimeout(()=>{if(seekGen)return;let L=null;t
   function buildHome() {
     if ($('#t-home')) return;
     const first = document.querySelector('.tab'); if (!first) return;
-    first.insertAdjacentHTML('beforebegin', '<div id="t-home" class="tab"><div class="main" id="h-main"></div></div><div id="t-quini" class="tab"><div class="main" id="q-main"></div></div>');
+    first.insertAdjacentHTML('beforebegin', '<div id="t-home" class="tab"><div class="main" id="h-main"></div></div><div id="t-quini" class="tab"><div class="main" id="q-main"></div></div><div id="t-ours" class="tab"><div class="main" id="os-main"></div></div>');
   }
   function showPage(id) {
     if (!$('#' + id)) return;
@@ -27268,7 +27513,7 @@ if(!/bascat=/.test(location.hash))setTimeout(()=>{if(seekGen)return;let L=null;t
     w = document.createElement('div'); w.className = cls; cv.parentNode.insertBefore(w, cv); w.appendChild(cv); return w;
   }
   function attachZone(cv) {
-    if (!cv || !cv.isConnected || !Array.isArray(cv.__baShots)) return;
+    if (!cv || !cv.isConnected || !Array.isArray(cv.__baShots) || cv.dataset.baPlain) return;   // data-ba-plain: solo el mapa (p. ej. un jugador en un partido)
     const w = wrapOf(cv, 'ba-zw');
     let seg = w.querySelector(':scope > .ba-zseg');
     if (!seg) {
@@ -28065,18 +28310,19 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       ${tb.length ? `<div class="q-hav">${tb.map(t => av(t, 1) + `<small>${t.pts}</small>`).join('')}</div>` : ''}</section>`);
   };
 
-  // ── jugadores: selector flotante «Rival | Quiniela» (en modo jugador solo se ve la pestaña del rival) ──
+  // ── jugadores: selector flotante «Rival | Quiniela | Claret» (en modo jugador solo se ve la pestaña del rival) ──
   function playerSwitch() {
     const pm = document.body.classList.contains('player-mode'); let sw = $('#ba-pswitch');
     // ojo: quitar una clase que no está también cuenta como cambio y volvería a disparar este vigilante sin fin
     // (se congelaba la web al poner cualquier clase en el body, p. ej. la pantalla completa del directo)
-    if (!pm) { if (sw) sw.remove(); if (document.body.classList.contains('ba-pq')) document.body.classList.remove('ba-pq'); return; }
-    if (!sw) { document.body.insertAdjacentHTML('beforeend', '<div id="ba-pswitch"><button type="button" data-v="r">⚖️ Rival</button><button type="button" data-v="q">🏆 Quiniela</button></div>'); sw = $('#ba-pswitch');
-      sw.querySelectorAll('button').forEach(b => b.onclick = () => { const q = b.dataset.v === 'q'; document.body.classList.toggle('ba-pq', q);
+    if (!pm) { if (sw) sw.remove(); ['ba-pq', 'ba-pc'].forEach(c => { if (document.body.classList.contains(c)) document.body.classList.remove(c); }); return; }
+    if (!sw) { document.body.insertAdjacentHTML('beforeend', '<div id="ba-pswitch"><button type="button" data-v="r">⚖️ Rival</button><button type="button" data-v="q">🏆 Quiniela</button><button type="button" data-v="c">🟡 Claret</button></div>'); sw = $('#ba-pswitch');
+      sw.querySelectorAll('button').forEach(b => b.onclick = () => { const v = b.dataset.v, q = v === 'q'; document.body.classList.toggle('ba-pq', q); document.body.classList.toggle('ba-pc', v === 'c');
         resetView();
-        if (q) { const t = $('#t-quini'); if (t) { document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); } window.baQuiniRender(); } else if (typeof window.ST === 'function') window.ST('t-compare');
+        if (v === 'c') { const t = $('#t-ours'); if (t) { document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); } if (window.__baOursRender) window.__baOursRender(); }
+        else if (q) { const t = $('#t-quini'); if (t) { document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); } window.baQuiniRender(); } else if (typeof window.ST === 'function') window.ST('t-compare');
         requestAnimationFrame(() => { resetView(); setTimeout(resetView, 450); }); sync(); }); }
-    const sync = () => sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'q') === document.body.classList.contains('ba-pq'))); sync();
+    const sync = () => { const B = document.body.classList, cur = B.contains('ba-pq') ? 'q' : B.contains('ba-pc') ? 'c' : 'r'; sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === cur)); }; sync();
   }
   new MutationObserver(playerSwitch).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', playerSwitch); else playerSwitch();
@@ -29425,8 +29671,57 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   function fallback(t) { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { } ta.remove(); }
 })();
 
+/* BasketApp · vídeos en Cloudflare R2 (clips de partido y vídeos de scouting).
+   R2 da 10 GB gratis y no cobra por lo que se ve; Cloudinary cobraba cada reproducción. El worker (r2-worker.js) hace de puerta:
+   sube por trozos de 20 MB, sirve los vídeos con Range y no deja pasar de 9,5 GB. Mientras API esté vacío, todo sigue yendo a Cloudinary. */
+(function () {
+  'use strict';
+  if (window.__baR2) return;
+  const API = window.__BA_R2_API || '';   // URL del worker, p. ej. 'https://basketapp-videos.xxxx.workers.dev'
+  const CH = 20 * 1048576;
+  const call = async (path, opt = {}) => {
+    const r = await fetch(API + path, { ...opt, headers: { 'x-ba': '1', ...(opt.headers || {}) } });
+    let d = {}; try { d = await r.json(); } catch (e) { }
+    if (!r.ok) { const e = new Error(d.error || `El almacén ha respondido ${r.status}`); e.status = r.status; throw e; }
+    return d;
+  };
+  const putPart = (key, uploadId, n, chunk, onBytes) => new Promise((res, rej) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `${API}/up/part?key=${encodeURIComponent(key)}&uploadId=${encodeURIComponent(uploadId)}&n=${n}`);
+    xhr.setRequestHeader('x-ba', '1');
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onBytes(e.loaded); };
+    xhr.onload = () => { let d = {}; try { d = JSON.parse(xhr.responseText); } catch (e) { } xhr.status < 300 && d.etag ? res(d) : rej(new Error(d.error || 'El almacén rechazó un trozo')); };
+    xhr.onerror = () => rej(new Error('Fallo de red al subir')); xhr.send(chunk);
+  });
+  // blob → { url, key, size }. prefix: 'scout' | 'clips'. onP(0..1)
+  async function upload(blob, prefix, onP) {
+    const ext = /webm/i.test(blob.type || '') ? 'webm' : 'mp4';
+    const { key, uploadId } = await call('/up/start', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prefix, ext, size: blob.size }) });
+    const parts = [];
+    try {
+      for (let s = 0, n = 1; s < blob.size; s += CH, n++) {
+        const chunk = blob.slice(s, Math.min(blob.size, s + CH));
+        for (let k = 0; ; k++) {
+          try { parts.push(await putPart(key, uploadId, n, chunk, b => onP && onP(Math.min(0.99, (s + b) / blob.size)))); break; }
+          catch (e) { if (k >= 3) throw e; await new Promise(r => setTimeout(r, 1500 * (k + 1))); }
+        }
+      }
+      const d = await call('/up/done', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key, uploadId, parts }) });
+      if (onP) onP(1);
+      return d;
+    } catch (e) {
+      call('/up/abort', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key, uploadId }) }).catch(() => { });
+      throw e;
+    }
+  }
+  const keyOf = url => { try { const u = new URL(url); return API && url.startsWith(API + '/v/') ? decodeURIComponent(u.pathname.slice(3)) : null; } catch (e) { return null; } };
+  const del = key => call('/v/' + key.split('/').map(encodeURIComponent).join('/'), { method: 'DELETE' });
+  const usage = () => call('/usage');
+  window.__baR2 = { on: () => !!API, api: () => API, upload, del, usage, keyOf };
+})();
+
 /* BasketApp · 🎬 Vídeo de scouting (pestaña Próximo rival, staff y jugadores).
-   El staff sube el vídeo del rival (Cloudinary; si pasa de ~95 MB o pesa mucho para el móvil se recomprime antes en el navegador a 720p, fotograma a fotograma) y los jugadores
+   El staff sube el vídeo del rival (almacén R2 si está configurado en r2.js, si no Cloudinary; si pasa de ~95 MB o pesa mucho para el móvil se recomprime antes en el navegador a 720p, fotograma a fotograma) y los jugadores
    lo ven en la web. Cada jugador cuenta con su usuario de la quiniela: se guarda qué trozos ha visto (de 5 en 5 s),
    cuántas veces lo ha abierto y cuándo. El staff ve «quién lo ha visto» con el % de cada uno y quién no lo ha abierto.
    Filas en «metadata»: scvid_list (la lista de vídeos) y scvid_v_<usuario> (lo visto por cada uno). */
@@ -29520,12 +29815,25 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     box.innerHTML = `<div class="scv-h"><b>🎬 Vídeo de scouting${CUR ? ' · ' + esc(shortOf(CUR)) : ''}</b>${staff ? '<button type="button" class="scv-up">⬆️ Subir vídeo</button><input type="file" accept="video/*" class="scv-file" hidden>' : ''}</div>
       ${login}${here.length ? `<div class="scv-list">${here.map(it => tile(it, staff)).join('')}</div>` : `<p class="scv-none">${staff ? 'Todavía no hay vídeo de este rival. Súbelo y los jugadores lo verán aquí.' : 'Todavía no hay vídeo de este rival.'}</p>`}
       ${other.length ? `<details class="scv-more"><summary>Vídeos de otros rivales (${other.length})</summary><div class="scv-list">${other.map(it => tile(it, staff)).join('')}</div></details>` : ''}`;
+    if (staff) store(box);
     box.querySelectorAll('[data-play]').forEach(b => b.onclick = () => play(b.dataset.play));
     box.querySelectorAll('[data-who]').forEach(b => b.onclick = () => who(b.dataset.who));
     box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
     const go = box.querySelector('.scv-go'); if (go) go.onclick = () => { const q = $('#ba-pswitch [data-v="q"]'); if (q) q.click(); else if (window.baQuiniOpen) window.baQuiniOpen(); };
     const up = box.querySelector('.scv-up'), f = box.querySelector('.scv-file');
     if (up) { up.onclick = () => f.click(); f.onchange = () => { if (f.files[0]) uploadDlg(f.files[0]); f.value = ''; }; }
+  }
+
+  // staff: cuánto ocupa el almacén R2 (10 GB gratis; el worker no deja pasar de 9,5)
+  let USAGE = null, usageT = 0;
+  async function store(box, force) {
+    const r2 = window.__baR2; if (!r2 || !r2.on()) return;
+    const put = () => { const u = USAGE, el = box.querySelector('.scv-h'); if (!u || !el) return; let p = el.nextElementSibling;
+      if (!p || !p.classList.contains('scv-store')) { p = document.createElement('p'); p.className = 'scv-store'; el.after(p); }
+      const pc = Math.round(u.bytes / u.limit * 100);
+      p.innerHTML = `<span class="scv-pbar"><i class="${pc >= 85 ? 'warn' : ''}" style="width:${Math.min(100, pc)}%"></i></span> Almacén de vídeos: ${(u.bytes / 1073741824).toFixed(1)} GB de ${(u.limit / 1073741824).toFixed(1)} GB · ${u.files} archivos${pc >= 85 ? ' · <b>casi lleno: borra vídeos viejos</b>' : ''}`; };
+    if (USAGE && !force && Date.now() - usageT < 300000) return put();
+    try { USAGE = await r2.usage(); usageT = Date.now(); put(); } catch (e) { }
   }
 
   // ── ver el vídeo (y apuntar lo visto) ──
@@ -29580,7 +29888,10 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   }
   async function del(id) {
     const it = LIST.find(x => x.id === id); if (!it || !confirm(`¿Quitar «${it.title}» de la web? Los jugadores dejarán de verlo.`)) return;
-    try { await editList(items => items.filter(x => x.id !== id)); paint(); toast('🗑 Vídeo quitado'); } catch (e) { toast('No se ha podido quitar: ' + (e.message || e), 'err'); }
+    try { await editList(items => items.filter(x => x.id !== id));
+      // si está en R2, se borra también del almacén (libera espacio); en Cloudinary hay que borrarlo a mano
+      if (/^r2:/.test(it.pid || '') && window.__baR2 && window.__baR2.on()) { try { await window.__baR2.del(it.pid.slice(3)); } catch (e) { console.warn('R2: no se pudo borrar', e); } }
+      paint(); const box = $('#scv-card'); if (box && isStaff()) store(box, true); toast('🗑 Vídeo quitado'); } catch (e) { toast('No se ha podido quitar: ' + (e.message || e), 'err'); }
   }
 
   // ── staff: subir ──
@@ -29615,7 +29926,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const sw = vt.track_width || vt.video.width, sh = vt.track_height || vt.video.height;
     const H = Math.min(720, sh) & ~1, W = Math.round(sw * H / sh / 2) * 2, dur = vt.duration / vt.timescale || v.duration || 1;
     const fps = Math.min(60, Math.max(10, Math.round(vt.nb_samples / dur))) || 30;
-    const bps = Math.round(Math.max(700000, Math.min(1600000 * (W * H) / (1280 * 720), (MAXMB - 8) * 1048576 * 8 / dur - 130000)));
+    const bps = Math.round(Math.max(700000, Math.min(1000000 * (W * H) / (1280 * 720), (MAXMB - 8) * 1048576 * 8 / dur - 130000)));
     let cfg = null;
     for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42e01f']) { const c = { codec, width: W, height: H, bitrate: bps, framerate: fps, avc: { format: 'avc' } };
       try { if ((await VideoEncoder.isConfigSupported(c)).supported) { cfg = c; break; } } catch (e) { } }
@@ -29653,8 +29964,9 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     muxer.finalize(); onP(1);
     return new Blob([muxer.target.buffer], { type: 'video/mp4' });
   }
-  // Cloudinary por trozos de 20 MB (si un trozo falla, se reintenta)
+  // Al almacén R2 si está configurado; si no, a Cloudinary por trozos de 20 MB (si un trozo falla, se reintenta)
   async function upload(blob, onP) {
+    if (window.__baR2 && window.__baR2.on()) { const d = await window.__baR2.upload(blob, 'scout', onP); return { secure_url: d.url, public_id: 'r2:' + d.key }; }
     const uid = 'scv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), CH = 20 * 1048576, size = blob.size; let out = null;
     for (let s = 0; s < size; s += CH) {
       const e = Math.min(size, s + CH);
@@ -29681,7 +29993,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     ov.innerHTML = `<div class="scv-box scv-ubox" role="dialog" aria-label="Subir vídeo de scouting"><header><b>⬆️ Subir vídeo de scouting</b><button type="button" class="scv-x" aria-label="Cerrar">✕</button></header>
       <label>Rival<select class="scv-riv">${teams.map(n => `<option value="${esc(n)}"${codeOf(n) === codeOf(CUR) ? ' selected' : ''}>${esc(shortOf(n))}</option>`).join('')}</select></label>
       <label>Título<input class="scv-tit" maxlength="80" value="${esc(file.name.replace(/\.[^.]+$/, ''))}"></label>
-      <p class="scv-info">${esc(file.name)} · ${MB(file.size)} · ${mmss(v.duration)}${big ? `<br>${file.size > MAXMB * 1048576 ? `<b>Pasa de ${MAXMB} MB</b>` : '<b>Pesa mucho para verlo en el móvil</b>'}: antes de subirlo se comprime aquí mismo a 720p (unos ${MB(Math.min((MAXMB - 8) * 1048576, 1.73e6 * (v.duration || 1) / 8))}), fotograma a fotograma. Suele tardar menos de lo que dura el vídeo; no cierres esta ventana.` : '<br>Se sube tal cual.'}</p>
+      <p class="scv-info">${esc(file.name)} · ${MB(file.size)} · ${mmss(v.duration)}${big ? `<br>${file.size > MAXMB * 1048576 ? `<b>Pasa de ${MAXMB} MB</b>` : '<b>Pesa mucho para verlo en el móvil</b>'}: antes de subirlo se comprime aquí mismo a 720p (unos ${MB(Math.min((MAXMB - 8) * 1048576, 1.13e6 * (v.duration || 1) / 8))}), fotograma a fotograma. Suele tardar menos de lo que dura el vídeo; no cierres esta ventana.` : '<br>Se sube tal cual.'}</p>
       <div class="scv-prog" hidden><i></i><span></span></div>
       <div class="scv-ubt"><button type="button" class="scv-go2">${big ? 'Comprimir y subir' : 'Subir'}</button></div></div>`;
     document.body.appendChild(ov);
@@ -29702,7 +30014,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
         if (!busy) return;
         const it = { id: 'v' + Date.now().toString(36), code: codeOf(rival), rival, title, url: r.secure_url, pid: r.public_id, dur: r.duration || v.duration, size: blob.size, thumb, t: Date.now() };
         await editList(items => [...items, it]);
-        busy = false; ov.remove(); URL.revokeObjectURL(v.src); paint(); toast('✅ Vídeo subido: ya lo pueden ver los jugadores');
+        busy = false; ov.remove(); URL.revokeObjectURL(v.src); paint(); { const box = $('#scv-card'); if (box) store(box, true); } toast('✅ Vídeo subido: ya lo pueden ver los jugadores');
       } catch (er) { busy = false; e.target.disabled = false; prog(0, '❌ ' + (er.message || er)); }
     };
   }

@@ -3170,6 +3170,29 @@ td, th { font-variant-numeric: tabular-nums }
 .os-psl{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;border-radius:10px}
 .os-psl::-webkit-scrollbar{display:none}.os-pslide{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always}
 .os-pdots{display:flex;justify-content:center;gap:5px;margin-top:6px}.os-pdots i{width:6px;height:6px;border-radius:50%;background:#cbd5e1;transition:all .2s}.os-pdots i.on{background:var(--nv);width:16px;border-radius:3px}
+/* 📱 Contador de stats viendo el vídeo (histórico › partido › 📱 Contar stats) */
+#cnt-ov{position:fixed;inset:0;z-index:950;background:#f8fafc;overflow-y:auto;padding:10px 12px calc(16px + env(safe-area-inset-bottom));font-family:var(--fn,system-ui);-webkit-user-select:none;user-select:none}
+#cnt-ov .cnt-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#cnt-ov .cnt-tt{flex:1;min-width:0}.cnt-tt b{display:block;font-size:14px;color:var(--nv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cnt-tt small{font-size:11px;color:var(--t3)}
+#cnt-ov .cnt-x,#cnt-ov .cnt-sw{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--bd);background:#fff;font-size:16px;cursor:pointer}
+#cnt-ov .cnt-hint{font-size:12px;color:var(--t2);text-align:center;margin:2px 0 8px}
+#cnt-ov .cnt-pl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+#cnt-ov .cnt-pl button{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 2px;border:2px solid var(--bd);border-radius:12px;background:#fff;cursor:pointer;font:inherit;touch-action:manipulation}
+#cnt-ov .cnt-pl button b{font-size:20px;font-weight:900;color:var(--nv);line-height:1.1}
+#cnt-ov .cnt-pl button span{font-size:10px;font-weight:700;color:var(--t2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cnt-ov .cnt-pl button i{position:absolute;top:3px;right:4px;font-style:normal;font-size:9px;font-weight:800;color:#fff;background:#94a3b8;border-radius:999px;padding:0 5px}
+#cnt-ov .cnt-pl button.on{border-color:#2563eb;background:#2563eb}#cnt-ov .cnt-pl button.on b,#cnt-ov .cnt-pl button.on span{color:#fff}
+#cnt-ov .cnt-st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#cnt-ov .cnt-st button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:62px;border:0;border-radius:12px;background:#0f172a;color:#fff;cursor:pointer;font:inherit;touch-action:manipulation}
+#cnt-ov .cnt-st button b{font-size:17px;font-weight:900}#cnt-ov .cnt-st button small{font-size:9px;opacity:.75}
+#cnt-ov .cnt-st button:disabled{background:#cbd5e1;color:#64748b;cursor:default}#cnt-ov .cnt-st button:not(:disabled):active{transform:scale(.96)}
+#cnt-ov .cnt-last{font-size:12px;color:var(--t2);text-align:center;margin:10px 0}
+#cnt-ov .cnt-last button{margin-left:6px;border:1px solid var(--bd);background:#fff;border-radius:999px;padding:5px 12px;font:700 12px/1 inherit;cursor:pointer}
+#cnt-ov .cnt-tw{overflow-x:auto;background:#fff;border:1px solid var(--bd);border-radius:12px}
+#cnt-ov table{width:100%;border-collapse:collapse;font-size:11.5px}#cnt-ov th,#cnt-ov td{padding:5px 6px;text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap}
+#cnt-ov th{font-size:10px;color:var(--t3)}#cnt-ov td:first-child,#cnt-ov th:first-child{text-align:left;font-weight:700;color:var(--nv)}#cnt-ov tfoot td{font-weight:900;background:#f1f5f9}
+#cnt-ov .cnt-bot{display:flex;gap:8px;margin-top:12px}#cnt-ov .cnt-bot button{flex:1;min-height:46px;border-radius:12px;font:800 13px/1 inherit;cursor:pointer}
+#cnt-ov .cnt-clr{border:1px solid var(--bd);background:#fff;color:#b91c1c}#cnt-ov .cnt-go{border:0;background:#16a34a;color:#fff}
 
 /* la página mide exactamente una pantalla (html, body height:100%), así que «sticky» deja de funcionar
    al bajar: la barra superior se fija de verdad y el contenido baja 52 px */
@@ -9020,6 +9043,7 @@ function _renderStMatchHead(m){
     </div>
     <div style="display:flex;justify-content:center;gap:6px;margin-top:10px">
       <button onclick="openMatchEdit(${m.id})" style="background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">✏️ Editar</button>
+      <button onclick="openStatCounter(${m.id})" title="Contar AST, rebotes, pérdidas, robos, tapones y faltas recibidas viendo el vídeo" style="background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">📱 Contar stats</button>
       <button onclick="exportMatchPDF(${m.id})" style="background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">📄 PDF</button>
       <button onclick="deleteMatch(${m.id})" style="background:rgba(255,255,255,.14);border:none;color:#fca5a5;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">🗑️</button>
     </div>
@@ -14272,6 +14296,79 @@ const _MEDIT_COLS = [
 // rebotes: si el partido solo tiene el total (REB) sin separar, sale todo como defensivo para no perderlo
 const _meditVal = (p, k) => k === 'rd' && p.rd == null && p.reb != null ? Math.max(0, (Number(p.reb) || 0) - (Number(p.ro) || 0)) : p[k];
 
+// 📱 Contador de stats viendo el vídeo (lo que la FCBQ no da: AST, RO, RD, PER, ROB, TAP, FR).
+// Pantalla completa pensada para el móvil: tocas el jugador y luego la stat. Se guarda en el dispositivo mientras cuentas
+// (si se bloquea el móvil no se pierde nada) y al acabar «Pasar al partido» lo escribe en la ficha del partido, como el editor.
+const _CNT_K = [['ast', 'AST', 'Asistencia'], ['ro', 'RO', 'Rebote ofensivo'], ['rd', 'RD', 'Rebote defensivo'], ['to', 'PER', 'Pérdida'], ['stl', 'ROB', 'Robo'], ['blk', 'TAP', 'Tapón'], ['fr', 'FR', 'Falta recibida']];
+let _cnt = null;
+const _cntKey = (id, side) => 'ba_cnt_' + id + '_' + side;   // cada equipo por separado
+function _cntLoad(m, side) {
+  let d = null; try { d = JSON.parse(localStorage.getItem(_cntKey(m.id, side)) || 'null'); } catch (e) { }
+  if (!d) d = { side, c: {}, log: [] };
+  return d;
+}
+function _cntKeep() { try { localStorage.setItem(_cntKey(_cnt.id, _cnt.side), JSON.stringify({ side: _cnt.side, c: _cnt.c, log: _cnt.log })); } catch (e) { } }
+window.openStatCounter = function (id, side) {
+  const m = S.matches.find(x => x.id === id); if (!m) return;
+  side = side || (isOurTeam(m.awayTeam) && !isOurTeam(m.homeTeam) ? 'away' : 'home');
+  const d = _cntLoad(m, side);
+  _cnt = { id, side, c: d.c, log: d.log, sel: null };
+  let ov = document.getElementById('cnt-ov');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'cnt-ov'; document.body.appendChild(ov); }
+  _cntPaint();
+};
+function _cntPaint() {
+  const ov = document.getElementById('cnt-ov'), m = _cnt && S.matches.find(x => x.id === _cnt.id); if (!ov || !m) return;
+  const side = _cnt.side, pls = ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).slice().sort((a, b) => (parseInt(a.dorsal, 10) || 999) - (parseInt(b.dorsal, 10) || 999));
+  const tn = side === 'home' ? m.homeTeam : m.awayTeam, rv = side === 'home' ? m.awayTeam : m.homeTeam;
+  const c = n => _cnt.c[n] || {}, tot = n => _CNT_K.reduce((a, [k]) => a + (c(n)[k] || 0), 0);
+  const last = _cnt.log[_cnt.log.length - 1], lp = last && pls.find(p => p.name === last.n);
+  ov.innerHTML = `<div class="cnt-top"><button type="button" class="cnt-x" onclick="window._cntClose()" aria-label="Cerrar">✕</button>
+      <div class="cnt-tt"><b>📱 Contar stats · ${_esc(tn)}</b><small>vs ${_esc(rv)}${m.date ? ' · ' + _esc(m.date) : ''}</small></div>
+      <button type="button" class="cnt-sw" onclick="window.openStatCounter(${m.id}, '${side === 'home' ? 'away' : 'home'}')" title="Contar el otro equipo">⇄</button></div>
+    <div class="cnt-hint">${_cnt.sel ? `<b>${_esc(_cntName(pls.find(p => p.name === _cnt.sel)))}</b> → toca la stat` : '1️⃣ Toca un jugador · 2️⃣ toca la stat'}</div>
+    <div class="cnt-pl">${pls.map(p => `<button type="button" class="${_cnt.sel === p.name ? 'on' : ''}" data-n="${_esc(p.name)}" onclick="window._cntPick(this.dataset.n)"><b>${_esc(p.dorsal || '–')}</b><span>${_esc(_cntName(p, true))}</span>${tot(p.name) ? `<i>${tot(p.name)}</i>` : ''}</button>`).join('')}</div>
+    <div class="cnt-st">${_CNT_K.map(([k, l, t]) => `<button type="button" ${_cnt.sel ? '' : 'disabled'} onclick="window._cntAdd('${k}')"><b>${l}</b><small>${t}</small></button>`).join('')}</div>
+    <div class="cnt-last">${last ? `Último: <b>${_esc(_cntName(lp || { name: last.n }))}</b> +1 ${_CNT_K.find(x => x[0] === last.k)[1]} <button type="button" onclick="window._cntUndo()">↶ Deshacer</button>` : 'Aún no has apuntado nada.'}</div>
+    <div class="cnt-tw"><table><thead><tr><th>Jugador</th>${_CNT_K.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead>
+      <tbody>${pls.map(p => `<tr><td>${_esc(_cntName(p))}</td>${_CNT_K.map(([k]) => `<td>${c(p.name)[k] || ''}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tfoot><tr><td>TOTAL</td>${_CNT_K.map(([k]) => `<td>${pls.reduce((a, p) => a + (c(p.name)[k] || 0), 0)}</td>`).join('')}</tr></tfoot></table></div>
+    <div class="cnt-bot"><button type="button" class="cnt-clr" onclick="window._cntClear()">🗑 Empezar de cero</button><button type="button" class="cnt-go" onclick="window._cntApply()">✓ Pasar al partido</button></div>`;
+}
+const _cntName = (p, short) => { if (!p) return ''; const s = typeof _osShort === 'function' ? _osShort(p.name, p.dorsal) : String(p.name).split(' ')[0]; return short ? s : `${p.dorsal ? '#' + p.dorsal + ' ' : ''}${s}`; };
+window._cntPick = n => { _cnt.sel = _cnt.sel === n ? null : n; _cntPaint(); };
+window._cntAdd = k => {
+  if (!_cnt.sel) return;
+  const r = _cnt.c[_cnt.sel] = _cnt.c[_cnt.sel] || {}; r[k] = (r[k] || 0) + 1;
+  _cnt.log.push({ n: _cnt.sel, k, t: Date.now() }); _cnt.sel = null;   // tras apuntar, se suelta el jugador (menos errores)
+  if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) { }
+  _cntKeep(); _cntPaint();
+};
+window._cntUndo = () => { const l = _cnt.log.pop(); if (!l) return; const r = _cnt.c[l.n]; if (r && r[l.k]) r[l.k]--; _cntKeep(); _cntPaint(); };
+window._cntClear = () => { if (!_cnt.log.length || !confirm('¿Borrar todo lo contado de este partido?')) return; _cnt.c = {}; _cnt.log = []; _cnt.sel = null; _cntKeep(); _cntPaint(); };
+window._cntClose = () => { const ov = document.getElementById('cnt-ov'); if (ov) ov.remove(); _cnt = null; };
+// escribe lo contado en la ficha del partido (reemplaza AST/RO/RD/PER/ROB/TAP/FR de ese equipo) y recalcula rebotes y valoración
+window._cntApply = () => {
+  const m = S.matches.find(x => x.id === _cnt.id); if (!m) return;
+  const pls = (_cnt.side === 'home' ? m.homePlayers : m.awayPlayers) || [];
+  const had = pls.some(p => _CNT_K.some(([k]) => (p[k] || 0) > 0));
+  const n = _cnt.log.length;
+  if (!n && !confirm('No has contado nada. ¿Poner todo a 0 en el partido?')) return;
+  if (!confirm(`Se escribirán en el partido las stats contadas (${n} acciones) de ${_cnt.side === 'home' ? m.homeTeam : m.awayTeam}.` + (had ? '\n\nOjo: el partido ya tenía algunas de estas stats y se sustituirán por las que has contado.' : ''))) return;
+  pls.forEach(p => {
+    const r = _cnt.c[p.name] || {};
+    _CNT_K.forEach(([k]) => { p[k] = r[k] || 0; });
+    p.reb = (p.ro || 0) + (p.rd || 0);
+    const miss = ((p.tlAtt || 0) - (p.tlMade || 0)) + ((p.t2Att || 0) - (p.t2Made || 0)) + ((p.t3Att || 0) - (p.t3Made || 0));
+    p.val = (p.pts || 0) + p.reb + (p.ast || 0) + (p.stl || 0) + (p.blk || 0) + (p.fr || 0) - miss - (p.to || 0) - (p.fc || 0);   // la misma valoración que el editor
+  });
+  m.editedAt = Date.now();
+  if (typeof svL === 'function') svL();
+  if (typeof rAll === 'function') rAll();
+  try { localStorage.removeItem(_cntKey(m.id, _cnt.side)); } catch (e) { }
+  window._cntClose();
+  if (typeof toast === 'function') toast('✅ Stats pasadas al partido');
+};
 // ⏱️ Tiempos muertos en el editor del partido: «min:seg» del partido (tiempo transcurrido, 0:00–40:00; prórrogas desde 40:00) + equipo.
 // Se guardan como una jugada más (type 'timeout') y salen en la cronología, en el cronograma y en «tras pedir tiempo muerto».
 let _meditTO = null;

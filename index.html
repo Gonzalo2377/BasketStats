@@ -12712,6 +12712,123 @@ function exportScoutPDF() {
 
 // ── Utilidades de vídeo/clips reutilizadas por la pestaña 🎬 Vídeo ──
 function _fmtT(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; }
+// Bitrate de los clips: como el original pero con tope de ~4 Mbps en 1080p (~1,8 en 720p): se sigue viendo nítido y
+// cada clip pesa 2-4 veces menos que antes (Cloudinary gratis cobra cada MB que se ve). Mínimo 1,5 Mbps.
+function _clipBps(px, srcBps, dur) {
+  let bps = srcBps ? Math.round(srcBps * 1.2) : Math.round(px * 2);
+  bps = Math.min(Math.round(px * 2), Math.max(1_500_000, bps));
+  return Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, dur + 2)));   // < 85 MB por clip (límite de Cloudinary; R2 admite hasta 300 MB)
+}
+// Corta el clip del archivo original fotograma a fotograma (WebCodecs), sin reproducirlo: decodifica desde el fotograma clave anterior, codifica H.264
+// y copia el audio AAC. Grabar reproduciendo (_recordSegment) deja en el clip cualquier tirón de ese momento: un fotograma quieto y un trozo de jugada perdido.
+// Solo se leen la cabecera y los fotogramas del clip, así que da igual lo que pese el partido. Si algo no se puede (no es MP4, códec raro…) lanza error y se graba como antes.
+// MP4 fragmentado (cámaras tipo Veo, OBS…): el índice va repartido en una caja moof por cada trozo. Se leen solo las moof, saltando la imagen.
+const _fragCache = new WeakMap();   // se lee una vez por archivo: los siguientes clips del mismo partido salen directos
+async function _mp4FragSamples(file, mp4) {
+  if (_fragCache.has(file)) return _fragCache.get(file);
+  const trex = {}; ((mp4.moov.mvex && mp4.moov.mvex.trexs) || []).forEach(t => { trex[t.track_id] = t; });
+  const scale = {}; mp4.moov.traks.forEach(t => { scale[t.tkhd.track_id] = t.mdia.mdhd.timescale; });
+  const out = {}, next = {};
+  for (let pos = 0; pos + 8 <= file.size;) {
+    const hd = new DataView(await file.slice(pos, pos + 16).arrayBuffer());
+    let z = hd.getUint32(0); const type = String.fromCharCode(hd.getUint8(4), hd.getUint8(5), hd.getUint8(6), hd.getUint8(7));
+    if (z === 1) z = Number(hd.getBigUint64(8)); else if (z === 0) z = file.size - pos;
+    if (z < 8) break;
+    if (type === 'moof') {
+      const d = new DataView(await file.slice(pos, pos + z).arrayBuffer()), moof = pos;
+      const kids = (a, e, fn) => { for (let p = a; p + 8 <= e;) { const n = d.getUint32(p); if (n < 8) break; fn(String.fromCharCode(d.getUint8(p + 4), d.getUint8(p + 5), d.getUint8(p + 6), d.getUint8(p + 7)), p + 8, p + n); p += n; } };
+      kids(8, z, (t, a, e) => { if (t !== 'traf') return;
+        let id = 0, base = moof, dd = 0, ds = 0, df = 0, dts = null, off = null;
+        kids(a, e, (t2, a2) => {
+          if (t2 === 'tfhd') { const fl = d.getUint32(a2) & 0xffffff; id = d.getUint32(a2 + 4); let p = a2 + 8; const x = trex[id] || {}; dd = x.default_sample_duration || 0; ds = x.default_sample_size || 0; df = x.default_sample_flags || 0;
+            if (fl & 1) { base = Number(d.getBigUint64(p)); p += 8; } if (fl & 2) p += 4; if (fl & 8) { dd = d.getUint32(p); p += 4; } if (fl & 0x10) { ds = d.getUint32(p); p += 4; } if (fl & 0x20) df = d.getUint32(p); }
+          if (t2 === 'tfdt') dts = d.getUint8(a2) ? Number(d.getBigUint64(a2 + 4)) : d.getUint32(a2 + 4);
+          if (t2 === 'trun') { const v = d.getUint8(a2), fl = d.getUint32(a2) & 0xffffff, n = d.getUint32(a2 + 4); let p = a2 + 8, ff = null;
+            if (fl & 1) { off = base + d.getInt32(p); p += 4; } else if (off == null) off = base;
+            if (fl & 4) { ff = d.getUint32(p); p += 4; }
+            if (dts == null) dts = next[id] || 0;
+            const list = out[id] || (out[id] = []);
+            for (let i = 0; i < n; i++) { let du = dd, si = ds, sf = i === 0 && ff != null ? ff : df, ct = 0;
+              if (fl & 0x100) { du = d.getUint32(p); p += 4; } if (fl & 0x200) { si = d.getUint32(p); p += 4; } if (fl & 0x400) { sf = d.getUint32(p); p += 4; } if (fl & 0x800) { ct = v ? d.getInt32(p) : d.getUint32(p); p += 4; }
+              list.push({ offset: off, size: si, dts, cts: dts + ct, duration: du, timescale: scale[id], is_sync: !(sf & 0x10000) }); off += si; dts += du; }
+            next[id] = dts; } }); });
+    }
+    pos += z;
+  }
+  _fragCache.set(file, out);
+  return out;
+}
+async function _cutClipExact(file, inT, outT, onProgress, vid) {
+  if (!file || typeof VideoEncoder !== 'function' || typeof VideoDecoder !== 'function' || typeof OffscreenCanvas !== 'function') throw new Error('sin WebCodecs');
+  if (String.fromCharCode(...new Uint8Array(await file.slice(4, 8).arrayBuffer())) !== 'ftyp') throw new Error('no es MP4');
+  const [MP4Box, { Muxer, ArrayBufferTarget }] = await Promise.all([import('https://cdn.jsdelivr.net/npm/mp4box@0.5.3/+esm'), import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm')]);
+  const mp4 = MP4Box.createFile(false); let info = null, failed = null;
+  mp4.onError = e => { failed = new Error('MP4: ' + e); }; mp4.onReady = i => { info = i; };
+  for (let pos = 0; !info && !failed && pos < file.size;) {   // appendBuffer dice por dónde seguir: se salta los datos de imagen hasta el índice
+    const buf = await file.slice(pos, pos + 2097152).arrayBuffer(); buf.fileStart = pos;
+    const next = mp4.appendBuffer(buf); pos = next > pos ? next : pos + buf.byteLength;
+  }
+  if (failed || !info) throw failed || new Error('MP4 sin índice');
+  const vt = info.videoTracks[0], atAny = info.audioTracks[0], at = atAny && /^mp4a/.test(atAny.codec) ? atAny : null;
+  if (!vt || (atAny && !at)) throw new Error('pistas no compatibles');
+  const frag = info.isFragmented ? await _mp4FragSamples(file, mp4) : null, samplesOf = id => frag ? frag[id] || [] : mp4.getTrackSamplesInfo(id) || [];
+  const vS = samplesOf(vt.id); if (!vS.length) throw new Error('MP4 sin fotogramas');
+  const sw = vt.video.width, sh = vt.video.height;
+  if (vid && vid.videoWidth && (vid.videoWidth !== sw || vid.videoHeight !== sh)) throw new Error('vídeo girado');
+  const entry = mp4.getTrackById(vt.id).mdia.minf.stbl.stsd.entries[0], cBox = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
+  let description; if (cBox) { const s = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN); cBox.write(s); description = new Uint8Array(s.buffer, 8); }
+  const dcfg = { codec: vt.codec, codedWidth: sw, codedHeight: sh, description };
+  if (!(await VideoDecoder.isConfigSupported(dcfg)).supported) throw new Error('códec no soportado: ' + vt.codec);
+
+  const us = s => Math.round(s.cts * 1e6 / s.timescale), base = Math.min(...vS.slice(0, 30).map(us));   // el inicio del vídeo en el reproductor (lista de edición)
+  const t0 = base + Math.round(inT * 1e6), t1 = base + Math.round(outT * 1e6);
+  const srcFps = vS.length / Math.max(0.1, (us(vS[vS.length - 1]) - base) / 1e6);
+  if (us(vS[vS.length - 1]) < t0) throw new Error('índice incompleto');
+  let a = 0; vS.forEach((s, i) => { if (s.is_sync && us(s) <= t0) a = i; });
+  let b = vS.findIndex(s => us(s) >= t1); b = b < 0 ? vS.length : Math.min(vS.length, b + 8);   // unos de más: con fotogramas B el orden de decodificar no es el de mostrar
+  const expected = vS.slice(a, b).filter(s => us(s) >= t0 && us(s) < t1).length;
+  if (expected < (Math.min(outT, vid && vid.duration || outT) - inT) * srcFps * 0.9) throw new Error('índice incompleto');
+
+  const H = sh & ~1, W = sw & ~1, fps = Math.min(60, Math.max(10, Math.round(srcFps))) || 30;
+  const srcBps = (vid && vid.duration) ? file.size * 8 / vid.duration : 0, bitrate = _clipBps(W * H, srcBps, outT - inT);
+  let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.640032', 'avc1.640033', 'avc1.4d0028', 'avc1.42e01f']) { const c = { codec, width: W, height: H, bitrate, framerate: fps, avc: { format: 'avc' } };
+    try { if ((await VideoEncoder.isConfigSupported(c)).supported) { cfg = c; break; } } catch (e) { } }
+  if (!cfg) throw new Error('sin codificador H.264');
+  let aDesc, aS = [];
+  if (at) { try { aDesc = mp4.getTrackById(at.id).mdia.minf.stbl.stsd.entries[0].esds.esd.descs[0].descs[0].data; } catch (e) { } if (!aDesc) throw new Error('audio no compatible');
+    const all = samplesOf(at.id), aBase = all.length ? us(all[0]) : 0;
+    aS = all.filter(s => us(s) - aBase >= inT * 1e6 && us(s) - aBase < outT * 1e6).map(s => ({ s, t: us(s) - aBase - Math.round(inT * 1e6) })); }
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), fastStart: 'in-memory', firstTimestampBehavior: 'offset',
+    video: { codec: 'avc', width: W, height: H }, audio: at ? { codec: 'aac', numberOfChannels: at.audio.channel_count, sampleRate: at.audio.sample_rate } : undefined });
+  let err = null, nIn = 0, nOut = 0;
+  const enc = new VideoEncoder({ output: (c, m) => { nOut++; muxer.addVideoChunk(c, m); }, error: e => { err = e; } }); enc.configure(cfg);
+  const cv = new OffscreenCanvas(W, H), cx = cv.getContext('2d');
+  const dec = new VideoDecoder({ output: f => { try { const t = f.timestamp; if (t < t0 || t >= t1) return; cx.drawImage(f, 0, 0, W, H);
+      const nf = new VideoFrame(cv, { timestamp: t - t0, duration: f.duration || Math.round(1e6 / fps) }); enc.encode(nf, { keyFrame: nIn % (fps * 2) === 0 }); nf.close(); nIn++;
+      if (onProgress && nIn % 10 === 0) onProgress(Math.min(99, Math.round(nIn / expected * 100))); } finally { f.close(); } }, error: e => { err = e; } });
+  dec.configure(dcfg);
+  const read = s => file.slice(s.offset, s.offset + s.size).arrayBuffer(), idle = () => new Promise(r => setTimeout(r, 0));
+  const addAudio = async q => { muxer.addAudioChunkRaw(new Uint8Array(await read(q.s)), 'key', q.t, Math.round(q.s.duration * 1e6 / q.s.timescale),
+    aFirst ? { decoderConfig: { codec: at.codec, sampleRate: at.audio.sample_rate, numberOfChannels: at.audio.channel_count, description: aDesc } } : undefined); aFirst = false; };
+  let ai = 0, aFirst = true;
+  try {
+    for (let i = a; i < b; i++) {
+      const s = vS[i];
+      while (!err && (dec.decodeQueueSize > 8 || enc.encodeQueueSize > 8)) await idle();
+      if (err) throw err;
+      dec.decode(new EncodedVideoChunk({ type: s.is_sync ? 'key' : 'delta', timestamp: us(s), duration: Math.round(s.duration * 1e6 / s.timescale), data: await read(s) }));
+      for (; ai < aS.length && aS[ai].t <= us(s) - t0; ai++) await addAudio(aS[ai]);   // el audio, intercalado con la imagen
+    }
+    await dec.flush(); await enc.flush();
+    for (; ai < aS.length; ai++) await addAudio(aS[ai]);
+  } finally { try { dec.close(); } catch (e) { } try { enc.close(); } catch (e) { } }
+  if (err) throw err;
+  if (nOut < expected * 0.98) throw new Error(`faltan fotogramas (${nOut} de ${expected})`);
+  muxer.finalize(); if (onProgress) onProgress(100);
+  return new Blob([muxer.target.buffer], { type: 'video/mp4' });
+}
+window.__baCutClip = _cutClipExact;   // (para las pruebas)
 function _recordSegment(vid, inT, outT, onProgress) {
   return new Promise((resolve, reject) => {
     if (!vid.captureStream && !vid.mozCaptureStream) {
@@ -12728,12 +12845,7 @@ function _recordSegment(vid, inT, outT, onProgress) {
                   'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
       .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
     const px = (vid.videoWidth || 1920) * (vid.videoHeight || 1080);
-    // Bitrate: como el original pero con tope de ~4 Mbps en 1080p (~1,8 en 720p): se sigue viendo nítido y
-    // cada clip pesa 2-4 veces menos que antes (Cloudinary gratis cobra cada MB que se ve). Mínimo 1,5 Mbps.
-    const srcBps = (window._vSrcSize && vid.duration) ? window._vSrcSize * 8 / vid.duration : 0;
-    let bps = srcBps ? Math.round(srcBps * 1.2) : Math.round(px * 2);
-    bps = Math.min(Math.round(px * 2), Math.max(1_500_000, bps));
-    bps = Math.min(bps, Math.floor(85e6 * 8 / Math.max(1, outT - inT + 2)));   // < 85 MB por clip (límite de Cloudinary; R2 admite hasta 300 MB)
+    const srcBps = (window._vSrcSize && vid.duration) ? window._vSrcSize * 8 / vid.duration : 0, bps = _clipBps(px, srcBps, outT - inT);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -15553,11 +15665,11 @@ let _vMatchKey=null,_vIn=null,_vOut=null,_vSide='',_vCat='',_vSpeed=1,_vRewind=n
 
 function vEl(){return document.getElementById('v-video');}
 
-let _vSrcUrl=null;
+let _vSrcUrl=null,_vSrcFile=null;
 function vLoadVideo(evt){
   const f=evt.target.files[0];if(!f)return;
   const v=vEl();
-  _vSrcUrl=URL.createObjectURL(f);
+  _vSrcUrl=URL.createObjectURL(f);_vSrcFile=f;
   window._vSrcSize=f.size;   // para ajustar la calidad de los clips al vídeo original
   v.src=_vSrcUrl;
   document.getElementById('v-name').textContent=f.name;
@@ -15633,7 +15745,7 @@ function vScrub(val){
 
 // ── Background job queue: hidden-player x1 recording → upload ───────────────
 const _vJobs=[];let _vBusy=false;
-function _vEnqueue(job){job.src=job.src||_vSrcUrl;job.size=job.size||window._vSrcSize;_vJobs.push(job);_vProcess();}
+function _vEnqueue(job){job.src=job.src||_vSrcUrl;job.file=job.file||_vSrcFile;job.size=job.size||window._vSrcSize;_vJobs.push(job);_vProcess();}
 async function _vProcess(){
   if(_vBusy)return;_vBusy=true;
   while(_vJobs.length){await _vRunJob(_vJobs.shift());}
@@ -15642,7 +15754,7 @@ async function _vProcess(){
 
 async function _vRunJob(job){
     const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
-    _vUploads[clipId]={name,pct:0,phase:'⏺ Grabando'};_vRenderUploads();
+    _vUploads[clipId]={name,pct:0,phase:'✂️ Cortando'};_vRenderUploads();
     let hv=null;
     try{
         hv=document.createElement('video');
@@ -15655,7 +15767,11 @@ async function _vRunJob(job){
             setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
         });
         if(job.size)window._vSrcSize=job.size;
-        const blob=await _recordSegment(hv,inT,outT,p=>{
+        // Corte exacto del archivo; si este vídeo no lo permite, se graba reproduciéndolo como siempre
+        let blob=null;
+        try{blob=await _cutClipExact(job.file,inT,outT,p=>{_vUploads[clipId].pct=p;_vRenderUploads();},hv);}
+        catch(e){console.warn('Corte exacto no disponible, se graba en tiempo real:',e);}
+        if(!blob)blob=await _recordSegment(hv,inT,outT,p=>{
             _vUploads[clipId].pct=p;_vUploads[clipId].phase='⏺ Grabando';_vRenderUploads();
         });
         _vUploads[clipId].phase='☁️ Subiendo';_vUploads[clipId].pct=0;_vRenderUploads();
@@ -30251,7 +30367,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       const s = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN); b.write(s); return new Uint8Array(s.buffer, 8); })();
     const sw = vt.track_width || vt.video.width, sh = vt.track_height || vt.video.height;
     const H = Math.min(720, sh) & ~1, W = Math.round(sw * H / sh / 2) * 2, dur = vt.duration / vt.timescale || v.duration || 1;
-    const fps = Math.min(60, Math.max(10, Math.round(vt.nb_samples / dur))) || 30;
+    const fps = vt.nb_samples ? Math.min(60, Math.max(10, Math.round(vt.nb_samples / dur))) : 30;   // fragmentado: la cabecera aún no dice cuántos fotogramas hay
     const bps = Math.round(Math.max(700000, Math.min(1000000 * (W * H) / (1280 * 720), (MAXMB - 8) * 1048576 * 8 / dur - 130000)));
     let cfg = null;
     for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42e01f']) { const c = { codec, width: W, height: H, bitrate: bps, framerate: fps, avc: { format: 'avc' } };
@@ -30260,7 +30376,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const aE = at && mp4.getTrackById(at.id).mdia.minf.stbl.stsd.entries[0];
     let aDesc; try { aDesc = aE.esds.esd.descs[0].descs[0].data; } catch (e) { }
     const muxer = new Muxer({ target: new ArrayBufferTarget(), fastStart: 'in-memory', firstTimestampBehavior: 'offset',
-      video: { codec: 'avc', width: W, height: H, frameRate: fps }, audio: at && aDesc ? { codec: 'aac', numberOfChannels: at.audio.channel_count, sampleRate: at.audio.sample_rate } : undefined });
+      video: { codec: 'avc', width: W, height: H }, audio: at && aDesc ? { codec: 'aac', numberOfChannels: at.audio.channel_count, sampleRate: at.audio.sample_rate } : undefined });
     let err = null, nIn = 0, nOut = 0, lastT = 0;
     const enc = new VideoEncoder({ output: (c, m) => { nOut++; muxer.addVideoChunk(c, m); }, error: e => { err = e; } });
     enc.configure(cfg);

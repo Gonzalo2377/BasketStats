@@ -4087,6 +4087,56 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 .pw-ht.info{background:#f0f9ff;border:1px solid #bae6fd;color:#075985}.pw-ht.warn{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}
 .pw-ht a{color:inherit;font-weight:800}
 @media (max-width:640px){.pw-grid{grid-template-columns:1fr}}
+.pw-go{font-size:12.5px;padding:8px 14px}
+.pw-keys{display:block;margin-top:4px;color:var(--t3,#64748b);font-size:10.5px}
+.pw-dlp{margin:6px 0}
+/* capa sobre el vídeo: HUD, barra de edición y popup de clasificar */
+.pw-ov{position:absolute;inset:0;pointer-events:none;z-index:50;font-family:inherit}
+.pw-ov>*{pointer-events:auto}
+.pw-ov kbd{font:700 10px monospace;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:0 4px;color:#e2e8f0}
+.pw-hud{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(15,23,42,.78);backdrop-filter:blur(6px);color:#e2e8f0;font-size:12px;padding:5px 6px 5px 12px;border-radius:20px;white-space:nowrap;max-width:94%}
+.pw-hud .pw-tm{font-weight:800}
+.pw-mini{background:rgba(30,41,59,.92);border:1px solid rgba(255,255,255,.16);color:#f1f5f9;border-radius:14px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pw-mini:hover{background:#334155}
+.pw-okm{background:#16a34a;border-color:#16a34a}
+.pw-flash{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.96);background:rgba(15,23,42,.88);color:#fff;font-weight:800;font-size:15px;padding:10px 18px;border-radius:12px;opacity:0;transition:opacity .18s,transform .18s;pointer-events:none!important;text-align:center}
+.pw-flash.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pw-editbar{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);width:min(680px,94%);display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(15,23,42,.88);backdrop-filter:blur(8px);color:#e2e8f0;font-size:12px;padding:8px 10px;border-radius:12px;border:1px solid rgba(249,115,22,.6)}
+.pw-et{font-weight:900;color:#fdba74}
+.pw-mk{padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.06)}.pw-mk i{color:#94a3b8;font-style:normal;font-size:10.5px}
+.pw-mk.set{background:rgba(34,197,94,.18);color:#bbf7d0}
+.pw-pop{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(600px,94%);max-height:calc(100% - 24px);overflow:auto;animation:pwIn .18s ease-out}
+@keyframes pwIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+.pw-pop-top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.pw-pos{flex:1;color:#e2e8f0;font-size:11.5px;font-weight:600;background:rgba(15,23,42,.8);border-radius:14px;padding:5px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-box{background:rgba(15,23,42,.93);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:9px;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+.pw-seg{display:flex;gap:6px}
+.pw-seg button{flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #334155;background:transparent;color:#cbd5e1;font-weight:800;font-size:13px;cursor:pointer;transition:background .12s}
+.pw-seg button:hover{border-color:#64748b}
+.pw-seg .on.local{background:#3b82f6;border-color:#3b82f6;color:#fff}.pw-seg .on.away{background:#f59e0b;border-color:#f59e0b;color:#fff}
+.pw-seg .on.ataque{background:#22c55e;border-color:#22c55e;color:#fff}.pw-seg .on.defensa{background:#ef4444;border-color:#ef4444;color:#fff}
+.pw-chips{display:flex;flex-wrap:wrap;gap:5px;border-radius:9px}
+.pw-chips button{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1.5px solid #334155;background:rgba(255,255,255,.04);color:#e2e8f0;font-size:12px;font-weight:700;cursor:pointer}
+.pw-chips button i{font:700 9.5px monospace;color:#94a3b8;font-style:normal}
+.pw-chips button:hover{border-color:#64748b}
+.pw-chips button.on{background:#f97316;border-color:#f97316;color:#fff}.pw-chips button.on i{color:#ffedd5}
+.pw-chips .pw-new{border-style:dashed;color:#94a3b8}
+.pw-chips.need{animation:pwShake .35s}
+@keyframes pwShake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pw-nf,.pw-lab{padding:8px 11px;border-radius:9px;border:1.5px solid #334155;background:#0b1220;color:#f1f5f9;font-size:12.5px;outline:none}
+.pw-nf{flex:1;min-width:160px;border-color:#f97316;border-radius:16px;padding:6px 11px}
+.pw-lab:focus,.pw-nf:focus{border-color:#f97316}
+.pw-acts{display:flex;align-items:center;gap:6px}
+.pw-acts button{border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:800;cursor:pointer;border:1.5px solid transparent}
+.pw-x{background:transparent;border-color:#7f1d1d!important;color:#fca5a5}.pw-x:hover{background:rgba(239,68,68,.15)}
+.pw-skip{background:transparent;border-color:#334155!important;color:#cbd5e1}
+.pw-ok{background:#16a34a;color:#fff;padding:8px 18px!important}.pw-ok:hover{background:#15803d}
+.pw-ok kbd{background:rgba(0,0,0,.2)}
+.pw-done{align-items:stretch;text-align:center}.pw-done .pw-help{color:#cbd5e1}
+.pw-big{color:#fff;font-weight:900;font-size:15px}
+:fullscreen .pw-pop{width:min(680px,90%);bottom:24px}
+:fullscreen .pw-seg button{font-size:14px;padding:11px 6px}
+@media (max-width:640px){.pw-pop-top .pw-pos{display:none}.pw-seg button{font-size:12px;padding:8px 4px}}
 
 </style>
 </head>
@@ -20487,7 +20537,7 @@ setTimeout(()=>{ drawCourtOnCanvas('db-cv'); },300);
 
 window.renderClipsLibrary = window.renderVideoLib || renderVideoLib;
 // 🤖 Posesiones automáticas (posw.js, fuera del módulo): acceso de solo lectura al vídeo cargado y a la biblioteca
-window.__vid = { get key(){ return _vMatchKey; }, get file(){ return _vSrcFile; }, get url(){ return _vSrcUrl; }, lib: (k, c) => _vLib(k, c) };
+window.__vid = { get key(){ return _vMatchKey; }, get file(){ return _vSrcFile; }, get url(){ return _vSrcUrl; }, lib: (k, c) => _vLib(k, c), cut: _cutClipExact, rec: _recordSegment, Zip: _ZipStore, crc: _crc32 };
 
 /* ── Mejoras: temporadas, casa/fuera y estadísticas avanzadas ── */
 function _teamLabel(t){return `${t.name}${t.season&&t.season!=='Sin temporada'?` (${t.season})`:''}`;}
@@ -30932,6 +30982,16 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   function halftimeInfo(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (p[1] - p[0] > Math.min(1800, dur * 0.4)) continue; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; }
     return best ? { t: (best[0] + best[1]) / 2, a: best[0], b: best[1], len: best[1] - best[0] } : null; }
   function halftimeGuess(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; } return best ? (best[0] + best[1]) / 2 : dur / 2; }
+  // vídeo editado sin el descanso: el salto de imagen más claro de la zona central del vídeo (cambio de plano)
+  function halftimeCut(F) {
+    if (!F || !F.sc) return null; const n = F.n, sc = F.sc, cov = F.cov, W = 20, lo = Math.floor(n * 0.3), hi = Math.ceil(n * 0.75); let best = null, second = 0;
+    for (let i = lo; i < hi; i++) { if (cov && !cov[i]) continue; const nb = [];
+      for (let j = Math.max(0, i - W); j <= Math.min(n - 1, i + W); j++) if (Math.abs(j - i) > 1 && (!cov || cov[j])) nb.push(sc[j]);
+      if (nb.length < 10) continue; nb.sort((x, y) => x - y); const m = nb[nb.length >> 1], q = nb[Math.floor(nb.length * 0.9)];
+      if (sc[i] < q * 1.3) continue; const z = (sc[i] - m) / (m + 1);
+      if (!best || z > best.z) { if (best && i - best.i > W) second = Math.max(second, best.z); best = { i, z, t: (i + 0.5) / F.fs }; } else if (i - best.i > W) second = Math.max(second, z); }
+    return best && best.z >= 1.2 && best.z >= second * 1.25 ? { t: best.t, z: best.z, second } : null;
+  }
   function assignTeams(clips, meta, pz, dur) {
     meta = meta || {}; const ht = meta.full === false ? Infinity : meta.halftime != null ? meta.halftime : meta.htAuto != null ? meta.htAuto : halftimeGuess(pz, dur), rf = meta.rightFirst || 'A', o = rf === 'A' ? 'B' : 'A';
     clips.forEach(c => { const first = c.t0 < ht; c.team = (c.side === 'R') === first ? rf : o; });
@@ -30986,7 +31046,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     return top && top[1] >= Math.ceil(k * 0.6) && counts[top[0]] >= 5 ? { tag: top[0], conf: top[1] / k } : null;
   }
 
-  G.POS = { DEF, DEF_AUTO, halftimeInfo, track, pauses, segment, assignTeams, halftimeGuess, score, learn, clipFeat, suggest, iou };
+  G.POS = { DEF, DEF_AUTO, halftimeInfo, halftimeCut, track, pauses, segment, assignTeams, halftimeGuess, score, learn, clipFeat, suggest, iou };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* Posesiones · lectura del vídeo (cámara fija): reproduce el partido a x16 en un vídeo oculto y, para cada fotograma,
@@ -31023,7 +31083,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const cv = document.createElement('canvas'); cv.width = W; cv.height = h; const cx = cv.getContext('2d', { willReadFrequently: true });
     const auto = calib.mode === 'auto', { map, px } = auto ? autoMap(W, h) : binMap(calib, W, h), n = Math.ceil(dur * FS);
     const pan = new Float32Array(n), panAcc = { p: 0 }, y0b = Math.round(h * 0.12), y1b = Math.round(h * 0.45), MAXD = 80;
-    const fg = new Float32Array(n * NB), df = new Float32Array(n * NB), cnt = new Uint16Array(n);
+    const fg = new Float32Array(n * NB), df = new Float32Array(n * NB), cnt = new Uint16Array(n), sc = new Float32Array(n);   // sc: cambio de imagen entre fotogramas (para encontrar cortes de vídeo editado)
     let bg = null, prev = null, lastT = -1, frames = 0, t0wall = performance.now();
     const gray = new Float32Array(W * h);
     await new Promise(done => {
@@ -31045,7 +31105,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
           }
           let sub = best; const a1 = sad[best + MAXD - 1], a2 = sad[best + MAXD + 1];
           if (isFinite(a1) && isFinite(a2) && a1 + a2 - 2 * bv > 1e-6) sub = best + 0.5 * (a1 - a2) / (a1 + a2 - 2 * bv);
-          if (bv < 40) panAcc.p += sub;   // si no encaja nada (cambio de plano, repetición), no se suma
+          if (bv < 40) panAcc.p += sub; if (bv > sc[slot]) sc[slot] = bv;   // si no encaja nada (cambio de plano, repetición), no se suma
           // 2) dónde se mueven los jugadores dentro de la imagen (restando el giro de la cámara), por columnas
           const o = slot * NB, ys = Math.round(h * 0.4), ye = Math.round(h * 0.85);
           for (let y = ys; y < ye; y++) { const r = y * W; for (let x = Math.max(0, -best); x < Math.min(W, W - best); x++) { const b = map[r + x]; if (b < 0) continue; if (Math.abs(gray[r + x] - prev[r + x + best]) > 18) { df[o + b]++; fg[o + b]++; } } }
@@ -31053,12 +31113,13 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
           cnt[slot]++; lastT = t; frames++;
           if (frames % 40 === 0 && onProg) onProg(t / dur, (performance.now() - t0wall) / 1000);
         } else if (t > lastT + 0.001) {
-          const o = slot * NB;
+          const o = slot * NB; let sd = 0;
           for (let i = 0; i < W * h; i++) {
-            const b = map[i]; const g = gray[i];
+            const b = map[i]; const g = gray[i]; sd += Math.abs(g - prev[i]);
             if (b >= 0) { if (Math.abs(g - bg[i]) > 22) fg[o + b]++; if (Math.abs(g - prev[i]) > 18) df[o + b]++; }
             bg[i] += a * (g - bg[i]); prev[i] = g;
           }
+          sd /= W * h; if (sd > sc[slot]) sc[slot] = sd;
           cnt[slot]++; lastT = t; frames++;
           if (frames % 40 === 0 && onProg) onProg(t / dur, (performance.now() - t0wall) / 1000);
         }
@@ -31081,7 +31142,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     for (let i = 1; i < n; i++) if (!cnt[i]) for (let b = 0; b < NB; b++) { fg[i * NB + b] = fg[(i - 1) * NB + b]; df[i * NB + b] = df[(i - 1) * NB + b]; }
     const filled = cnt.reduce((s, c) => s + (c ? 1 : 0), 0);
     const cov = new Uint8Array(n); for (let i = 0; i < n; i++) cov[i] = cnt[i] ? 1 : 0;
-    return { fs: FS, nb: NB, n, dur, fg, df, cov, mode: auto ? 'auto' : 'fixed', pan: auto ? pan : undefined, coverage: filled / n, secs: (performance.now() - t0wall) / 1000 };
+    return { fs: FS, nb: NB, n, dur, fg, df, cov, sc, mode: auto ? 'auto' : 'fixed', pan: auto ? pan : undefined, coverage: filled / n, secs: (performance.now() - t0wall) / 1000 };
   }
 
   G.POSAN = { analyze, binMap, autoMap, NB, FS };
@@ -31125,7 +31186,6 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     G = G || { id, name: __vid.file.name, size: __vid.file.size, calib: null, meta: { rightFirst: 'A' }, clips: [], analyzed: false };
     G.meta.A = n.A; G.meta.B = n.B; setup();
   };
-  window.pwClose = function () { active = false; cur = -1; const p = panel(); if (p) { p.innerHTML = ''; p.style.display = 'none'; } if (window.vCancelClip) window.vCancelClip(); };
 
   // ── 1) preparar: tipo de cámara, tipo de vídeo y (si es fija) marcar la pista ──
   function setup() {
@@ -31209,119 +31269,227 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   // ── descanso: solo si es el partido entero; si no se encuentra claro, se pide al staff ──
   const isFull = () => G.meta.full != null ? G.meta.full : (G.dur || 0) > 50 * 60;
   function setHalftime() {
-    if (!isFull()) { G.meta.htAuto = null; G.meta.htSure = false; return; }
-    const pz = POS.segment(F, P, { ...G.meta, full: false }).pauses, h = POS.halftimeInfo(pz, F.dur);
-    G.meta.htAuto = h ? h.t : F.dur / 2; G.meta.htSure = !!h && h.len >= 240; G.meta.htRange = G.meta.htSure ? [h.a, h.b] : null;
+    if (!isFull()) { G.meta.htAuto = null; G.meta.htSure = false; G.meta.htKind = null; return; }
+    // 1º un parón largo (descanso grabado) · 2º si el vídeo está editado, el corte de la zona central · 3º un parón más corto · si no, la mitad del vídeo
+    const pz = POS.segment(F, P, { ...G.meta, full: false }).pauses, h = POS.halftimeInfo(pz, F.dur), cut = POS.halftimeCut && POS.halftimeCut(F);
+    G.meta.htRange = null; G.meta.htSure = false;
+    if (h && h.len >= 240) { G.meta.htAuto = h.t; G.meta.htSure = true; G.meta.htKind = 'pause'; G.meta.htRange = [h.a, h.b]; }
+    else if (cut) { G.meta.htAuto = cut.t; G.meta.htSure = true; G.meta.htKind = 'cut'; }
+    else if (h && h.len >= 90) { G.meta.htAuto = h.t; G.meta.htKind = 'short'; G.meta.htRange = [h.a, h.b]; }
+    else { G.meta.htAuto = F.dur / 2; G.meta.htKind = 'mid'; }
   }
   function renderHT() {
     const e = $('pw-ht'); if (!e) return; const full = isFull(); $('pw-half').style.display = full ? '' : 'none'; e.className = 'pw-ht';
     if (!full) { e.classList.add('info'); e.innerHTML = 'Vídeo sin descanso: los equipos no cambian de canasta.'; return; }
     if (G.meta.halftime != null) { e.classList.add('info'); e.innerHTML = `⏸ Descanso marcado en <b>${fmt(G.meta.halftime)}</b>: a partir de ahí los equipos cambian de canasta.`; return; }
-    if (G.meta.htSure) { e.classList.add('info'); e.innerHTML = `⏸ Descanso detectado entre <b>${fmt(G.meta.htRange[0])}</b> y <b>${fmt(G.meta.htRange[1])}</b>: ahí cambian de canasta. <a href="#" id="pw-htgo">Ver</a> · si no es ahí, ve al momento y pulsa «⏸ El descanso es aquí».`;
-      $('pw-htgo').onclick = ev => { ev.preventDefault(); const v = vid(); v.currentTime = G.meta.htRange[0]; }; return; }
-    e.classList.add('warn'); e.innerHTML = '⚠ <b>No encuentro el descanso.</b> Cuando lo veas en el vídeo, pulsa <b>«⏸ El descanso es aquí»</b> para que los equipos cambien de canasta en la 2ª parte.';
+    const n = names(), rf = G.meta.rightFirst === 'B' ? n.B : n.A, side = `1ª parte: <b>${esc(rf)}</b> ataca la canasta de la derecha (como indicaste) · 2ª parte, al revés.`;
+    const goHT = t => { const a = $('pw-htgo'); if (a) a.onclick = ev => { ev.preventDefault(); vid().currentTime = Math.max(0, t); }; };
+    const fix = ' Si no es ahí, ve al momento y pulsa «⏸ El descanso es aquí».';
+    if (G.meta.htKind === 'cut') { e.classList.add('info'); e.innerHTML = `✂️ Vídeo editado: el descanso es el corte de <b>${fmt(G.meta.htAuto)}</b> (<a href="#" id="pw-htgo">ver</a>). ${side}${fix}`; return goHT(G.meta.htAuto - 5); }
+    if (G.meta.htSure && G.meta.htRange) { e.classList.add('info'); e.innerHTML = `⏸ Descanso entre <b>${fmt(G.meta.htRange[0])}</b> y <b>${fmt(G.meta.htRange[1])}</b> (<a href="#" id="pw-htgo">ver</a>). ${side}${fix}`; return goHT(G.meta.htRange[0]); }
+    e.classList.add('warn');
+    if (G.meta.htKind === 'short') { e.innerHTML = `⚠ Creo que el descanso es el parón de <b>${fmt(G.meta.htRange[0])}</b>–<b>${fmt(G.meta.htRange[1])}</b> (<a href="#" id="pw-htgo">ver</a>), pero no estoy seguro. ${side}${fix}`; return goHT(G.meta.htRange[0]); }
+    e.innerHTML = `⚠ <b>No encuentro el descanso</b>: de momento cambio de canasta a mitad del vídeo (<b>${fmt(G.meta.htAuto || 0)}</b>). ${side} Cuando veas el descanso, pulsa <b>«⏸ El descanso es aquí»</b>.`;
   }
 
-  // ── 2) revisar una a una ──
+
+  // ══ 2) CLASIFICAR: en el propio reproductor (mejor en pantalla grande) ══
+  // Cada posesión se reproduce; al acabar sale el popup (equipo · ataque/defensa · carpeta · descripción).
+  // Al guardar se llama al «✂️ Guardar» de siempre (vSaveClip): el corte y la subida son exactamente los de antes.
+  // ✏️ Editar: I marca el inicio y O el final; la marca que no se toque se queda la del corte automático.
+  let mode = 'off', sel = {}, ed = null, spd = 1, tick = 0, flashT = 0, dl = null;
+  const att = c => c.team === 'A' ? 'local' : 'away';
+  const other = s => s === 'local' ? 'away' : 'local';
+  const tname = s => { const n = names(); return s === 'local' ? n.A : n.B; };
+
   function review() {
     active = true; const p = panel(); p.style.display = 'block';
     p.innerHTML = `<div class="pw-card">
       <div class="pw-hd">🤖 Posesiones <span id="pw-cnt" class="pw-cnt"></span><span class="pw-sp"></span>
-        <button class="pw-b" id="pw-learn" title="Reajusta el detector con lo que habéis guardado, recortado y descartado">🧠 Aprender</button>
-        <button class="pw-b" id="pw-redo" title="Volver a detectar (p. ej. con otro tipo de cámara). Lo revisado se conserva">↻ Reanalizar</button>
-        <button class="pw-b" onclick="pwClose()">✕</button></div>
-      <canvas id="pw-strip" class="pw-strip" width="1000" height="38"></canvas>
+        <button class="pw-b" id="pw-dl" title="Corta y descarga todas las posesiones detectadas, clasificadas o no (menos las descartadas)">⬇ Descargar todas</button>
+        <button class="pw-b" id="pw-learn" title="Reajusta el detector con lo que habéis guardado, editado y descartado">🧠 Aprender</button>
+        <button class="pw-b" id="pw-redo" title="Volver a detectar (p. ej. con otro tipo de cámara). Lo clasificado se conserva">↻ Reanalizar</button>
+        <button class="pw-b" onclick="pwClose()" title="Cerrar">✕</button></div>
+      <canvas id="pw-strip" class="pw-strip" width="1000" height="38" title="Clic en una posesión para ir a ella"></canvas>
       <div id="pw-ht" class="pw-ht"></div>
+      <div id="pw-dlp" class="pw-dlp" style="display:none"></div>
       <div class="pw-row">
-        <button class="pw-b" id="pw-prev" title="↑">◀</button><b id="pw-cur" class="pw-curl"></b><button class="pw-b" id="pw-skip" title="↓ Dejar pendiente y pasar a la siguiente">Siguiente ▶</button>
-        <span class="pw-grp">Inicio <button class="pw-b" data-d="t0,-1">−1s</button><button class="pw-b" data-h="t0">aquí</button><button class="pw-b" data-d="t0,1">+1s</button></span>
-        <span class="pw-grp">Final <button class="pw-b" data-d="t1,-1">−1s</button><button class="pw-b" data-h="t1">aquí</button><button class="pw-b" data-d="t1,1">+1s</button></span>
-        <button class="pw-b" id="pw-replay">↺ Ver otra vez</button>
-        <button class="pw-b pw-no" id="pw-no">✗ Descartar <kbd>X</kbd></button>
+        <button class="btn bp pw-go" id="pw-start">▶ Clasificar en pantalla grande</button>
+        <button class="pw-b" id="pw-here">▶ Aquí, sin pantalla grande</button>
         <button class="pw-b" id="pw-half">⏸ El descanso es aquí</button>
       </div>
-      <div class="pw-help">Elige en el formulario equipo, ataque/defensa, carpeta (o una nueva) y descripción, y pulsa <b>✂️ Guardar</b>: el clip se corta, se sube a la biblioteca y pasa a la siguiente posesión. <kbd>X</kbd> descarta · <kbd>↑</kbd><kbd>↓</kbd> cambian de posesión.</div>
+      <div class="pw-help">Se reproduce cada posesión y al acabar eliges <b>equipo</b>, <b>ataque/defensa</b>, <b>carpeta</b> y <b>descripción</b>. Al guardar pasa a la biblioteca de abajo y salta a la siguiente.
+        <span class="pw-keys"><kbd>Enter</kbd> guardar · <kbd>X</kbd> descartar · <kbd>E</kbd> editar (<kbd>I</kbd> inicio · <kbd>O</kbd> final) · <kbd>R</kbd> ver otra vez · <kbd>1</kbd>–<kbd>9</kbd> carpeta · <kbd>↑</kbd><kbd>↓</kbd> anterior/siguiente · <kbd>L</kbd> más rápido</span></div>
     </div>`;
-    $('pw-prev').onclick = () => go(-1); $('pw-skip').onclick = () => go(1);
-    $('pw-replay').onclick = () => { const c = G.clips[cur]; if (c) play(c); };
-    $('pw-no').onclick = discard;
-    $('pw-half').onclick = () => { G.meta.halftime = +vid().currentTime.toFixed(1); G.clips.filter(c => c.st === 'pend').forEach(c => POS.assignTeams([c], G.meta, SEG ? SEG.pauses : [], G.dur)); save(); renderHT(); drawStrip(); if (cur >= 0) openForm(G.clips[cur]); say('⏸ Descanso en ' + fmt(G.meta.halftime) + ': equipos recolocados'); };
-    $('pw-redo').onclick = () => setup();
+    $('pw-start').onclick = () => { const c = $('v-container'); if (c && !document.fullscreenElement && c.requestFullscreen) c.requestFullscreen().catch(() => { }); startFrom(); };
+    $('pw-here').onclick = () => { $('v-container').scrollIntoView({ behavior: 'smooth', block: 'start' }); startFrom(); };
+    $('pw-half').onclick = () => { G.meta.halftime = +vid().currentTime.toFixed(1); G.clips.filter(c => c.st === 'pend').forEach(c => POS.assignTeams([c], G.meta, SEG ? SEG.pauses : [], G.dur)); save(); renderHT(); drawStrip(); if (mode === 'ask') openPop(); say('⏸ Descanso en ' + fmt(G.meta.halftime) + ': equipos recolocados'); };
+    $('pw-redo').onclick = () => { stopReview(); setup(); };
     $('pw-learn').onclick = learn;
-    p.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.d.split(','); trim(k, G.clips[cur][k] + +d); });
-    p.querySelectorAll('[data-h]').forEach(b => b.onclick = () => trim(b.dataset.h, vid().currentTime));
+    $('pw-dl').onclick = () => dl ? (dl.stop = true) : downloadAll();
     $('pw-strip').onclick = e => { const r = e.target.getBoundingClientRect(), t = (e.clientX - r.left) / r.width * G.dur; let bi = -1, bd = 1e9;
       G.clips.forEach((c, i) => { const d = t < c.t0 ? c.t0 - t : t > c.t1 ? t - c.t1 : 0; if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) show(bi); };
     if (!SEG) SEG = POS.segment(F, P, G.meta);
-    if (G.meta.htSure == null && G.meta.halftime == null && isFull()) { setHalftime(); save(); }
+    if ((G.meta.htSure == null || G.meta.htKind === undefined) && G.meta.halftime == null && isFull()) { setHalftime(); if (SEG) POS.assignTeams(G.clips.filter(c => c.st === 'pend'), G.meta, SEG.pauses, G.dur); save(); }
+    renderHT();
     const pzT = (SEG.pauses || []).reduce((s, p) => s + p[1] - p[0], 0);
-    if (G.dur && pzT > G.dur * 0.5) { const e = $('pw-ht'); setTimeout(() => { e.className = 'pw-ht warn'; e.innerHTML = '⚠ <b>La lectura del vídeo salió incompleta</b> (seguramente la pestaña quedó en segundo plano). Pulsa <b>↻ Reanalizar</b> y deja la pestaña a la vista: lo ya revisado se conserva.'; }, 0); }
-    renderHT(); if (isFull() && G.meta.halftime == null && !G.meta.htSure) say('No encuentro el descanso: márcalo con «⏸ El descanso es aquí»', 'err');
-    const first = G.clips.findIndex(c => c.st === 'pend'); show(first >= 0 ? first : 0);
+    if (G.dur && pzT > G.dur * 0.5) { const e = $('pw-ht'); e.className = 'pw-ht warn'; e.innerHTML = '⚠ <b>La lectura del vídeo salió incompleta</b> (seguramente la pestaña quedó en segundo plano). Pulsa <b>↻ Reanalizar</b> y deja la pestaña a la vista: lo ya clasificado se conserva.'; }
+    buildOverlay(); counter(); drawStrip();
+    if (cur < 0) { const f = G.clips.findIndex(c => c.st === 'pend'); cur = f >= 0 ? f : 0; }
   }
+  function startFrom() { const i = G.clips.findIndex((c, k) => k >= Math.max(0, cur) && c.st === 'pend'); const j = i >= 0 ? i : G.clips.findIndex(c => c.st === 'pend'); if (j < 0) return allDone(); show(j); }
   function counts() { const ok = G.clips.filter(c => c.st === 'ok').length, no = G.clips.filter(c => c.st === 'no').length; return { ok, no, pend: G.clips.length - ok - no }; }
+  function counter() { const k = counts(), e = $('pw-cnt'); if (e) e.textContent = `✓ ${k.ok} clasificadas · ✗ ${k.no} descartadas · ${k.pend} por clasificar`;
+    const s = $('pw-start'); if (s) s.textContent = k.ok + k.no ? '▶ Seguir clasificando en pantalla grande' : '▶ Clasificar en pantalla grande'; }
+
+  // ── capa encima del vídeo (vale igual en pantalla grande y normal) ──
+  function buildOverlay() {
+    const cont = $('v-container'); if (!cont || $('pw-ov')) return;
+    const o = document.createElement('div'); o.id = 'pw-ov'; o.className = 'pw-ov';
+    o.innerHTML = `<div id="pw-hud" class="pw-hud"></div>
+      <div id="pw-flash" class="pw-flash"></div>
+      <div id="pw-editbar" class="pw-editbar"></div>
+      <div id="pw-pop" class="pw-pop"></div>`;
+    cont.appendChild(o);
+  }
+  function stopReview() { mode = 'off'; clearInterval(tick); const o = $('pw-ov'); if (o) o.remove(); }
+  window.pwClose = function () { stopReview(); active = false; cur = -1; const p = panel(); if (p) { p.innerHTML = ''; p.style.display = 'none'; } };
+  function setMode(m) {
+    mode = m; const v = $('pw-ov'); if (!v) return; v.dataset.mode = m;
+    $('pw-pop').style.display = m === 'ask' || m === 'done' ? '' : 'none';
+    $('pw-editbar').style.display = m === 'edit' ? '' : 'none';
+    $('pw-hud').style.display = m === 'play' ? '' : 'none';
+  }
+  function flash(html) { const f = $('pw-flash'); if (!f) return; f.innerHTML = html; f.classList.add('on'); clearTimeout(flashT); flashT = setTimeout(() => f.classList.remove('on'), 1600); }
+
+  // ── reproducir una posesión; al llegar al final, popup ──
   function show(i) {
-    if (!G.clips.length) { $('pw-cur').textContent = 'No se ha detectado ninguna posesión'; return; }
-    cur = Math.max(0, Math.min(G.clips.length - 1, i)); const c = G.clips[cur];
-    curLabel(); drawStrip(); play(c); openForm(c);
+    if (!G.clips.length) return say('No se ha detectado ninguna posesión', 'err');
+    buildOverlay(); cur = Math.max(0, Math.min(G.clips.length - 1, i)); const c = G.clips[cur];
+    ed = null; initSel(c); drawStrip(); counter(); hud(); playClip(c);
   }
-  function curLabel() {
-    const c = G.clips[cur], n = names(), k = counts(); if (!c) return;
-    $('pw-cnt').textContent = `✓ ${k.ok} guardadas · ✗ ${k.no} descartadas · ${k.pend} pendientes`;
-    $('pw-cur').innerHTML = `${cur + 1}/${G.clips.length} · ${fmt(c.t0)}–${fmt(c.t1)} · ataca <span class="pw-tm ${c.team}">${esc(c.team === 'A' ? n.A : n.B)}</span>${c.st === 'ok' ? ' · ✅ guardada' : c.st === 'no' ? ' · ✖ descartada' : ''}`;
+  function playClip(c) {
+    const v = vid(); if (!v) return; setMode('play'); v.currentTime = c.t0;
+    try { window.applyCustomSpeed(spd > 1 ? spd : 1); } catch (e) { v.play().catch(() => { }); }
+    clearInterval(tick); tick = setInterval(() => {
+      if (mode !== 'play') return clearInterval(tick);
+      if (v.currentTime >= c.t1 - 0.05 && v.currentTime < c.t1 + 3) endClip();
+    }, 40);
   }
-  function play(c) { const v = vid(); if (!v) return; try { if (window.applyCustomSpeed) window.applyCustomSpeed(1); } catch (e) { } v.playbackRate = 1; v.currentTime = c.t0; v.play().catch(() => { }); }
-  function go(d) { if (!G.clips.length) return; let i = cur + d; if (i < 0) i = 0; if (i >= G.clips.length) { say('Era la última posesión'); i = G.clips.length - 1; } show(i); }
-  function nextPend() { let i = G.clips.findIndex((c, k) => k > cur && c.st === 'pend'); if (i < 0) i = G.clips.findIndex(c => c.st === 'pend'); if (i < 0) { say('✅ Todas las posesiones revisadas'); show(cur); return; } show(i); }
-  function trim(k, t) { const c = G.clips[cur]; if (!c) return; t = Math.max(0, Math.min(G.dur || 1e9, +t.toFixed(2)));
-    if (k === 't0' && t > c.t1 - 1) t = c.t1 - 1; if (k === 't1' && t < c.t0 + 1) t = c.t0 + 1; c[k] = t;
-    if (window._vState && window._vState.start != null) { window._vState.start = c.t0; window._vState.end = c.t1; const r = $('v-clip-range'); if (r) r.innerText = `[${fmt(c.t0)} - ${fmt(c.t1)}]`; }
-    save(); curLabel(); drawStrip();
-    const v = vid(); v.currentTime = k === 't1' ? Math.max(c.t0, c.t1 - 3) : c.t0; v.play().catch(() => { }); }
-  function discard() { const c = G.clips[cur]; if (!c) return; c.st = 'no'; save(); if (window.vCancelClip) window.vCancelClip(); nextPend(); }
+  function endClip() { const v = vid(); spd = window._vSpeed > 1 ? window._vSpeed : 1; try { window.applyCustomSpeed(0); } catch (e) { v.pause(); } openPop(); }
+  function hud() { const c = G.clips[cur], h = $('pw-hud'); if (!c || !h) return;
+    h.innerHTML = `<b>${cur + 1}</b>/${G.clips.length} · ${fmt(c.t0)}–${fmt(c.t1)} · ataca <span class="pw-tm ${c.team}">${esc(tname(att(c)))}</span>
+      <button class="pw-mini" id="pw-now" title="Clasificar ya sin esperar al final">Clasificar ▸</button>`;
+    $('pw-now').onclick = endClip; }
 
-  // el formulario de clip de siempre, ya rellenado con lo que propone el detector
-  function openForm(c) {
-    const form = $('v-clip-form'); if (!form || !window._vState) return; const n = names();
-    if (window.vCancelClip) window.vCancelClip();
-    window._vState.start = c.t0; window._vState.end = c.t1;
-    const bL = $('v-side-local'), bA = $('v-side-away'); if (bL) bL.innerText = n.A; if (bA) bA.innerText = n.B;
-    const sv = c.saved || {};
-    window.vSetTeamSide(sv.side || (c.team === 'A' ? 'local' : 'away')); window.vSetCat(sv.cat || 'ataque');
-    if (sv.folder) { const sel = $('v-folder-sel'); if ([...sel.options].some(o => o.value === sv.folder)) sel.value = sv.folder; }
-    $('v-clip-label').value = sv.label || '';
-    const r = $('v-clip-range'); if (r) r.innerText = `[${fmt(c.t0)} - ${fmt(c.t1)}]`;
-    const cont = $('v-container');
-    if (document.fullscreenElement && cont) { cont.appendChild(form); Object.assign(form.style, { position: 'absolute', bottom: '50px', left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: '500px', zIndex: '999999', boxShadow: '0 10px 50px rgba(0,0,0,.9)' }); }
-    else { panel().after(form); Object.assign(form.style, { position: '', bottom: '', left: '', transform: '', width: '', maxWidth: '', zIndex: '', boxShadow: '' }); }
-    form.style.display = 'block';
+  // ── popup de clasificar ──
+  function initSel(c) { const sv = c.saved || {}; sel = { side: sv.side || att(c), cat: sv.cat || 'ataque', folder: sv.folder || '', label: sv.label || '', newF: false }; }
+  function folders() {
+    const base = (window._vFolders && window._vFolders[sel.cat]) || [], out = base.slice();
+    try { const o = __vid.lib(__vid.key); if (o && o.videoClips && o.videoClips.teams) { const tn = sel.side === 'local' ? o.homeTeam : o.awayTeam;
+      Object.keys((o.videoClips.teams[tn] || {})[sel.cat] || {}).forEach(f => { if (!out.includes(f)) out.push(f); }); } } catch (e) { }
+    G.clips.forEach(c => { const s = c.saved; if (s && s.cat === sel.cat && s.side === sel.side && s.folder && !out.includes(s.folder)) out.push(s.folder); });
+    if (sel.folder && !out.includes(sel.folder)) out.push(sel.folder);
+    return out;
+  }
+  function openPop() {
+    const c = G.clips[cur], p = $('pw-pop'); if (!c || !p) return; setMode('ask');
+    const fl = folders(), d = Math.round(c.t1 - c.t0);
+    p.innerHTML = `<div class="pw-pop-top">
+        <button class="pw-mini" id="pw-ed" title="Cambiar el inicio o el final (E)">✏️ Editar clip</button>
+        <button class="pw-mini" id="pw-rp" title="Ver otra vez (R)">↺ Ver otra vez</button>
+        <span class="pw-pos">${cur + 1}/${G.clips.length} · ${fmt(c.t0)}–${fmt(c.t1)} · ${d} s${c.edited ? ' · editado' : ''}${c.st === 'ok' ? ' · ✅ ya guardada' : c.st === 'no' ? ' · descartada' : ''}</span>
+        <button class="pw-mini" id="pw-pv" title="Anterior (↑)">◀</button><button class="pw-mini" id="pw-nx" title="Siguiente (↓)">▶</button></div>
+      <div class="pw-box">
+        <div class="pw-seg">${['local', 'away'].map(s => `<button data-side="${s}" class="${sel.side === s ? 'on ' + s : ''}">${esc(tname(s))}</button>`).join('')}</div>
+        <div class="pw-seg">${[['ataque', '⚔️ Ataque'], ['defensa', '🛡️ Defensa']].map(([k, l]) => `<button data-cat="${k}" class="${sel.cat === k ? 'on ' + k : ''}">${l}</button>`).join('')}</div>
+        <div class="pw-chips" id="pw-chips">${fl.map((f, i) => `<button data-f="${esc(f)}" class="${sel.folder === f && !sel.newF ? 'on' : ''}">${i < 9 ? `<i>${i + 1}</i>` : ''}${esc(f)}</button>`).join('')}
+          ${sel.newF ? `<input id="pw-nf" class="pw-nf" placeholder="Nombre de la carpeta nueva" value="${esc(sel.newF === true ? '' : sel.newF)}">` : `<button data-f="__new" class="pw-new">+ Nueva</button>`}</div>
+        <input id="pw-lab" class="pw-lab" placeholder="Descripción (opcional)" value="${esc(sel.label)}">
+        <div class="pw-acts"><button class="pw-x" id="pw-no">✗ Descartar <kbd>X</kbd></button><button class="pw-skip" id="pw-sk" title="Dejarla por clasificar y pasar a la siguiente">Saltar</button>
+          <span class="pw-sp"></span><button class="pw-ok" id="pw-ok">✓ Guardar <kbd>Enter</kbd></button></div>
+      </div>`;
+    p.querySelectorAll('[data-side]').forEach(b => b.onclick = () => { sel.side = b.dataset.side; keepTyped(); openPop(); });
+    p.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { const k = b.dataset.cat; if (k !== sel.cat) { sel.cat = k; sel.side = k === 'ataque' ? att(c) : other(att(c)); sel.folder = ''; } keepTyped(); openPop(); });
+    p.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { keepTyped(); if (b.dataset.f === '__new') { sel.newF = true; openPop(); setTimeout(() => $('pw-nf') && $('pw-nf').focus(), 0); } else { sel.folder = b.dataset.f; sel.newF = false; openPop(); } });
+    const nf = $('pw-nf'); if (nf) { nf.oninput = () => { sel.newF = nf.value || true; }; nf.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (nf.value.trim()) { sel.folder = nf.value.trim(); sel.newF = false; openPop(); } } else if (e.key === 'Escape') { sel.newF = false; openPop(); } }; }
+    const lb = $('pw-lab'); lb.oninput = () => { sel.label = lb.value; }; lb.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); classify(); } else if (e.key === 'Escape') lb.blur(); };
+    $('pw-ed').onclick = startEdit; $('pw-rp').onclick = () => playClip(c);
+    $('pw-pv').onclick = () => go(-1); $('pw-nx').onclick = () => go(1);
+    $('pw-no').onclick = discard; $('pw-sk').onclick = () => nextPend(true); $('pw-ok').onclick = classify;
+  }
+  function keepTyped() { const lb = $('pw-lab'); if (lb) sel.label = lb.value; const nf = $('pw-nf'); if (nf && nf.value.trim()) sel.newF = nf.value; }
+  function classify() {
+    const c = G.clips[cur]; if (!c) return; keepTyped();
+    const nf = $('pw-nf'); if (nf && nf.value.trim()) { sel.folder = nf.value.trim(); sel.newF = false; }
+    if (!sel.folder) { const ch = $('pw-chips'); if (ch) { ch.classList.remove('need'); void ch.offsetWidth; ch.classList.add('need'); } flash('Elige una carpeta'); return; }
+    // el «✂️ Guardar» de siempre: mismo guardado, mismo corte, misma subida
+    const st = window._vState; if (window.vCancelClip) window.vCancelClip();
+    st.start = c.t0; st.end = c.t1; st.side = sel.side; st.cat = sel.cat;
+    const inp = $('v-new-folder'); inp.style.display = 'block'; inp.value = sel.folder; $('v-clip-label').value = (sel.label || '').trim();
+    window.vSaveClip();
+    if (st.start !== null) { if (window.vCancelClip) window.vCancelClip(); return flash('No se ha podido guardar'); }
+    c.st = 'ok'; c.team = (sel.cat === 'ataque') === (sel.side === 'local') ? 'A' : 'B';
+    c.saved = { side: sel.side, cat: sel.cat, folder: sel.folder, label: (sel.label || '').trim() }; save();
+    flash(`✅ ${esc(tname(sel.side))} · ${sel.cat === 'ataque' ? 'Ataque' : 'Defensa'} · ${esc(sel.folder)}`); nextPend();
+  }
+  function discard() { const c = G.clips[cur]; if (!c) return; c.st = 'no'; save(); flash('✗ Descartada'); nextPend(); }
+  function go(d) { if (!G.clips.length) return; let i = cur + d; if (i < 0) i = 0; if (i >= G.clips.length) { flash('Era la última'); i = G.clips.length - 1; } show(i); }
+  function nextPend(skip) { let i = G.clips.findIndex((c, k) => k > cur && c.st === 'pend'); if (i < 0) i = G.clips.findIndex((c, k) => c.st === 'pend' && (!skip || k !== cur)); if (i < 0) { counter(); drawStrip(); return allDone(); } show(i); }
+  function allDone() {
+    buildOverlay(); const p = $('pw-pop'); setMode('done'); counter(); drawStrip(); const k = counts();
+    p.innerHTML = `<div class="pw-box pw-done"><div class="pw-big">✅ No queda ninguna posesión por clasificar</div>
+      <div class="pw-help">${k.ok} guardadas en la biblioteca · ${k.no} descartadas</div>
+      <div class="pw-acts"><button class="pw-skip" id="pw-dn-x">Salir de pantalla grande</button><span class="pw-sp"></span><button class="pw-ok" id="pw-dn-ok">Cerrar</button></div></div>`;
+    $('pw-dn-x').onclick = () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); };
+    $('pw-dn-ok').onclick = () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); setMode('off'); };
   }
 
-  // al guardar con el formulario: la posesión queda como buena (con su recorte y equipo final) y pasa a la siguiente
-  function hookSave() {
-    if (!window.vSaveClip || window.vSaveClip._pw) return; const orig = window.vSaveClip;
-    const w = function () {
-      const c = active && G && G.clips[cur], st = window._vState || {};
-      const snap = c && st.start != null ? { s: st.start, e: st.end, side: st.side, cat: st.cat,
-        folder: (($('v-new-folder') || {}).style || {}).display === 'block' ? $('v-new-folder').value.trim() : ($('v-folder-sel') || {}).value, label: ($('v-clip-label') || {}).value || '' } : null;
-      const r = orig.apply(this, arguments);
-      if (snap && window._vState.start === null) {   // se ha guardado de verdad (si faltaba algo, el formulario sigue abierto)
-        c.st = 'ok'; c.t0 = +snap.s.toFixed(2); c.t1 = +snap.e.toFixed(2); c.team = (snap.cat === 'ataque') === (snap.side === 'local') ? 'A' : 'B';
-        c.saved = { side: snap.side, cat: snap.cat, folder: snap.folder, label: snap.label.trim() }; save(); setTimeout(nextPend, 50);
-      }
-      return r;
-    };
-    w._pw = true; window.vSaveClip = w;
+  // ── ✏️ editar: I = inicio, O = final (la que no se toque, se queda la del corte automático) ──
+  function startEdit() {
+    const c = G.clips[cur]; if (!c) return; ed = { i: null, o: null }; setMode('edit'); edBar();
+    const v = vid(); v.currentTime = Math.max(0, c.t0 - 4); try { window.applyCustomSpeed(1); } catch (e) { v.play().catch(() => { }); }
   }
-  hookSave(); document.addEventListener('DOMContentLoaded', hookSave);
+  function edBar() {
+    const c = G.clips[cur], b = $('pw-editbar'); if (!c || !b || !ed) return;
+    const a = ed.i != null ? ed.i : c.t0, z = ed.o != null ? ed.o : c.t1;
+    b.innerHTML = `<span class="pw-et">✏️ Editando</span>
+      <span class="pw-mk ${ed.i != null ? 'set' : ''}"><kbd>I</kbd> inicio <b>${fmt(a)}</b>${ed.i != null ? '' : ' <i>(auto)</i>'}</span>
+      <span class="pw-mk ${ed.o != null ? 'set' : ''}"><kbd>O</kbd> final <b>${fmt(z)}</b>${ed.o != null ? '' : ' <i>(auto)</i>'}</span>
+      <button class="pw-mini" id="pw-eb">−5s</button><button class="pw-mini" id="pw-ef">+5s</button>
+      <span class="pw-sp"></span><button class="pw-mini" id="pw-ec">Cancelar</button><button class="pw-mini pw-okm" id="pw-eok">✓ Listo <kbd>Enter</kbd></button>`;
+    $('pw-eb').onclick = () => window.vSeekBy(-5); $('pw-ef').onclick = () => window.vSeekBy(5);
+    $('pw-ec').onclick = () => { ed = null; openPop(); }; $('pw-eok').onclick = endEdit;
+  }
+  function mark(k) {
+    const c = G.clips[cur], v = vid(); if (!c || !v) return;
+    if (mode !== 'edit') { ed = { i: null, o: null }; setMode('edit'); }
+    ed[k] = +v.currentTime.toFixed(2); edBar();
+    flash(k === 'i' ? 'Inicio marcado: ' + fmt(ed.i) : 'Final marcado: ' + fmt(ed.o));
+    if (k === 'o') endEdit();
+  }
+  function endEdit() {
+    const c = G.clips[cur]; if (!c || !ed) return openPop();
+    const a = ed.i != null ? ed.i : c.t0, z = ed.o != null ? ed.o : c.t1;
+    if (z - a < 1) { flash(ed.o == null ? 'El inicio va después del final: marca el final con <kbd>O</kbd>' : 'El final tiene que ir después del inicio'); return; }
+    if (ed.i != null || ed.o != null) { c.t0 = a; c.t1 = z; c.edited = true; save(); drawStrip(); }
+    ed = null; const v = vid(); spd = 1; try { window.applyCustomSpeed(0); } catch (e) { v.pause(); } openPop();
+  }
 
-  // la posesión se repite en bucle mientras se revisa
-  document.addEventListener('timeupdate', e => { if (!active || e.target.id !== 'v-video' || !G) return; const c = G.clips[cur], v = e.target;
-    if (c && !v.paused && v.currentTime > c.t1 + 0.3 && v.currentTime < c.t1 + 4) v.currentTime = c.t0; }, true);
+  // teclado (solo con la pestaña Vídeo abierta y sin estar escribiendo)
   window.addEventListener('keydown', e => {
-    if (!active || !$('t-video') || !$('t-video').classList.contains('active')) return; if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-    if (e.code === 'KeyX') { e.preventDefault(); discard(); } else if (e.code === 'ArrowDown') { e.preventDefault(); go(1); } else if (e.code === 'ArrowUp') { e.preventDefault(); go(-1); }
-  });
+    if (!active || mode === 'off' || !$('t-video') || !$('t-video').classList.contains('active')) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.code, stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+    if (k === 'KeyI' || k === 'KeyO') { if (mode === 'play' || mode === 'edit') { stop(); mark(k === 'KeyI' ? 'i' : 'o'); } return; }
+    if (k === 'ArrowDown') { stop(); go(1); } else if (k === 'ArrowUp') { stop(); go(-1); }
+    else if (k === 'KeyX' && mode !== 'done') { stop(); discard(); }
+    else if (k === 'Enter' || k === 'NumpadEnter') { stop(); if (mode === 'ask') classify(); else if (mode === 'edit') endEdit(); else if (mode === 'play') endClip(); }
+    else if (k === 'KeyE' && mode === 'ask') { stop(); startEdit(); }
+    else if (k === 'KeyR' && (mode === 'ask' || mode === 'play')) { stop(); playClip(G.clips[cur]); }
+    else if (k === 'Escape' && mode === 'edit') { stop(); ed = null; openPop(); }
+    else if (mode === 'ask' && /^(Digit|Numpad)[1-9]$/.test(k)) { const f = folders()[+k.slice(-1) - 1]; if (f) { stop(); sel.folder = f; sel.newF = false; keepTyped(); openPop(); } }
+  }, true);
 
   function drawStrip() {
     const cv = $('pw-strip'); if (!cv || !G) return; const W = cv.width = Math.max(300, Math.round(cv.clientWidth * (window.devicePixelRatio || 1))), H = cv.height, x = cv.getContext('2d'), X = t => t / (G.dur || 1) * W;
@@ -31330,9 +31498,47 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       x.fillStyle = c.st === 'no' ? '#cbd5e1' : c.team === 'A' ? '#3b82f6' : '#f59e0b'; x.globalAlpha = c.st === 'pend' ? 0.45 : 1; x.fillRect(X(c.t0), y, Math.max(2, X(c.t1) - X(c.t0)), h); x.globalAlpha = 1;
       if (c.st === 'ok') { x.fillStyle = '#16a34a'; x.fillRect(X(c.t0), y + h - 3, Math.max(2, X(c.t1) - X(c.t0)), 3); }
       if (i === cur) { x.strokeStyle = '#0f172a'; x.lineWidth = 2; x.strokeRect(X(c.t0) - 1, y - 1, Math.max(3, X(c.t1) - X(c.t0)) + 2, h + 2); } });
-    const ht = !isFull() ? null : G.meta.halftime != null ? G.meta.halftime : G.meta.htSure ? G.meta.htAuto : null;
+    const ht = !isFull() ? null : G.meta.halftime != null ? G.meta.halftime : G.meta.htAuto;
     if (ht) { x.fillStyle = '#0f172a'; x.fillRect(X(ht) - 1, 0, 2, H); }
   }
+
+  // ── ⬇ descargar todas las posesiones (clasificadas o no): se cortan aquí con el mismo cortador de la web ──
+  async function downloadAll() {
+    const list = G.clips.map((c, i) => ({ c, i })).filter(o => o.c.st !== 'no');
+    if (!list.length) return say('No hay posesiones para descargar', 'err');
+    const safe = s => String(s == null ? '' : s).replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    const root = safe(__vid.key) + ' - posesiones';
+    const nameOf = ({ c, i }) => { const s = c.saved, t = `${Math.floor(c.t0 / 60)}m${String(Math.floor(c.t0 % 60)).padStart(2, '0')}s`;
+      return safe(`${String(i + 1).padStart(3, '0')} ${t} ` + (s ? `${tname(s.side)} ${s.cat} ${s.folder}${s.label ? ' - ' + s.label : ''}` : `ataca ${tname(att(c))}`)).slice(0, 120) + '.mp4'; };
+    let dir = null, zip = null;
+    if (window.showDirectoryPicker) { try { const base = await window.showDirectoryPicker({ mode: 'readwrite' }); dir = await base.getDirectoryHandle(root, { create: true }); } catch (e) { if (e && e.name === 'AbortError') return; dir = null; } }
+    if (!dir) zip = new __vid.Zip();
+    dl = { stop: false }; const t0 = performance.now(); let done = 0, fail = 0, hv = null;
+    const bar = $('pw-dlp'), btn = $('pw-dl'); btn.textContent = '■ Parar descarga';
+    const prog = (k, sub) => { if (!bar) return; bar.style.display = ''; const el = (performance.now() - t0) / 1000, left = k ? el / k * (list.length - k) : 0;
+      bar.innerHTML = `<div class="pw-bar"><i style="width:${(k / list.length * 100).toFixed(1)}%"></i></div><div class="pw-help">⬇ Cortando ${k}/${list.length}${sub != null ? ` (${sub}%)` : ''}${k > 1 ? ` · faltan ${fmt(left)}` : ''}${dir ? ' · se guardan en la carpeta «' + esc(root) + '»' : ' · al acabar se descarga un ZIP'}</div>`; };
+    try {
+      for (let k = 0; k < list.length && !dl.stop; k++) {
+        const { c } = list[k]; prog(k, 0); let blob = null;
+        try { blob = await __vid.cut(__vid.file, c.t0, c.t1, p => prog(k, p), vid()); } catch (e) { console.warn('corte exacto no disponible:', e); }
+        if (!blob) { try {   // si este vídeo no se puede cortar directo, se graba reproduciéndolo (como en la web)
+          if (!hv) { hv = document.createElement('video'); hv.src = __vid.url; hv.muted = true; hv.preload = 'auto'; hv.style.cssText = 'position:fixed;bottom:0;right:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1'; document.body.appendChild(hv); await new Promise((r, j) => { hv.onloadedmetadata = r; hv.onerror = j; setTimeout(j, 15000); }); }
+          blob = await __vid.rec(hv, c.t0, c.t1, p => prog(k, p)); } catch (e) { console.warn(e); } }
+        if (!blob) { fail++; continue; }
+        const nm = nameOf(list[k]).replace(/\.mp4$/, /webm/.test(blob.type) ? '.webm' : '.mp4');
+        if (dir) { const fh = await dir.getFileHandle(nm, { create: true }), w = await fh.createWritable(); await w.write(blob); await w.close(); }
+        else { const u = new Uint8Array(await blob.arrayBuffer()); zip.add(root + '/' + nm, blob, __vid.crc(u, 0), u.length); }
+        done++;
+      }
+      prog(done);
+      if (zip && done) { const a = document.createElement('a'); a.href = URL.createObjectURL(zip.blob()); a.download = root + '.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+      say(done ? `⬇ ${done} posesiones descargadas${fail ? ` · ${fail} no se han podido cortar` : ''}${dl.stop ? ' (parado)' : ''}` : 'No se ha podido cortar ninguna posesión', done ? 'ok' : 'err');
+    } finally {
+      if (hv) { try { hv.pause(); hv.removeAttribute('src'); hv.load(); hv.remove(); } catch (e) { } }
+      dl = null; if (btn) btn.textContent = '⬇ Descargar todas'; setTimeout(() => { if (bar && !dl) bar.style.display = 'none'; }, 4000);
+    }
+  }
+
 
   // ── 3) aprender de lo guardado y descartado (todos los partidos de este dispositivo con el mismo tipo de cámara) ──
   async function learn() {
@@ -31345,7 +31551,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     SEG = POS.segment(F, P, G.meta); G.clips = mergeFresh(G.clips.filter(c => c.st !== 'pend'), SEG.clips); await dbPut('games', G);
     const pc = s => s ? Math.round(s.f1 * 100) + '%' : '—';
     say(`🧠 Aprendido de ${set.length} partido${set.length > 1 ? 's' : ''}: acierto ${pc(res.before)} → ${pc(res.after)}. Las pendientes se han vuelto a proponer.`);
-    const i = G.clips.findIndex(c => c.st === 'pend'); show(i >= 0 ? i : 0);
+    counter(); drawStrip(); if (mode === "ask" || mode === "play") { const i = G.clips.findIndex(c => c.st === "pend"); if (i >= 0) show(i); else allDone(); }
   }
 })();
 

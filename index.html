@@ -30879,7 +30879,9 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     if (F.pan) {
       // cámara automática: si la cámara se queda quieta mucho rato (plano general) no se está jugando
       const ws = Math.round(6 * F.fs), sp = new Float32Array(n); for (let i = 1; i < n; i++) sp[i] = sp[i - 1] + Math.abs(F.pan[i] - F.pan[i - 1]);
-      runs(i => { const a = Math.max(0, i - ws), b = Math.min(n - 1, i + ws); return (sp[b] - sp[a]) / (b - a || 1) < 0.1; }, 45);
+      // (solo con muestras leídas de verdad: un hueco sin fotogramas no es «cámara quieta»)
+      const cv = new Float32Array(n); for (let i = 1; i < n; i++) cv[i] = cv[i - 1] + (F.cov ? F.cov[i] : 1);
+      runs(i => { const a = Math.max(0, i - ws), b = Math.min(n - 1, i + ws); return (cv[b] - cv[a]) / (b - a || 1) > 0.15 && (sp[b] - sp[a]) / (b - a || 1) < 0.1; }, 45);
     }
     out.sort((x, y) => x[0] - y[0]); const m = [];
     for (const p of out) { const l = m[m.length - 1]; if (l && p[0] <= l[1] + 1) l[1] = Math.max(l[1], p[1]); else m.push(p.slice()); }
@@ -30888,7 +30890,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     for (let i = 0; i < m.length; i++) { let cov = m[i][1] - m[i][0], j = i;
       while (j + 1 < m.length && m[j + 1][0] - m[j][1] < 320) { j++; cov += m[j][1] - m[j][0]; }
       const span = m[j][1] - m[i][0], mid = (m[i][0] + m[j][1]) / 2;
-      if (j > i && span >= 300 && cov / span >= 0.4 && mid > dur * 0.3 && mid < dur * 0.75 && (!best || span > best.span)) best = { i, j, span }; }
+      if (j > i && span >= 300 && span <= 1500 && span < dur * 0.4 && cov / span >= 0.4 && mid > dur * 0.3 && mid < dur * 0.75 && (!best || span > best.span)) best = { i, j, span }; }
     if (best) m.splice(best.i, best.j - best.i + 1, [m[best.i][0], m[best.j][1]]);
     return m;
   }
@@ -30927,7 +30929,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
 
   // equipo: quien ataca la canasta derecha en la 1ª parte es meta.rightFirst ('A' o 'B'); en el descanso se cambia
   // el descanso más probable: la pausa más larga en la zona central; len = cuánto dura (un descanso de verdad dura minutos)
-  function halftimeInfo(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; }
+  function halftimeInfo(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (p[1] - p[0] > Math.min(1800, dur * 0.4)) continue; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; }
     return best ? { t: (best[0] + best[1]) / 2, a: best[0], b: best[1], len: best[1] - best[0] } : null; }
   function halftimeGuess(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; } return best ? (best[0] + best[1]) / 2 : dur / 2; }
   function assignTeams(clips, meta, pz, dur) {
@@ -31063,10 +31065,14 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
         if (!fin) v.requestVideoFrameCallback(onFrame);
       };
       v.requestVideoFrameCallback(onFrame);
-      v.onended = end;
-      v.playbackRate = opts.rate || 16; v.play().catch(end);
+      v.onended = () => { document.removeEventListener('visibilitychange', onVis); end(); };
+      // con la pestaña o la ventana en segundo plano el navegador deja de dar fotogramas: se pausa y se sigue al volver
+      const onVis = () => { if (fin) return document.removeEventListener('visibilitychange', onVis);
+        if (document.hidden) { v.pause(); if (onProg) onProg(Math.max(0, lastT) / dur, (performance.now() - t0wall) / 1000, 'hidden'); } else v.play().catch(() => {}); };
+      document.addEventListener('visibilitychange', onVis);
+      v.playbackRate = opts.rate || 16; if (document.hidden) onVis(); else v.play().catch(end);
       // si el navegador se queda parado (algunos vídeos a x16), se empuja
-      const kick = setInterval(() => { if (fin) return clearInterval(kick); if (v.paused && !v.ended) v.play().catch(() => {}); }, 1500);
+      const kick = setInterval(() => { if (fin) return clearInterval(kick); if (document.hidden) return; if (v.paused && !v.ended) v.play().catch(() => {}); }, 1500);
     });
     v.remove();
     // promedio por muestra y relleno de huecos (si a x16 se saltó alguna)
@@ -31074,7 +31080,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     for (let i = 0; i < n; i++) { if (cnt[i]) for (let b = 0; b < NB; b++) { fg[i * NB + b] /= cnt[i] * px / 1000; df[i * NB + b] /= cnt[i] * px / 1000; } }
     for (let i = 1; i < n; i++) if (!cnt[i]) for (let b = 0; b < NB; b++) { fg[i * NB + b] = fg[(i - 1) * NB + b]; df[i * NB + b] = df[(i - 1) * NB + b]; }
     const filled = cnt.reduce((s, c) => s + (c ? 1 : 0), 0);
-    return { fs: FS, nb: NB, n, dur, fg, df, mode: auto ? 'auto' : 'fixed', pan: auto ? pan : undefined, coverage: filled / n, secs: (performance.now() - t0wall) / 1000 };
+    const cov = new Uint8Array(n); for (let i = 0; i < n; i++) cov[i] = cnt[i] ? 1 : 0;
+    return { fs: FS, nb: NB, n, dur, fg, df, cov, mode: auto ? 'auto' : 'fixed', pan: auto ? pan : undefined, coverage: filled / n, secs: (performance.now() - t0wall) / 1000 };
   }
 
   G.POSAN = { analyze, binMap, autoMap, NB, FS };
@@ -31142,7 +31149,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
           <button class="pw-b" id="pw-next">Contorno hecho →</button><button class="pw-b" id="pw-last">Usar la de la última vez</button></div>
       </div>
       <div class="pw-help" id="pw-autohelp">Con cámara que se mueve no hace falta marcar nada: se mide hacia qué canasta gira la cámara y dónde se mueven los jugadores. Los rótulos de la retransmisión se ignoran.</div>
-      <div class="pw-row"><button class="btn bp" id="pw-go">▶ Detectar posesiones</button><span class="pw-help" style="margin:0">Va unas 10–15 veces más rápido que el vídeo (un partido ≈ 6–9 min). No cierres la pestaña.</span></div>
+      <div class="pw-row"><button class="btn bp" id="pw-go">▶ Detectar posesiones</button><span class="pw-help" style="margin:0">Va unas 10–15 veces más rápido que el vídeo (un partido ≈ 6–9 min). Deja esta pestaña a la vista mientras tanto: si cambias de pestaña o minimizas, se pausa.</span></div>
       <div id="pw-prog" style="display:none"><div class="pw-bar"><i id="pw-pbar"></i></div><div class="pw-help" id="pw-ptxt">Preparando…</div></div>
     </div>`;
     $('pw-cam').value = fixed ? 'fixed' : 'auto'; $('pw-vt').value = full ? 'full' : 'part'; $('pw-rf').value = G.meta.rightFirst === 'B' ? 'L' : 'R';
@@ -31185,7 +31192,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     if (!auto) localStorage.setItem('pos_lastCalib', JSON.stringify(G.calib));
     $('pw-go').disabled = true; $('pw-prog').style.display = ''; const t0 = performance.now();
     try {
-      F = await POSAN.analyze(__vid.url, G.calib, (p, s) => { $('pw-pbar').style.width = (p * 100).toFixed(1) + '%'; $('pw-ptxt').textContent = `Detectando… ${(p * 100).toFixed(0)}% · faltan ${fmt(p > 0.02 ? s / p - s : 0)}`; });
+      F = await POSAN.analyze(__vid.url, G.calib, (p, s, st) => { $('pw-pbar').style.width = (p * 100).toFixed(1) + '%';
+        $('pw-ptxt').innerHTML = st === 'hidden' ? '<b style="color:#b45309">⏸ En pausa: vuelve a esta pestaña y déjala a la vista.</b> El navegador no deja leer el vídeo en segundo plano; seguirá solo al volver.' : `Detectando… ${(p * 100).toFixed(0)}% · faltan ${fmt(p > 0.02 ? s / p - s : 0)} · deja esta pestaña a la vista`; });
     } catch (e) { say(e.message || 'No se pudo leer el vídeo', 'err'); $('pw-go').disabled = false; return; }
     G.dur = F.dur; G.analyzed = true; await dbPut('feat', F, G.id); await loadP();
     G.meta.halftime = null; setHalftime(); SEG = POS.segment(F, P, G.meta);
@@ -31246,6 +31254,8 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       G.clips.forEach((c, i) => { const d = t < c.t0 ? c.t0 - t : t > c.t1 ? t - c.t1 : 0; if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) show(bi); };
     if (!SEG) SEG = POS.segment(F, P, G.meta);
     if (G.meta.htSure == null && G.meta.halftime == null && isFull()) { setHalftime(); save(); }
+    const pzT = (SEG.pauses || []).reduce((s, p) => s + p[1] - p[0], 0);
+    if (G.dur && pzT > G.dur * 0.5) { const e = $('pw-ht'); setTimeout(() => { e.className = 'pw-ht warn'; e.innerHTML = '⚠ <b>La lectura del vídeo salió incompleta</b> (seguramente la pestaña quedó en segundo plano). Pulsa <b>↻ Reanalizar</b> y deja la pestaña a la vista: lo ya revisado se conserva.'; }, 0); }
     renderHT(); if (isFull() && G.meta.halftime == null && !G.meta.htSure) say('No encuentro el descanso: márcalo con «⏸ El descanso es aquí»', 'err');
     const first = G.clips.findIndex(c => c.st === 'pend'); show(first >= 0 ? first : 0);
   }

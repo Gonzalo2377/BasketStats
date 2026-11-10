@@ -4061,6 +4061,33 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 @media (prefers-reduced-motion: reduce) { .ba-skel::after { animation: none } #toast[style*="opacity: 0"] { translate: none } }
 @media print { .ba-in, .ba-in * { animation: none !important } }
 
+/* 🤖 Posesiones automáticas (pestaña Vídeo) */
+#pw-panel{margin:0 0 10px}
+.pw-card{background:#f8fafc;border:1.5px solid var(--bd,#e2e8f0);border-radius:12px;padding:12px}
+.pw-hd{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:900;color:var(--nv,#0f172a);font-size:13px;margin-bottom:8px}
+.pw-sp{flex:1}
+.pw-cnt{font-weight:600;font-size:11px;color:var(--t2,#475569)}
+.pw-b{background:#fff;border:1.5px solid var(--b2,#cbd5e1);color:var(--nv,#0f172a);border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pw-b:hover{border-color:var(--ac,#f97316)}
+.pw-b.pw-no{color:#b91c1c;border-color:#fecaca}
+.pw-b kbd,.pw-help kbd{font:700 9.5px monospace;background:#e2e8f0;border-radius:4px;padding:1px 4px;color:#334155}
+.pw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.pw-grid label{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:800;color:var(--t3,#64748b);text-transform:uppercase;letter-spacing:.03em}
+.pw-grid select{padding:7px;border-radius:8px;border:1.5px solid var(--b2,#cbd5e1);font-size:12px;text-transform:none;font-weight:600;color:var(--nv,#0f172a);background:#fff}
+.pw-help{font-size:11px;color:var(--t2,#475569);line-height:1.45;margin:6px 0}
+#pw-cv{width:100%;border-radius:8px;cursor:crosshair;display:block;background:#0f172a}
+.pw-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.pw-grp{display:inline-flex;gap:3px;align-items:center;font-size:10px;font-weight:800;color:var(--t3,#64748b);text-transform:uppercase;border:1px solid var(--bd,#e2e8f0);border-radius:9px;padding:2px 3px 2px 7px;background:#fff}
+.pw-grp .pw-b{padding:3px 7px;font-size:11px}
+.pw-curl{font-size:12px;color:var(--nv,#0f172a);font-weight:800}
+.pw-tm{padding:1px 7px;border-radius:6px;color:#fff;background:#3b82f6}.pw-tm.B{background:#f59e0b}
+.pw-strip{width:100%;height:38px;border-radius:7px;cursor:pointer;display:block;margin-bottom:6px}
+.pw-bar{height:8px;border-radius:5px;background:#e2e8f0;overflow:hidden;margin-top:8px}.pw-bar i{display:block;height:100%;width:0;background:var(--ac,#f97316);transition:width .3s}
+.pw-ht{font-size:11.5px;border-radius:9px;padding:7px 10px;margin:4px 0}
+.pw-ht.info{background:#f0f9ff;border:1px solid #bae6fd;color:#075985}.pw-ht.warn{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}
+.pw-ht a{color:inherit;font-weight:800}
+@media (max-width:640px){.pw-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -5091,8 +5118,10 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
     <div id="v-teams-form" style="display:none;background:#f8fafc;border:1.5px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:800;color:var(--nv);margin-bottom:8px;text-transform:uppercase">¿De qué partido es este vídeo?</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input type="text" id="v-local" list="v-teams-list" placeholder="Equipo LOCAL" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
-        <input type="text" id="v-away" list="v-teams-list" placeholder="Equipo VISITANTE" style="flex:1;min-width:150px;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px">
+        <div style="flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px"><select id="v-local-sel" onchange="vTeamSel('local')" style="padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px"><option value="">— Equipo LOCAL —</option></select>
+        <input type="text" id="v-local" list="v-teams-list" placeholder="Escribe el equipo LOCAL" style="display:none;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px"></div>
+        <div style="flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px"><select id="v-away-sel" onchange="vTeamSel('away')" style="padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px"><option value="">— Equipo VISITANTE —</option></select>
+        <input type="text" id="v-away" list="v-teams-list" placeholder="Escribe el equipo VISITANTE" style="display:none;padding:7px 10px;border:1.5px solid var(--b2);border-radius:7px;font-size:12px"></div>
         <datalist id="v-teams-list"></datalist>
         <button onclick="vSetTeams()" class="btn bp" style="font-size:12px">✓ Confirmar</button>
       </div>
@@ -5116,10 +5145,12 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
         <button onclick="vSpeedForward()" class="vtb">⏩</button>
         <button onclick="vSeekBy(5)" class="vtb">+5s</button>
         <button id="v-btn-clip" onclick="vClipMark()" class="vtb vtb-clip">⏺ Clip</button>
+        <button id="v-btn-auto" onclick="pwOpen()" class="vtb" title="Detecta solo cada ataque de los dos equipos y te los enseña uno a uno para guardarlos como clips">🤖 Posesiones</button>
       </div>
       
       <input type="range" id="v-scrub" min="0" max="1000" value="0" style="width:100%;margin-bottom:6px;accent-color:var(--ac)" oninput="vScrub(this.value)">
       <div id="v-uploads" style="margin-bottom:6px"></div>
+      <div id="pw-panel" style="display:none"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <span id="v-time" style="font-size:14px;font-weight:900;font-family:monospace;background:var(--nv);color:#fff;border-radius:6px;padding:4px 10px">0:00</span>
         <span id="v-match-label" style="font-size:11px;font-weight:700;color:var(--t2)"></span>
@@ -15824,15 +15855,26 @@ function vLoadVideo(evt){
     const names=new Set(window.__baGroupTeams||[]);
     S.matches.forEach(m=>{const c=String(m.competition||'');if(/COPA CATALUNYA MASCULINA/i.test(c)&&/PR[EÈ]VIA/i.test(c)&&String(m.group||'')==='1'&&(!m.season||m.season==='2026-27')){if(m.homeTeam)names.add(m.homeTeam);if(m.awayTeam)names.add(m.awayTeam);}});
     if(!names.size){S.teams.forEach(t=>names.add(t.name));S.matches.forEach(m=>{if(m.homeTeam)names.add(m.homeTeam);if(m.awayTeam)names.add(m.awayTeam);});}
+    // los equipos que ya tienen carpetas de clips en la web también salen
+    (S.videoLibs||[]).forEach(o=>{if(o.homeTeam)names.add(o.homeTeam);if(o.awayTeam)names.add(o.awayTeam);});
     dl.innerHTML=[...names].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+    const opts=[...names].sort((a,b)=>a.localeCompare(b,'es')).map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n.replace(/</g,'&lt;')}</option>`).join('');
+    [['v-local-sel','LOCAL','v-local'],['v-away-sel','VISITANTE','v-away']].forEach(([id,lab,inp])=>{const s=document.getElementById(id);if(!s)return;
+      s.innerHTML=`<option value="">— Equipo ${lab} —</option>${opts}<option value="__otro">✏️ Otro equipo…</option>`;
+      const i=document.getElementById(inp);if(i){i.value='';i.style.display='none';}});
   }
-  document.getElementById('v-local')?.focus();
+  document.getElementById('v-local-sel')?.focus();
 }
 
+function vTeamSel(side){
+    const s=document.getElementById(side==='local'?'v-local-sel':'v-away-sel'),i=document.getElementById(side==='local'?'v-local':'v-away');
+    if(!s||!i)return;
+    if(s.value==='__otro'){i.style.display='block';i.value='';i.focus();}else{i.style.display='none';i.value=s.value;}
+}
 function vSetTeams(){
     const l=document.getElementById('v-local')?.value.trim();
     const a=document.getElementById('v-away')?.value.trim();
-    if(!l||!a){toast('Escribe ambos equipos','err');return;}
+    if(!l||!a){toast('Elige los dos equipos','err');return;}
     _vMatchKey=`${l} vs ${a}`;
     // Solo da nombre a la carpeta de clips (y al ZIP). No se crea ningún partido:
     // la carpeta se guarda al grabar el primer clip.
@@ -19406,6 +19448,10 @@ window.vClipMark = function() {
         if (S.clips2 && S.clips2[_vMatchKey]) {
             if (bL) bL.innerText = S.clips2[_vMatchKey].local || 'LOCAL';
             if (bA) bA.innerText = S.clips2[_vMatchKey].away || 'VISITANTE';
+        } else if (_vMatchKey) {
+            const _p = String(_vMatchKey).split(' vs ');
+            if (bL) bL.innerText = _p[0] || 'LOCAL';
+            if (bA) bA.innerText = _p[1] || 'VISITANTE';
         }
         
         if (form) {
@@ -20423,7 +20469,7 @@ Object.assign(window,{
   renderMatchHistory,setStSub,setStBoxSide,toggleStQ,toggleHistory,deleteMatch,linkFCBQ, renderStatsAggregated,setStatsView,togglePlayerGames,openPlayerProfile,closePlayerProfile,savePlayerNote,exportPlayerPDF,
   renderScouting,saveScoutNotes,scoutNoteInput,exportScoutPDF,populateRivalSelect,setScoutSplit,toggleScoutPl,
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
-  vLoadVideo,vSetTeams,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
+  vLoadVideo,vSetTeams,vTeamSel,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
   renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
@@ -20440,6 +20486,8 @@ setTimeout(()=>{ drawCourtOnCanvas('db-cv'); },300);
 
 
 window.renderClipsLibrary = window.renderVideoLib || renderVideoLib;
+// 🤖 Posesiones automáticas (posw.js, fuera del módulo): acceso de solo lectura al vídeo cargado y a la biblioteca
+window.__vid = { get key(){ return _vMatchKey; }, get file(){ return _vSrcFile; }, get url(){ return _vSrcUrl; }, lib: (k, c) => _vLib(k, c) };
 
 /* ── Mejoras: temporadas, casa/fuera y estadísticas avanzadas ── */
 function _teamLabel(t){return `${t.name}${t.season&&t.season!=='Sin temporada'?` (${t.season})`:''}`;}
@@ -30771,6 +30819,524 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     } }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
   };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+/* Posesiones · núcleo (sin vídeo ni pantalla: se puede probar en node)
+   Entrada: las medidas del partido, 4 por segundo:
+     F.fs (muestras/s), F.nb (franjas del campo), F.fg[i*nb+b] (jugadores en esa franja), F.df[...] (movimiento en esa franja)
+     La franja 0 es la canasta de la IZQUIERDA de la imagen y la última la de la DERECHA.
+   Salida: propuestas de clip {t0, t1, side: 'L'|'R' (canasta a la que se ataca), team: 'A'|'B'}. */
+(function (G) {
+  // cámara automática: ajustes aprendidos con la 1ª parte de Prat B – Vall d'en Bas revisada por el staff
+  const DEF_AUTO = { smooth: 2.0, hyst: 0.35, minIn: 4.5, pre: 1.5, post: 1.0, wOff: 1, normWin: 30 };
+  const DEF = { smooth: 2.0, hyst: 0.35, minIn: 2.5, pre: 1.5, post: 1.0, wDiff: 1.0, wOff: 0.5, pauseLvl: 0.18, pauseMin: 25, maxLen: 40 };
+
+  // centro de masas de los jugadores (−1 = canasta izquierda, +1 = derecha) y actividad, por muestra
+  function track(F, P) {
+    const n = F.n, nb = F.nb, c = new Float32Array(n), act = new Float32Array(n);
+    const auto = !!F.pan;
+    // cámara baja: un jugador cerca ocupa muchos más píxeles que uno lejos. Con binNorm cada franja se mide
+    // respecto a lo que suele tener (su nivel alto habitual), así los de lejos cuentan igual
+    const bref = new Float32Array(nb).fill(1);
+    if (!auto && P.binNorm) for (let b = 0; b < nb; b++) { const v = []; for (let i = 0; i < n; i += 2) { const m = F.fg[i * nb + b] + P.wDiff * F.df[i * nb + b]; if (m > 0) v.push(m); } v.sort((x, y) => x - y); bref[b] = v.length > 20 ? Math.max(1e-3, v[Math.floor(v.length * 0.85)]) : 1; }
+    for (let i = 0; i < n; i++) {
+      let s = 0, w = 0;
+      if (auto) {
+        // cámara automática: hacia dónde mira la cámara (sigue el balón) + dónde se mueven los jugadores dentro de la imagen
+        for (let b = 0; b < nb; b++) { const m = F.df[i * nb + b]; s += m * ((b + 0.5) / nb * 2 - 1); w += m; }
+        act[i] = w; c[i] = F.pan[i] + P.wOff * (w > 1e-6 ? s / w : 0) * 96;
+        continue;
+      }
+      for (let b = 0; b < nb; b++) { const m = (F.fg[i * nb + b] + P.wDiff * F.df[i * nb + b]) / bref[b]; s += m * ((b + 0.5) / nb * 2 - 1); w += m; }
+      act[i] = w; c[i] = w > 1e-6 ? s / w : NaN;
+    }
+    const minSp = auto ? 6 : 0.15, minHalf = auto ? 3 : 0.08;
+    // actividad relativa (1 = actividad típica de juego)
+    const sorted = Array.from(act).filter(x => x > 0).sort((a, b) => a - b), ref = sorted.length ? sorted[Math.floor(sorted.length * 0.6)] : 1;
+    for (let i = 0; i < n; i++) act[i] /= ref || 1;
+    // mediana móvil
+    const h = Math.max(0, Math.round(P.smooth * F.fs / 2)), cs = new Float32Array(n), win = [];
+    for (let i = 0; i < n; i++) { win.length = 0; for (let k = i - h; k <= i + h; k++) if (k >= 0 && k < n && !isNaN(c[k])) win.push(c[k]); win.sort((a, b) => a - b); cs[i] = win.length ? win[win.length >> 1] : NaN; }
+    // cada cámara ve las dos mitades distinto (la canasta lejana ocupa menos): se reescala con los niveles reales
+    // de este tramo del partido (percentiles 10 y 90 en una ventana de ±2 min), así −1 ≈ ataque en una canasta y +1 en la otra
+    const raw = Float32Array.from(cs), step = Math.max(1, Math.round(Math.min(10, (P.normWin || (F.pan ? 30 : 120)) / 6) * F.fs)), hw = Math.round((P.normWin || (F.pan ? 30 : 120)) * F.fs), lv = [];
+    for (let i = 0; i < n; i += step) { const v = []; for (let k = Math.max(0, i - hw); k < Math.min(n, i + hw); k += 2) if (!isNaN(raw[k]) && act[k] > 0.25) v.push(raw[k]); v.sort((a, b) => a - b);
+      lv.push(v.length > 20 ? [v[Math.floor(v.length * 0.1)], v[Math.floor(v.length * 0.9)]] : null); }
+    for (let j = 0, last = null; j < lv.length; j++) { if (lv[j] && lv[j][1] - lv[j][0] > minSp) last = lv[j]; else lv[j] = last; }
+    for (let j = lv.length - 1, nx = lv[j]; j >= 0; j--) { if (!lv[j]) lv[j] = nx; nx = lv[j]; }
+    for (let j = 0; j < lv.length; j++) if (!lv[j]) lv[j] = auto ? [-30, 30] : [-0.6, 0.6];
+    for (let i = 0; i < n; i++) { if (isNaN(raw[i])) continue; const j = Math.min(lv.length - 1, Math.floor(i / step)), [lo, hi] = lv[j], mid = (lo + hi) / 2, half = Math.max(minHalf, (hi - lo) / 2); cs[i] = Math.max(-1.5, Math.min(1.5, (raw[i] - mid) / half)); }
+    return { c: cs, raw: c, act };
+  }
+
+  // pausas: tramos largos con muy poca actividad (descansos, tiempos muertos largos)
+  function pauses(tr, F, P) {
+    const out = [], n = tr.act.length, w = Math.round(3 * F.fs);
+    const low = i => { let s = 0, k = 0; for (let j = Math.max(0, i - w); j <= Math.min(n - 1, i + w); j++) { s += tr.act[j]; k++; } return s / k < P.pauseLvl; };
+    const minP = F.pan ? Math.min(P.pauseMin, 15) : P.pauseMin;
+    const runs = (fn, minS) => { let st = -1; for (let i = 0; i <= n; i++) { const l = i < n && fn(i); if (l && st < 0) st = i; if (!l && st >= 0) { if ((i - st) / F.fs >= minS) out.push([st / F.fs, i / F.fs]); st = -1; } } };
+    runs(low, minP);
+    if (F.pan) {
+      // cámara automática: si la cámara se queda quieta mucho rato (plano general) no se está jugando
+      const ws = Math.round(6 * F.fs), sp = new Float32Array(n); for (let i = 1; i < n; i++) sp[i] = sp[i - 1] + Math.abs(F.pan[i] - F.pan[i - 1]);
+      runs(i => { const a = Math.max(0, i - ws), b = Math.min(n - 1, i + ws); return (sp[b] - sp[a]) / (b - a || 1) < 0.1; }, 45);
+    }
+    out.sort((x, y) => x[0] - y[0]); const m = [];
+    for (const p of out) { const l = m[m.length - 1]; if (l && p[0] <= l[1] + 1) l[1] = Math.max(l[1], p[1]); else m.push(p.slice()); }
+    // descanso: en la zona central del partido, pausas largas separadas por poco se unen en un solo tramo sin juego
+    const dur = n / F.fs; let best = null;
+    for (let i = 0; i < m.length; i++) { let cov = m[i][1] - m[i][0], j = i;
+      while (j + 1 < m.length && m[j + 1][0] - m[j][1] < 320) { j++; cov += m[j][1] - m[j][0]; }
+      const span = m[j][1] - m[i][0], mid = (m[i][0] + m[j][1]) / 2;
+      if (j > i && span >= 300 && cov / span >= 0.4 && mid > dur * 0.3 && mid < dur * 0.75 && (!best || span > best.span)) best = { i, j, span }; }
+    if (best) m.splice(best.i, best.j - best.i + 1, [m[best.i][0], m[best.j][1]]);
+    return m;
+  }
+
+  // segmentación: cada vez que la masa de jugadores cruza a la otra mitad y se queda, empieza un ataque hacia esa canasta
+  function segment(F, P0, meta) {
+    const P = Object.assign({}, DEF, F.pan ? DEF_AUTO : {}, P0 || {}), tr = track(F, P), n = F.n, fs = F.fs, pz = pauses(tr, F, P);
+    const inPause = t => pz.some(p => t >= p[0] && t < p[1]);
+    const z = new Int8Array(n); for (let i = 0; i < n; i++) z[i] = isNaN(tr.c[i]) ? 0 : tr.c[i] > P.hyst ? 1 : tr.c[i] < -P.hyst ? -1 : 0;
+    // tramos dentro de una zona (L/R), uniendo los huecos neutros
+    const runs = []; let cur = null;
+    for (let i = 0; i < n; i++) {
+      if (!z[i]) continue;
+      if (cur && cur.z === z[i]) { cur.last = i; continue; }
+      if (cur) runs.push(cur); cur = { z: z[i], first: i, last: i };
+    }
+    if (cur) runs.push(cur);
+    // fuera los tramos demasiado cortos (ruido): se funden con los vecinos
+    const minIn = P.minIn * fs; let rr = runs.filter(r => r.last - r.first + 1 >= minIn);
+    const merged = []; for (const r of rr) { const p = merged[merged.length - 1]; if (p && p.z === r.z) p.last = r.last; else merged.push({ ...r }); }
+    const clips = [];
+    for (let k = 0; k < merged.length; k++) {
+      const r = merged[k], prev = merged[k - 1];
+      let t0 = (prev ? prev.last + 1 : r.first) / fs - P.pre, t1 = (r.last + 1) / fs + P.post;
+      // las pausas cortan el clip
+      for (const p of pz) { if (p[0] > t0 && p[0] < t1) { if (p[0] - t0 > 3) t1 = p[0]; } if (p[1] > t0 && p[1] < t1 && t1 - p[1] > 3) t0 = Math.max(t0, p[1] - P.pre); }
+      if (t1 - t0 > P.maxLen) t0 = t1 - P.maxLen;
+      t0 = Math.max(0, t0); t1 = Math.min(n / fs, t1);
+      if (t1 - t0 < 2 || inPause((t0 + t1) / 2)) continue;
+      const trans = prev ? (r.first - prev.last) / fs : NaN;
+      clips.push({ t0: +t0.toFixed(2), t1: +t1.toFixed(2), side: r.z > 0 ? 'R' : 'L', trans: +(trans || 0).toFixed(2) });
+    }
+    assignTeams(clips, meta, pz, n / fs);
+    return { clips, pauses: pz, track: tr, P };
+  }
+
+  // equipo: quien ataca la canasta derecha en la 1ª parte es meta.rightFirst ('A' o 'B'); en el descanso se cambia
+  // el descanso más probable: la pausa más larga en la zona central; len = cuánto dura (un descanso de verdad dura minutos)
+  function halftimeInfo(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; }
+    return best ? { t: (best[0] + best[1]) / 2, a: best[0], b: best[1], len: best[1] - best[0] } : null; }
+  function halftimeGuess(pz, dur) { let best = null; for (const p of pz) { const mid = (p[0] + p[1]) / 2; if (mid > dur * 0.3 && mid < dur * 0.75 && (!best || p[1] - p[0] > best[1] - best[0])) best = p; } return best ? (best[0] + best[1]) / 2 : dur / 2; }
+  function assignTeams(clips, meta, pz, dur) {
+    meta = meta || {}; const ht = meta.full === false ? Infinity : meta.halftime != null ? meta.halftime : meta.htAuto != null ? meta.htAuto : halftimeGuess(pz, dur), rf = meta.rightFirst || 'A', o = rf === 'A' ? 'B' : 'A';
+    clips.forEach(c => { const first = c.t0 < ht; c.team = (c.side === 'R') === first ? rf : o; });
+    return ht;
+  }
+
+  // ── comparar con lo que ha corregido el staff ──
+  const iou = (a, b) => { const i = Math.max(0, Math.min(a.t1, b.t1) - Math.max(a.t0, b.t0)), u = Math.max(a.t1, b.t1) - Math.min(a.t0, b.t0); return u > 0 ? i / u : 0; };
+  // gt: posesiones buenas (aceptadas con su recorte final + añadidas a mano); range: tramo revisado
+  function score(det, gt, range, unseen) {
+    const D = det.filter(d => d.t1 > range[0] && d.t0 < range[1] && !((unseen || []).some(u => iou(u, d) > 0.3) && !gt.some(g => g.team === d.team && iou(g, d) > 0.35))), used = new Set(); let tp = 0, offs0 = [], offs1 = [];
+    for (const g of gt) { let bi = -1, bv = 0.35; D.forEach((d, k) => { if (used.has(k) || d.team !== g.team) return; const v = iou(d, g); if (v > bv) { bv = v; bi = k; } });
+      if (bi >= 0) { used.add(bi); tp++; offs0.push(g.t0 - D[bi].t0); offs1.push(g.t1 - D[bi].t1); } }
+    const prec = D.length ? tp / D.length : 0, rec = gt.length ? tp / gt.length : 0;
+    return { tp, det: D.length, gt: gt.length, D, prec, rec, f1: prec + rec ? 2 * prec * rec / (prec + rec) : 0, offs0, offs1 };
+  }
+  const med = a => { if (!a.length) return 0; const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
+
+  // ── aprender: busca los ajustes que mejor reproducen las correcciones de todos los partidos revisados ──
+  function learn(games, P0) {
+    const usable = games.filter(g => g.gt && g.gt.length >= 5), base = Object.assign({}, DEF, usable.length && usable[0].F.pan ? DEF_AUTO : {}, P0 || {});
+    if (!usable.length) return { P: base, before: null, after: null, msg: 'Hacen falta al menos 5 posesiones revisadas.' };
+    const total = P => { let tp = 0, d = 0, gt = 0, o0 = [], o1 = []; usable.forEach(g => { const s = score(segment(g.F, P, g.meta).clips, g.gt, g.range, g.unseen); tp += s.tp; d += s.det; gt += s.gt; o0.push(...s.offs0); o1.push(...s.offs1); });
+      const pr = d ? tp / d : 0, rc = gt ? tp / gt : 0; return { f1: pr + rc ? 2 * pr * rc / (pr + rc) : 0, prec: pr, rec: rc, o0, o1 }; };
+    const before = total(base); let best = { P: base, s: before };
+    const grid = { hyst: [0.15, 0.25, 0.35, 0.5, 0.65], smooth: [0.75, 1.5, 2.5, 4], minIn: [1, 2, 3, 4.5], wDiff: [0, 0.5, 1, 2], wOff: [0, 0.25, 0.5, 1], normWin: [30, 45, 60, 120], binNorm: [0, 1] };
+    // búsqueda por coordenadas (barata): cada ajuste por turnos, dos vueltas
+    for (let round = 0; round < 2; round++) for (const k of Object.keys(grid)) for (const v of grid[k]) {
+      const P = Object.assign({}, best.P, { [k]: v }), s = total(P); if (s.f1 > best.s.f1 + 1e-6) best = { P, s };
+    }
+    // márgenes: lo que de media el staff mueve el inicio y el final
+    const P = Object.assign({}, best.P); P.pre = +Math.max(0, Math.min(6, best.P.pre - med(best.s.o0))).toFixed(2); P.post = +Math.max(0, Math.min(6, best.P.post + med(best.s.o1))).toFixed(2);
+    const after = total(P);
+    return { P: after.f1 >= best.s.f1 - 0.01 ? P : best.P, before, after: after.f1 >= best.s.f1 - 0.01 ? after : best.s };
+  }
+
+  // ── etiquetas (CAA, TO, RO…): vecinos más parecidos entre los clips ya etiquetados ──
+  function clipFeat(c, all, tr, fs) {
+    const k = all.indexOf(c), prev = all[k - 1], i0 = Math.floor(c.t0 * fs), i1 = Math.min(tr.c.length - 1, Math.ceil(c.t1 * fs));
+    let vmax = 0, a = 0, m = 0; for (let i = i0 + 1; i <= i1; i++) { const d = Math.abs((tr.c[i] - tr.c[i - 1]) * fs); if (d > vmax && isFinite(d)) vmax = d; a += tr.act[i] || 0; m++; }
+    return [c.t1 - c.t0, c.trans || 0, prev ? c.t0 - prev.t1 : 10, prev ? prev.t1 - prev.t0 : 15, vmax, m ? a / m : 0];
+  }
+  function suggest(feat, examples, k = 5) {
+    const counts = {}; examples.forEach(e => e.tags.forEach(t => counts[t] = (counts[t] || 0) + 1));
+    if (examples.length < 6) return null;
+    const dim = feat.length, mu = [], sd = [];
+    for (let d = 0; d < dim; d++) { const v = examples.map(e => e.f[d]); const m = v.reduce((s, x) => s + x, 0) / v.length; mu[d] = m; sd[d] = Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / v.length) || 1; }
+    const dist = e => Math.sqrt(e.f.reduce((s, x, d) => s + ((x - feat[d]) / sd[d]) ** 2, 0));
+    const nn = examples.map(e => ({ e, d: dist(e) })).sort((a, b) => a.d - b.d).slice(0, k), votes = {};
+    nn.forEach(({ e }) => e.tags.forEach(t => votes[t] = (votes[t] || 0) + 1));
+    const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
+    return top && top[1] >= Math.ceil(k * 0.6) && counts[top[0]] >= 5 ? { tag: top[0], conf: top[1] / k } : null;
+  }
+
+  G.POS = { DEF, DEF_AUTO, halftimeInfo, track, pauses, segment, assignTeams, halftimeGuess, score, learn, clipFeat, suggest, iou };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Posesiones · lectura del vídeo (cámara fija): reproduce el partido a x16 en un vídeo oculto y, para cada fotograma,
+   mira dónde hay jugadores (lo que no es fondo) y dónde hay movimiento, en 24 franjas de la pista de canasta a canasta. */
+(function (G) {
+  const NB = 24, FS = 4, W = 192;
+
+  // calib: { poly: [[x,y]…] (0..1, contorno de la pista), mid: [[x,y],[x,y]] (línea de medio campo) }
+  function binMap(calib, w, h) {
+    const map = new Int16Array(w * h).fill(-1), poly = calib.poly.map(p => [p[0] * w, p[1] * h]), a = [calib.mid[0][0] * w, calib.mid[0][1] * h], b = [calib.mid[1][0] * w, calib.mid[1][1] * h];
+    const inside = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, sd = (x, y) => ((b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0])) / L;
+    // signo: el lado donde queda el punto más a la izquierda del contorno es la canasta izquierda (negativo)
+    const left = poly.reduce((m, p) => p[0] < m[0] ? p : m, poly[0]), sgn = sd(left[0], left[1]) < 0 ? 1 : -1;
+    const d = new Float32Array(w * h); let mn = 0, mx = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!inside(x + 0.5, y + 0.5)) { d[i] = NaN; continue; } d[i] = sgn * sd(x + 0.5, y + 0.5); if (d[i] < mn) mn = d[i]; if (d[i] > mx) mx = d[i]; }
+    let px = 0;
+    for (let i = 0; i < w * h; i++) { if (isNaN(d[i])) continue; const u = d[i] < 0 ? d[i] / -mn : d[i] / mx; map[i] = Math.max(0, Math.min(NB - 1, Math.floor((u + 1) / 2 * NB))); px++; }
+    return { map, px };
+  }
+
+  // cámara automática: la "franja" es la columna de la imagen; fuera marcador (abajo) y fichas de jugador (abajo a la derecha)
+  function autoMap(w, h) {
+    const map = new Int16Array(w * h).fill(-1); let px = 0;
+    for (let y = Math.round(h * 0.4); y < Math.round(h * 0.85); y++) for (let x = 0; x < w; x++) { if (x > w * 0.8 && y > h * 0.45) continue; map[y * w + x] = Math.floor(x / w * NB); px++; }
+    return { map, px };
+  }
+
+  async function analyze(src, calib, onProg, opts = {}) {
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = src;
+    v.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px'; document.body.appendChild(v);
+    await new Promise((ok, ko) => { v.onloadedmetadata = ok; v.onerror = () => ko(new Error('No se puede abrir el vídeo')); });
+    const dur = opts.until ? Math.min(v.duration, opts.until) : v.duration, h = Math.round(W * v.videoHeight / v.videoWidth);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = h; const cx = cv.getContext('2d', { willReadFrequently: true });
+    const auto = calib.mode === 'auto', { map, px } = auto ? autoMap(W, h) : binMap(calib, W, h), n = Math.ceil(dur * FS);
+    const pan = new Float32Array(n), panAcc = { p: 0 }, y0b = Math.round(h * 0.12), y1b = Math.round(h * 0.45), MAXD = 80;
+    const fg = new Float32Array(n * NB), df = new Float32Array(n * NB), cnt = new Uint16Array(n);
+    let bg = null, prev = null, lastT = -1, frames = 0, t0wall = performance.now();
+    const gray = new Float32Array(W * h);
+    await new Promise(done => {
+      let fin = false; const end = () => { if (fin) return; fin = true; done(); };
+      const onFrame = (now, md) => {
+        const t = md.mediaTime; if (t >= dur) { v.pause(); return end(); }
+        cx.drawImage(v, 0, 0, W, h); const px4 = cx.getImageData(0, 0, W, h).data;
+        for (let i = 0, j = 0; i < W * h; i++, j += 4) gray[i] = 0.299 * px4[j] + 0.587 * px4[j + 1] + 0.114 * px4[j + 2];
+        if (!bg) { bg = Float32Array.from(gray); prev = Float32Array.from(gray); }
+        const dt = lastT < 0 ? 0.25 : Math.max(0.02, t - lastT), a = 1 - Math.exp(-dt / 8), slot = Math.min(n - 1, Math.floor(t * FS));
+        if (t > lastT + 0.001 && auto) {
+          // 1) cuánto ha girado la cámara desde el fotograma anterior: se busca el desplazamiento horizontal
+          //    que mejor encaja la franja de gradas/publicidad (arriba de la imagen) con la del fotograma anterior
+          let best = 0, bv = Infinity; const sad = new Float32Array(2 * MAXD + 1);
+          for (let d = -MAXD; d <= MAXD; d++) {
+            const xa = Math.max(0, -d), xb = Math.min(W, W - d); if (xb - xa < W * 0.3) { sad[d + MAXD] = Infinity; continue; }
+            let s2 = 0; for (let y = y0b; y < y1b; y++) { const r = y * W; for (let x = xa; x < xb; x++) s2 += Math.abs(gray[r + x] - prev[r + x + d]); }
+            s2 = s2 / ((xb - xa) * (y1b - y0b)) * (1 + Math.abs(d) / 400); sad[d + MAXD] = s2; if (s2 < bv) { bv = s2; best = d; }
+          }
+          let sub = best; const a1 = sad[best + MAXD - 1], a2 = sad[best + MAXD + 1];
+          if (isFinite(a1) && isFinite(a2) && a1 + a2 - 2 * bv > 1e-6) sub = best + 0.5 * (a1 - a2) / (a1 + a2 - 2 * bv);
+          if (bv < 40) panAcc.p += sub;   // si no encaja nada (cambio de plano, repetición), no se suma
+          // 2) dónde se mueven los jugadores dentro de la imagen (restando el giro de la cámara), por columnas
+          const o = slot * NB, ys = Math.round(h * 0.4), ye = Math.round(h * 0.85);
+          for (let y = ys; y < ye; y++) { const r = y * W; for (let x = Math.max(0, -best); x < Math.min(W, W - best); x++) { const b = map[r + x]; if (b < 0) continue; if (Math.abs(gray[r + x] - prev[r + x + best]) > 18) { df[o + b]++; fg[o + b]++; } } }
+          pan[slot] += panAcc.p; for (let i = 0; i < W * h; i++) prev[i] = gray[i];
+          cnt[slot]++; lastT = t; frames++;
+          if (frames % 40 === 0 && onProg) onProg(t / dur, (performance.now() - t0wall) / 1000);
+        } else if (t > lastT + 0.001) {
+          const o = slot * NB;
+          for (let i = 0; i < W * h; i++) {
+            const b = map[i]; const g = gray[i];
+            if (b >= 0) { if (Math.abs(g - bg[i]) > 22) fg[o + b]++; if (Math.abs(g - prev[i]) > 18) df[o + b]++; }
+            bg[i] += a * (g - bg[i]); prev[i] = g;
+          }
+          cnt[slot]++; lastT = t; frames++;
+          if (frames % 40 === 0 && onProg) onProg(t / dur, (performance.now() - t0wall) / 1000);
+        }
+        if (!fin) v.requestVideoFrameCallback(onFrame);
+      };
+      v.requestVideoFrameCallback(onFrame);
+      v.onended = end;
+      v.playbackRate = opts.rate || 16; v.play().catch(end);
+      // si el navegador se queda parado (algunos vídeos a x16), se empuja
+      const kick = setInterval(() => { if (fin) return clearInterval(kick); if (v.paused && !v.ended) v.play().catch(() => {}); }, 1500);
+    });
+    v.remove();
+    // promedio por muestra y relleno de huecos (si a x16 se saltó alguna)
+    for (let i = 0; i < n; i++) { if (cnt[i]) pan[i] /= cnt[i]; else if (i) pan[i] = pan[i - 1]; }
+    for (let i = 0; i < n; i++) { if (cnt[i]) for (let b = 0; b < NB; b++) { fg[i * NB + b] /= cnt[i] * px / 1000; df[i * NB + b] /= cnt[i] * px / 1000; } }
+    for (let i = 1; i < n; i++) if (!cnt[i]) for (let b = 0; b < NB; b++) { fg[i * NB + b] = fg[(i - 1) * NB + b]; df[i * NB + b] = df[(i - 1) * NB + b]; }
+    const filled = cnt.reduce((s, c) => s + (c ? 1 : 0), 0);
+    return { fs: FS, nb: NB, n, dur, fg, df, mode: auto ? 'auto' : 'fixed', pan: auto ? pan : undefined, coverage: filled / n, secs: (performance.now() - t0wall) / 1000 };
+  }
+
+  G.POSAN = { analyze, binMap, autoMap, NB, FS };
+})(window);
+
+/* ═══ 🤖 POSESIONES AUTOMÁTICAS (pestaña Vídeo) ═══
+   Detecta por dentro cada ataque de los dos equipos (cámara fija alta/baja o cámara automática de retransmisión)
+   y los va enseñando uno a uno con el formulario de clip de siempre (equipo, ataque/defensa, carpeta, descripción).
+   Al guardar, el clip se corta y se sube a la biblioteca igual que al clipear a mano.
+   Lo que el staff guarda, recorta o descarta queda en este dispositivo (IndexedDB «posesiones») y sirve para
+   reajustar el detector con «🧠 Aprender». Usa POS (pos_core.js) y POSAN (pos_analyze.js). */
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = t => { t = Math.max(0, t || 0); const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ':' + String(s).padStart(2, '0'); };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const say = (m, t) => { if (typeof toast === 'function') toast(m, t || 'ok'); };
+
+  // ── almacén local ──
+  let _db = null;
+  const idb = () => _db || (_db = new Promise((ok, ko) => { const r = indexedDB.open('posesiones', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('games', { keyPath: 'id' }); d.createObjectStore('feat'); d.createObjectStore('kv'); };
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); }));
+  const tx = async (st, mode, fn) => { const d = await idb(); return new Promise((ok, ko) => { const t = d.transaction(st, mode), r = fn(t.objectStore(st)); t.oncomplete = () => ok(r && r.result); t.onerror = () => ko(t.error); }); };
+  const dbGet = (st, k) => tx(st, 'readonly', s => s.get(k)), dbPut = (st, v, k) => tx(st, 'readwrite', s => k === undefined ? s.put(v) : s.put(v, k)), dbAll = st => tx(st, 'readonly', s => s.getAll());
+
+  let G = null, F = null, P = {}, SEG = null, cur = -1, active = false, saveT = 0;
+  let poly = [], mid = [], step = 1;
+  const PK = () => F && F.pan ? 'params_auto' : 'params', loadP = async () => { P = (await dbGet('kv', PK())) || {}; };
+  const save = () => { clearTimeout(saveT); saveT = setTimeout(() => G && dbPut('games', G), 300); };
+  const names = () => { const p = String((window.__vid && __vid.key) || 'Local vs Visitante').split(' vs '); return { A: p[0] || 'Local', B: p[1] || 'Visitante' }; };
+  const vid = () => $('v-video');
+  const panel = () => $('pw-panel');
+
+  // ── abrir ──
+  window.pwOpen = async function () {
+    if (!window.__vid || !__vid.file) return say('Carga primero el vídeo del partido', 'err');
+    if (!__vid.key) return say('Elige primero los equipos (LOCAL y VISITANTE)', 'err');
+    const id = __vid.file.name + '|' + __vid.file.size, n = names();
+    G = await dbGet('games', id); F = null;
+    if (G && G.analyzed) { F = await dbGet('feat', id); if (F) { G.meta.A = n.A; G.meta.B = n.B; await loadP(); return review(); } }
+    G = G || { id, name: __vid.file.name, size: __vid.file.size, calib: null, meta: { rightFirst: 'A' }, clips: [], analyzed: false };
+    G.meta.A = n.A; G.meta.B = n.B; setup();
+  };
+  window.pwClose = function () { active = false; cur = -1; const p = panel(); if (p) { p.innerHTML = ''; p.style.display = 'none'; } if (window.vCancelClip) window.vCancelClip(); };
+
+  // ── 1) preparar: tipo de cámara, tipo de vídeo y (si es fija) marcar la pista ──
+  function setup() {
+    active = false; const p = panel(), v = vid(), n = names(), fixed = G.calib ? G.calib.mode !== 'auto' : (localStorage.getItem('pos_lastCam') || 'fixed') === 'fixed';
+    poly = G.calib && G.calib.poly ? G.calib.poly.slice() : []; mid = G.calib && G.calib.mid ? G.calib.mid.slice() : []; step = mid.length === 2 ? 3 : poly.length >= 3 ? 2 : 1;
+    const full = G.meta.full != null ? G.meta.full : (v && v.duration > 50 * 60);
+    p.style.display = 'block';
+    p.innerHTML = `<div class="pw-card">
+      <div class="pw-hd">🤖 Posesiones automáticas <span class="pw-sp"></span><button class="pw-b" onclick="pwClose()">✕</button></div>
+      <div class="pw-grid">
+        <label>Cámara<select id="pw-cam"><option value="fixed">Fija (alta o baja): no se mueve</option><option value="auto">Automática / retransmisión: sigue el juego</option></select></label>
+        <label>¿Qué hay en el vídeo?<select id="pw-vt"><option value="full">Partido entero (en el descanso se cambia de canasta)</option><option value="part">Un cuarto, una parte o un trozo sin descanso</option></select></label>
+        <label>Al empezar, ${esc(n.A)} ataca la canasta…<select id="pw-rf"><option value="R">de la derecha (vista desde la cámara)</option><option value="L">de la izquierda (vista desde la cámara)</option></select></label>
+      </div>
+      <div id="pw-cal">
+        <div class="pw-help"><b>Marca la pista</b> (una vez por cámara). Pausa el vídeo de arriba donde se vea bien la pista y pulsa «📷 Coger fotograma».
+          <b id="pw-st1">1 · Contorno:</b> clics en los bordes de la pista, vuelta completa; deja fuera banquillos, mesa, público y, con cámara baja, la franja pegada a la cámara donde están entrenadores y árbitros.
+          <b id="pw-st2">2 · Medio campo:</b> dos clics, un extremo de la línea y el otro.</div>
+        <canvas id="pw-cv" width="960" height="540"></canvas>
+        <div class="pw-row"><button class="pw-b" id="pw-grab">📷 Coger fotograma</button><button class="pw-b" id="pw-undo">↶ Deshacer</button><button class="pw-b" id="pw-reset">Empezar de nuevo</button>
+          <button class="pw-b" id="pw-next">Contorno hecho →</button><button class="pw-b" id="pw-last">Usar la de la última vez</button></div>
+      </div>
+      <div class="pw-help" id="pw-autohelp">Con cámara que se mueve no hace falta marcar nada: se mide hacia qué canasta gira la cámara y dónde se mueven los jugadores. Los rótulos de la retransmisión se ignoran.</div>
+      <div class="pw-row"><button class="btn bp" id="pw-go">▶ Detectar posesiones</button><span class="pw-help" style="margin:0">Va unas 10–15 veces más rápido que el vídeo (un partido ≈ 6–9 min). No cierres la pestaña.</span></div>
+      <div id="pw-prog" style="display:none"><div class="pw-bar"><i id="pw-pbar"></i></div><div class="pw-help" id="pw-ptxt">Preparando…</div></div>
+    </div>`;
+    $('pw-cam').value = fixed ? 'fixed' : 'auto'; $('pw-vt').value = full ? 'full' : 'part'; $('pw-rf').value = G.meta.rightFirst === 'B' ? 'L' : 'R';
+    $('pw-last').style.display = localStorage.getItem('pos_lastCalib') && !poly.length ? '' : 'none';
+    const camUI = () => { const a = $('pw-cam').value === 'auto'; $('pw-cal').style.display = a ? 'none' : ''; $('pw-autohelp').style.display = a ? '' : 'none'; drawCal(); };
+    $('pw-cam').onchange = camUI;
+    $('pw-grab').onclick = () => { grab(); drawCal(); };
+    $('pw-undo').onclick = () => { if (step >= 2 && mid.length) { mid.pop(); step = 2; } else if (step === 2) step = 1; else poly.pop(); drawCal(); };
+    $('pw-reset').onclick = () => { poly = []; mid = []; step = 1; drawCal(); };
+    $('pw-next').onclick = () => { if (poly.length < 3) return say('Marca al menos 3 puntos del contorno', 'err'); step = 2; drawCal(); };
+    $('pw-last').onclick = () => { const c = JSON.parse(localStorage.getItem('pos_lastCalib')); poly = c.poly; mid = c.mid; step = 3; drawCal(); };
+    $('pw-cv').onclick = e => { const r = e.target.getBoundingClientRect(), q = [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height].map(x => +x.toFixed(4));
+      if (step === 1) poly.push(q); else if (step === 2 && mid.length < 2) { mid.push(q); if (mid.length === 2) step = 3; } drawCal(); };
+    $('pw-go').onclick = analyze;
+    if (v) v.pause(); grab(); camUI();
+  }
+  let frame = null;
+  function grab() { const v = vid(); if (!v || !v.videoWidth) return; const c = document.createElement('canvas'); c.width = 960; c.height = Math.round(960 * v.videoHeight / v.videoWidth); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); frame = c; }
+  function drawCal() {
+    const cv = $('pw-cv'); if (!cv) return; const auto = $('pw-cam').value === 'auto';
+    if (frame) cv.height = frame.height; const W = cv.width, H = cv.height, x = cv.getContext('2d');
+    x.fillStyle = '#0f172a'; x.fillRect(0, 0, W, H); if (frame) x.drawImage(frame, 0, 0);
+    if (!auto && poly.length >= 3 && mid.length === 2) {
+      const w = 192, h = Math.round(192 * H / W), map = POSAN.binMap({ poly, mid }, w, h).map, o = x.getImageData(0, 0, W, H), d = o.data;
+      for (let y = 0; y < H; y++) for (let X = 0; X < W; X++) { const b = map[Math.floor(y / H * h) * w + Math.floor(X / W * w)], j = (y * W + X) * 4; if (b < 0) { d[j] *= .4; d[j + 1] *= .4; d[j + 2] *= .4; } else if (b < POSAN.NB / 2) d[j + 2] = Math.min(255, d[j + 2] + 70); else d[j] = Math.min(255, d[j] + 70); }
+      x.putImageData(o, 0, 0); x.font = 'bold 20px sans-serif'; x.fillStyle = '#fff'; x.fillText('IZQUIERDA', 16, H - 16); x.fillText('DERECHA', W - 110, H - 16);
+    }
+    x.lineWidth = 3; x.strokeStyle = '#f97316';
+    if (poly.length) { x.beginPath(); poly.forEach((p, i) => i ? x.lineTo(p[0] * W, p[1] * H) : x.moveTo(p[0] * W, p[1] * H)); if (step > 1) x.closePath(); x.stroke(); if (step === 1) poly.forEach(p => { x.beginPath(); x.arc(p[0] * W, p[1] * H, 5, 0, 7); x.fillStyle = '#f97316'; x.fill(); }); }
+    if (mid.length) { x.strokeStyle = '#22c55e'; x.beginPath(); x.moveTo(mid[0][0] * W, mid[0][1] * H); if (mid[1]) x.lineTo(mid[1][0] * W, mid[1][1] * H); x.stroke(); mid.forEach(p => { x.beginPath(); x.arc(p[0] * W, p[1] * H, 5, 0, 7); x.fillStyle = '#22c55e'; x.fill(); }); }
+    if (!frame) { x.fillStyle = '#cbd5e1'; x.font = '16px sans-serif'; x.fillText('Pausa el vídeo donde se vea la pista y pulsa «📷 Coger fotograma»', 20, 40); }
+    $('pw-st1').style.color = step === 1 ? 'var(--ac,#f97316)' : ''; $('pw-st2').style.color = step === 2 ? 'var(--ac,#f97316)' : '';
+    $('pw-next').style.display = step === 1 ? '' : 'none';
+    $('pw-go').disabled = !(auto || (poly.length >= 3 && mid.length === 2));
+  }
+
+  async function analyze() {
+    const auto = $('pw-cam').value === 'auto'; localStorage.setItem('pos_lastCam', auto ? 'auto' : 'fixed');
+    G.calib = auto ? { mode: 'auto' } : { poly, mid }; G.meta.full = $('pw-vt').value === 'full'; G.meta.rightFirst = $('pw-rf').value === 'R' ? 'A' : 'B';
+    if (!auto) localStorage.setItem('pos_lastCalib', JSON.stringify(G.calib));
+    $('pw-go').disabled = true; $('pw-prog').style.display = ''; const t0 = performance.now();
+    try {
+      F = await POSAN.analyze(__vid.url, G.calib, (p, s) => { $('pw-pbar').style.width = (p * 100).toFixed(1) + '%'; $('pw-ptxt').textContent = `Detectando… ${(p * 100).toFixed(0)}% · faltan ${fmt(p > 0.02 ? s / p - s : 0)}`; });
+    } catch (e) { say(e.message || 'No se pudo leer el vídeo', 'err'); $('pw-go').disabled = false; return; }
+    G.dur = F.dur; G.analyzed = true; await dbPut('feat', F, G.id); await loadP();
+    G.meta.halftime = null; setHalftime(); SEG = POS.segment(F, P, G.meta);
+    G.clips = mergeFresh(G.clips.filter(c => c.st !== 'pend'), SEG.clips); await dbPut('games', G);
+    say(`🤖 ${G.clips.filter(c => c.st === 'pend').length} posesiones detectadas en ${fmt((performance.now() - t0) / 1000)}`); review();
+  }
+  function mergeFresh(kept, det) {
+    const fresh = det.filter(c => !kept.some(k => POS.iou(k, c) > 0.3 || (c.t0 < k.t1 && c.t1 > k.t0 && Math.min(c.t1, k.t1) - Math.max(c.t0, k.t0) > 0.5 * (c.t1 - c.t0))))
+      .map((c, i) => ({ id: 'p' + Date.now().toString(36) + i, ...c, st: 'pend', orig: { t0: c.t0, t1: c.t1, team: c.team } }));
+    return [...kept, ...fresh].sort((a, b) => a.t0 - b.t0);
+  }
+
+  // ── descanso: solo si es el partido entero; si no se encuentra claro, se pide al staff ──
+  const isFull = () => G.meta.full != null ? G.meta.full : (G.dur || 0) > 50 * 60;
+  function setHalftime() {
+    if (!isFull()) { G.meta.htAuto = null; G.meta.htSure = false; return; }
+    const pz = POS.segment(F, P, { ...G.meta, full: false }).pauses, h = POS.halftimeInfo(pz, F.dur);
+    G.meta.htAuto = h ? h.t : F.dur / 2; G.meta.htSure = !!h && h.len >= 240; G.meta.htRange = G.meta.htSure ? [h.a, h.b] : null;
+  }
+  function renderHT() {
+    const e = $('pw-ht'); if (!e) return; const full = isFull(); $('pw-half').style.display = full ? '' : 'none'; e.className = 'pw-ht';
+    if (!full) { e.classList.add('info'); e.innerHTML = 'Vídeo sin descanso: los equipos no cambian de canasta.'; return; }
+    if (G.meta.halftime != null) { e.classList.add('info'); e.innerHTML = `⏸ Descanso marcado en <b>${fmt(G.meta.halftime)}</b>: a partir de ahí los equipos cambian de canasta.`; return; }
+    if (G.meta.htSure) { e.classList.add('info'); e.innerHTML = `⏸ Descanso detectado entre <b>${fmt(G.meta.htRange[0])}</b> y <b>${fmt(G.meta.htRange[1])}</b>: ahí cambian de canasta. <a href="#" id="pw-htgo">Ver</a> · si no es ahí, ve al momento y pulsa «⏸ El descanso es aquí».`;
+      $('pw-htgo').onclick = ev => { ev.preventDefault(); const v = vid(); v.currentTime = G.meta.htRange[0]; }; return; }
+    e.classList.add('warn'); e.innerHTML = '⚠ <b>No encuentro el descanso.</b> Cuando lo veas en el vídeo, pulsa <b>«⏸ El descanso es aquí»</b> para que los equipos cambien de canasta en la 2ª parte.';
+  }
+
+  // ── 2) revisar una a una ──
+  function review() {
+    active = true; const p = panel(); p.style.display = 'block';
+    p.innerHTML = `<div class="pw-card">
+      <div class="pw-hd">🤖 Posesiones <span id="pw-cnt" class="pw-cnt"></span><span class="pw-sp"></span>
+        <button class="pw-b" id="pw-learn" title="Reajusta el detector con lo que habéis guardado, recortado y descartado">🧠 Aprender</button>
+        <button class="pw-b" id="pw-redo" title="Volver a detectar (p. ej. con otro tipo de cámara). Lo revisado se conserva">↻ Reanalizar</button>
+        <button class="pw-b" onclick="pwClose()">✕</button></div>
+      <canvas id="pw-strip" class="pw-strip" width="1000" height="38"></canvas>
+      <div id="pw-ht" class="pw-ht"></div>
+      <div class="pw-row">
+        <button class="pw-b" id="pw-prev" title="↑">◀</button><b id="pw-cur" class="pw-curl"></b><button class="pw-b" id="pw-skip" title="↓ Dejar pendiente y pasar a la siguiente">Siguiente ▶</button>
+        <span class="pw-grp">Inicio <button class="pw-b" data-d="t0,-1">−1s</button><button class="pw-b" data-h="t0">aquí</button><button class="pw-b" data-d="t0,1">+1s</button></span>
+        <span class="pw-grp">Final <button class="pw-b" data-d="t1,-1">−1s</button><button class="pw-b" data-h="t1">aquí</button><button class="pw-b" data-d="t1,1">+1s</button></span>
+        <button class="pw-b" id="pw-replay">↺ Ver otra vez</button>
+        <button class="pw-b pw-no" id="pw-no">✗ Descartar <kbd>X</kbd></button>
+        <button class="pw-b" id="pw-half">⏸ El descanso es aquí</button>
+      </div>
+      <div class="pw-help">Elige en el formulario equipo, ataque/defensa, carpeta (o una nueva) y descripción, y pulsa <b>✂️ Guardar</b>: el clip se corta, se sube a la biblioteca y pasa a la siguiente posesión. <kbd>X</kbd> descarta · <kbd>↑</kbd><kbd>↓</kbd> cambian de posesión.</div>
+    </div>`;
+    $('pw-prev').onclick = () => go(-1); $('pw-skip').onclick = () => go(1);
+    $('pw-replay').onclick = () => { const c = G.clips[cur]; if (c) play(c); };
+    $('pw-no').onclick = discard;
+    $('pw-half').onclick = () => { G.meta.halftime = +vid().currentTime.toFixed(1); G.clips.filter(c => c.st === 'pend').forEach(c => POS.assignTeams([c], G.meta, SEG ? SEG.pauses : [], G.dur)); save(); renderHT(); drawStrip(); if (cur >= 0) openForm(G.clips[cur]); say('⏸ Descanso en ' + fmt(G.meta.halftime) + ': equipos recolocados'); };
+    $('pw-redo').onclick = () => setup();
+    $('pw-learn').onclick = learn;
+    p.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.d.split(','); trim(k, G.clips[cur][k] + +d); });
+    p.querySelectorAll('[data-h]').forEach(b => b.onclick = () => trim(b.dataset.h, vid().currentTime));
+    $('pw-strip').onclick = e => { const r = e.target.getBoundingClientRect(), t = (e.clientX - r.left) / r.width * G.dur; let bi = -1, bd = 1e9;
+      G.clips.forEach((c, i) => { const d = t < c.t0 ? c.t0 - t : t > c.t1 ? t - c.t1 : 0; if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) show(bi); };
+    if (!SEG) SEG = POS.segment(F, P, G.meta);
+    if (G.meta.htSure == null && G.meta.halftime == null && isFull()) { setHalftime(); save(); }
+    renderHT(); if (isFull() && G.meta.halftime == null && !G.meta.htSure) say('No encuentro el descanso: márcalo con «⏸ El descanso es aquí»', 'err');
+    const first = G.clips.findIndex(c => c.st === 'pend'); show(first >= 0 ? first : 0);
+  }
+  function counts() { const ok = G.clips.filter(c => c.st === 'ok').length, no = G.clips.filter(c => c.st === 'no').length; return { ok, no, pend: G.clips.length - ok - no }; }
+  function show(i) {
+    if (!G.clips.length) { $('pw-cur').textContent = 'No se ha detectado ninguna posesión'; return; }
+    cur = Math.max(0, Math.min(G.clips.length - 1, i)); const c = G.clips[cur];
+    curLabel(); drawStrip(); play(c); openForm(c);
+  }
+  function curLabel() {
+    const c = G.clips[cur], n = names(), k = counts(); if (!c) return;
+    $('pw-cnt').textContent = `✓ ${k.ok} guardadas · ✗ ${k.no} descartadas · ${k.pend} pendientes`;
+    $('pw-cur').innerHTML = `${cur + 1}/${G.clips.length} · ${fmt(c.t0)}–${fmt(c.t1)} · ataca <span class="pw-tm ${c.team}">${esc(c.team === 'A' ? n.A : n.B)}</span>${c.st === 'ok' ? ' · ✅ guardada' : c.st === 'no' ? ' · ✖ descartada' : ''}`;
+  }
+  function play(c) { const v = vid(); if (!v) return; try { if (window.applyCustomSpeed) window.applyCustomSpeed(1); } catch (e) { } v.playbackRate = 1; v.currentTime = c.t0; v.play().catch(() => { }); }
+  function go(d) { if (!G.clips.length) return; let i = cur + d; if (i < 0) i = 0; if (i >= G.clips.length) { say('Era la última posesión'); i = G.clips.length - 1; } show(i); }
+  function nextPend() { let i = G.clips.findIndex((c, k) => k > cur && c.st === 'pend'); if (i < 0) i = G.clips.findIndex(c => c.st === 'pend'); if (i < 0) { say('✅ Todas las posesiones revisadas'); show(cur); return; } show(i); }
+  function trim(k, t) { const c = G.clips[cur]; if (!c) return; t = Math.max(0, Math.min(G.dur || 1e9, +t.toFixed(2)));
+    if (k === 't0' && t > c.t1 - 1) t = c.t1 - 1; if (k === 't1' && t < c.t0 + 1) t = c.t0 + 1; c[k] = t;
+    if (window._vState && window._vState.start != null) { window._vState.start = c.t0; window._vState.end = c.t1; const r = $('v-clip-range'); if (r) r.innerText = `[${fmt(c.t0)} - ${fmt(c.t1)}]`; }
+    save(); curLabel(); drawStrip();
+    const v = vid(); v.currentTime = k === 't1' ? Math.max(c.t0, c.t1 - 3) : c.t0; v.play().catch(() => { }); }
+  function discard() { const c = G.clips[cur]; if (!c) return; c.st = 'no'; save(); if (window.vCancelClip) window.vCancelClip(); nextPend(); }
+
+  // el formulario de clip de siempre, ya rellenado con lo que propone el detector
+  function openForm(c) {
+    const form = $('v-clip-form'); if (!form || !window._vState) return; const n = names();
+    if (window.vCancelClip) window.vCancelClip();
+    window._vState.start = c.t0; window._vState.end = c.t1;
+    const bL = $('v-side-local'), bA = $('v-side-away'); if (bL) bL.innerText = n.A; if (bA) bA.innerText = n.B;
+    const sv = c.saved || {};
+    window.vSetTeamSide(sv.side || (c.team === 'A' ? 'local' : 'away')); window.vSetCat(sv.cat || 'ataque');
+    if (sv.folder) { const sel = $('v-folder-sel'); if ([...sel.options].some(o => o.value === sv.folder)) sel.value = sv.folder; }
+    $('v-clip-label').value = sv.label || '';
+    const r = $('v-clip-range'); if (r) r.innerText = `[${fmt(c.t0)} - ${fmt(c.t1)}]`;
+    const cont = $('v-container');
+    if (document.fullscreenElement && cont) { cont.appendChild(form); Object.assign(form.style, { position: 'absolute', bottom: '50px', left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: '500px', zIndex: '999999', boxShadow: '0 10px 50px rgba(0,0,0,.9)' }); }
+    else { panel().after(form); Object.assign(form.style, { position: '', bottom: '', left: '', transform: '', width: '', maxWidth: '', zIndex: '', boxShadow: '' }); }
+    form.style.display = 'block';
+  }
+
+  // al guardar con el formulario: la posesión queda como buena (con su recorte y equipo final) y pasa a la siguiente
+  function hookSave() {
+    if (!window.vSaveClip || window.vSaveClip._pw) return; const orig = window.vSaveClip;
+    const w = function () {
+      const c = active && G && G.clips[cur], st = window._vState || {};
+      const snap = c && st.start != null ? { s: st.start, e: st.end, side: st.side, cat: st.cat,
+        folder: (($('v-new-folder') || {}).style || {}).display === 'block' ? $('v-new-folder').value.trim() : ($('v-folder-sel') || {}).value, label: ($('v-clip-label') || {}).value || '' } : null;
+      const r = orig.apply(this, arguments);
+      if (snap && window._vState.start === null) {   // se ha guardado de verdad (si faltaba algo, el formulario sigue abierto)
+        c.st = 'ok'; c.t0 = +snap.s.toFixed(2); c.t1 = +snap.e.toFixed(2); c.team = (snap.cat === 'ataque') === (snap.side === 'local') ? 'A' : 'B';
+        c.saved = { side: snap.side, cat: snap.cat, folder: snap.folder, label: snap.label.trim() }; save(); setTimeout(nextPend, 50);
+      }
+      return r;
+    };
+    w._pw = true; window.vSaveClip = w;
+  }
+  hookSave(); document.addEventListener('DOMContentLoaded', hookSave);
+
+  // la posesión se repite en bucle mientras se revisa
+  document.addEventListener('timeupdate', e => { if (!active || e.target.id !== 'v-video' || !G) return; const c = G.clips[cur], v = e.target;
+    if (c && !v.paused && v.currentTime > c.t1 + 0.3 && v.currentTime < c.t1 + 4) v.currentTime = c.t0; }, true);
+  window.addEventListener('keydown', e => {
+    if (!active || !$('t-video') || !$('t-video').classList.contains('active')) return; if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    if (e.code === 'KeyX') { e.preventDefault(); discard(); } else if (e.code === 'ArrowDown') { e.preventDefault(); go(1); } else if (e.code === 'ArrowUp') { e.preventDefault(); go(-1); }
+  });
+
+  function drawStrip() {
+    const cv = $('pw-strip'); if (!cv || !G) return; const W = cv.width = Math.max(300, Math.round(cv.clientWidth * (window.devicePixelRatio || 1))), H = cv.height, x = cv.getContext('2d'), X = t => t / (G.dur || 1) * W;
+    x.clearRect(0, 0, W, H); x.fillStyle = '#f1f5f9'; x.fillRect(0, 0, W, H);
+    G.clips.forEach((c, i) => { const y = c.team === 'A' ? 3 : H / 2 + 1, h = H / 2 - 4;
+      x.fillStyle = c.st === 'no' ? '#cbd5e1' : c.team === 'A' ? '#3b82f6' : '#f59e0b'; x.globalAlpha = c.st === 'pend' ? 0.45 : 1; x.fillRect(X(c.t0), y, Math.max(2, X(c.t1) - X(c.t0)), h); x.globalAlpha = 1;
+      if (c.st === 'ok') { x.fillStyle = '#16a34a'; x.fillRect(X(c.t0), y + h - 3, Math.max(2, X(c.t1) - X(c.t0)), 3); }
+      if (i === cur) { x.strokeStyle = '#0f172a'; x.lineWidth = 2; x.strokeRect(X(c.t0) - 1, y - 1, Math.max(3, X(c.t1) - X(c.t0)) + 2, h + 2); } });
+    const ht = !isFull() ? null : G.meta.halftime != null ? G.meta.halftime : G.meta.htSure ? G.meta.htAuto : null;
+    if (ht) { x.fillStyle = '#0f172a'; x.fillRect(X(ht) - 1, 0, 2, H); }
+  }
+
+  // ── 3) aprender de lo guardado y descartado (todos los partidos de este dispositivo con el mismo tipo de cámara) ──
+  async function learn() {
+    const gs = await dbAll('games'), set = [];
+    for (const g of gs) { const rev = g.clips.filter(c => c.st !== 'pend'); if (rev.length < 5) continue; const f = g.id === G.id ? F : await dbGet('feat', g.id); if (!f || !!f.pan !== !!F.pan) continue;
+      set.push({ F: f, meta: { ...g.meta, halftime: g.meta.halftime != null ? g.meta.halftime : g.meta.htAuto }, gt: g.clips.filter(c => c.st === 'ok'), unseen: g.clips.filter(c => c.st === 'pend'), range: [Math.min(...rev.map(c => c.t0)), Math.max(...rev.map(c => c.t1))] }); }
+    if (!set.length) return say('Revisa al menos 5 posesiones para que pueda aprender', 'err');
+    say('🧠 Aprendiendo…'); await new Promise(r => setTimeout(r, 50));
+    const res = POS.learn(set, P); P = res.P; await dbPut('kv', P, PK());
+    SEG = POS.segment(F, P, G.meta); G.clips = mergeFresh(G.clips.filter(c => c.st !== 'pend'), SEG.clips); await dbPut('games', G);
+    const pc = s => s ? Math.round(s.f1 * 100) + '%' : '—';
+    say(`🧠 Aprendido de ${set.length} partido${set.length > 1 ? 's' : ''}: acierto ${pc(res.before)} → ${pc(res.after)}. Las pendientes se han vuelto a proponer.`);
+    const i = G.clips.findIndex(c => c.st === 'pend'); show(i >= 0 ? i : 0);
+  }
 })();
 
 </script>

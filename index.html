@@ -13007,7 +13007,9 @@ async function _cutClipExact(file, inT, outT, onProgress, vid) {
   const expected = vS.slice(a, b).filter(s => us(s) >= t0 && us(s) < t1).length;
   if (expected < (Math.min(outT, vid && vid.duration || outT) - inT) * srcFps * 0.9) throw new Error('índice incompleto');
 
-  const H = sh & ~1, W = sw & ~1, fps = Math.min(60, Math.max(10, Math.round(srcFps))) || 30;
+  // vídeos 4K o más: el clip sale en 1080p (en 4K pesaba 60–80 MB por clip, tardaba muchísimo en subir y se veía a trompicones)
+  const _sc = Math.min(1, 1920 / Math.max(sw, sh), 1080 / Math.min(sw, sh));
+  const H = Math.round(sh * _sc) & ~1, W = Math.round(sw * _sc) & ~1, fps = Math.min(60, Math.max(10, Math.round(srcFps))) || 30;
   const srcBps = (vid && vid.duration) ? file.size * 8 / vid.duration : 0, bitrate = _clipBps(W * H, srcBps, outT - inT);
   let cfg = null;
   for (const codec of ['avc1.640028', 'avc1.640032', 'avc1.640033', 'avc1.4d0028', 'avc1.42e01f']) { const c = { codec, width: W, height: H, bitrate, framerate: fps, avc: { format: 'avc' } };
@@ -15975,15 +15977,21 @@ function vScrub(val){
 // ── Background job queue: hidden-player x1 recording → upload ───────────────
 const _vJobs=[];let _vBusy=false;
 function _vEnqueue(job){job.src=job.src||_vSrcUrl;job.file=job.file||_vSrcFile;job.size=job.size||window._vSrcSize;_vJobs.push(job);_vProcess();}
-async function _vProcess(){
-  if(_vBusy)return;_vBusy=true;
-  while(_vJobs.length){await _vRunJob(_vJobs.shift());}
-  _vBusy=false;
+// Varios clips a la vez: mientras uno se sube, el siguiente ya se corta (cada clip se corta exactamente igual que antes).
+// Hasta 3 en marcha; como mucho 2 cortándose a la vez y solo 1 grabándose reproduciendo (si el vídeo no admite el corte directo).
+const _V_PAR=3;let _vActive=0;
+const _vSem=n=>{let free=n;const q=[];return async fn=>{if(free>0)free--;else await new Promise(r=>q.push(r));try{return await fn();}finally{const nx=q.shift();if(nx)nx();else free++;}};};
+const _vCutSlot=_vSem(2),_vRecSlot=_vSem(1);
+function _vProcess(){
+  while(_vActive<_V_PAR&&_vJobs.length){
+    const job=_vJobs.shift();_vActive++;_vBusy=true;
+    _vRunJob(job).finally(()=>{_vActive--;if(!_vActive&&!_vJobs.length)_vBusy=false;_vProcess();});
+  }
 }
 
 async function _vRunJob(job){
     const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
-    _vUploads[clipId]={name,pct:0,phase:'✂️ Cortando'};_vRenderUploads();
+    _vUploads[clipId]={name,pct:0,phase:'⏳ En cola'};_vRenderUploads();
     let hv=null;
     try{
         hv=document.createElement('video');
@@ -15998,11 +16006,11 @@ async function _vRunJob(job){
         if(job.size)window._vSrcSize=job.size;
         // Corte exacto del archivo; si este vídeo no lo permite, se graba reproduciéndolo como siempre
         let blob=null;
-        try{blob=await _cutClipExact(job.file,inT,outT,p=>{_vUploads[clipId].pct=p;_vRenderUploads();},hv);}
+        try{blob=await _vCutSlot(()=>{_vUploads[clipId].phase='✂️ Cortando';_vRenderUploads();return _cutClipExact(job.file,inT,outT,p=>{_vUploads[clipId].pct=p;_vRenderUploads();},hv);});}
         catch(e){console.warn('Corte exacto no disponible, se graba en tiempo real:',e);}
-        if(!blob)blob=await _recordSegment(hv,inT,outT,p=>{
+        if(!blob)blob=await _vRecSlot(()=>_recordSegment(hv,inT,outT,p=>{
             _vUploads[clipId].pct=p;_vUploads[clipId].phase='⏺ Grabando';_vRenderUploads();
-        });
+        }));
         _vUploads[clipId].phase='☁️ Subiendo';_vUploads[clipId].pct=0;_vRenderUploads();
         const up=await uploadClipToCloud(blob,mkKey,p=>{_vUploads[clipId].pct=p;_vRenderUploads();});
         

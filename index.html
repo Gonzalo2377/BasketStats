@@ -4137,6 +4137,29 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 :fullscreen .pw-pop{width:min(680px,90%);bottom:24px}
 :fullscreen .pw-seg button{font-size:14px;padding:11px 6px}
 @media (max-width:640px){.pw-pop-top .pw-pos{display:none}.pw-seg button{font-size:12px;padding:8px 4px}}
+.pw-all{border-color:#16a34a;color:#15803d}.pw-all:disabled{opacity:.45;cursor:default}
+/* ⇄ Colocar clip (biblioteca) */
+.vp-box{max-width:520px}
+.vp-box header small{font-weight:600;color:#64748b;font-size:11.5px;margin-left:6px;font-family:monospace}
+.vp-vid{width:100%;max-height:240px;background:#000;border-radius:10px;margin-top:12px;display:block}
+.vp-nov{margin-top:12px;font-size:12px;color:#64748b;background:#f8fafc;border-radius:10px;padding:10px}
+.vp-l{display:block;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:12px 0 5px}
+.vp-sel,.vp-in,#vp-nf{width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:9px;font-size:12.5px;box-sizing:border-box}
+.vp-warn{font-size:11px;color:#b45309;margin-top:5px;font-weight:700}
+.vp-seg{display:flex;gap:6px;margin-bottom:6px}
+.vp-box .vp-seg button{flex:1;background:#fff!important;color:#334155!important;border:1.5px solid #cbd5e1!important;padding:8px 6px!important}
+.vp-box .vp-seg button.on.home{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+.vp-box .vp-seg button.on.away{background:#f59e0b!important;border-color:#f59e0b!important;color:#fff!important}
+.vp-box .vp-seg button.on.ataque{background:#22c55e!important;border-color:#22c55e!important;color:#fff!important}
+.vp-box .vp-seg button.on.defensa{background:#ef4444!important;border-color:#ef4444!important;color:#fff!important}
+.vp-chips{display:flex;flex-wrap:wrap;gap:5px}
+.vp-box .vp-chips button{background:#f8fafc!important;color:#0f172a!important;border:1.5px solid #e2e8f0!important;border-radius:16px!important;padding:5px 10px!important}
+.vp-box .vp-chips button.on{background:#f97316!important;border-color:#f97316!important;color:#fff!important}
+.vp-box .vp-chips button.new{border-style:dashed!important;color:#64748b!important}
+.vp-chips #vp-nf{flex:1;min-width:160px;width:auto;border-color:#f97316;border-radius:16px;padding:5px 10px}
+.vp-acts{display:flex;gap:6px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.vp-box .vp-acts button.sec{background:#f1f5f9;color:#0f172a}
+#vp-next{background:#16a34a!important}
 
 </style>
 </head>
@@ -16251,7 +16274,7 @@ function renderVideoLib(){
                 ${Object.entries(mk.videoClips.teams||{}).filter(([tName])=>_vTeamOk(tName,mk)).map(([tName,cats])=>`
                     <div style="font-size:11px;font-weight:800;color:var(--nv);margin:8px 0 5px;text-transform:uppercase">🏀 ${tName}</div>
                     ${['ataque','defensa'].map(cat=>{
-                        const folders=cats[cat]||{};const names=Object.keys(folders).sort();
+                        const folders=cats[cat]||{};const names=Object.keys(folders).sort((a,b)=>(b==='Sin clasificar')-(a==='Sin clasificar')||a.localeCompare(b));
                         if(!names.length)return'';
                         const col=cat==='ataque'?'#15803d':'#1e40af',bg=cat==='ataque'?'#f0fdf4':'#eff6ff',bd=cat==='ataque'?'#16a34a':'#3b82f6';
                         return `<div style="background:${bg};border-left:3px solid ${bd};border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px">
@@ -16259,7 +16282,7 @@ function renderVideoLib(){
                             ${names.map(f=>{
                                 const clips=(folders[f]||[]).slice().sort((a,b)=>a.timeSecs-b.timeSecs);
                                 return `<div style="margin-bottom:5px">
-                                    <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">📁 ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>
+                                    <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px">${f==='Sin clasificar'?'📥':'📁'} ${f} <span style="color:var(--t3);font-weight:400;font-size:9px">(${clips.length})</span>${f==='Sin clasificar'?'<span style="color:var(--t3);font-weight:500;font-size:9.5px">· pulsa ⇄ para ponerlos en su carpeta</span>':''}
                                         <button onclick="vDownloadFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" title="Descargar solo esta carpeta (ZIP)" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">💾</button>
                                         <button onclick="vDeleteFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
                                     </div>
@@ -16273,6 +16296,7 @@ function renderVideoLib(){
                                         </button>
                                         <span style="flex:1;font-size:11px;cursor:text" title="Doble clic para cambiar el nombre" ondblclick="vRenameClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}','${cl.id}')">${cl.label?_esc(cl.label):'<i style="color:var(--t3)">sin descripción</i>'}</span>
                                         <span style="font-size:9px;color:var(--t3);font-family:monospace">${cl.time}→${cl.timeEndFmt}</span>
+                                        <button onclick="vPlaceClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}','${cl.id}')" title="Colocar: carpeta, equipo, ataque/defensa, descripción o pasarlo a otro partido" style="background:${f==='Sin clasificar'?'#f97316':'#f1f5f9'};border:none;color:${f==='Sin clasificar'?'#fff':'var(--nv)'};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer">⇄</button>
                                         <button onclick="vRenameClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}','${cl.id}')" title="Cambiar el nombre del clip" style="background:#f1f5f9;border:none;color:var(--nv);border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✏️</button>
                                         <button onclick="vDeleteClip('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}',${cl.id})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>
                                     </div>`).join('')}
@@ -16401,6 +16425,87 @@ function vDeleteFolder(mkKey,tName,cat,folder){
     if(matchObj?.videoClips?.teams?.[tName]?.[cat]) delete matchObj.videoClips.teams[tName][cat][folder];
     if(matchObj && !_vLibCount(matchObj)) _vDropLib(matchObj);
     svL(); if (typeof syncFirebase === 'function') syncFirebase(); renderVideoLib();
+}
+// ⇄ Colocar un clip: cambiar carpeta, equipo, ataque/defensa, descripción o incluso de partido (si se puso en otro por error).
+// Pensado sobre todo para los clips «Sin clasificar» de las posesiones automáticas: «Guardar y siguiente» va uno tras otro.
+const _vUNS = 'Sin clasificar';
+function _vFindClip(mkKey,tName,cat,folder,id){
+    const mk=_vLib(mkKey), arr=mk?.videoClips?.teams?.[tName]?.[cat]?.[folder];
+    const cl=arr&&arr.find(c=>String(c.id)===String(id));
+    return cl?{mk,arr,cl}:null;
+}
+function _vNextUnsorted(mk,afterId){
+    const all=[];
+    Object.entries(mk?.videoClips?.teams||{}).forEach(([tn,cats])=>Object.entries(cats||{}).forEach(([cat,fs])=>(fs[_vUNS]||[]).forEach(cl=>all.push({tName:tn,cat,cl}))));
+    all.sort((a,b)=>a.cl.timeSecs-b.cl.timeSecs);
+    return all.find(o=>String(o.cl.id)!==String(afterId))||null;
+}
+function vPlaceClip(mkKey,tName,cat,folder,id){
+    const f=_vFindClip(mkKey,tName,cat,folder,id); if(!f) return;
+    if(_vUploads[f.cl.id]&&!_vUploads[f.cl.id].err){ toast('Este clip se está cortando o subiendo ahora mismo: espera unos segundos a que se ponga en verde','err'); return; }
+    document.querySelectorAll('.vp-ov').forEach(o=>o.remove());
+    const libs=_vAllLibs().filter(m=>m.videoClips).sort((a,b)=>(b.videoClips.created||0)-(a.videoClips.created||0));
+    const st={mk:f.mk, side:tName===f.mk.awayTeam&&tName!==f.mk.homeTeam?'away':'home', cat, folder, label:f.cl.label||'', newF:false};
+    const ov=document.createElement('div'); ov.className='vm-ov vp-ov';
+    const fmt=s=>{s=Math.max(0,s||0);return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');};
+    const close=()=>{ const v=ov.querySelector('video'); if(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}} ov.remove(); document.removeEventListener('keydown',onKey,true); };
+    const folders=()=>{
+        const out=[_vUNS,...(window._vFolders[st.cat]||[])], tn=st.side==='home'?st.mk.homeTeam:st.mk.awayTeam;
+        Object.keys(st.mk.videoClips.teams?.[tn]?.[st.cat]||{}).forEach(x=>{if(!out.includes(x))out.push(x);});
+        if(st.folder&&!out.includes(st.folder)) out.push(st.folder);
+        return out;
+    };
+    const nUns=()=>{let n=0;Object.values(f.mk.videoClips.teams||{}).forEach(c=>Object.values(c||{}).forEach(fs=>n+=(fs[_vUNS]||[]).length));return n;};
+    const draw=()=>{
+        const b=ov.querySelector('.vp-form'), fl=folders();
+        b.innerHTML=`<label class="vp-l">Partido</label>
+          <select class="vp-sel" id="vp-mk">${libs.map(m=>`<option value="${_esc(m.name)}"${m===st.mk?' selected':''}>${_esc(m.homeTeam)} vs ${_esc(m.awayTeam)}</option>`).join('')}</select>
+          ${st.mk!==f.mk?'<div class="vp-warn">⚠ El clip pasa a otro partido.</div>':''}
+          <label class="vp-l">Equipo</label>
+          <div class="vp-seg">${['home','away'].map(s=>`<button type="button" data-side="${s}" class="${st.side===s?'on '+s:''}">${_esc(s==='home'?st.mk.homeTeam:st.mk.awayTeam)}</button>`).join('')}</div>
+          <div class="vp-seg">${[['ataque','⚔️ Ataque'],['defensa','🛡️ Defensa']].map(([k,l])=>`<button type="button" data-cat="${k}" class="${st.cat===k?'on '+k:''}">${l}</button>`).join('')}</div>
+          <label class="vp-l">Carpeta</label>
+          <div class="vp-chips">${fl.map((x,i)=>`<button type="button" data-f="${_esc(x)}" class="${st.folder===x&&!st.newF?'on':''}${x===_vUNS?' uns':''}">${x===_vUNS?'📥 ':''}${_esc(x)}</button>`).join('')}${st.newF?`<input id="vp-nf" placeholder="Nombre de la carpeta nueva" value="${_esc(st.newF===true?'':st.newF)}">`:'<button type="button" data-f="__new" class="new">+ Nueva</button>'}</div>
+          <label class="vp-l">Descripción</label>
+          <input id="vp-lab" class="vp-in" placeholder="Opcional" value="${_esc(st.label)}">`;
+        b.querySelector('#vp-mk').onchange=e=>{ keep(); const m=libs.find(x=>x.name===e.target.value); if(m){ st.mk=m; st.folder=st.folder===_vUNS?_vUNS:''; } draw(); };
+        b.querySelectorAll('[data-side]').forEach(x=>x.onclick=()=>{ keep(); st.side=x.dataset.side; draw(); });
+        b.querySelectorAll('[data-cat]').forEach(x=>x.onclick=()=>{ keep(); if(st.cat!==x.dataset.cat){ st.cat=x.dataset.cat; if(st.folder!==_vUNS) st.folder=''; } draw(); });
+        b.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{ keep(); if(x.dataset.f==='__new'){ st.newF=true; draw(); setTimeout(()=>ov.querySelector('#vp-nf')?.focus(),0); } else { st.folder=x.dataset.f; st.newF=false; draw(); } });
+        const nf=b.querySelector('#vp-nf'); if(nf) nf.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); keep(); draw(); } };
+        const n=nUns()-(folder===_vUNS?1:0); const nx=ov.querySelector('#vp-next'); if(nx){ nx.style.display=n>0?'':'none'; nx.textContent=`Guardar y siguiente sin clasificar (${n}) ▸`; }
+    };
+    const keep=()=>{ const l=ov.querySelector('#vp-lab'); if(l) st.label=l.value; const nf=ov.querySelector('#vp-nf'); if(nf&&nf.value.trim()){ st.folder=nf.value.trim(); st.newF=false; } };
+    const save=next=>{
+        keep(); if(!st.folder){ toast('Elige una carpeta','err'); return; }
+        const cur=_vFindClip(mkKey,tName,cat,folder,id); if(!cur){ close(); return; }
+        const dT=st.side==='home'?st.mk.homeTeam:st.mk.awayTeam;
+        cur.arr.splice(cur.arr.indexOf(cur.cl),1);
+        const ST=f.mk.videoClips.teams; if(!cur.arr.length) delete ST[tName][cat][folder];
+        if(ST[tName]&&!Object.values(ST[tName]).some(c=>Object.keys(c||{}).length)) delete ST[tName];
+        cur.cl.label=st.label.trim();
+        const T=st.mk.videoClips.teams||(st.mk.videoClips.teams={}); T[dT]=T[dT]||{}; T[dT][st.cat]=T[dT][st.cat]||{}; (T[dT][st.cat][st.folder]=T[dT][st.cat][st.folder]||[]).push(cur.cl);
+        // si aún espera en la cola para cortarse y subirse, se sube ya a su sitio nuevo
+        _vJobs.filter(j=>j.clipId===cur.cl.id).forEach(j=>{ j.mkKey=st.mk.name; j.tName=dT; j.cat=st.cat; j.folder=st.folder; });
+        const nxt=next?_vNextUnsorted(f.mk,cur.cl.id):null;
+        if(st.mk!==f.mk&&!_vLibCount(f.mk)) _vDropLib(f.mk);
+        svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib();
+        toast(`✅ ${dT} · ${st.cat==='ataque'?'Ataque':'Defensa'} · ${st.folder}${st.mk!==f.mk?' · en '+st.mk.homeTeam+' vs '+st.mk.awayTeam:''}`,'ok');
+        close(); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
+    };
+    const onKey=e=>{ if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'&&e.target.tagName!=='BUTTON'){ e.preventDefault(); save(folder===_vUNS); } };
+    const src=f.cl.videoUrl||(_vMatchKey===mkKey&&_vSrcUrl?_vSrcUrl:null), part=!f.cl.videoUrl&&src;
+    ov.innerHTML=`<div class="vm-box vp-box" role="dialog" aria-label="Colocar clip"><header><b>⇄ Colocar clip <small>${fmt(f.cl.timeSecs)}–${fmt(f.cl.timeEnd)}</small></b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+      ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay loop playsinline controls></video>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div>'}
+      <div class="vp-form"></div>
+      <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div>`;
+    document.body.appendChild(ov);
+    if(part){ const v=ov.querySelector('video'); v.src=src; const a=f.cl.timeSecs,z=f.cl.timeEnd; v.addEventListener('loadedmetadata',()=>{v.currentTime=a;},{once:true}); v.addEventListener('timeupdate',()=>{ if(v.currentTime>z||v.currentTime<a-1) v.currentTime=a; }); }
+    ov.onclick=e=>{ if(e.target===ov||e.target.closest('.vm-x')) close(); };
+    ov.querySelector('#vp-cancel').onclick=close; ov.querySelector('#vp-ok').onclick=()=>save(false); ov.querySelector('#vp-next').onclick=()=>save(true);
+    if(folder!==_vUNS){ ov.querySelector('#vp-ok').className=''; }
+    document.addEventListener('keydown',onKey,true);
+    draw();
 }
 function vDeleteMatch(mkKey){
     if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`)) return;
@@ -20521,7 +20626,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vTeamSel,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
@@ -31297,6 +31402,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   // Cada posesión se reproduce; al acabar sale el popup (equipo · ataque/defensa · carpeta · descripción).
   // Al guardar se llama al «✂️ Guardar» de siempre (vSaveClip): el corte y la subida son exactamente los de antes.
   // ✏️ Editar: I marca el inicio y O el final; la marca que no se toque se queda la del corte automático.
+  const UNS = 'Sin clasificar';
   let mode = 'off', sel = {}, ed = null, spd = 1, tick = 0, flashT = 0, dl = null;
   const att = c => c.team === 'A' ? 'local' : 'away';
   const other = s => s === 'local' ? 'away' : 'local';
@@ -31306,6 +31412,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     active = true; const p = panel(); p.style.display = 'block';
     p.innerHTML = `<div class="pw-card">
       <div class="pw-hd">🤖 Posesiones <span id="pw-cnt" class="pw-cnt"></span><span class="pw-sp"></span>
+        <button class="pw-b pw-all" id="pw-all" title="Guarda de golpe todas las que quedan por clasificar: en Ataque de cada equipo, carpeta «Sin clasificar», sin descripción">✓ Confirmar todas</button>
         <button class="pw-b" id="pw-dl" title="Corta y descarga todas las posesiones detectadas, clasificadas o no (menos las descartadas)">⬇ Descargar todas</button>
         <button class="pw-b" id="pw-learn" title="Reajusta el detector con lo que habéis guardado, editado y descartado">🧠 Aprender</button>
         <button class="pw-b" id="pw-redo" title="Volver a detectar (p. ej. con otro tipo de cámara). Lo clasificado se conserva">↻ Reanalizar</button>
@@ -31326,6 +31433,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     $('pw-half').onclick = () => { G.meta.halftime = +vid().currentTime.toFixed(1); G.clips.filter(c => c.st === 'pend').forEach(c => POS.assignTeams([c], G.meta, SEG ? SEG.pauses : [], G.dur)); save(); renderHT(); drawStrip(); if (mode === 'ask') openPop(); say('⏸ Descanso en ' + fmt(G.meta.halftime) + ': equipos recolocados'); };
     $('pw-redo').onclick = () => { stopReview(); setup(); };
     $('pw-learn').onclick = learn;
+    $('pw-all').onclick = confirmAll;
     $('pw-dl').onclick = () => dl ? (dl.stop = true) : downloadAll();
     $('pw-strip').onclick = e => { const r = e.target.getBoundingClientRect(), t = (e.clientX - r.left) / r.width * G.dur; let bi = -1, bd = 1e9;
       G.clips.forEach((c, i) => { const d = t < c.t0 ? c.t0 - t : t > c.t1 ? t - c.t1 : 0; if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) show(bi); };
@@ -31340,6 +31448,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   function startFrom() { const i = G.clips.findIndex((c, k) => k >= Math.max(0, cur) && c.st === 'pend'); const j = i >= 0 ? i : G.clips.findIndex(c => c.st === 'pend'); if (j < 0) return allDone(); show(j); }
   function counts() { const ok = G.clips.filter(c => c.st === 'ok').length, no = G.clips.filter(c => c.st === 'no').length; return { ok, no, pend: G.clips.length - ok - no }; }
   function counter() { const k = counts(), e = $('pw-cnt'); if (e) e.textContent = `✓ ${k.ok} clasificadas · ✗ ${k.no} descartadas · ${k.pend} por clasificar`;
+    const a = $('pw-all'); if (a) { a.textContent = `✓ Confirmar todas (${k.pend})`; a.disabled = !k.pend; }
     const s = $('pw-start'); if (s) s.textContent = k.ok + k.no ? '▶ Seguir clasificando en pantalla grande' : '▶ Clasificar en pantalla grande'; }
 
   // ── capa encima del vídeo (vale igual en pantalla grande y normal) ──
@@ -31390,6 +31499,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
       Object.keys((o.videoClips.teams[tn] || {})[sel.cat] || {}).forEach(f => { if (!out.includes(f)) out.push(f); }); } } catch (e) { }
     G.clips.forEach(c => { const s = c.saved; if (s && s.cat === sel.cat && s.side === sel.side && s.folder && !out.includes(s.folder)) out.push(s.folder); });
     if (sel.folder && !out.includes(sel.folder)) out.push(sel.folder);
+    if (!out.includes(UNS)) out.push(UNS);
     return out;
   }
   function openPop() {
@@ -31432,6 +31542,35 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     c.st = 'ok'; c.team = (sel.cat === 'ataque') === (sel.side === 'local') ? 'A' : 'B';
     c.saved = { side: sel.side, cat: sel.cat, folder: sel.folder, label: (sel.label || '').trim() }; save();
     flash(`✅ ${esc(tname(sel.side))} · ${sel.cat === 'ataque' ? 'Ataque' : 'Defensa'} · ${esc(sel.folder)}`); nextPend();
+  }
+  // ✓ Confirmar todas: cada posesión pendiente se guarda tal cual (Ataque del equipo que ataca, «Sin clasificar», sin descripción)
+  // con el mismo «✂️ Guardar» de siempre, así que se cortan y se suben igual que una a una
+  async function confirmAll() {
+    const list = G.clips.filter(c => c.st === 'pend'); if (!list.length) return say('No queda ninguna por clasificar');
+    const n = names(), nA = list.filter(c => c.team === 'A').length;
+    if (!confirm(`¿Guardar las ${list.length} posesiones que quedan por clasificar?
+
+• Ataque ${n.A}: ${nA} clips
+• Ataque ${n.B}: ${list.length - nA} clips
+
+Van a la carpeta «${UNS}», sin descripción. Luego, en la biblioteca, con ⇄ puedes ponerlas en su carpeta, cambiarles el equipo, ataque/defensa o el partido.
+
+Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.`)) return;
+    if (mode !== 'off') { try { window.applyCustomSpeed(0); } catch (e) { } setMode('off'); }
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+    const st = window._vState; let ok = 0;
+    for (const c of list) {
+      const t = Date.now(); while (Date.now() === t) await new Promise(r => setTimeout(r, 1));   // cada clip con su propio id
+      if (window.vCancelClip) window.vCancelClip();
+      st.start = c.t0; st.end = c.t1; st.side = att(c); st.cat = 'ataque';
+      const inp = $('v-new-folder'); inp.style.display = 'block'; inp.value = UNS; $('v-clip-label').value = '';
+      window.vSaveClip();
+      if (st.start !== null) { if (window.vCancelClip) window.vCancelClip(); break; }
+      c.st = 'ok'; c.saved = { side: att(c), cat: 'ataque', folder: UNS, label: '' }; ok++;
+    }
+    save(); counter(); drawStrip();
+    say(ok === list.length ? `✅ ${ok} posesiones guardadas en «${UNS}». Se están cortando y subiendo: deja la pestaña abierta` : `Se han guardado ${ok} de ${list.length}`, ok === list.length ? 'ok' : 'err');
+    const u = $('v-uploads'); if (u) u.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function discard() { const c = G.clips[cur]; if (!c) return; c.st = 'no'; save(); flash('✗ Descartada'); nextPend(); }
   function go(d) { if (!G.clips.length) return; let i = cur + d; if (i < 0) i = 0; if (i >= G.clips.length) { flash('Era la última'); i = G.clips.length - 1; } show(i); }

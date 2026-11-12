@@ -4161,6 +4161,25 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 .vp-box .vp-acts button.sec{background:#f1f5f9;color:#0f172a}
 #vp-next{background:#16a34a!important}
 
+/* ⇄ Colocar clip: línea de tiempo para recortar + descartar */
+.vp-tl{margin-top:8px;user-select:none}
+.vp-tl-bar{position:relative;height:30px;background:#e2e8f0;border-radius:8px;cursor:pointer;touch-action:none;overflow:visible}
+.vp-tl-sel{position:absolute;top:0;bottom:0;background:rgba(34,197,94,.28);border-top:2px solid #22c55e;border-bottom:2px solid #22c55e;box-sizing:border-box;pointer-events:none}
+.vp-tl.cut .vp-tl-sel{background:rgba(249,115,22,.25);border-color:#f97316}
+.vp-tl-ph{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:#0f172a;border-radius:2px;pointer-events:none}
+.vp-tl-h{position:absolute;top:-2px;bottom:-2px;width:12px;margin-left:-6px;background:#22c55e;border-radius:4px;cursor:ew-resize;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.vp-tl-h::after{content:'';position:absolute;left:5px;top:9px;bottom:9px;width:2px;background:rgba(255,255,255,.85);border-radius:1px}
+.vp-tl.cut .vp-tl-h{background:#f97316}
+.vp-tl-info{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11px;color:#64748b;flex-wrap:wrap}
+.vp-tl-info span{flex:1}
+.vp-tl-hint{font-size:10.5px;color:#94a3b8;margin-top:2px}
+.vp-tl-hint kbd{font:700 10px monospace;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;padding:0 4px}
+.vp-tl-info b{white-space:nowrap;font-family:monospace;color:#0f172a;font-size:11.5px}
+.vp-tl.cut .vp-tl-info b{color:#c2410c}
+.vp-box .vp-tl-info button{background:#fff!important;color:#c2410c!important;border:1.5px solid #fdba74!important;border-radius:7px!important;padding:3px 8px!important;font-size:11px!important}
+.vp-box .vp-acts button.del{background:#fff!important;color:#dc2626!important;border:1.5px solid #fecaca!important}
+.vp-box .vp-acts button.del:hover{background:#fef2f2!important}
+
 </style>
 </head>
 <body>
@@ -5018,7 +5037,7 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
   </div>
   <div class="card" style="margin-bottom:10px">
     <div class="ct">👥 Jugadores (acumulado) <span style="font-size:10px;color:var(--t3);font-weight:400">— clic para el perfil</span></div>
-    <div class="tw tsk"><table><thead><tr>
+    <div class="tw tsk clp-w"><table class="clp"><thead><tr>
       <th>#</th><th>JUGADOR</th><th onclick="clSort('g')" style="cursor:pointer" title="Ordenar">PJ ⇅</th>
       <th onclick="clSort('min')" style="cursor:pointer">MIN ⇅</th>
       <th onclick="clSort('pts')" style="cursor:pointer">PTS ⇅</th>
@@ -5031,6 +5050,38 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
       <th onclick="clSort('pm')" style="cursor:pointer">+/- ⇅</th>
       <th onclick="clSort('per10')" style="cursor:pointer">+/-/MIN ⇅</th>
     </tr></thead><tbody id="cl-players"></tbody></table></div>
+    <style>
+      .clp-w{border-radius:12px;border:1px solid var(--bd);box-shadow:0 1px 2px rgba(15,23,42,.04)}
+      table.clp{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:12.5px}
+      table.clp thead th{position:sticky;top:0;z-index:1;background:#f8fafc;color:#64748b;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;padding:11px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-align:center;cursor:pointer;user-select:none;transition:color .15s}
+      table.clp thead th:hover{color:var(--nv)}
+      table.clp thead th.on{color:var(--ac)}
+      table.clp thead th.clp-l{text-align:left}
+      table.clp thead th.clp-g{border-left:1px solid #e2e8f0}
+      table.clp tbody td{padding:9px 8px;text-align:center;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap}
+      table.clp tbody tr:last-child td{border-bottom:0}
+      table.clp tbody tr:nth-child(even) td{background:#fbfcfe}
+      table.clp tbody tr{cursor:pointer;transition:background .12s}
+      table.clp tbody tr:hover td{background:#eef4ff}
+      table.clp td.clp-g{border-left:1px solid #f1f5f9}
+      table.clp td.clp-on{background:rgba(0,113,227,.05)!important}
+      table.clp .clp-d{display:inline-block;min-width:30px;padding:3px 6px;border-radius:7px;background:#f1f5f9;color:#475569;font-weight:800;font-size:11px}
+      table.clp td.clp-n{text-align:left;font-weight:800;color:var(--nv);letter-spacing:.01em}
+      table.clp .clp-n .st{color:#f59e0b;margin-left:4px;font-size:11px}
+      table.clp td.clp-pts{font-weight:900;color:var(--nv);font-size:13.5px}
+      table.clp td.clp-m{font-weight:700;color:#475569}
+      table.clp .clp-pc b{font-weight:800;color:var(--nv)}
+      table.clp .clp-pc small{display:block;color:#94a3b8;font-size:10px;font-weight:500;margin-top:1px}
+      table.clp .clp-z{color:#cbd5e1}
+      table.clp .clp-pt{display:inline-block;min-width:22px;padding:2px 6px;border-radius:999px;background:#fef3c7;color:#b45309;font-weight:800;font-size:11px}
+      table.clp .clp-pt.no{background:transparent;color:#cbd5e1}
+      table.clp .clp-pos{color:#16a34a;font-weight:800}
+      table.clp .clp-neg{color:#dc2626;font-weight:800}
+      table.clp .clp-val{display:inline-block;min-width:34px;padding:3px 7px;border-radius:8px;font-weight:900}
+      table.clp .clp-val.pos{background:#dcfce7;color:#15803d}
+      table.clp .clp-val.neg{background:#fee2e2;color:#b91c1c}
+      table.clp .clp-val.zero{background:#f1f5f9;color:#64748b}
+    </style>
     <div id="cl-classic-legend" style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.5">
       <b style="color:var(--nv)">LEYENDA CLÁSICA:</b> PJ partidos · MIN minutos · PTS puntos · T2/T3/TL aciertos de 2, triples y libres · RO/RD/RT rebotes ofensivos, defensivos y totales · AST asistencias · STL robos · BLK tapones · PER pérdidas · FC/FR faltas cometidas/recibidas · +/- diferencia con el jugador en pista · +/-/MIN diferencia por minuto x 10.
     </div>
@@ -13065,7 +13116,7 @@ function _recordSegment(vid, inT, outT, onProgress) {
                   'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
       .find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
     const px = (vid.videoWidth || 1920) * (vid.videoHeight || 1080);
-    const srcBps = (window._vSrcSize && vid.duration) ? window._vSrcSize * 8 / vid.duration : 0, bps = _clipBps(px, srcBps, outT - inT);
+    const _srcSz = (vid && vid._srcSize) || window._vSrcSize, srcBps = (_srcSz && vid.duration) ? _srcSz * 8 / vid.duration : 0, bps = _clipBps(px, srcBps, outT - inT);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -14621,29 +14672,13 @@ function _clRenderRows(){
 
   const getSortIcon = (f) => _clSortF === f ? (_clSortDir > 0 ? ' ▲' : ' ▼') : '';
 
-  // 🚀 Cabecera limpia con Min/P y VAL
+  // Cabecera: mayúsculas y la columna ordenada resaltada
   if(thead){
-    thead.innerHTML = `
-      <th onclick="clSort('dorsal')" style="cursor:pointer">#${getSortIcon('dorsal')}</th>
-      <th onclick="clSort('name')" style="cursor:pointer;text-align:left">Jugador${getSortIcon('name')}</th>
-      <th onclick="clSort('g')" style="cursor:pointer">Pj${getSortIcon('g')}</th>
-      <th onclick="clSort('min')" style="cursor:pointer" title="Minutos por partido">Min/P${getSortIcon('min')}</th>
-      <th onclick="clSort('pts')" style="cursor:pointer">Pts${getSortIcon('pts')}</th>
-      <th onclick="clSort('t2m')" style="cursor:pointer">T2%${getSortIcon('t2m')}</th>
-      <th onclick="clSort('t3m')" style="cursor:pointer">T3%${getSortIcon('t3m')}</th>
-      <th onclick="clSort('tlm')" style="cursor:pointer">Tl%${getSortIcon('tlm')}</th>
-      <th onclick="clSort('ro')" style="cursor:pointer">Ro${getSortIcon('ro')}</th>
-      <th onclick="clSort('rd')" style="cursor:pointer">Rd${getSortIcon('rd')}</th>
-      <th onclick="clSort('reb')" style="cursor:pointer">Rt${getSortIcon('reb')}</th>
-      <th onclick="clSort('ast')" style="cursor:pointer">Ast${getSortIcon('ast')}</th>
-      <th onclick="clSort('stl')" style="cursor:pointer">Stl${getSortIcon('stl')}</th>
-      <th onclick="clSort('blk')" style="cursor:pointer">Blk${getSortIcon('blk')}</th>
-      <th onclick="clSort('to')" style="cursor:pointer">Per${getSortIcon('to')}</th>
-      <th onclick="clSort('fc')" style="cursor:pointer">Fc${getSortIcon('fc')}</th>
-      <th onclick="clSort('fr')" style="cursor:pointer">Fr${getSortIcon('fr')}</th>
-      <th onclick="clSort('pm')" style="cursor:pointer">+/-${getSortIcon('pm')}</th>
-      <th onclick="clSort('val')" style="cursor:pointer" title="Valoración ACB">VAL${getSortIcon('val')}</th>
-    `;
+    const H = [['dorsal','#','',''],['name','Jugador','clp-l',''],['g','PJ','','Partidos jugados'],['starts','PT','','Partidos de titular'],['min','MIN/P','','Minutos por partido'],
+      ['pts','PTS','clp-g','Puntos'],['t2m','T2%','','Tiros de 2'],['t3m','T3%','','Triples'],['tlm','TL%','','Tiros libres'],
+      ['ro','RO','clp-g','Rebotes ofensivos'],['rd','RD','','Rebotes defensivos'],['reb','RT','','Rebotes totales'],['ast','AST','','Asistencias'],['stl','STL','','Robos'],['blk','BLK','','Tapones'],['to','PER','','Pérdidas'],
+      ['fc','FC','clp-g','Faltas cometidas'],['fr','FR','','Faltas recibidas'],['pm','+/-','clp-g','Diferencial de puntos'],['val','VAL','','Valoración ACB']];
+    thead.innerHTML = H.map(([k,l,c,t]) => `<th onclick="clSort('${k}')" class="${c}${_clSortF===k?' on':''}"${t?` title="${t}"`:''}>${l}${getSortIcon(k)}</th>`).join('');
   }
 
   const fmtMin = (secs) => {
@@ -14654,48 +14689,38 @@ function _clRenderRows(){
       return `${mm}:${String(ss).padStart(2, '0')}`;
   };
 
+  const on = k => _clSortF===k ? ' clp-on' : '';
+  const pcC = (m, a) => a ? `<b>${Math.round(m / a * 100)}%</b><small>${m}/${a}</small>` : '<span class="clp-z">—</span>';
+  const n0 = v => v ? v : 0, z = v => v ? v : '<span class="clp-z">0</span>';
   let rowsHtml = '';
   arr.forEach(p => {
-      const st = p.starts > 0 ? ' <span style="color:#f59e0b">★</span>' : '';
-      
-      // 🚀 Calcula la media de segundos por partido y lo formatea
       const avgSecs = p.g > 0 ? p._secs / p.g : 0;
-      const pMinP = avgSecs > 0 ? fmtMin(avgSecs) : '—'; 
-      
-      const pRo = p.ro ? p.ro : 0; const pRd = p.rd ? p.rd : 0; const pReb = p.reb ? p.reb : 0;
-      const pAst = p.ast ? p.ast : 0; const pStl = p.stl ? p.stl : 0; const pBlk = p.blk ? p.blk : 0;
-      const pTo = p.to ? p.to : 0; const pFc = p.fc ? p.fc : 0; const pFr = p.fr ? p.fr : 0;
-      
-      const pPm = p.pm ? p.pm : 0;
-      const pmC = pPm > 0 ? 'var(--gn)' : (pPm < 0 ? '#dc2626' : 'inherit');
-      const pmS = pPm > 0 ? '+' : '';
-      
-      // 🚀 Valoración
-      const pVal = p.val ? p.val : 0;
-      const valC = pVal > 0 ? 'var(--gn)' : (pVal < 0 ? '#dc2626' : 'inherit');
-      
-      rowsHtml += `<tr style="cursor:pointer" data-n="${_esc(p.name)}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
-        <td>#${p.dorsal}</td>
-        <td style="text-align:left"><b>${p.name}</b>${st}</td>
-        <td>${p.g}</td>
-        <td style="font-weight:700;color:var(--t2)">${pMinP}</td>
-        <td><b>${p.pts}</b></td>
-        <td style="white-space:nowrap">${pctMA(p.t2m, p.t2a)}</td>
-        <td style="white-space:nowrap">${pctMA(p.t3m, p.t3a)}</td>
-        <td style="white-space:nowrap">${pctMA(p.tlm, p.tla)}</td>
-        <td>${pRo}</td><td>${pRd}</td><td>${pReb}</td><td>${pAst}</td><td>${pStl}</td><td>${pBlk}</td><td>${pTo}</td>
-        <td>${pFc}</td><td>${pFr}</td>
-        <td style="font-weight:700;color:${pmC}">${pmS}${pPm}</td>
-        <td style="font-weight:900;color:${valC}">${pVal}</td>
+      const pMinP = avgSecs > 0 ? fmtMin(avgSecs) : '—';
+      const pPm = n0(p.pm), pVal = n0(p.val), ps = n0(p.starts);
+      rowsHtml += `<tr data-n="${_esc(p.name)}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
+        <td class="${on('dorsal')}"><span class="clp-d">#${_esc(p.dorsal)}</span></td>
+        <td class="clp-n${on('name')}">${_esc(p.name)}${ps > 0 ? '<span class="st" title="Ha sido titular">★</span>' : ''}</td>
+        <td class="${on('g')}">${p.g}</td>
+        <td class="${on('starts')}"><span class="clp-pt${ps ? '' : ' no'}">${ps}</span></td>
+        <td class="clp-m${on('min')}">${pMinP}</td>
+        <td class="clp-g clp-pts${on('pts')}">${n0(p.pts)}</td>
+        <td class="clp-pc${on('t2m')}">${pcC(p.t2m, p.t2a)}</td>
+        <td class="clp-pc${on('t3m')}">${pcC(p.t3m, p.t3a)}</td>
+        <td class="clp-pc${on('tlm')}">${pcC(p.tlm, p.tla)}</td>
+        <td class="clp-g${on('ro')}">${z(p.ro)}</td><td class="${on('rd')}">${z(p.rd)}</td><td class="${on('reb')}"><b>${z(p.reb)}</b></td>
+        <td class="${on('ast')}">${z(p.ast)}</td><td class="${on('stl')}">${z(p.stl)}</td><td class="${on('blk')}">${z(p.blk)}</td><td class="${on('to')}">${z(p.to)}</td>
+        <td class="clp-g${on('fc')}">${z(p.fc)}</td><td class="${on('fr')}">${z(p.fr)}</td>
+        <td class="clp-g${on('pm')}"><span class="${pPm > 0 ? 'clp-pos' : pPm < 0 ? 'clp-neg' : 'clp-z'}">${pPm > 0 ? '+' : ''}${pPm}</span></td>
+        <td class="${on('val')}"><span class="clp-val ${pVal > 0 ? 'pos' : pVal < 0 ? 'neg' : 'zero'}">${pVal}</span></td>
       </tr>`;
   });
-  
+
   tb.innerHTML = rowsHtml;
 
   // 🚀 Actualizamos la leyenda automáticamente para que no diga "+/-/Min"
   const legendEl = document.getElementById('cl-classic-legend');
   if(legendEl) {
-      legendEl.innerHTML = '<b>LEYENDA CLÁSICA:</b> PJ partidos · MIN/P minutos de media · PTS puntos · T2/T3/TL aciertos de 2, triples y libres · RO/RD/RT rebotes of., def. y totales · AST asistencias · STL robos · BLK tapones · PER pérdidas · FC/FR faltas com./rec. · +/- diferencial de puntos · VAL valoración clásica (ACB).';
+      legendEl.innerHTML = '<b>LEYENDA CLÁSICA:</b> PJ partidos · PT partidos de titular · MIN/P minutos de media · PTS puntos · T2/T3/TL aciertos de 2, triples y libres · RO/RD/RT rebotes of., def. y totales · AST asistencias · STL robos · BLK tapones · PER pérdidas · FC/FR faltas com./rec. · +/- diferencial de puntos · VAL valoración clásica (ACB).';
   }
 }
 function _esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -15992,8 +16017,13 @@ function _vProcess(){
 async function _vRunJob(job){
     const {mkKey,tName,cat,folder,clipId,name,inT,outT}=job;
     _vUploads[clipId]={name,pct:0,phase:'⏳ En cola'};_vRenderUploads();
-    let hv=null;
+    let hv=null, tmpUrl=null;
     try{
+        if(job.fetchUrl){
+            _vUploads[clipId].phase='⬇️ Bajando';_vRenderUploads();
+            const r=await fetch(job.fetchUrl); if(!r.ok) throw new Error('no se pudo bajar el clip ('+r.status+')');
+            const b=await r.blob(); job.file=new File([b],'clip.mp4',{type:b.type||'video/mp4'}); job.size=b.size; job.src=tmpUrl=URL.createObjectURL(job.file);
+        }
         hv=document.createElement('video');
         hv.src=job.src||_vSrcUrl;hv.muted=true;hv.preload='auto';
         hv.style.cssText='position:fixed;bottom:0;right:0;width:4px;height:4px;opacity:0.01;pointer-events:none;z-index:-1';
@@ -16003,7 +16033,7 @@ async function _vRunJob(job){
             hv.onerror=()=>rej(new Error('No se pudo abrir el vídeo en 2º plano'));
             setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
         });
-        if(job.size)window._vSrcSize=job.size;
+        if(job.size){hv._srcSize=job.size;if(!job.fetchUrl)window._vSrcSize=job.size;}
         // Corte exacto del archivo; si este vídeo no lo permite, se graba reproduciéndolo como siempre
         let blob=null;
         try{blob=await _vCutSlot(()=>{_vUploads[clipId].phase='✂️ Cortando';_vRenderUploads();return _cutClipExact(job.file,inT,outT,p=>{_vUploads[clipId].pct=p;_vRenderUploads();},hv);});}
@@ -16018,16 +16048,18 @@ async function _vRunJob(job){
         let matchObj = _vLib(mkKey);
         const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder];
         const cl = arr?.find(x=>x.id===clipId);
-        if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();renderVideoLib();}
+        if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();if(job.fetchUrl&&typeof syncFirebase==='function')syncFirebase();renderVideoLib();}
         
         delete _vUploads[clipId];_vRenderUploads();
     }catch(e){
         console.error('clip job failed:',e);
         _vUploads[clipId]={name,err:e.message.slice(0,40)};_vRenderUploads();
         setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
-        toast(`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
+        toast(job.fetchUrl?`❌ "${name}": ${e.message} — el clip se queda como estaba`:`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
+        if(job.fetchUrl&&job.undo) job.undo();
     }finally{
         if(hv){try{hv.pause();hv.removeAttribute('src');hv.load();hv.remove();}catch(e){}}
+        if(tmpUrl)URL.revokeObjectURL(tmpUrl);
     }
 }
 
@@ -16487,6 +16519,7 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
     const save=next=>{
         keep(); if(!st.folder){ toast('Elige una carpeta','err'); return; }
         const cur=_vFindClip(mkKey,tName,cat,folder,id); if(!cur){ close(); return; }
+        if(TL.D&&TL.o-TL.i<0.5){ toast('El clip recortado es demasiado corto','err'); return; }
         const dT=st.side==='home'?st.mk.homeTeam:st.mk.awayTeam;
         cur.arr.splice(cur.arr.indexOf(cur.cl),1);
         const ST=f.mk.videoClips.teams; if(!cur.arr.length) delete ST[tName][cat][folder];
@@ -16495,22 +16528,80 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         const T=st.mk.videoClips.teams||(st.mk.videoClips.teams={}); T[dT]=T[dT]||{}; T[dT][st.cat]=T[dT][st.cat]||{}; (T[dT][st.cat][st.folder]=T[dT][st.cat][st.folder]||[]).push(cur.cl);
         // si aún espera en la cola para cortarse y subirse, se sube ya a su sitio nuevo
         _vJobs.filter(j=>j.clipId===cur.cl.id).forEach(j=>{ j.mkKey=st.mk.name; j.tName=dT; j.cat=st.cat; j.folder=st.folder; });
+        // ✂️ recorte: el clip se queda con el tramo elegido (si ya estaba subido, se vuelve a cortar de él y se sube; mientras, se ve el de antes)
+        const cut=TL.D&&(TL.i>0.05||TL.o<TL.D-0.05);
+        if(cut){
+            const c=cur.cl, a0=+c.timeSecs||0, old={time:c.time,timeSecs:c.timeSecs,timeEnd:c.timeEnd,timeEndFmt:c.timeEndFmt,dur:c.dur};
+            const a=a0+TL.i, z=a0+TL.o;
+            Object.assign(c,{time:fmt(a),timeSecs:Math.round(a*100)/100,timeEnd:Math.round(z*100)/100,timeEndFmt:fmt(z),dur:Math.round(z-a)});
+            const q=_vJobs.filter(j=>j.clipId===c.id);
+            if(q.length) q.forEach(j=>{ j.inT=a; j.outT=z; });
+            else if(c.videoUrl) _vEnqueue({mkKey:st.mk.name,tName:dT,cat:st.cat,folder:st.folder,clipId:c.id,name:(c.label||c.time)+' ✂️',inT:TL.i,outT:TL.o,fetchUrl:c.videoUrl,src:'-',file:'-',size:1,
+                undo:()=>{ Object.assign(c,old); svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib(); }});
+        }
         const nxt=next?_vNextUnsorted(f.mk,cur.cl.id):null;
         if(st.mk!==f.mk&&!_vLibCount(f.mk)) _vDropLib(f.mk);
         svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib();
-        toast(`✅ ${dT} · ${st.cat==='ataque'?'Ataque':'Defensa'} · ${st.folder}${st.mk!==f.mk?' · en '+st.mk.homeTeam+' vs '+st.mk.awayTeam:''}`,'ok');
+        toast(`✅ ${dT} · ${st.cat==='ataque'?'Ataque':'Defensa'} · ${st.folder}${st.mk!==f.mk?' · en '+st.mk.homeTeam+' vs '+st.mk.awayTeam:''}${cut?' · ✂️ recortado':''}`,'ok');
         close(); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
     };
-    const onKey=e=>{ if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'&&e.target.tagName!=='BUTTON'){ e.preventDefault(); save(folder===_vUNS); } };
+    // 🗑️ Descartar: el clip sale de la biblioteca (si estaba esperando para cortarse, ya no se corta)
+    const discard=()=>{
+        const cur=_vFindClip(mkKey,tName,cat,folder,id); if(!cur){ close(); return; }
+        if(!confirm('¿Descartar este clip? Se quita de la biblioteca.')) return;
+        cur.arr.splice(cur.arr.indexOf(cur.cl),1);
+        const ST=f.mk.videoClips.teams; if(!cur.arr.length) delete ST[tName][cat][folder];
+        if(ST[tName]&&!Object.values(ST[tName]).some(c=>Object.keys(c||{}).length)) delete ST[tName];
+        for(let k=_vJobs.length-1;k>=0;k--) if(_vJobs[k].clipId===cur.cl.id){ _vJobs.splice(k,1); delete _vUploads[cur.cl.id]; }
+        _vRenderUploads();
+        const nxt=folder===_vUNS?_vNextUnsorted(f.mk,cur.cl.id):null;
+        if(!_vLibCount(f.mk)) _vDropLib(f.mk);
+        svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib();
+        toast('🗑️ Clip descartado','ok');
+        close(); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
+    };
+    const onKey=e=>{ const typing=/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
+        if(!typing&&TL.D&&(e.key==='i'||e.key==='I')){ e.preventDefault(); TL.set('i',TL.now()); return; }
+        if(!typing&&TL.D&&(e.key==='o'||e.key==='O')){ e.preventDefault(); TL.set('o',TL.now()); return; }
+        if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'&&e.target.tagName!=='BUTTON'){ e.preventDefault(); save(folder===_vUNS); } };
     const src=f.cl.videoUrl||(_vMatchKey===mkKey&&_vSrcUrl?_vSrcUrl:null), part=!f.cl.videoUrl&&src;
     ov.innerHTML=`<div class="vm-box vp-box" role="dialog" aria-label="Colocar clip"><header><b>⇄ Colocar clip <small>${fmt(f.cl.timeSecs)}–${fmt(f.cl.timeEnd)}</small></b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
-      ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay loop playsinline controls></video>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div>'}
+      ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay playsinline controls></video>
+      <div class="vp-tl"><div class="vp-tl-bar"><i class="vp-tl-sel"></i><i class="vp-tl-ph"></i><b class="vp-tl-h" data-h="i" title="Inicio (tecla I)"></b><b class="vp-tl-h" data-h="o" title="Final (tecla O)"></b></div>
+        <div class="vp-tl-info"><b id="vp-tl-t"></b><span></span><button type="button" id="vp-tl-reset" style="visibility:hidden">↺ Deshacer</button></div><div class="vp-tl-hint">✂️ Arrastra los bordes para recortar por delante o por detrás · <kbd>I</kbd> / <kbd>O</kbd> = inicio / final en el punto actual</div></div>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div>'}
       <div class="vp-form"></div>
-      <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div>`;
+      <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><button type="button" class="del" id="vp-del">🗑️ Descartar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div>`;
     document.body.appendChild(ov);
-    if(part){ const v=ov.querySelector('video'); v.src=src; const a=f.cl.timeSecs,z=f.cl.timeEnd; v.addEventListener('loadedmetadata',()=>{v.currentTime=a;},{once:true}); v.addEventListener('timeupdate',()=>{ if(v.currentTime>z||v.currentTime<a-1) v.currentTime=a; }); }
+    // línea de tiempo del clip (0 = inicio del clip): reproduce en bucle solo el tramo elegido
+    const TL={D:0,i:0,o:0,now:()=>0,set:()=>{}};
+    const v=ov.querySelector('video');
+    if(v){
+        const off=part?(+f.cl.timeSecs||0):0, bar=ov.querySelector('.vp-tl-bar'), fm=t=>{t=Math.max(0,t);return Math.floor(t/60)+':'+(t%60).toFixed(1).padStart(4,'0');};
+        if(part) v.src=src;
+        TL.now=()=>Math.max(0,Math.min(TL.D,v.currentTime-off));
+        const paint=()=>{ if(!TL.D) return; const P=t=>(100*t/TL.D)+'%';
+            ov.querySelector('.vp-tl-sel').style.left=P(TL.i); ov.querySelector('.vp-tl-sel').style.width=P(TL.o-TL.i);
+            ov.querySelector('[data-h="i"]').style.left=P(TL.i); ov.querySelector('[data-h="o"]').style.left=P(TL.o); ov.querySelector('.vp-tl-ph').style.left=P(TL.now());
+            const cut=TL.i>0.05||TL.o<TL.D-0.05; ov.querySelector('#vp-tl-t').textContent=(cut?'✂️ ':'')+fm(TL.i)+' – '+fm(TL.o)+' · '+(TL.o-TL.i).toFixed(1)+' s'+(cut?' de '+TL.D.toFixed(1)+' s':'');
+            ov.querySelector('.vp-tl').classList.toggle('cut',cut); ov.querySelector('#vp-tl-reset').style.visibility=cut?'':'hidden'; };
+        TL.set=(h,t)=>{ t=Math.max(0,Math.min(TL.D,t)); if(h==='i') TL.i=Math.min(t,TL.o-0.5); else TL.o=Math.max(t,TL.i+0.5); TL.i=Math.max(0,TL.i); TL.o=Math.min(TL.D,TL.o); paint(); };
+        const init=()=>{ TL.D=part?Math.max(0.5,(+f.cl.timeEnd||0)-(+f.cl.timeSecs||0)):(v.duration||0); if(!isFinite(TL.D)||TL.D<=0){ ov.querySelector('.vp-tl').hidden=true; TL.D=0; return; } TL.i=0; TL.o=TL.D; v.currentTime=off; paint(); };
+        v.addEventListener('loadedmetadata',init,{once:true});
+        let drag=null;
+        v.addEventListener('timeupdate',()=>{ if(!TL.D||drag) return; const t=v.currentTime-off; if(t>=TL.o-0.03||t<TL.i-0.3){ v.currentTime=off+TL.i; if(v.paused&&t>=TL.o-0.03) v.play().catch(()=>{}); } paint(); });
+        v.addEventListener('ended',()=>{ if(TL.D){ v.currentTime=off+TL.i; v.play().catch(()=>{}); } });
+        const tAt=e=>{ const r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*TL.D; };
+        bar.addEventListener('pointerdown',e=>{ if(!TL.D) return; e.preventDefault(); const t=tAt(e);
+            const h=e.target.dataset.h||(Math.abs(t-TL.i)*bar.clientWidth/TL.D<14?'i':Math.abs(t-TL.o)*bar.clientWidth/TL.D<14?'o':null);
+            if(!h){ v.currentTime=off+Math.max(TL.i,Math.min(TL.o-0.05,t)); paint(); return; }
+            drag=h; bar.setPointerCapture(e.pointerId); v.pause(); TL.set(h,t); v.currentTime=off+(h==='i'?TL.i:TL.o); });
+        bar.addEventListener('pointermove',e=>{ if(!drag) return; TL.set(drag,tAt(e)); v.currentTime=off+(drag==='i'?TL.i:TL.o); });
+        const up=()=>{ if(!drag) return; drag=null; v.currentTime=off+TL.i; v.play().catch(()=>{}); };
+        bar.addEventListener('pointerup',up); bar.addEventListener('pointercancel',up);
+        ov.querySelector('#vp-tl-reset').onclick=()=>{ TL.i=0; TL.o=TL.D; v.currentTime=off; paint(); v.play().catch(()=>{}); };
+    }
     ov.onclick=e=>{ if(e.target===ov||e.target.closest('.vm-x')) close(); };
-    ov.querySelector('#vp-cancel').onclick=close; ov.querySelector('#vp-ok').onclick=()=>save(false); ov.querySelector('#vp-next').onclick=()=>save(true);
+    ov.querySelector('#vp-cancel').onclick=close; ov.querySelector('#vp-del').onclick=discard; ov.querySelector('#vp-ok').onclick=()=>save(false); ov.querySelector('#vp-next').onclick=()=>save(true);
     if(folder!==_vUNS){ ov.querySelector('#vp-ok').className=''; }
     document.addEventListener('keydown',onKey,true);
     draw();

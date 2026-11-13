@@ -16033,7 +16033,7 @@ async function _vRunJob(job){
             hv.onerror=()=>rej(new Error('No se pudo abrir el vídeo en 2º plano'));
             setTimeout(()=>rej(new Error('Timeout cargando vídeo')),15000);
         });
-        if(job.size){hv._srcSize=job.size;if(!job.fetchUrl)window._vSrcSize=job.size;}
+        if(job.size){hv._srcSize=job.size;if(!job.fetchUrl&&!job.keep)window._vSrcSize=job.size;}
         // Corte exacto del archivo; si este vídeo no lo permite, se graba reproduciéndolo como siempre
         let blob=null;
         try{blob=await _vCutSlot(()=>{_vUploads[clipId].phase='✂️ Cortando';_vRenderUploads();return _cutClipExact(job.file,inT,outT,p=>{_vUploads[clipId].pct=p;_vRenderUploads();},hv);});}
@@ -16048,14 +16048,14 @@ async function _vRunJob(job){
         let matchObj = _vLib(mkKey);
         const arr = matchObj?.videoClips?.teams?.[tName]?.[cat]?.[folder];
         const cl = arr?.find(x=>x.id===clipId);
-        if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();if(job.fetchUrl&&typeof syncFirebase==='function')syncFirebase();renderVideoLib();}
+        if(cl){cl.videoUrl=up.url;cl.publicId=up.publicId;svL();if((job.fetchUrl||job.keep)&&typeof syncFirebase==='function')syncFirebase();renderVideoLib();}
         
         delete _vUploads[clipId];_vRenderUploads();
     }catch(e){
         console.error('clip job failed:',e);
         _vUploads[clipId]={name,err:e.message.slice(0,40)};_vRenderUploads();
         setTimeout(()=>{delete _vUploads[clipId];_vRenderUploads();},8000);
-        toast(job.fetchUrl?`❌ "${name}": ${e.message} — el clip se queda como estaba`:`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
+        toast((job.fetchUrl||job.keep)?`❌ "${name}": ${e.message} — el clip se queda como estaba`:`❌ "${name}": ${e.message} — queda como marca de tiempo`,'err');
         if(job.fetchUrl&&job.undo) job.undo();
     }finally{
         if(hv){try{hv.pause();hv.removeAttribute('src');hv.load();hv.remove();}catch(e){}}
@@ -16305,6 +16305,7 @@ function renderVideoLib(){
                 <div style="display:flex;gap:8px;align-items:center">
                     <span style="font-size:10px;opacity:.7">${total} clips</span>
                     ${(()=>{const n=_vPendingClips(mk).length;return n?`<button onclick="event.stopPropagation();vRegenPending('${mk.name.replace(/'/g,"\\'")}')" title="Carga el vídeo de este partido y graba los clips que se quedaron como marca de tiempo" style="background:#f59e0b;border:none;color:#fff;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:800;cursor:pointer">🔄 ${n} sin vídeo</button>`:'';})()}
+                    <button onclick="event.stopPropagation();vRepairMatch('${mk.name.replace(/'/g,"\\'")}')" title="Reparar clips con parón: busca los clips antiguos que se quedan parados y los vuelve a cortar enteros del vídeo del partido" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🩹</button>
                     <button onclick="event.stopPropagation();vDownloadMatch('${mk.name.replace(/'/g,"\\'")}')" title="Descargar carpeta del partido (ZIP)" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">💾</button>
                     <button onclick="event.stopPropagation();vDeleteMatch('${mk.name.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer">🗑</button>
                     <span id="arr-${mid}">${(_open.has(mid)||_vTeamF)?'▲':'▼'}</span>
@@ -16379,6 +16380,98 @@ function vRegenPending(mkKey){
         if(v.readyState>=1)go();else v.addEventListener('loadedmetadata',go,{once:true});
     };
     inp.click();
+}
+// 🩹 Reparar clips con parón. Los clips que la web grababa reproduciendo el vídeo (antes del corte exacto) pueden traer un fotograma
+// quieto de 0,3–1,3 s y ese trozo de jugada perdido. Aquí se buscan (son MP4 «fragmentados» con un salto de tiempo entre fotogramas),
+// se comprueba por la imagen que el vídeo elegido es el de ese partido y se vuelven a cortar enteros con el corte exacto, con el mismo
+// inicio y final: sustituyen al clip dañado en la biblioteca (misma carpeta, nombre y descripción).
+async function _vHeldFrames(file) {
+  if (!file || file.size < 16 || file.size > 3e8) return [];
+  const buf = await file.arrayBuffer(), d = new DataView(buf), u8 = new Uint8Array(buf), len = buf.byteLength;
+  const tag = p => String.fromCharCode(u8[p], u8[p + 1], u8[p + 2], u8[p + 3]);
+  const kids = (a, e, fn) => { for (let p = a; p + 8 <= e;) { let z = d.getUint32(p), h = 8; if (z === 1) { z = Number(d.getBigUint64(p + 8)); h = 16; } else if (z === 0) z = e - p; if (z < 8 || p + z > e) break; fn(tag(p + 4), p + h, p + z); p += z; } };
+  if (tag(4) !== 'ftyp') return [];
+  let moov = null; const moofs = [];
+  kids(0, len, (t, a, e) => { if (t === 'moov') moov = [a, e]; else if (t === 'moof') moofs.push([a, e]); });
+  if (!moov || !moofs.length) return [];
+  let vid = null, scale = 0; const trex = {};
+  kids(moov[0], moov[1], (t, a, e) => {
+    if (t === 'trak') { let id = 0, ts = 0, hd = ''; kids(a, e, (t2, a2, e2) => { if (t2 === 'tkhd') id = d.getUint32(a2 + (u8[a2] ? 20 : 12)); if (t2 === 'mdia') kids(a2, e2, (t3, a3) => { if (t3 === 'mdhd') ts = d.getUint32(a3 + (u8[a3] ? 20 : 12)); if (t3 === 'hdlr') hd = tag(a3 + 8); }); }); if (hd === 'vide' && vid == null) { vid = id; scale = ts; } }
+    if (t === 'mvex') kids(a, e, (t2, a2) => { if (t2 === 'trex') trex[d.getUint32(a2 + 4)] = d.getUint32(a2 + 12); });
+  });
+  if (vid == null || !scale) return [];
+  const all = [];
+  for (const [ma, me] of moofs) kids(ma, me, (t, a, e) => { if (t !== 'traf') return;
+    let id = 0, dd = 0, dts = null;
+    kids(a, e, (t2, a2) => {
+      if (t2 === 'tfhd') { const fl = d.getUint32(a2) & 0xffffff; id = d.getUint32(a2 + 4); dd = trex[id] || 0; let q = a2 + 8; if (fl & 1) q += 8; if (fl & 2) q += 4; if (fl & 8) dd = d.getUint32(q); }
+      if (t2 === 'tfdt') dts = u8[a2] ? Number(d.getBigUint64(a2 + 4)) : d.getUint32(a2 + 4);
+      if (t2 === 'trun' && id === vid) { const fl = d.getUint32(a2) & 0xffffff, n = d.getUint32(a2 + 4); let q = a2 + 8; if (fl & 1) q += 4; if (fl & 4) q += 4;
+        for (let i = 0; i < n; i++) { let du = dd; if (fl & 0x100) { du = d.getUint32(q); q += 4; } if (fl & 0x200) q += 4; if (fl & 0x400) q += 4; if (fl & 0x800) q += 4; all.push({ t: dts || 0, du }); dts = (dts || 0) + du; } }
+    }); });
+  if (all.length < 8) return [];
+  all.forEach((s, i) => { s.eff = i + 1 < all.length ? all[i + 1].t - s.t : s.du; });
+  const med = all.map(s => s.eff).sort((a, b) => a - b)[all.length >> 1], lim = Math.max(0.15 * scale, 4 * med);
+  return med > 0 ? all.filter(s => s.eff > lim).map(s => ({ t: +(s.t / scale).toFixed(3), dur: +(s.eff / scale).toFixed(3) })) : [];
+}
+
+let _vRepBusy=false;
+async function vRepairMatch(mkKey){
+    const mk=_vLib(mkKey); if(!mk) return;
+    if(_vRepBusy){ toast('Ya se está revisando un partido','err'); return; }
+    const all=[]; Object.entries(mk.videoClips?.teams||{}).forEach(([tName,cats])=>Object.entries(cats||{}).forEach(([cat,fs])=>Object.entries(fs||{}).forEach(([folder,arr])=>(arr||[]).forEach(cl=>{ if(cl.videoUrl&&cl.timeEnd>cl.timeSecs&&!_vUploads[cl.id]&&!_vJobs.some(j=>j.clipId===cl.id)) all.push({tName,cat,folder,cl}); }))));
+    if(!all.length){ toast('Este partido no tiene clips con vídeo subido','err'); return; }
+    _vRepBusy=true;
+    try{
+        // 1) ¿cuáles se grabaron reproduciendo? (cabecera del archivo) → de esos, ¿cuáles traen un parón?
+        const bad=[]; let done=0;
+        const check=async o=>{
+            try{
+                let head=null; try{ const r=await fetch(o.cl.videoUrl,{headers:{Range:'bytes=0-4095'}}); if(r.ok){ const b=new Uint8Array(await r.arrayBuffer()); head=new TextDecoder('latin1').decode(b.subarray(0,4096)); } }catch(e){}
+                if(head&&head.slice(4,8)==='ftyp'&&!head.includes('mvex')&&!head.includes('moof')&&head.includes('moov')) return;   // corte exacto: está bien
+                const r=await fetch(o.cl.videoUrl); if(!r.ok) return; const blob=await r.blob();
+                const h=await _vHeldFrames(blob).catch(()=>[]); if(h.length){ o.blob=blob; o.held=h; bad.push(o); }
+            }catch(e){ console.warn('revisar clip',o.cl.id,e); }
+            finally{ done++; if(done%5===0||done===all.length) toast(`🔎 Revisando clips… ${done} de ${all.length}`); }
+        };
+        toast(`🔎 Revisando ${all.length} clips…`);
+        let ix=0; await Promise.all(Array.from({length:6},async()=>{ while(ix<all.length) await check(all[ix++]); }));
+        if(!bad.length){ toast('✅ Los clips de este partido están bien: no hay ninguno con parón'); return; }
+        bad.sort((a,b)=>a.cl.timeSecs-b.cl.timeSecs);
+        // 2) el vídeo del partido: el que ya está cargado para este partido o el que se elija ahora
+        const N=bad.length, pl=N===1?'':'s';
+        let file=(_vSrcFile&&_vMatchKey===mkKey)?_vSrcFile:null;
+        if(!file){
+            if(!confirm(`${N} clip${pl} de este partido ${N===1?'trae':'traen'} un parón (un trozo de jugada que se perdió al grabarlo).\n\nPara arreglarlo elige ahora el vídeo original del partido: ${N===1?'se vuelve a cortar entero':'se vuelven a cortar enteros'}, con el mismo inicio y final, y ${N===1?'sustituye al':'sustituyen a los'} de la biblioteca.`)) return;
+            file=await new Promise(ok=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='video/*'; inp.onchange=()=>ok(inp.files[0]||null); inp.addEventListener('cancel',()=>ok(null)); inp.click(); });
+            if(!file) return;
+        }
+        const srcUrl=file===_vSrcFile?_vSrcUrl:URL.createObjectURL(file);
+        const load=u=>new Promise((ok,ko)=>{ const v=document.createElement('video'); v.muted=true; v.preload='auto'; v.src=u; v.onloadeddata=()=>ok(v); v.onerror=()=>ko(new Error('no se puede leer el vídeo')); });
+        const seek1=(v,t,ms)=>new Promise(ok=>{ const to=setTimeout(()=>ok(false),ms); v.onseeked=()=>{ clearTimeout(to); setTimeout(()=>ok(true),40); }; v.currentTime=t; });
+        const seek=async(v,t)=>{ for(let k=0;k<2;k++){ if(await seek1(v,t,20000)&&!v.seeking&&v.readyState>=2&&Math.abs(v.currentTime-t)<0.3) return true; await new Promise(r=>setTimeout(r,300)); } return false; };
+        const cv=document.createElement('canvas'); cv.width=160; cv.height=90; const cx=cv.getContext('2d',{willReadFrequently:true});
+        const sig=v=>{ cx.drawImage(v,0,0,160,90); return cx.getImageData(0,0,160,90).data; };
+        const dif=(q,ref)=>{ let e=0; for(let i=0;i<q.length;i+=8) e+=Math.abs(q[i]-ref[i]); return e/(q.length/8); };
+        let S0; try{ S0=await load(srcUrl); }catch(e){ toast('❌ '+e.message,'err'); return; }
+        // 3) cada clip se busca en el vídeo por la imagen, en su minuto: si no coincide, no se toca
+        const ok=[], no=[];
+        for(let k=0;k<N;k++){ const o=bad[k], a=+o.cl.timeSecs, z=+o.cl.timeEnd; toast(`🔎 Buscando los clips en el vídeo… ${k+1} de ${N}`);
+            if(!(S0.duration>z-0.5)){ no.push(o); continue; }
+            const u=URL.createObjectURL(o.blob); let best=1e9;
+            try{ const v0=await load(u), lim=Math.max(0.3,o.held[0].t-0.2), probes=[0.5,0.25,1,1.4,0.1].filter(p=>p<=lim); if(!probes.length) probes.push(0.1);
+                for(const p of probes){ if(!(await seek(v0,p))) continue; const ref=sig(v0).slice();
+                    for(const d of [0,-0.12,0.12,0.3]){ if(!(await seek(S0,Math.max(0,a+p+d)))) continue; const e=dif(sig(S0),ref); if(e<best) best=e; if(e<6) break; }
+                    if(best<6) break; }
+                v0.removeAttribute('src'); v0.load();
+            }catch(e){ console.warn('comparar clip',o.cl.id,e); }
+            URL.revokeObjectURL(u); o.blob=null; (best<=14?ok:no).push(o); }
+        S0.removeAttribute('src'); S0.load();
+        if(!ok.length){ if(srcUrl!==_vSrcUrl) URL.revokeObjectURL(srcUrl); toast(`❌ Ese vídeo no parece el de este partido: ninguno de los ${N} clips con parón coincide con su minuto`,'err'); return; }
+        // 4) a la cola de siempre: corte exacto → subir → sustituye el vídeo del clip
+        ok.forEach(o=>_vEnqueue({mkKey,tName:o.tName,cat:o.cat,folder:o.folder,clipId:o.cl.id,name:'🩹 '+(o.cl.label||o.cl.time),inT:+o.cl.timeSecs,outT:+o.cl.timeEnd,file,src:srcUrl,size:file.size,keep:true}));
+        toast(`🩹 Reparando ${ok.length} clip${ok.length===1?'':'s'}: se vuelven a cortar y a subir (no cierres la pestaña)${no.length?` · ${no.length} no están en este vídeo`:''}`);
+    }finally{ _vRepBusy=false; }
 }
 // Si se cierra la pestaña con clips a medias, se quedarían en 🕐: avisamos antes
 window.addEventListener('beforeunload',e=>{if(_vJobs.length||_vBusy){e.preventDefault();e.returnValue='';}});
@@ -20725,7 +20818,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vTeamSel,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vRepairMatch,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,

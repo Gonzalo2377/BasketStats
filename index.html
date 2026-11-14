@@ -3330,6 +3330,21 @@ td.adv-c:hover{box-shadow:inset 0 0 0 2px #fdba74;border-radius:6px}
 #cl-wowy .wy-pc i { font-style: normal } #cl-wowy .wy-pc i + i::before { content: ' · ' }
 @media (max-width: 420px) { #cl-wowy .wy-pc { display: flex; flex-direction: column } #cl-wowy .wy-pc i + i::before { content: '' } }
 
+/* 🔀 Con y sin: cuartetos y quintetos */
+#cl-wowy .wy-s4, #cl-wowy .wy-s5 { flex-wrap: wrap } #cl-wowy .wy-s4 select, #cl-wowy .wy-s5 select { flex: 1 1 30% }
+#cl-wowy .wy-n4 .wy-h, #cl-wowy .wy-n4 .wy-r { grid-template-columns: minmax(178px, 2.2fr) .6fr 1fr 1fr .8fr }
+#cl-wowy .wy-n5 .wy-h, #cl-wowy .wy-n5 .wy-r { grid-template-columns: minmax(214px, 2.6fr) .6fr 1fr 1fr .8fr }
+#cl-wowy .wy-n4 .wy-av, #cl-wowy .wy-n5 .wy-av { width: 40px; height: 40px } #cl-wowy .wy-n4 .wy-pair, #cl-wowy .wy-n5 .wy-pair { gap: 3px }
+#cl-wowy .wy-n4 .wy-av b, #cl-wowy .wy-n5 .wy-av b { font-size: 11.5px } #cl-wowy .wy-n4 .wy-av small, #cl-wowy .wy-n5 .wy-av small { font-size: 6.5px; max-width: 36px }
+@media (max-width: 560px) {
+  #cl-wowy .wy-s4 select, #cl-wowy .wy-s5 select { flex: 1 1 45% }
+  #cl-wowy .wy-n4 .wy-h, #cl-wowy .wy-n4 .wy-r { grid-template-columns: 118px .55fr 1fr 1fr .8fr }
+  #cl-wowy .wy-n5 .wy-h, #cl-wowy .wy-n5 .wy-r { grid-template-columns: 136px .5fr 1fr 1fr .75fr }
+  #cl-wowy .wy-n4 .wy-av { width: 27px; height: 27px } #cl-wowy .wy-n5 .wy-av { width: 25px; height: 25px }
+  #cl-wowy .wy-n4 .wy-pair, #cl-wowy .wy-n5 .wy-pair { gap: 2px } #cl-wowy .wy-n4 .wy-av b, #cl-wowy .wy-n5 .wy-av b { font-size: 9.5px } #cl-wowy .wy-n4 .wy-av small, #cl-wowy .wy-n5 .wy-av small { display: none }
+  #cl-wowy .wy-n4 .wy-av.off b, #cl-wowy .wy-n5 .wy-av.off b { font-size: 9px }
+}
+
 /* la página mide exactamente una pantalla (html, body height:100%), así que «sticky» deja de funcionar
    al bajar: la barra superior se fija de verdad y el contenido baja 52 px */
 body:not(.player-mode) { padding-top: 52px !important }
@@ -14580,8 +14595,9 @@ const _clFoto = n => { const k = String(n || '').normalize('NFD').replace(/[̀-�
 
 // 🔀 Con y sin (WOWY): 1, 2 o 3 jugadores y todas sus combinaciones en pista / en el banquillo.
 // Ataque / defensa = puntos a favor / en contra cada 40 min en ese caso; debajo, lo que cambia respecto al equipo y los % de tiro.
-window._clWowy = window._clWowy || { a: '', b: '', c: '', sort: '', dir: -1 };
-window.changeWowy = (k, v) => { const s = window._clWowy; s[k] = v; if (k === 'b' && !v) s.c = ''; renderClubWowy(); };
+window._clWowy = window._clWowy || { a: '', b: '', c: '', d: '', e: '', sort: '', dir: -1 };
+const _WY_K = ['a', 'b', 'c', 'd', 'e'];
+window.changeWowy = (k, v) => { const s = window._clWowy; s[k] = v; const l = _WY_K.map(x => s[x]).filter(Boolean); _WY_K.forEach((x, i) => { s[x] = l[i] || ''; }); renderClubWowy(); };   // al quitar uno, los siguientes suben
 window.sortWowy = k => { const s = window._clWowy; if (s.sort === k) { if (s.dir === -1) s.dir = 1; else { s.sort = ''; s.dir = -1; } } else { s.sort = k; s.dir = k === 'def' ? 1 : -1; } renderClubWowy(); };
 function renderClubWowy() {
   const el = document.getElementById('cl-wowy'); if (!el) return;
@@ -14591,9 +14607,8 @@ function renderClubWowy() {
   const st = window._clWowy, has = n => pl.some(p => p.name === n), first = !st.a;
   if (!has(st.a)) st.a = pl[0].name;
   if (first && pl[1]) st.b = pl[1].name;   // de entrada, la pareja con más minutos
-  if (st.b && (!has(st.b) || st.b === st.a)) st.b = '';
-  if (st.c && (!st.b || !has(st.c) || st.c === st.a || st.c === st.b)) st.c = '';
-  const sel = [st.a, st.b, st.c].filter(Boolean), N = sel.length, P = n => pl.find(p => p.name === n) || { name: n };
+  const sel = [...new Set(_WY_K.map(k => st[k]).filter(n => n && has(n)))]; _WY_K.forEach((k, i) => { st[k] = sel[i] || ''; });
+  const N = sel.length, P = n => pl.find(p => p.name === n) || { name: n };
   // cada caso = qué elegidos están en pista (bit i = el i-ésimo)
   const R = Array.from({ length: 1 << N }, (_, k) => ({ k, s: 0, f: 0, x: 0, sh: { f2: [0, 0], f3: [0, 0], a2: [0, 0], a3: [0, 0] } }));
   const kOf = c => sel.reduce((m, n, i) => c.includes(n) ? m | (1 << i) : m, 0);
@@ -14609,7 +14624,7 @@ function renderClubWowy() {
   R.forEach(r => { r.off = per40(r.f, r.s); r.def = per40(r.x, r.s); r.net = r.off != null ? r.off - r.def : null; r.on = sel.filter((n, i) => r.k & (1 << i)).length; });
   const val = { min: r => r.s, off: r => r.off, def: r => r.def, net: r => r.net };
   const rows = R.slice().sort(st.sort ? (p, q) => { const a = val[st.sort](p), b = val[st.sort](q); if (a == null) return 1; if (b == null) return -1; return (a - b) * st.dir; }
-    : (p, q) => q.on - p.on || p.k - q.k);
+    : (p, q) => q.on - p.on || (N > 3 ? q.s - p.s : 0) || p.k - q.k).filter(r => N < 4 || r.s > 0 || r.on === N);   // con 4 o 5 hay 16-32 casos: solo los que se han dado
   const sg = v => (v > 0 ? '+' : '') + v.toFixed(1);
   const pc = c => c[1] ? Math.round(c[0] / c[1] * 100) + '%' : '—';
   const av = (p, on) => { const f = _clFoto(p.name), d = p.dorsal != null && p.dorsal !== '' ? '#' + p.dorsal : _clShort(p.name).slice(0, 3);
@@ -14625,12 +14640,13 @@ function renderClubWowy() {
       <div class="wy-c wy-net ${r.net > .05 ? 'g' : r.net < -.05 ? 'r' : ''}"><b>${r.net == null ? '—' : sg(r.net)}</b></div></div>`;
   };
   const nm = p => `${p.dorsal != null && p.dorsal !== '' ? '#' + _esc(p.dorsal) + ' ' : ''}${_esc(_clShort(p.name))}`;
-  const opt = (k, cur, others, none) => `<select onchange="window.changeWowy('${k}', this.value)"${k === 'c' && !st.b ? ' disabled' : ''}>${none ? `<option value=""${cur ? '' : ' selected'}>${none}</option>` : ''}${pl.filter(p => !others.includes(p.name)).map(p => `<option value="${_esc(p.name)}"${p.name === cur ? ' selected' : ''}>${nm(p)}</option>`).join('')}</select>`;
+  const opt = (k, cur, others, none) => `<select onchange="window.changeWowy('${k}', this.value)">${none ? `<option value=""${cur ? '' : ' selected'}>${none}</option>` : ''}${pl.filter(p => !others.includes(p.name)).map(p => `<option value="${_esc(p.name)}"${p.name === cur ? ' selected' : ''}>${nm(p)}</option>`).join('')}</select>`;
   const th = (k, lab) => `<button type="button" class="${st.sort === k ? 'on' : ''}" onclick="window.sortWowy('${k}')" title="Ordenar">${lab}${st.sort === k ? (st.dir === -1 ? ' ▼' : ' ▲') : ''}</button>`;
-  el.innerHTML = `<div class="wy-sel">${opt('a', st.a, [st.b, st.c])}${opt('b', st.b, [st.a, st.c], '＋ 2º jugador')}${opt('c', st.c, [st.a, st.b], '＋ 3er jugador')}</div>
-    <div class="wy wy-n${N}"><div class="wy-h"><span>${['Jugador', 'Pareja', 'Trío'][N - 1]}</span>${th('min', 'MIN')}${th('off', 'ATAQUE')}${th('def', 'DEFENSA')}${th('net', 'NETO')}</div>
+  const hidden = R.length - rows.length;
+  el.innerHTML = `<div class="wy-sel wy-s${Math.min(5, N + 1)}">${_WY_K.slice(0, Math.min(5, N + 1)).map((k, i) => opt(k, st[k], sel.filter(n => n !== st[k]), i ? ['', '＋ 2º jugador', '＋ 3er jugador', '＋ 4º jugador', '＋ 5º jugador'][i] : '')).join('')}</div>
+    <div class="wy wy-n${N}"><div class="wy-h"><span>${['Jugador', 'Pareja', 'Trío', 'Cuarteto', 'Quinteto'][N - 1]}</span>${th('min', 'MIN')}${th('off', 'ATAQUE')}${th('def', 'DEFENSA')}${th('net', 'NETO')}</div>
       ${rows.map(row).join('')}</div>
-    <div class="wy-ft">Ataque / defensa = puntos a favor / en contra <b>cada 40 min</b>; debajo, la diferencia con el equipo (${tOff == null ? '—' : tOff.toFixed(1)} / ${tDef == null ? '—' : tDef.toFixed(1)}; verde = mejor) y los % de tiro: en ataque los nuestros, en defensa los del rival. Toca una cabecera para ordenar. OFF = en el banquillo. % de tiro de ${withSh} de ${E.length} partidos (los que apuntan los fallos); ${E.length} de ${ours.length} partidos con quintetos.</div>`;
+    <div class="wy-ft">Ataque / defensa = puntos a favor / en contra <b>cada 40 min</b>; debajo, la diferencia con el equipo (${tOff == null ? '—' : tOff.toFixed(1)} / ${tDef == null ? '—' : tDef.toFixed(1)}; verde = mejor) y los % de tiro: en ataque los nuestros, en defensa los del rival. Toca una cabecera para ordenar. OFF = en el banquillo.${hidden > 0 ? ` Con ${N} jugadores solo salen las combinaciones que se han dado en pista (${hidden} sin minutos, ocultas).` : ''} % de tiro de ${withSh} de ${E.length} partidos (los que apuntan los fallos); ${E.length} de ${ours.length} partidos con quintetos.</div>`;
 }
 
 function _clRenderRows(){

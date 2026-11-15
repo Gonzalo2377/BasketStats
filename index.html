@@ -10322,6 +10322,61 @@ function _preciseStints(m, side) {
   return P;
 }
 
+// 🖐️ Quintetos de UN partido (pestaña +/- del histórico): cada quinteto que ha coincidido en pista, por minutos juntos, con su +/-
+// (lo anotado y encajado mientras estaban los cinco) y, bajo cada jugador, sus puntos, rebotes y asistencias del partido.
+// Mismo motor que la pestaña Claret (_clEngine): minutos por tramos entre cambios; puntos con el quinteto apuntado en cada canasta.
+function _stLineupsCardHtml(m, side) {
+  let E = null; try { E = _clEngine({ m, side }); } catch (e) { console.warn('quintetos del partido', e); }
+  const head = '<div class="ct" style="margin-bottom:4px">🖐️ Quintetos del partido <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0">— ordenados por minutos juntos</span></div>';
+  if (!E || !E.segs.length) return '<div class="card" style="margin-top:12px">' + head + '<div class="empty">Este partido no tiene los cambios apuntados (hace falta el acta con entradas y salidas o el directo).</div></div>';
+  const key = c => c.slice().sort().join('|'), L = {};
+  E.segs.forEach(sg => { if (sg.court.length !== 5) return; const k = key(sg.court), l = L[k] || (L[k] = { names: sg.court.slice(), s: 0, f: 0, a: 0, first: sg.t0, n: 0 }); l.s += sg.t1 - sg.t0; l.n++; if (sg.t0 < l.first) l.first = sg.t0; });
+  const segAt = t => E.segs.find(x => t > x.t0 && t <= x.t1) || E.segs.find(x => t >= x.t0 && t <= x.t1);
+  (E.pts || []).forEach(p => { let l = p.oc && p.oc.length === 5 ? L[key(p.oc)] : null; if (!l) { const sg = segAt(p.t); l = sg && sg.court.length === 5 ? L[key(sg.court)] : null; } if (l) { l.f += p.f; l.a += p.a; } });
+  // lo que hizo cada jugador con ESE quinteto en pista: puntos (acta o directo) y, si el partido los apunta jugada a jugada (directo), rebotes y asistencias
+  const lineupAt = (oc, t) => { let l = oc && oc.length === 5 ? L[key(oc)] : null; if (!l) { const sg = segAt(t); l = sg && sg.court.length === 5 ? L[key(sg.court)] : null; } return l; };
+  const bump = (l, n, k, v) => { if (!l || !n) return; const o = (l.st = l.st || {}); (o[n] = o[n] || { p: 0, r: 0, a: 0 })[k] += v; };
+  const mv = Array.isArray(m.fcbqMoves) ? m.fcbqMoves : [], tid = side === 'home' ? m.localId : m.visitId;
+  let hasRA = false;
+  if (mv.length > 20 && tid != null) {
+    let tl = null; try { tl = _parcTimeline(m); } catch (e) { }
+    const ocBySeq = {}; ((tl && tl.states) || []).forEach(st => { if (st.seq >= 0 && st.oc) ocBySeq[st.seq] = st.oc[side]; });
+    mv.forEach((x, i) => { if (String(x.idTeam) !== String(tid)) return; const v = { D1: 1, D2: 2, D3: 3 }[x.code] || (/cistella de (\d)/i.exec(x.move || '') || [])[1] | 0; if (!v) return;
+      bump(lineupAt(ocBySeq[i], _parcSecElapsed(x.period, x.min, x.sec)), String(x.actorName || '').trim(), 'p', v); });
+  } else (m.events || []).forEach(e => { if (e.team !== side) return; const v = { tl_in: 1, pts2: 2, pts3: 3 }[e.type]; if (!v) return;
+    bump(lineupAt(e.oc && e.oc[side], Math.round(_elapsedMin(m, e.period, e.min, false) * 60)), e.player, 'p', v); });
+  (m.events || []).forEach(e => { if (e.team !== side) return; const k = e.type === 'ast' ? 'a' : /^(reb|ro|rd)$/.test(e.type) ? 'r' : null; if (!k) return; hasRA = true;
+    bump(lineupAt(e.oc && e.oc[side], Math.round(_elapsedMin(m, e.period, e.min, false) * 60)), e.player, k, 1); });
+  const list = Object.values(L).sort((x, y) => y.s - x.s || x.first - y.first);
+  if (!list.length) return '<div class="card" style="margin-top:12px">' + head + '<div class="empty">No hay quintetos completos en los datos de este partido.</div></div>';
+  const box = {}; ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => { box[p.name] = p; });
+  const ord = n => { const p = box[n] || {}; return -(_minNum(p.min) || 0); };
+  const mmss = t => Math.floor(t / 60) + ':' + String(Math.round(t % 60)).padStart(2, '0').replace('60', '59');
+  const short = n => { if (window._clShortMap && window._clShortMap[n]) return window._clShortMap[n]; const w = String(n || '').trim().split(/\s+/); return w.length > 1 ? w[0][0] + '. ' + w[1] : (w[0] || ''); };
+  const pl = (n, l) => { const p = box[n] || {}, q = (l.st && l.st[n]) || { p: 0, r: 0, a: 0 }, f = typeof _clFoto === 'function' ? _clFoto(n) : '', d = p.dorsal != null && p.dorsal !== '' ? p.dorsal : '';
+    return `<div class="q5-p" title="${_esc(n)}"><div class="q5-av${f ? ' ph' : ''}">${f ? `<img src="${f}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('ph');this.remove()">` : ''}<b>${_esc(d !== '' ? '#' + d : short(n).slice(0, 3))}</b>${d !== '' ? `<i>${_esc(d)}</i>` : ''}</div>
+      <div class="q5-n">${_esc(short(n))}</div><div class="q5-s${q.p || q.r || q.a ? '' : ' z'}"><b>${q.p}</b>${hasRA ? `p · <b>${q.r}</b>r · <b>${q.a}</b>a` : ' pts'}</div></div>`; };
+  const total = list.reduce((a, l) => a + l.s, 0);
+  const rows = list.map((l, i) => { const pm = l.f - l.a, names = l.names.slice().sort((x, y) => ord(x) - ord(y) || x.localeCompare(y));
+    return `<div class="q5-r${l.first === 0 ? ' ini' : ''}${l.s < 60 ? ' few' : ''}"><div class="q5-k"><span>${i + 1}</span>${l.first === 0 ? '<em>⭐ INICIAL</em>' : ''}</div>
+      <div class="q5-ps">${names.map(n => pl(n, l)).join('')}</div>
+      <div class="q5-m"><b>${mmss(l.s)}</b><small>min juntos${l.n > 1 ? ' · ' + l.n + ' veces' : ''}</small><div class="q5-bar"><i style="width:${Math.max(3, Math.round(100 * l.s / list[0].s))}%"></i></div></div>
+      <div class="q5-pm ${pm > 0 ? 'g' : pm < 0 ? 'r' : ''}"><b>${pm > 0 ? '+' : ''}${pm}</b><small>${l.f}–${l.a}</small></div></div>`; }).join('');
+  return `<div class="card q5" style="margin-top:12px">${head}
+    <style>.q5-r{display:grid;grid-template-columns:54px 1fr 104px 66px;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--bd)}.q5-r:last-of-type{border-bottom:0}.q5-r.ini{background:#fffbeb;border-radius:10px;border-bottom-color:transparent}.q5-r.few{opacity:.6}
+    .q5-k{text-align:center}.q5-k span{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--nv);color:#fff;font-size:11px;font-weight:900;align-items:center;justify-content:center}.q5-k em{display:block;font-style:normal;font-size:8.5px;font-weight:900;color:#b45309;margin-top:4px;white-space:nowrap}
+    .q5-ps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.q5-p{text-align:center;min-width:0}
+    .q5-av{position:relative;width:46px;height:46px;border-radius:50%;margin:0 auto;background:#e2e8f0;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center}.q5-r.ini .q5-av{border-color:#f59e0b}
+    .q5-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;border-radius:50%}.q5-av b{font-size:12px;font-weight:900;color:#475569}.q5-av.ph b{display:none}
+    .q5-av i{display:none;position:absolute;right:-5px;bottom:-3px;min-width:17px;height:17px;padding:0 3px;box-sizing:border-box;border-radius:9px;background:var(--nv);color:#fff;font-size:9px;font-weight:900;font-style:normal;line-height:17px;border:1.5px solid #fff}.q5-av.ph i{display:block}
+    .q5-n{font-size:10.5px;font-weight:800;color:var(--nv);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.q5-s{font-size:9.5px;color:var(--t3);font-weight:600;white-space:nowrap}.q5-s b{color:var(--nv);font-weight:900;font-size:11px}.q5-s.z,.q5-s.z b{color:#cbd5e1}
+    .q5-m{text-align:center}.q5-m b{font-size:17px;font-weight:900;color:var(--nv);font-variant-numeric:tabular-nums}.q5-m small{display:block;font-size:9px;color:var(--t3);font-weight:600}.q5-bar{height:4px;background:#e2e8f0;border-radius:2px;margin-top:5px;overflow:hidden}.q5-bar i{display:block;height:100%;background:var(--ac);border-radius:2px}
+    .q5-pm{text-align:center;border-radius:10px;padding:6px 4px;background:#f1f5f9}.q5-pm b{display:block;font-size:17px;font-weight:900;color:#475569}.q5-pm small{font-size:9.5px;font-weight:700;color:var(--t3)}.q5-pm.g{background:#dcfce7}.q5-pm.g b{color:#15803d}.q5-pm.r{background:#fee2e2}.q5-pm.r b{color:#b91c1c}
+    @media (max-width:640px){.q5-r{grid-template-columns:30px 1fr 58px;gap:6px}.q5-m{grid-column:2/3;grid-row:2;display:flex;align-items:center;gap:6px;text-align:left}.q5-m b{font-size:13px}.q5-bar{flex:1;margin-top:0}.q5-pm{grid-column:3;grid-row:1/3}.q5-av{width:36px;height:36px}.q5-n{font-size:9px}.q5-s{font-size:8px}.q5-k em{font-size:7px}}</style>
+    ${rows}
+    <div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5">${list.length} quintetos · ${mmss(total)} de juego con cinco apuntados. <b>+/-</b> = puntos a favor – en contra mientras estaban los cinco en pista. Debajo de cada jugador, lo que hizo <b>con ese quinteto en pista</b>: ${hasRA ? 'puntos, rebotes y asistencias' : 'puntos (el acta de este partido no apunta rebotes ni asistencias jugada a jugada, así que no se pueden repartir por quinteto)'}. Atenuados: menos de 1 minuto juntos.</div></div>`;
+}
+
 function _renderStPlusMinus(scoped,m){
   const body=document.getElementById('st-pm-body');
   const sel=document.getElementById('st-pm-holder');
@@ -10462,11 +10517,13 @@ function _renderStPlusMinus(scoped,m){
               </div>
           </div>
           <div id="st-pm-links"></div>
+          <div id="st-pm-q5"></div>
       `;
       try {
         const lk = document.getElementById('st-pm-links');
         if (lk) lk.innerHTML = _linksCardHtml([m], activeSide === 'home' ? m.homeTeam : m.awayTeam, 'pm', 'solo este partido');
       } catch (e) { console.error('Red de minutos (partido):', e); }
+      try { const q5 = document.getElementById('st-pm-q5'); if (q5) q5.innerHTML = _stLineupsCardHtml(m, activeSide); } catch (e) { console.error('Quintetos (partido):', e); }
       return;
   }
 
@@ -17221,7 +17278,7 @@ function renderClubLineups(ours){
   // Botones más finos (padding reducido)
   const btns = [2,3,4,5].map(s => `<button onclick="window.changeComboSize(${s})" style="flex:1; padding:4px 0; border-radius:4px; border:1px solid ${size===s?'var(--nv)':'var(--bd)'}; background:${size===s?'var(--nv)':'#f8fafc'}; color:${size===s?'#fff':'var(--t2)'}; cursor:pointer; font-weight:900; font-size:11px; transition:all 0.2s">De ${s}</button>`).join('');
 
-  el.innerHTML = `
+  el.innerHTML = `${_clComboCss}
     <div style="display:flex; gap:4px; margin-bottom:8px">${btns}</div>
     <div style="display:flex; flex-direction:column;">
     ${top.length ? top.map((l,i)=>`
@@ -17229,7 +17286,7 @@ function renderClubLineups(ours){
     <div style="padding:7.5px 0; border-bottom:1px solid var(--bd); display:flex; flex-direction:column; gap:4px;">
       <div style="display:flex;align-items:center;gap:7px">
         <span style="width:16px;height:16px;border-radius:50%;background:${i<3?'var(--gn)':'var(--nv)'};color:#fff;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
-        <span style="flex:1;font-size:11px;font-weight:800;color:var(--nv)">${l.names.join(' <span style="color:var(--t3);font-weight:400;font-size:10px;margin:0 1px">+</span> ')}</span>
+        ${_clComboAvs(l)}<span class="cb-nm">${l.names.join(' <span style="color:var(--t3);font-weight:400;font-size:10px;margin:0 1px">+</span> ')}</span>
         <b style="color:${l.pm>0?'#15803d':l.pm<0?'#991b1b':'var(--t2)'};font-size:12px;background:${l.pm>0?'#dcfce7':l.pm<0?'#fee2e2':'#f1f5f9'};padding:2px 6px;border-radius:4px">${l.pm>0?'+':''}${l.pm}</b>
       </div>
       <div style="display:flex; gap:12px; font-size:9.5px; color:var(--t3); margin-left:23px; font-weight:600">
@@ -17296,20 +17353,23 @@ function _clComboCalc(ours, size) {
   const combos = {};
   const comb = (arr, k) => { if (k > arr.length || k <= 0) return []; if (k === arr.length) return [arr]; if (k === 1) return arr.map(a => [a]);
     const out = []; for (let i = 0; i <= arr.length - k; i++) comb(arr.slice(i + 1), k - 1).forEach(t => out.push([arr[i]].concat(t))); return out; };
-  const get = sub => { const k = sub.join('|'); return combos[k] || (combos[k] = { names: sub.map(_clShort), pm: 0, ev: 0, min: 0 }); };
+  const get = sub => { const k = sub.join('|'); return combos[k] || (combos[k] = { names: sub.map(_clShort), full: sub.slice(), pm: 0, ev: 0, min: 0 }); };
   _clEngines(ours).forEach(E => {
     E.segs.forEach(sg => { if (sg.court.length >= size) comb(sg.court.slice().sort(), size).forEach(s => { get(s).min += (sg.t1 - sg.t0) / 60; }); });
     E.scores.forEach(sc => { if (sc.oc.length >= size) comb(sc.oc.slice().sort(), size).forEach(s => { const c = get(s); c.pm += sc.d; if (sc.ours) c.ev++; }); });
   });
   return Object.values(combos).filter(c => c.min >= 1);
 }
+// fotos de una combinación (círculos solapados); sin foto, la inicial
+const _clComboAvs = l => `<span class="cb-avs">${(l.full || []).map((n, i) => { const f = _clFoto(n); return `<span class="cb-av${f ? ' ph' : ''}" title="${_esc(n)}">${f ? `<img src="${f}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('ph');this.remove()">` : ''}<b>${_esc(String((l.names || [])[i] || n).slice(0, 2))}</b></span>`; }).join('')}</span>`;
+const _clComboCss = '<style>.cb-avs{display:inline-flex;flex-shrink:0;padding-left:7px}.cb-av{position:relative;width:34px;height:34px;border-radius:50%;margin-left:-7px;background:#e2e8f0;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1;display:flex;align-items:center;justify-content:center;overflow:hidden}.cb-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%}.cb-av b{font-size:10px;font-weight:900;color:#475569}.cb-av.ph b{display:none}.cb-nm{flex:1;min-width:0;font-size:11px;font-weight:800;color:var(--nv);line-height:1.35}@media (max-width:520px){.cb-av{width:27px;height:27px;margin-left:-8px}.cb-nm{font-size:10px}}</style>';
 const _clPmBadge = pm => `<b style="color:${pm > 0 ? '#15803d' : pm < 0 ? '#991b1b' : 'var(--t2)'};font-size:12px;background:${pm > 0 ? '#dcfce7' : pm < 0 ? '#fee2e2' : '#f1f5f9'};padding:2px 6px;border-radius:4px;flex-shrink:0">${pm > 0 ? '+' : ''}${pm}</b>`;
 const _clSizeBtns = (cur, fn) => [2, 3, 4, 5].map(s => `<button onclick="${fn}(${s})" style="flex:1; padding:4px 0; border-radius:4px; border:1px solid ${cur === s ? 'var(--nv)' : 'var(--bd)'}; background:${cur === s ? 'var(--nv)' : '#f8fafc'}; color:${cur === s ? '#fff' : 'var(--t2)'}; font-size:10px; font-weight:800; cursor:pointer">De ${s}</button>`).join('');
 const _clComboRow = (l, i, accent, right, sub) => `
     <div style="padding:7.5px 0; border-bottom:1px solid var(--bd); display:flex; flex-direction:column; gap:4px;">
       <div style="display:flex;align-items:center;gap:7px">
         <span style="width:16px;height:16px;border-radius:50%;background:${i < 3 ? accent : 'var(--nv)'};color:#fff;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i + 1}</span>
-        <span style="flex:1;font-size:11px;font-weight:800;color:var(--nv)">${l.names.map(_esc).join(' <span style="color:var(--t3);font-weight:400;font-size:10px;margin:0 1px">+</span> ')}</span>${right}
+        ${_clComboAvs(l)}<span class="cb-nm">${l.names.map(_esc).join(' <span style="color:var(--t3);font-weight:400;font-size:10px;margin:0 1px">+</span> ')}</span>${right}
       </div>
       <div style="display:flex; gap:12px; font-size:9.5px; color:var(--t3); margin-left:23px; font-weight:600">${sub}</div>
     </div>`;

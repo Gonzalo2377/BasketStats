@@ -4195,6 +4195,176 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 .vp-box .vp-acts button.del{background:#fff!important;color:#dc2626!important;border:1.5px solid #fecaca!important}
 .vp-box .vp-acts button.del:hover{background:#fef2f2!important}
 
+/* v85 */
+/* biblioteca: la fila del clip se oscurece entera al pasar el ratón, y cada botón también */
+.vlib-row{display:flex;align-items:center;gap:7px;padding:4px 6px 4px 16px;border-radius:7px;transition:background .12s}
+.vlib-row:hover{background:rgba(15,23,42,.09)}
+.vlib-row button{transition:filter .12s,box-shadow .12s}
+.vlib-row button:hover{filter:brightness(.85);box-shadow:0 0 0 2px rgba(15,23,42,.35)}
+/* «Colocar clip» en pantalla completa */
+.vp-box header .vp-fsb{margin-left:auto;margin-right:8px;background:#f1f5f9!important;color:#0f172a!important;padding:5px 10px!important;font-size:11.5px!important}
+.vp-panel{display:contents}
+.vp-fshint,.vp-fskeys{display:none}
+body.vp-fs-on .vp-ov{padding:0;background:#000}
+body.vp-fs-on .vp-ov .vp-box{max-width:none;width:100vw;height:100vh;max-height:none;border-radius:0;padding:0;background:#000;position:relative;overflow:hidden;box-shadow:none}
+body.vp-fs-on .vp-ov .vp-box>header{position:absolute;top:0;left:0;right:0;z-index:3;background:rgba(0,0,0,.55);border:0;padding:10px 16px;color:#fff}
+body.vp-fs-on .vp-ov .vp-box>header small{color:#cbd5e1}
+body.vp-fs-on .vp-ov .vp-vid{position:absolute;inset:0;width:100%;height:100%;max-height:none;margin:0;border-radius:0;object-fit:contain}
+body.vp-fs-on .vp-ov .vp-nov{position:absolute;top:60px;left:16px;right:16px}
+body.vp-fs-on .vp-ov .vp-panel{display:none;position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:min(780px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;background:#fff;border-radius:16px;padding:10px 16px 14px;box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:4;box-sizing:border-box}
+body.vp-fs-on .vp-ov.vp-show .vp-panel{display:block}
+body.vp-fs-on .vp-ov .vp-fskeys{display:block;font-size:11px;color:#64748b;text-align:center;margin-bottom:2px}
+body.vp-fs-on .vp-ov .vp-fskeys b,body.vp-fs-on .vp-ov .vp-fshint b{font-family:monospace;background:rgba(148,163,184,.25);border-radius:4px;padding:0 4px}
+body.vp-fs-on .vp-ov:not(.vp-show) .vp-fshint{display:block;position:absolute;left:16px;top:58px;z-index:3;color:#fff;background:rgba(15,23,42,.72);padding:6px 10px;border-radius:8px;font-size:12px}
+/* stats que se pueden tocar */
+.acx{display:inline-flex;align-items:center;gap:3px;color:#1d4ed8;font-weight:800;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap;line-height:1.6}
+.acx i{font-style:normal;font-size:8px;opacity:.75}
+.acx:hover,.acx:focus-visible{background:#dbeafe;border-color:#3b82f6;outline:none}
+/* reproductor de jugadas */
+.ac-box{max-width:820px}
+.ac-vid{position:relative;margin-top:12px;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+.ac-vid #ac-yt,.ac-vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ac-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#e2e8f0;font-size:13px;background:#0f172a}
+.ac-now{margin-top:10px;font-size:13px;color:#0f172a;line-height:1.5}
+.ac-now .ac-n{float:right;font-size:11px;color:#64748b;font-weight:700}
+.ac-tm{font-size:11px;color:#64748b}
+.ac-now .ac-sc{font-size:12px;color:#475569}
+.ac-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.ac-auto{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#334155;margin-left:auto;cursor:pointer}
+.ac-keys{font-size:10.5px;color:#94a3b8;margin-top:4px}
+.ac-lst{margin-top:10px;max-height:260px;overflow:auto;border-top:1px solid #eef0f3;padding-top:6px}
+.ac-it{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px}
+.ac-it:hover{background:rgba(15,23,42,.08)}
+.ac-it.on{background:#eff6ff;box-shadow:inset 0 0 0 1.5px #3b82f6}
+.ac-dot{width:9px;height:9px;border-radius:50%;background:#94a3b8;flex-shrink:0}
+.ac-dot.ok{background:#16a34a}.ac-dot.ko{background:#dc2626}
+.ac-q{font-family:monospace;font-size:11px;color:#475569;white-space:nowrap}
+.ac-tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-tx i{color:#64748b}
+.ac-it .ac-sc,.ac-row .ac-sc{font-family:monospace;font-size:11px;color:#64748b;white-space:nowrap}
+.ac-pl{color:#64748b}
+/* sección «Acciones en vídeo» */
+.ac-f{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
+.ac-f label{display:flex;flex-direction:column;gap:3px;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#64748b}
+.ac-f select{padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:12px;max-width:240px;background:#fff;color:#0f172a;text-transform:none;letter-spacing:0;font-weight:600}
+.ac-on{display:flex;gap:4px}.ac-on select:first-child{width:62px}
+.ac-f label.ac-chk{flex-direction:row;align-items:center;gap:5px;padding-bottom:7px;cursor:pointer;text-transform:none;font-size:12px;color:#334155;letter-spacing:0}
+.ac-seg{display:flex;border:1.5px solid #cbd5e1;border-radius:9px;overflow:hidden}
+.ac-seg button{border:0;background:#fff;padding:6px 10px;font-size:12px;font-weight:800;color:#334155;cursor:pointer}
+.ac-seg button+button{border-left:1.5px solid #cbd5e1}
+.ac-seg button.on{background:#0f172a;color:#fff}
+.ac-clr{border:0;background:#f1f5f9;color:#334155;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
+.ac-hint{font-size:11px;color:#94a3b8;margin-top:6px}
+.ac-sum{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 6px;font-size:12.5px;color:#334155}
+.ac-all{border:0;background:#16a34a;color:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer}
+.ac-all:hover{filter:brightness(.9)}
+.ac-imp{display:inline-flex;align-items:center;gap:6px;background:#7c3aed;color:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer}
+.ac-imp:hover{filter:brightness(.9)}
+.ac-empty{font-size:12px;color:#64748b;padding:10px 0;line-height:1.5}
+.ac-list{border-top:1px solid #eef0f3}
+.ac-mh{display:flex;align-items:center;gap:8px;margin:10px 0 3px;font-size:12px;font-weight:800;color:#0f172a}
+.ac-mh>span:first-child{flex:1}.ac-mh small{color:#94a3b8;font-weight:600}
+.ac-mn{font-size:10px;color:#64748b;background:#f1f5f9;border-radius:10px;padding:1px 7px}
+.ac-mh button{border:0;background:#f1f5f9;border-radius:6px;padding:2px 7px;cursor:pointer;font-size:11px}
+.ac-mh button:hover{filter:brightness(.88);box-shadow:0 0 0 2px rgba(15,23,42,.3)}
+.ac-row{display:flex;align-items:center;gap:9px;padding:5px 8px;border-radius:8px;cursor:pointer;font-size:12px;transition:background .12s}
+.ac-row:hover,.ac-row:focus-visible{background:rgba(15,23,42,.09);outline:none}
+.ac-play{background:#16a34a;color:#fff;border-radius:6px;font-size:9px;padding:3px 7px;font-weight:900}
+.ac-row:hover .ac-play{background:#15803d}
+.ac-row .ac-q{min-width:62px}
+.ac-ty{min-width:150px}
+.ac-row .ac-pl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:700}
+.ac-dt{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:#3b82f6}
+.ac-dt.away{background:#f59e0b}
+.ac-more{width:100%;margin-top:8px;background:#f8fafc;border:1.5px dashed #cbd5e1;color:#475569;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer}
+@media (max-width:600px){.ac-ty{min-width:0}.ac-row{flex-wrap:wrap;gap:4px 8px}.ac-row .ac-pl{flex-basis:100%;order:5;padding-left:38px}.ac-f select{max-width:100%}.ac-f label{flex:1 1 140px}}
+.vp-fs-out{display:none}
+body.vp-fs-on .vp-fs-in{display:none}
+body.vp-fs-on .vp-fs-out{display:inline}
+/* v85b */
+/* pestaña Vídeo: dos apartados */
+.vt-nav{display:flex;gap:6px;background:#eef1f5;border-radius:12px;padding:4px;margin-bottom:10px}
+.vt-nav button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 12px;font-size:13px;font-weight:800;color:#475569;cursor:pointer;transition:background .15s,color .15s}
+.vt-nav button small{font-weight:600;color:#94a3b8;font-size:11px;margin-left:4px}
+.vt-nav button:hover{background:rgba(255,255,255,.6);color:#0f172a}
+.vt-nav button.on{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.vt-nav button.on small{color:#64748b}
+#t-video[data-vt="acc"] #vt-clips,#t-video[data-vt="clips"] #vt-acc{display:none}
+.vt-fcbq{margin-bottom:10px;padding:0!important;background:#fffbeb!important;border:1px solid #fde68a!important}
+.vt-fcbq summary{cursor:pointer;padding:10px 14px;font-size:12px;font-weight:800;color:#92400e;list-style:none}
+.vt-fcbq summary::-webkit-details-marker{display:none}
+.vt-fcbq summary::after{content:'▾';float:right;transition:transform .15s}
+.vt-fcbq[open] summary::after{transform:rotate(180deg)}
+.vt-fcbq summary small{font-weight:600;color:#b45309;margin-left:6px}
+.vt-fcbq-b{padding:0 14px 12px;font-size:11.5px;color:#92400e;line-height:1.45}
+/* desplegables de la pestaña Vídeo: todos iguales */
+.ac-f select,.vlib-filter select{appearance:none;-webkit-appearance:none;height:36px;padding:0 32px 0 11px;border:1px solid #d0d5dd;border-radius:10px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;font-size:13px;font-weight:600;color:#0f172a;cursor:pointer;max-width:100%;text-overflow:ellipsis;transition:border-color .12s,box-shadow .12s}
+.ac-f select:hover,.vlib-filter select:hover{border-color:#94a3b8}
+.ac-f select:focus,.vlib-filter select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+/* filtros de acciones: filas */
+.ac-f{display:flex;flex-direction:column;gap:12px}
+.ac-r{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.ac-fl{display:flex;flex-direction:column;gap:5px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#64748b;min-width:0}
+.ac-r>label.ac-fl{flex:1 1 220px;max-width:360px}
+.ac-r>label.ac-fl select{width:100%}
+.ac-grow{flex:1 1 100%}
+.ac-lb{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#64748b}
+.ac-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;text-transform:none;letter-spacing:0}
+.ac-chip{height:32px;border:1px solid #d0d5dd;background:#fff;color:#334155;border-radius:16px;padding:0 13px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+.ac-chip:hover{border-color:#94a3b8;background:#f8fafc}
+.ac-chip.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.ac-chip.ac-hot.on{background:#ea580c;border-color:#ea580c}
+.ac-f select.ac-tpmore{height:32px;border-radius:16px;font-size:12.5px;color:#64748b}
+.ac-f select.ac-tpmore.on{background-color:#0f172a;color:#fff;border-color:#0f172a}
+.ac-seg{display:inline-flex;border:1px solid #d0d5dd;border-radius:10px;overflow:hidden;height:36px;text-transform:none;letter-spacing:0}
+.ac-seg button{border:0;background:#fff;padding:0 13px;font-size:12.5px;font-weight:800;color:#334155;cursor:pointer}
+.ac-seg button+button{border-left:1px solid #d0d5dd}
+.ac-seg button:hover{background:#f8fafc}
+.ac-seg button.on{background:#0f172a;color:#fff}
+.ac-seg.sm button{padding:0 11px}
+.ac-on{display:flex;gap:6px;align-items:center}
+.ac-on select{min-width:190px}
+.ac-clr{height:32px;border:0;background:#fef2f2;color:#b91c1c;border-radius:16px;padding:0 12px;font-size:12px;font-weight:800;cursor:pointer}
+.ac-clr:hover{background:#fee2e2}
+/* interruptor «🎬 Vídeos» de la tabla del partido */
+.ac-vtog{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#334155;cursor:pointer;user-select:none;padding:4px 4px 4px 10px;border:1px solid #d0d5dd;border-radius:20px;background:#fff}
+.ac-vtog input{position:absolute;opacity:0;width:0;height:0}
+.ac-vtog i{position:relative;width:34px;height:20px;border-radius:10px;background:#cbd5e1;transition:background .15s;flex-shrink:0}
+.ac-vtog i::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.ac-vtog input:checked+i{background:#2563eb}
+.ac-vtog input:checked+i::after{transform:translateX(14px)}
+.ac-vtog input:focus-visible+i{box-shadow:0 0 0 3px rgba(59,130,246,.3)}
+@media (max-width:600px){.vt-nav button{padding:9px 6px;font-size:12px}.vt-nav button small{display:none}.ac-r>label.ac-fl{max-width:none}.ac-on select{min-width:0;flex:1}}
+.ac-f{align-items:stretch}
+.ac-f select.ac-tpmore{width:auto;flex:0 0 auto}
+.ac-r>.ac-fl{flex:0 1 auto}
+.ac-r>label.ac-fl{flex:1 1 220px}
+.ac-r>.ac-grow{flex:1 1 100%}
+.ac-seg{flex-shrink:0}
+/* v85c explorador del Claret */
+.ax-box{max-width:780px}
+.ax-keys{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 14px}
+.ac-chip small{opacity:.65;font-weight:700;margin-left:2px}
+.ac-chip:disabled{opacity:.4;cursor:default}
+.ax-f{margin-bottom:4px}
+.ax-list{max-height:46vh;overflow:auto}
+.ax-list .ac-pl{font-weight:600;color:#64748b}
+.vm-box .ac-chip:not(.vm-x){height:32px;border:1px solid #d0d5dd;background:#fff;color:#334155;border-radius:16px;padding:0 13px;font-size:12.5px;font-weight:700}
+.vm-box .ac-chip:not(.vm-x):hover{border-color:#94a3b8;background:#f8fafc}
+.vm-box .ac-chip.on:not(.vm-x){background:#0f172a;border-color:#0f172a;color:#fff}
+.vm-box .ac-chip.ac-hot.on:not(.vm-x){background:#ea580c;border-color:#ea580c}
+.vm-box .ac-chip:not(.vm-x):disabled{opacity:.4;cursor:default;background:#fff}
+.vm-box .ac-seg button:not(.vm-x){background:#fff;color:#334155;border-radius:0;padding:0 13px;font-size:12.5px;font-weight:800}
+.vm-box .ac-seg button.on:not(.vm-x){background:#0f172a;color:#fff}
+.vm-box .ac-seg button+button:not(.vm-x){border-left:1px solid #d0d5dd}
+.vm-box .ac-clr:not(.vm-x){height:32px;background:#fef2f2;color:#b91c1c;border-radius:16px;padding:0 12px}
+.vm-box .ax-prof:not(.vm-x){background:#eff6ff;color:#1d4ed8}
+.vm-box .ac-all:not(.vm-x){background:#16a34a;color:#fff;padding:7px 12px}
+
+.ax-none{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:16px;text-align:center;font-size:13.5px;font-weight:700;color:#334155;margin:4px 0 12px}
+.ax-none small{display:block;font-weight:500;font-size:11.5px;color:#64748b;margin-top:4px}
+.vm-box .ax-prog:not(.vm-x){background:#f0fdf4;color:#15803d}
+
 </style>
 </head>
 <body>
@@ -5240,10 +5410,19 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
 
 <!-- ═══ TAB: VIDEO ═══ -->
 <div id="t-video" class="tab"><div class="main">
-  <div class="card" style="margin-bottom:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;font-size:11.5px;color:#92400e;line-height:1.45">
+  <div class="vt-nav" role="tablist" aria-label="Apartado de vídeo">
+    <button type="button" role="tab" data-vt="acc" onclick="vtView('acc')">🎯 Acciones en vídeo <small id="vt-n-acc"></small></button>
+    <button type="button" role="tab" data-vt="clips" onclick="vtView('clips')">✂️ Clips de scouting <small id="vt-n-clips"></small></button>
+  </div>
+  <div id="vt-acc"><div class="card" id="ac-card" data-ba-filt="1">
+    <div class="ct">🎯 Acciones en vídeo <span style="font-size:10px;color:var(--t3);font-weight:400">— cada jugada del acta en su momento del vídeo</span></div>
+    <div id="ac-sec"></div>
+  </div></div>
+  <div id="vt-clips">
+  <details class="card vt-fcbq"><summary>✂️ Clipear vídeos de la FCBQ (AiBasket) sin descargarlos <small>cómo se hace</small></summary><div class="vt-fcbq-b">
     ✂️ <b>Clipear vídeos de la FCBQ (AiBasket) sin descargarlos:</b> arrastra 👉 <a class="bm-clips-link" href="#" onclick="if(this.getAttribute('href')!=='#'){alert('No lo pulses aquí: arrástralo a la barra de marcadores y úsalo en la página del vídeo de basquetcatala.cat');}return false;" style="display:inline-block;padding:2px 9px;border-radius:6px;background:#f59e0b;color:#111;font-weight:800;text-decoration:none">✂️ Clips FCBQ</a> a la barra de marcadores.
     En la página del vídeo del partido en basquetcatala.cat púlsalo y usa las teclas: <b>L</b> +5 s · <b>J</b> −5 s · <b>ESPACIO</b> pausa · <b>B</b> inicio/fin del clip (al acabarlo eliges equipo, ataque/defensa, carpeta y descripción). Funciona también en pantalla completa. Luego «📤 Enviar a BasketApp». Los clips aparecen aquí abajo en la biblioteca con <b>▶ FCBQ</b>: se ven sobre el reproductor de la FCBQ (pulsa otra vez el marcador allí y salta solo al clip).
-  </div>
+  </div></details>
 
   <div class="card" style="margin-bottom:10px">
     <div class="ct">🎬 Vídeo del partido
@@ -5340,6 +5519,7 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
     <div id="v-zip-progress"></div>
     <div id="v-library"></div>
   </div>
+  </div><!-- /vt-clips -->
 
 </div></div>
 
@@ -13745,8 +13925,8 @@ function renderStats(){
       scoped=S.matches.filter(m=>okL(m)&&okS(m)&&okG(m)&&okW(m)&&(okT(m))&&(!mfEff||String(m.id)===String(mfEff)));
       
       scoped.forEach(m=>{
-        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam, side:'home'})),
-         ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam, side:'away'}))].forEach(p=>{
+        [...(m.homePlayers||[]).map(p=>({...p,team:m.homeTeam,mN:m.name, origT: m.homeTeam, side:'home', mId:m.id})),
+         ...(m.awayPlayers||[]).map(p=>({...p,team:m.awayTeam,mN:m.name, origT: m.awayTeam, side:'away', mId:m.id}))].forEach(p=>{
           if(!_inGroup(p.team,gf,_mCatFor(m,p.team)))return;
           
           // 🔥 EXTRAEMOS LOS MINUTOS IGUAL QUE EN EL +/-
@@ -13893,7 +14073,7 @@ function renderStats(){
         // Sumamos los minutos reales sin redondear
         t_totalDecMins += (p._trueMinDec || 0);
 
-        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t, '${sf}')"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${mN}</td><td><b>${pts}</b></td><td>${fmtMinDec(p._trueMinDec)}</td><td>${tlm}/${tla}</td><td>${tlPct}</td><td>${t2m}/${t2a}</td><td>${t2Pct}</td><td>${t3m}/${t3a}</td><td>${t3Pct}</td><td>${reb}</td><td>${ast}</td><td>${fc}</td><td class="${vcC}">${val}</td><td class="${pcC}">${pmS}</td></tr>`;
+        return `<tr style="cursor:pointer" data-n="${p.name.replace(/"/g,'&quot;')}" data-t="${p.team.replace(/"/g,'&quot;')}" onclick="openPlayerProfile(this.dataset.n,this.dataset.t, '${sf}')"><td>#${p.dorsal}</td><td><b>${p.name}</b>${p.starter?' <span title="Quinteto inicial" style="color:#f59e0b">★</span>':''}${_playerNote(p.name)?' <span title="Tiene notas del staff">📝</span>':''}</td><td><span class="chip cgr">${p.team}</span></td><td style="font-size:10px;color:var(--t2)">${mN}</td><td><b>${pts}</b></td><td>${fmtMinDec(p._trueMinDec)}</td><td>${_acCell(`${tlm}/${tla}`,p,'tl')}</td><td>${tlPct}</td><td>${_acCell(`${t2m}/${t2a}`,p,'t2')}</td><td>${t2Pct}</td><td>${_acCell(`${t3m}/${t3a}`,p,'t3')}</td><td>${t3Pct}</td><td>${_acCell(reb,p,'reb')}</td><td>${_acCell(ast,p,'ast')}</td><td>${_acCell(fc,p,'fc')}</td><td class="${vcC}">${val}</td><td class="${pcC}">${pmS}</td></tr>`;
       }).join('');
       
       if (hidden > 0) {
@@ -13971,6 +14151,7 @@ function _renderStBox(m){
   if(tog) tog.innerHTML = [['home',m.homeTeam],['away',m.awayTeam]].map(([k,n])=>
     `<button onclick="setStBoxSide('${k}')" style="padding:7px 14px;border-radius:8px;border:2px solid ${_stBoxSide===k?'var(--nv)':'var(--b2)'};background:${_stBoxSide===k?'var(--nv)':'#fff'};color:${_stBoxSide===k?'#fff':'var(--t2)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis">${_esc(n||k)}</button>`).join('');
 
+  if(tog){ tog.style.flex='1'; tog.style.alignItems='center'; if(m.videoActions&&m.videoActions.yt&&(m.videoActions.clips||[]).length) tog.insertAdjacentHTML('beforeend', _acTogHtml()); }
   wrap.innerHTML = _boxTableHTML(m, _stBoxSide, _boxSort, 'boxSort', true);
 }
 
@@ -14142,16 +14323,16 @@ ${o.noNota ? '' : `        <th onclick="${sortFn}('nota')" style="text-align:cen
 ${o.noNota ? '' : `          <td style="text-align:center">${notaB}</td>`}
           <td style="text-align:center; color:var(--t2); font-weight:700">${pMins}</td>
           <td style="text-align:center;font-weight:900;font-size:14px;color:var(--nv)">${pts}</td>
-          <td style="white-space:nowrap;text-align:center"><b>${fm}/${fa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(fm,fa)}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${p2m}/${p2a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p2m,p2a)}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${p3m}/${p3a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p3m,p3a)}</span></td>
-          <td style="white-space:nowrap;text-align:center"><b>${plm}/${pla}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(plm,pla)}</span></td>
-          <td style="text-align:center"><b>${reb}</b> <span style="font-size:10px;color:var(--t3)">(${ro}/${rd})</span></td>
-          <td style="text-align:center">${ast}</td>
-          <td style="text-align:center">${to}</td>
-          <td style="text-align:center">${blk}</td>
-          <td style="text-align:center">${stl}</td>
-          <td style="text-align:center"><b>${fc}</b> <span style="font-size:10px;color:var(--t3)">(${fc}/${fr})</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${_acCell(fm+'/'+fa,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'tc')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(fm,fa)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${_acCell(p2m+'/'+p2a,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'t2')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p2m,p2a)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${_acCell(p3m+'/'+p3a,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'t3')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(p3m,p3a)}</span></td>
+          <td style="white-space:nowrap;text-align:center"><b>${_acCell(plm+'/'+pla,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'tl')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(plm,pla)}</span></td>
+          <td style="text-align:center"><b>${_acCell(reb,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'reb')}</b> <span style="font-size:10px;color:var(--t3)">(${ro}/${rd})</span></td>
+          <td style="text-align:center">${_acCell(ast,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'ast')}</td>
+          <td style="text-align:center">${_acCell(to,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'to')}</td>
+          <td style="text-align:center">${_acCell(blk,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'blk')}</td>
+          <td style="text-align:center">${_acCell(stl,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'stl')}</td>
+          <td style="text-align:center"><b>${_acCell(fc,{mId:m.id,side,dorsal:p.dorsal,name:p.name},'fc')}</b> <span style="font-size:10px;color:var(--t3)">(${fc}/${fr})</span></td>
           <td style="text-align:center;font-weight:800;color:${pmC}">${pmS}${pm}</td>
           <td style="text-align:center;font-weight:800;color:${cvC}">${cvS}${cv}</td>
         </tr>`;}).join('')||`<tr><td colspan="${o.noNota ? 15 : 16}" class="no-d">Sin jugadores</td></tr>`}
@@ -14160,16 +14341,16 @@ ${o.noNota ? '' : `          <td style="text-align:center">${notaB}</td>`}
         <td colspan="${o.noNota ? 1 : 2}" style="white-space:nowrap; padding:10px 8px; text-align:right"><b>TOTAL</b></td>
         <td style="text-align:center;font-weight:700">${tMinsStr}</td>
         <td style="text-align:center;font-weight:900;font-size:15px">${tPts}</td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tFm}/${tFa}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tFm,tFa)}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${t2m}/${t2a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t2m,t2a)}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${t3m}/${t3a}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t3m,t3a)}</span></td>
-        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${tlm}/${tla}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tlm,tla)}</span></td>
-        <td style="text-align:center;font-weight:800"><b>${tReb}</b> <span style="font-size:10px;color:var(--t3)">(${tRo}/${tRd})</span></td>
-        <td style="text-align:center;font-weight:800">${tAst}</td>
-        <td style="text-align:center;font-weight:800">${tTo}</td>
-        <td style="text-align:center;font-weight:800">${tBlk}</td>
-        <td style="text-align:center;font-weight:800">${tStl}</td>
-        <td style="text-align:center;font-weight:800"><b>${tFc}</b> <span style="font-size:10px;color:var(--t3)">(${tFc}/${tFr})</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${_acCell(tFm+'/'+tFa,{mId:m.id,side,all:1,name:''},'tc')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tFm,tFa)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${_acCell(t2m+'/'+t2a,{mId:m.id,side,all:1,name:''},'t2')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t2m,t2a)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${_acCell(t3m+'/'+t3a,{mId:m.id,side,all:1,name:''},'t3')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(t3m,t3a)}</span></td>
+        <td style="text-align:center;font-weight:700;white-space:nowrap"><b>${_acCell(tlm+'/'+tla,{mId:m.id,side,all:1,name:''},'tl')}</b> <span style="font-size:10px;color:var(--t3);margin-left:4px">${pc(tlm,tla)}</span></td>
+        <td style="text-align:center;font-weight:800"><b>${_acCell(tReb,{mId:m.id,side,all:1,name:''},'reb')}</b> <span style="font-size:10px;color:var(--t3)">(${tRo}/${tRd})</span></td>
+        <td style="text-align:center;font-weight:800">${_acCell(tAst,{mId:m.id,side,all:1,name:''},'ast')}</td>
+        <td style="text-align:center;font-weight:800">${_acCell(tTo,{mId:m.id,side,all:1,name:''},'to')}</td>
+        <td style="text-align:center;font-weight:800">${_acCell(tBlk,{mId:m.id,side,all:1,name:''},'blk')}</td>
+        <td style="text-align:center;font-weight:800">${_acCell(tStl,{mId:m.id,side,all:1,name:''},'stl')}</td>
+        <td style="text-align:center;font-weight:800"><b>${_acCell(tFc,{mId:m.id,side,all:1,name:''},'fc')}</b> <span style="font-size:10px;color:var(--t3)">(${tFc}/${tFr})</span></td>
         <td style="text-align:center;font-weight:900;color:${(tot.pm||0)>0?'var(--gn)':(tot.pm||0)<0?'#dc2626':'inherit'}" title="Suma del +/- de todos (= 5 × diferencia del partido)">${(tot.pm||0)>0?'+':''}${tot.pm||0}</td>
         <td style="text-align:center;font-weight:900;color:${tCvCol}">${tCvSig}${tCv}</td>
       </tr></tfoot>
@@ -14407,12 +14588,12 @@ function openPlayerProfile(name, team, targetSeason){
               <td style="padding:7px 9px;white-space:nowrap"><span style="font-weight:800;color:${resCol}">${g.res}</span> <span style="color:#94a3b8">${g.my}-${g.op}</span></td>
               <td style="padding:7px 9px;font-weight:700">${mStrHtml}</td>
               <td style="padding:7px 9px;font-weight:800">${gPts}</td>
-              <td style="padding:7px 9px;white-space:nowrap">${tlmG}/${tlaG}</td>
-              <td style="padding:7px 9px;white-space:nowrap">${t2mG}/${t2aG}</td>
-              <td style="padding:7px 9px;white-space:nowrap">${t3mG}/${t3aG}</td>
-              <td style="padding:7px 9px">${rG}</td>
-              <td style="padding:7px 9px">${aG}</td>
-              <td style="padding:7px 9px">${fG}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${_acCell(tlmG+'/'+tlaG,g,'tl')}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${_acCell(t2mG+'/'+t2aG,g,'t2')}</td>
+              <td style="padding:7px 9px;white-space:nowrap">${_acCell(t3mG+'/'+t3aG,g,'t3')}</td>
+              <td style="padding:7px 9px">${_acCell(rG,g,'reb')}</td>
+              <td style="padding:7px 9px">${_acCell(aG,g,'ast')}</td>
+              <td style="padding:7px 9px">${_acCell(fG,g,'fc')}</td>
               <td style="padding:7px 9px;font-weight:800;color:${pmC}">${pmS}${pG}</td>
             </tr>`;
         }).join('')}</tbody>
@@ -14849,19 +15030,21 @@ function _clRenderRows(){
       const avgSecs = p.g > 0 ? p._secs / p.g : 0;
       const pMinP = avgSecs > 0 ? fmtMin(avgSecs) : '—';
       const pPm = n0(p.pm), pVal = n0(p.val), ps = n0(p.starts);
-      rowsHtml += `<tr data-n="${_esc(p.name)}" onclick="openPlayerProfile(this.dataset.n,'__CLARET__')">
+      // columnas con jugadas en vídeo: al tocarlas se abre el explorador (si el jugador tiene alguna de ese tipo, la celda se resalta)
+      const ax = (col, extra) => ` data-ax="${col}" class="${extra || ''}`;
+      rowsHtml += `<tr data-n="${_esc(p.name)}" onclick="clRowClick(event,this)">
         <td class="${on('dorsal')}"><span class="clp-d">#${_esc(p.dorsal)}</span></td>
         <td class="clp-n${on('name')}">${_esc(p.name)}${ps > 0 ? '<span class="st" title="Ha sido titular">★</span>' : ''}</td>
         <td class="${on('g')}">${p.g}</td>
         <td class="${on('starts')}"><span class="clp-pt${ps ? '' : ' no'}">${ps}</span></td>
         <td class="clp-m${on('min')}">${pMinP}</td>
         <td class="clp-g clp-pts${on('pts')}">${n0(p.pts)}</td>
-        <td class="clp-pc${on('t2m')}">${pcC(p.t2m, p.t2a)}</td>
-        <td class="clp-pc${on('t3m')}">${pcC(p.t3m, p.t3a)}</td>
-        <td class="clp-pc${on('tlm')}">${pcC(p.tlm, p.tla)}</td>
-        <td class="clp-g${on('ro')}">${z(p.ro)}</td><td class="${on('rd')}">${z(p.rd)}</td><td class="${on('reb')}"><b>${z(p.reb)}</b></td>
-        <td class="${on('ast')}">${z(p.ast)}</td><td class="${on('stl')}">${z(p.stl)}</td><td class="${on('blk')}">${z(p.blk)}</td><td class="${on('to')}">${z(p.to)}</td>
-        <td class="clp-g${on('fc')}">${z(p.fc)}</td><td class="${on('fr')}">${z(p.fr)}</td>
+        <td${ax('t2m', 'clp-pc' + on('t2m'))}">${pcC(p.t2m, p.t2a)}</td>
+        <td${ax('t3m', 'clp-pc' + on('t3m'))}">${pcC(p.t3m, p.t3a)}</td>
+        <td${ax('tlm', 'clp-pc' + on('tlm'))}">${pcC(p.tlm, p.tla)}</td>
+        <td${ax('ro', 'clp-g' + on('ro'))}">${z(p.ro)}</td><td${ax('rd', on('rd'))}">${z(p.rd)}</td><td${ax('reb', on('reb'))}"><b>${z(p.reb)}</b></td>
+        <td${ax('ast', on('ast'))}">${z(p.ast)}</td><td${ax('stl', on('stl'))}">${z(p.stl)}</td><td${ax('blk', on('blk'))}">${z(p.blk)}</td><td${ax('to', on('to'))}">${z(p.to)}</td>
+        <td${ax('fc', 'clp-g' + on('fc'))}">${z(p.fc)}</td><td class="${on('fr')}">${z(p.fr)}</td>
         <td class="clp-g${on('pm')}"><span class="${pPm > 0 ? 'clp-pos' : pPm < 0 ? 'clp-neg' : 'clp-z'}">${pPm > 0 ? '+' : ''}${pPm}</span></td>
         <td class="${on('val')}"><span class="clp-val ${pVal > 0 ? 'pos' : pVal < 0 ? 'neg' : 'zero'}">${pVal}</span></td>
       </tr>`;
@@ -16426,6 +16609,7 @@ function _vCleanupEmptyLibs(){
     (S.videoLibs || []).filter(o => !_vLibCount(o)).forEach(o => _vDropLib(o));
 }
 function renderVideoLib(){
+    try{ renderActions(); _vtApply(); }catch(e){ console.warn('Acciones en vídeo', e); }
     const el=document.getElementById('v-library');if(!el)return;
     // Las carpetas abiertas siguen abiertas al repintar (renombrar / borrar un clip)
     const _open=new Set([...el.querySelectorAll('[id^="vlib-"]')].filter(d=>d.style.display!=='none').map(d=>d.id));
@@ -16480,7 +16664,7 @@ function renderVideoLib(){
                                         <button onclick="vDeleteFolder('${mk.name.replace(/'/g,"\\'")}','${tName.replace(/'/g,"\\'")}','${cat}','${f.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px">🗑</button>
                                     </div>
                                     ${clips.map(cl=>`
-                                    <div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 16px">
+                                    <div class="vlib-row">
                                         ${cl.fcbq ? `<button onclick='_fcbqOpenClip(${JSON.stringify(cl.fcbq)},${+cl.timeSecs},${+cl.timeEnd})' title="Se ve sobre el vídeo de la FCBQ, siempre en la misma pestaña. La primera vez pulsa allí el marcador «✂️ Clips FCBQ»; después cada clip salta solo"
                                             style="font-size:10px;font-weight:800;font-family:monospace;padding:3px 8px;background:#f59e0b;color:#111;border:none;border-radius:6px;cursor:pointer">▶ FCBQ ${cl.dur ? cl.dur + 's' : cl.time}</button>` : ''}
                                         <button ${cl.fcbq ? 'hidden ' : ''}onclick='jumpToClip(${cl.timeSecs},${cl.timeEnd||0},${cl.videoUrl?JSON.stringify(cl.videoUrl):"null"},${JSON.stringify((cl.label||f)+" · "+mk.homeTeam+" vs "+mk.awayTeam)},"")'
@@ -16733,7 +16917,7 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
     const st={mk:f.mk, side:tName===f.mk.awayTeam&&tName!==f.mk.homeTeam?'away':'home', cat, folder, label:f.cl.label||'', newF:false};
     const ov=document.createElement('div'); ov.className='vm-ov vp-ov';
     const fmt=s=>{s=Math.max(0,s||0);return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');};
-    const close=()=>{ const v=ov.querySelector('video'); if(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}} ov.remove(); document.removeEventListener('keydown',onKey,true); };
+    const close=keepFs=>{ const v=ov.querySelector('video'); if(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}} ov.remove(); document.removeEventListener('keydown',onKey,true); if(keepFs!==true) _vpFsExit(); };
     const folders=()=>{
         const out=[_vUNS,...(window._vFolders[st.cat]||[])], tn=st.side==='home'?st.mk.homeTeam:st.mk.awayTeam;
         Object.keys(st.mk.videoClips.teams?.[tn]?.[st.cat]||{}).forEach(x=>{if(!out.includes(x))out.push(x);});
@@ -16788,12 +16972,12 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         if(st.mk!==f.mk&&!_vLibCount(f.mk)) _vDropLib(f.mk);
         svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib();
         toast(`✅ ${dT} · ${st.cat==='ataque'?'Ataque':'Defensa'} · ${st.folder}${st.mk!==f.mk?' · en '+st.mk.homeTeam+' vs '+st.mk.awayTeam:''}${cut?' · ✂️ recortado':''}`,'ok');
-        close(); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
+        close(!!nxt); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
     };
     // 🗑️ Descartar: el clip sale de la biblioteca (si estaba esperando para cortarse, ya no se corta)
     const discard=()=>{
         const cur=_vFindClip(mkKey,tName,cat,folder,id); if(!cur){ close(); return; }
-        if(!confirm('¿Descartar este clip? Se quita de la biblioteca.')) return;
+        const db=ov.querySelector('#vp-del'); if(!db.dataset.sure){ db.dataset.sure='1'; db.textContent='¿Seguro? Pulsa otra vez'; setTimeout(()=>{ if(db.isConnected){ delete db.dataset.sure; db.textContent='🗑️ Descartar'; } },3000); return; }
         cur.arr.splice(cur.arr.indexOf(cur.cl),1);
         const ST=f.mk.videoClips.teams; if(!cur.arr.length) delete ST[tName][cat][folder];
         if(ST[tName]&&!Object.values(ST[tName]).some(c=>Object.keys(c||{}).length)) delete ST[tName];
@@ -16803,22 +16987,31 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         if(!_vLibCount(f.mk)) _vDropLib(f.mk);
         svL(); if(typeof syncFirebase==='function') syncFirebase(); renderVideoLib();
         toast('🗑️ Clip descartado','ok');
-        close(); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
+        close(!!nxt); if(nxt) vPlaceClip(f.mk.name,nxt.tName,nxt.cat,_vUNS,nxt.cl.id);
     };
     const onKey=e=>{ const typing=/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
+        // con el cuadro abierto, los atajos del vídeo de la pestaña (espacio, flechas, J/K/L, B…) no se disparan debajo
+        if(!typing&&/^( |Enter|Escape|Arrow\w+|[fFeEiIoOjJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();
+        if(!typing&&(e.key==='f'||e.key==='F')){ e.preventDefault(); fsBtn(); return; }
+        if(!typing&&e.key===' '&&TL.D){ e.preventDefault(); TL.toggle(); return; }
+        if(!typing&&(e.key==='e'||e.key==='E')&&_vpFsOn()){ e.preventDefault(); ov.classList.toggle('vp-show'); return; }
+        if(e.key==='Escape'&&_vpFsOn()){ e.preventDefault(); _vpFsExit(); return; }
         if(!typing&&TL.D&&(e.key==='i'||e.key==='I')){ e.preventDefault(); TL.set('i',TL.now()); return; }
         if(!typing&&TL.D&&(e.key==='o'||e.key==='O')){ e.preventDefault(); TL.set('o',TL.now()); return; }
         if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'&&e.target.tagName!=='BUTTON'){ e.preventDefault(); save(folder===_vUNS); } };
     const src=f.cl.videoUrl||(_vMatchKey===mkKey&&_vSrcUrl?_vSrcUrl:null), part=!f.cl.videoUrl&&src;
-    ov.innerHTML=`<div class="vm-box vp-box" role="dialog" aria-label="Colocar clip"><header><b>⇄ Colocar clip <small>${fmt(f.cl.timeSecs)}–${fmt(f.cl.timeEnd)}</small></b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
-      ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay playsinline controls></video>
+    ov.innerHTML=`<div class="vm-box vp-box" role="dialog" aria-label="Colocar clip"><header><b>⇄ Colocar clip <small>${fmt(f.cl.timeSecs)}–${fmt(f.cl.timeEnd)}</small></b>${src?'<button type="button" class="vp-fsb" title="Pantalla completa (F): al acabar el clip te sale este formulario encima del vídeo"><span class="vp-fs-in">⛶ Pantalla completa</span><span class="vp-fs-out">✕ Salir de pantalla completa</span></button>':''}<button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+      ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay playsinline controls controlslist="nofullscreen" disablepictureinpicture></video>
+      <div class="vp-fshint">Al acabar el clip sale el formulario · <b>E</b> sacarlo ya · <b>ESPACIO</b> pausa · <b>F</b> o <b>Esc</b> salir</div>
+      <div class="vp-panel"><div class="vp-fskeys"><b>ESPACIO</b> ver otra vez · <b>INTRO</b> guardar y siguiente · <b>E</b> ocultar · <b>F</b> salir de pantalla completa</div>
       <div class="vp-tl"><div class="vp-tl-bar"><i class="vp-tl-sel"></i><i class="vp-tl-ph"></i><b class="vp-tl-h" data-h="i" title="Inicio (tecla I)"></b><b class="vp-tl-h" data-h="o" title="Final (tecla O)"></b></div>
-        <div class="vp-tl-info"><b id="vp-tl-t"></b><span></span><button type="button" id="vp-tl-reset" style="visibility:hidden">↺ Deshacer</button></div><div class="vp-tl-hint">✂️ Arrastra los bordes para recortar por delante o por detrás · <kbd>I</kbd> / <kbd>O</kbd> = inicio / final en el punto actual</div></div>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div>'}
+        <div class="vp-tl-info"><b id="vp-tl-t"></b><span></span><button type="button" id="vp-tl-reset" style="visibility:hidden">↺ Deshacer</button></div><div class="vp-tl-hint">✂️ Arrastra los bordes para recortar por delante o por detrás · <kbd>I</kbd> / <kbd>O</kbd> = inicio / final en el punto actual</div></div>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div><div class="vp-panel">'}
       <div class="vp-form"></div>
-      <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><button type="button" class="del" id="vp-del">🗑️ Descartar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div>`;
+      <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><button type="button" class="del" id="vp-del">🗑️ Descartar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div></div>`;
     document.body.appendChild(ov);
     // línea de tiempo del clip (0 = inicio del clip): reproduce en bucle solo el tramo elegido
-    const TL={D:0,i:0,o:0,now:()=>0,set:()=>{}};
+    const TL={D:0,i:0,o:0,now:()=>0,set:()=>{},toggle:()=>{},restart:()=>{}};
+    const fsBtn=()=>{ _vpFsToggle(); ov.classList.remove('vp-show'); if(_vpFsOn()) TL.restart(); };
     const v=ov.querySelector('video');
     if(v){
         const off=part?(+f.cl.timeSecs||0):0, bar=ov.querySelector('.vp-tl-bar'), fm=t=>{t=Math.max(0,t);return Math.floor(t/60)+':'+(t%60).toFixed(1).padStart(4,'0');};
@@ -16833,8 +17026,17 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         const init=()=>{ TL.D=part?Math.max(0.5,(+f.cl.timeEnd||0)-(+f.cl.timeSecs||0)):(v.duration||0); if(!isFinite(TL.D)||TL.D<=0){ ov.querySelector('.vp-tl').hidden=true; TL.D=0; return; } TL.i=0; TL.o=TL.D; v.currentTime=off; paint(); };
         v.addEventListener('loadedmetadata',init,{once:true});
         let drag=null;
-        v.addEventListener('timeupdate',()=>{ if(!TL.D||drag) return; const t=v.currentTime-off; if(t>=TL.o-0.03||t<TL.i-0.3){ v.currentTime=off+TL.i; if(v.paused&&t>=TL.o-0.03) v.play().catch(()=>{}); } paint(); });
-        v.addEventListener('ended',()=>{ if(TL.D){ v.currentTime=off+TL.i; v.play().catch(()=>{}); } });
+        TL.restart=()=>{ if(!TL.D) return; v.currentTime=off+TL.i; v.play().catch(()=>{}); };
+        TL.toggle=()=>{ if(v.paused){ if(TL.now()>=TL.o-0.1) v.currentTime=off+TL.i; ov.classList.remove('vp-show'); v.play().catch(()=>{}); } else v.pause(); };
+        v.addEventListener('dblclick',e=>{ e.preventDefault(); fsBtn(); });
+        // en pantalla completa, al llegar al final del clip se queda parado ahí (TL.hold) y sale el formulario, hasta que se vuelve a darle al play
+        const holdEnd=()=>{ TL.hold=true; v.pause(); ov.classList.add('vp-show'); paint(); };
+        v.addEventListener('play',()=>{ TL.hold=false; });
+        v.addEventListener('timeupdate',()=>{ if(!TL.D||drag) return; const t=v.currentTime-off;
+            if(TL.hold){ paint(); return; }
+            if(_vpFsOn()&&t>=TL.o-0.03&&!ov.classList.contains('vp-show')){ holdEnd(); return; }
+            if(t>=TL.o-0.03||t<TL.i-0.3){ v.currentTime=off+TL.i; if(v.paused&&t>=TL.o-0.03) v.play().catch(()=>{}); } paint(); });
+        v.addEventListener('ended',()=>{ if(TL.hold) return; if(_vpFsOn()&&!ov.classList.contains('vp-show')){ holdEnd(); return; } if(TL.D){ v.currentTime=off+TL.i; v.play().catch(()=>{}); } });
         const tAt=e=>{ const r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*TL.D; };
         bar.addEventListener('pointerdown',e=>{ if(!TL.D) return; e.preventDefault(); const t=tAt(e);
             const h=e.target.dataset.h||(Math.abs(t-TL.i)*bar.clientWidth/TL.D<14?'i':Math.abs(t-TL.o)*bar.clientWidth/TL.D<14?'o':null);
@@ -16846,11 +17048,361 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         ov.querySelector('#vp-tl-reset').onclick=()=>{ TL.i=0; TL.o=TL.D; v.currentTime=off; paint(); v.play().catch(()=>{}); };
     }
     ov.onclick=e=>{ if(e.target===ov||e.target.closest('.vm-x')) close(); };
-    ov.querySelector('#vp-cancel').onclick=close; ov.querySelector('#vp-del').onclick=discard; ov.querySelector('#vp-ok').onclick=()=>save(false); ov.querySelector('#vp-next').onclick=()=>save(true);
+    ov.querySelector('#vp-cancel').onclick=()=>close(); ov.querySelector('#vp-del').onclick=discard; const fb=ov.querySelector('.vp-fsb'); if(fb) fb.onclick=fsBtn;
+    if(!v&&_vpFsOn()) ov.classList.add('vp-show'); ov.querySelector('#vp-ok').onclick=()=>save(false); ov.querySelector('#vp-next').onclick=()=>save(true);
     if(folder!==_vUNS){ ov.querySelector('#vp-ok').className=''; }
     document.addEventListener('keydown',onKey,true);
     draw();
 }
+// ⛶ «Colocar clip» en pantalla completa: toda la página a pantalla completa (así «Guardar y siguiente» no la cierra) y el cuadro ocupa la pantalla
+const _vpFsOn = () => document.body.classList.contains('vp-fs-on');
+function _vpFsToggle(){
+    if(_vpFsOn()){ _vpFsExit(); return; }
+    document.body.classList.add('vp-fs-on');
+    try{ const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); if(r&&r.catch) r.catch(()=>{}); }catch(e){}
+}
+function _vpFsExit(){
+    if(!_vpFsOn()) return;
+    document.body.classList.remove('vp-fs-on'); document.querySelectorAll('.vp-ov').forEach(o=>o.classList.remove('vp-show'));
+    try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
+}
+document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement&&_vpFsOn()){ document.body.classList.remove('vp-fs-on'); document.querySelectorAll('.vp-ov').forEach(o=>o.classList.remove('vp-show')); } });
+
+// ═══════════════════════════════════════════
+// 🎯 ACCIONES EN VÍDEO — las jugadas del acta colocadas en el vídeo con el analizador.
+// El partido entero está en YouTube (oculto) y cada jugada es un tramo de ese vídeo: m.videoActions = {yt, added, clips:[{t,t0,t1,tp,s,d,n,per,clk,sc,on,ok}]}
+//   tp tipo · s 'home'/'away' · d dorsal · sc marcador ANTES de la jugada · on dorsales en pista de los dos equipos
+// ═══════════════════════════════════════════
+const AC_TY = { T2_OK: ['Canasta de 2', '🟢'], T2_FALLO: ['Tiro de 2 fallado', '⚪'], T3_OK: ['Triple anotado', '🟢'], T3_FALLO: ['Triple fallado', '⚪'], TL_OK: ['Tiro libre anotado', '🟢'], TL_FALLO: ['Tiro libre fallado', '⚪'],
+  REBOTE_OF: ['Rebote ofensivo', '🔁'], REBOTE_DEF: ['Rebote defensivo', '🛡️'], ASISTENCIA: ['Asistencia', '🤝'], ASIST_POT: ['Asistencia potencial', '↗️'], AST_SEC: ['Asistencia secundaria', '⏩'], PERDIDA: ['Pérdida', '❌'], ROBO: ['Robo', '🧤'], TAPON: ['Tapón', '✋'], FALTA: ['Falta', '📣'] };
+const AC_STAT = { tc: ['T2_OK', 'T2_FALLO', 'T3_OK', 'T3_FALLO'], tl: ['TL_OK', 'TL_FALLO'], t2: ['T2_OK', 'T2_FALLO'], t3: ['T3_OK', 'T3_FALLO'], reb: ['REBOTE_OF', 'REBOTE_DEF'], ast: ['ASISTENCIA'], fc: ['FALTA'], stl: ['ROBO'], to: ['PERDIDA'], blk: ['TAPON'] };
+const AC_STAT_L = { tc: 'Tiros de campo', tl: 'Tiros libres', t2: 'Tiros de 2', t3: 'Triples', reb: 'Rebotes', ast: 'Asistencias', fc: 'Faltas', stl: 'Robos', to: 'Pérdidas', blk: 'Tapones' };
+const AC_FILT = [['', 'Todas las jugadas'],
+  ['Tiros', [['pts', 'Canastas (de 2 y triples)'], ['miss', 'Tiros fallados (de 2 y triples)'], ['T3_OK', 'Triples anotados'], ['T3_FALLO', 'Triples fallados'], ['t3', 'Triples (todos)'], ['T2_OK', 'Canastas de 2'], ['T2_FALLO', 'Tiros de 2 fallados'], ['t2', 'Tiros de 2 (todos)'], ['tl', 'Tiros libres']]],
+  ['Otras', [['reb', 'Rebotes (todos)'], ['REBOTE_OF', 'Rebotes ofensivos'], ['REBOTE_DEF', 'Rebotes defensivos'], ['ASISTENCIA', 'Asistencias'], ['ASIST_POT', 'Asistencias potenciales'], ['PERDIDA', 'Pérdidas'], ['ROBO', 'Robos'], ['TAPON', 'Tapones'], ['FALTA', 'Faltas']]]];
+const _acTyOk = (k, tp) => !k || (k === 'pts' ? /^T[23]_OK$/.test(tp) : k === 'miss' ? /^T[23]_FALLO$/.test(tp) : AC_STAT[k] ? AC_STAT[k].includes(tp) : k === tp);
+const _acTyL = k => { for (const g of AC_FILT) { if (Array.isArray(g[1])) { const x = g[1].find(y => y[0] === k); if (x) return x[1]; } else if (g[0] === k) return g[1]; } return ''; };
+const _acA = s => _esc(s).replace(/"/g, '&quot;');
+const _acNN = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+const _acShort = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 2 ? p[0] + ' ' + p[1] : p.join(' '); };
+const _acStaff = () => { try { return localStorage.getItem('bascatRole') === 'staff'; } catch (e) { return false; } };
+const _acC = new WeakMap();
+const _acMs = () => (S.matches || []).filter(m => m && m.videoActions && m.videoActions.yt && (m.videoActions.clips || []).length);
+const _acSave = () => { svL(); if (typeof syncFirebase === 'function') syncFirebase(); };
+function _acYt(u) { u = String(u || '').trim(); const r = u.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/); return r ? r[1] : (/^[\w-]{11}$/.test(u) ? u : ''); }
+// jugadas de un partido, con el nombre del jugador tal como está en la web (por dorsal) y si es un final apretado
+function _acList(m) {
+  const va = m.videoActions, o = _acC.get(va); if (o && o.n === va.clips.length && o.yt === va.yt) return o.L;
+  const byD = { home: {}, away: {} };
+  ['home', 'away'].forEach(sd => ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => { if (p.dorsal != null && p.dorsal !== '') byD[sd][String(+p.dorsal)] = p.name; }));
+  const L = va.clips.map((c, i) => { const name = (c.d != null && byD[c.s] && byD[c.s][c.d]) || c.n || '', r = String(c.clk || '').match(/(\d+):(\d\d)\s*$/), rem = r ? +r[1] * 60 + +r[2] : null;
+    return { ...c, m, i, yt: va.yt, name, pn: _acNN(name), team: c.s === 'home' ? m.homeTeam : m.awayTeam, clutch: (c.per || 0) >= 4 && rem != null && rem <= 300 && !!c.sc && Math.abs(c.sc[0] - c.sc[1]) <= 6 }; });
+  _acC.set(va, { n: va.clips.length, yt: va.yt, L }); return L;
+}
+
+// ── stats que se pueden tocar: «3/7» en triples → esos 7 triples en vídeo (con el interruptor «🎬 Vídeos» encendido)
+const _acCellsOn = () => { try { return localStorage.getItem('ac_cells') === '1'; } catch (e) { return false; } };
+const _acTogHtml = () => `<label class="ac-vtog" title="Encendido: los números de la tabla abren esas jugadas en vídeo"><span>🎬 Vídeos</span><input type="checkbox"${_acCellsOn() ? ' checked' : ''} onchange="acToggleCells(this.checked)"><i aria-hidden="true"></i></label>`;
+function acToggleCells(on) { try { localStorage.setItem('ac_cells', on ? '1' : '0'); } catch (e) { } if (typeof renderStats === 'function') renderStats(); }
+function _acForP(p, key) {
+  const m = (S.matches || []).find(x => String(x.id) === String(p.mId)); if (!m || !m.videoActions || !m.videoActions.yt) return [];
+  const d = p.dorsal != null && p.dorsal !== '' ? String(+p.dorsal) : null, nn = _acNN(p.name), T = AC_STAT[key] || [];
+  return _acList(m).filter(x => x.s === p.side && T.includes(x.tp) && (p.all || x.pn === nn || (d != null && x.d === d)));
+}
+function _acCell(txt, p, key) {
+  if (!p || p.mId == null || !p.side || !_acCellsOn() || !window.__acAny) return txt;
+  let L; try { L = _acForP(p, key); } catch (e) { return txt; } if (!L.length) return txt;
+  return `<span class="acx" role="button" tabindex="0" title="Ver en vídeo (${L.length})" data-ac="${_acA(JSON.stringify([p.mId, p.side, p.dorsal == null ? '' : String(p.dorsal), p.name, key, p.all ? 1 : 0]))}" onclick="acStatEl(event,this)" onkeydown="if(event.key==='Enter')acStatEl(event,this)">${txt}<i>▶</i></span>`;
+}
+// (para no buscar en cada celda cuando ningún partido tiene vídeo)
+Object.defineProperty(window, '__acAny', { configurable: true, get() { const n = (S.matches || []).length; if (window.__acAnyN !== n || Date.now() - (window.__acAnyT || 0) > 3000) { window.__acAnyN = n; window.__acAnyT = Date.now(); window.__acAnyV = _acMs().length > 0; } return window.__acAnyV; } });
+function acStatEl(ev, el) {
+  ev.stopPropagation(); ev.preventDefault(); let a; try { a = JSON.parse(el.dataset.ac); } catch (e) { return; }
+  const [mId, side, dorsal, name, key, all] = a, L = _acForP({ mId, side, dorsal, name, all }, key); if (!L.length) return;
+  const made = L.filter(x => /_OK$/.test(x.tp)).length, shot = /^(tc|tl|t2|t3)$/.test(key), m = L[0].m;
+  acPlay(L, 0, `${all ? (side === 'home' ? m.homeTeam : m.awayTeam) : (dorsal !== '' ? '#' + dorsal + ' ' : '') + _acShort(name)} · ${AC_STAT_L[key]} ${shot ? made + '/' + L.length : '(' + L.length + ')'} · ${m.homeTeam} vs ${m.awayTeam}`);
+}
+
+// ── reproductor: el vídeo de YouTube del partido, de tramo en tramo
+let _acP = null;
+function _acYtApi() {
+  if (window.YT && YT.Player) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { try { prev && prev(); } catch (e) { } res(); };
+    if (!document.getElementById('yt-api')) { const sc = document.createElement('script'); sc.id = 'yt-api'; sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => rej(new Error('No se ha podido cargar YouTube. Mira la conexión.')); document.head.appendChild(sc); }
+    setTimeout(() => rej(new Error('YouTube no responde. Mira la conexión.')), 20000);
+  });
+}
+function acClose() { if (!_acP) return; const P = _acP; _acP = null; try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
+function acPlay(list, i, title) {
+  acClose(); if (!list || !list.length) return;
+  let auto = true; try { auto = localStorage.getItem('ac_auto') !== '0'; } catch (e) { }
+  const ov = document.createElement('div'); ov.className = 'vm-ov ac-ov';
+  ov.innerHTML = `<div class="vm-box ac-box" role="dialog" aria-label="Jugadas en vídeo"><header><b>🎬 ${_esc(title || 'Jugadas en vídeo')}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+    <div class="ac-vid"><div id="ac-yt"></div><div class="ac-msg">Cargando el vídeo…</div></div>
+    <div class="ac-now"></div>
+    <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label></div>
+    <div class="ac-keys">← → anterior / siguiente · R repetir · Esc cerrar</div>
+    <div class="ac-lst"></div></div>`;
+  document.body.appendChild(ov);
+  const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
+  const multiM = new Set(list.map(y => y.m)).size > 1, msg = ov.querySelector('.ac-msg');
+  const draw = () => { const x = P.list[P.i], ty = AC_TY[x.tp] || [x.tp, ''];
+    ov.querySelector('.ac-now').innerHTML = `<span class="ac-n">${P.i + 1} de ${P.list.length}</span><b>${_esc(x.clk || '')}</b> · ${ty[1]} ${_esc(ty[0])} · <b>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}</b> <span class="ac-tm">${_esc(x.team)}</span>${x.sc ? `<br><span class="ac-sc">Marcador antes: ${_esc(x.m.homeTeam)} <b>${x.sc[0]} – ${x.sc[1]}</b> ${_esc(x.m.awayTeam)}</span>` : ''}`;
+    ov.querySelector('.ac-lst').innerHTML = P.list.map((y, k) => `<div class="ac-it${k === P.i ? ' on' : ''}" data-k="${k}"><span class="ac-dot ${/_OK$/.test(y.tp) ? 'ok' : /_FALLO$/.test(y.tp) ? 'ko' : ''}"></span><span class="ac-q">${_esc(y.clk || '')}</span><span class="ac-tx">${_esc((AC_TY[y.tp] || [y.tp])[0])} · ${y.d != null ? '#' + _esc(y.d) + ' ' : ''}${_esc(_acShort(y.name))}${multiM ? ' · <i>' + _esc(y.m.homeTeam + ' vs ' + y.m.awayTeam) + '</i>' : ''}</span>${y.sc ? `<span class="ac-sc">${y.sc[0]}–${y.sc[1]}</span>` : ''}<span class="ac-pl">▶</span></div>`).join('');
+    ov.querySelectorAll('.ac-it').forEach(e => e.onclick = () => go(+e.dataset.k));
+    const cur = ov.querySelector('.ac-it.on'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' }); };
+  const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
+  const go = k => { if (k < 0 || k >= P.list.length) return; P.i = k; draw(); load(); };
+  P.go = go;
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) acClose(); };
+  ov.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'prev') go(P.i - 1); else if (a === 'next') go(P.i + 1); else load(); });
+  ov.querySelector('.ac-auto input').onchange = e => { P.auto = e.target.checked; try { localStorage.setItem('ac_auto', P.auto ? '1' : '0'); } catch (er) { } };
+  P.key = e => { if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();   // que no lleguen a los atajos del vídeo de la pestaña
+    if (e.key === 'Escape') { e.preventDefault(); acClose(); } else if (e.key === 'ArrowRight') { e.preventDefault(); go(P.i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(P.i - 1); } else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); load(); } };
+  document.addEventListener('keydown', P.key, true);
+  draw();
+  _acYtApi().then(() => { if (_acP !== P) return; const x = P.list[P.i];
+    P.yt = new YT.Player('ac-yt', { width: '100%', height: '100%', videoId: x.yt, playerVars: { start: Math.floor(x.t0), end: Math.ceil(x.t1), autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
+      events: { onReady: () => { P.ready = true; msg.style.display = 'none'; load(); },
+        onStateChange: e => { if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1) return;
+          if (Date.now() - (P.at || 0) < 1500) return;   // el aviso de fin del tramo anterior al cargar el nuevo
+          let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (er) { } if (ct && ct < P.list[P.i].t1 - 1.5) return;
+          go(P.i + 1); },
+        onError: () => { msg.style.display = ''; msg.textContent = '⚠ Este vídeo de YouTube no se puede ver. ¿Está en «Privado» en vez de «Oculto», o se ha borrado?'; } } });
+  }).catch(err => { msg.textContent = '⚠ ' + err.message; });
+}
+
+// ── sección «Acciones en vídeo» de la pestaña Vídeo: filtros y lista
+window._acF = window._acF || { m: '', tm: '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false };
+window._acLim = 150;
+function _acTeams() { const M = new Map(); _acMs().forEach(m => [m.homeTeam, m.awayTeam].forEach(n => { const k = _teamKey(n); if (!k) return; const e = M.get(k) || { name: n, n: 0 }; e.n++; M.set(k, e); })); return M; }
+const _acSideOf = (m, tk) => _teamKey(m.homeTeam) === tk ? 'home' : _teamKey(m.awayTeam) === tk ? 'away' : null;
+function _acPlayersOf(tk) {
+  const M = new Map(); _acMs().forEach(m => { const sd = _acSideOf(m, tk); if (!sd) return; ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => { const k = _acNN(p.name); if (k && !M.has(k)) M.set(k, { l: `${p.dorsal != null && p.dorsal !== '' ? '#' + p.dorsal + ' ' : ''}${p.name}`, n: p.name }); }); });
+  return [...M.entries()].sort((a, b) => a[1].n.localeCompare(b[1].n, 'es'));
+}
+const _acDorsalOf = (m, sd, nn) => { const p = ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).find(p => _acNN(p.name) === nn); return p && p.dorsal != null && p.dorsal !== '' ? String(+p.dorsal) : null; };
+const _acMsSorted = () => _acMs().slice().sort(typeof _byDateDesc === 'function' ? _byDateDesc : () => 0);
+function _acFilter(F) {
+  const out = [];
+  _acMsSorted().forEach(m => {
+    if (F.m && String(m.id) !== F.m) return;
+    let tSide = null; if (F.tm) { tSide = _acSideOf(m, F.tm); if (!tSide) return; }
+    const actSide = tSide ? (F.mode === 'concede' ? (tSide === 'home' ? 'away' : 'home') : tSide) : null, onD = F.on && tSide ? _acDorsalOf(m, tSide, F.on) : null;
+    if (F.on && tSide && F.onm === 'con' && onD == null) return;   // ese partido no lo jugó
+    _acList(m).forEach(x => {
+      if (actSide && x.s !== actSide) return;
+      if (F.pl && F.mode !== 'concede' && x.pn !== F.pl) return;
+      if (F.on && tSide) { const inC = onD != null && !!x.on && (x.on[tSide] || []).includes(onD); if (F.onm === 'con' ? !inC : inC) return; }
+      if (!_acTyOk(F.tp, x.tp)) return;
+      if (F.per && (F.per === 'pr' ? (x.per || 0) < 5 : String(x.per) !== F.per)) return;
+      if (F.clutch && !x.clutch) return;
+      out.push(x);
+    });
+  });
+  return out;
+}
+function _acTitle(F) {
+  const T = _acTeams(), P = F.tm ? new Map(_acPlayersOf(F.tm)) : new Map(), parts = [];
+  parts.push(F.tp ? _acTyL(F.tp) : 'Jugadas');
+  if (F.tm) parts.push((F.mode === 'concede' ? 'contra ' : 'de ') + ((T.get(F.tm) || {}).name || ''));
+  if (F.pl && F.mode !== 'concede' && P.get(F.pl)) parts.push(P.get(F.pl).l);
+  if (F.on && P.get(F.on)) parts.push((F.onm === 'con' ? 'con ' : 'sin ') + P.get(F.on).l + ' en pista');
+  if (F.per) parts.push(F.per === 'pr' ? 'prórroga' : F.per + 'º cuarto');
+  if (F.clutch) parts.push('final apretado');
+  if (F.m) { const m = _acMs().find(x => String(x.id) === F.m); if (m) parts.push(m.homeTeam + ' vs ' + m.awayTeam); }
+  return parts.join(' · ');
+}
+function renderActions() {
+  const el = document.getElementById('ac-sec'); if (!el) return;
+  const staff = _acStaff(), Ms = _acMsSorted();
+  const imp = staff ? `<label class="ac-imp" title="El archivo que descarga el analizador con «📤 Enviar a la web»">📥 Añadir partido del analizador<input type="file" accept=".json,application/json" hidden onchange="acImport(this)"></label>` : '';
+  if (!Ms.length) { el.innerHTML = `<div class="ac-empty">Todavía no hay ningún partido con las jugadas en vídeo.${staff ? '<br>Sube el vídeo del partido a YouTube como <b>Oculto</b>, en el analizador pulsa <b>📤 Enviar a la web</b> y añade aquí el archivo.' : ''}</div>${imp}`; return; }
+  const F = window._acF, TM = _acTeams();
+  if (F.tm && !TM.has(F.tm)) F.tm = ''; if (F.m && !Ms.some(m => String(m.id) === F.m)) F.m = '';
+  const pls = F.tm ? _acPlayersOf(F.tm) : []; if (F.pl && !pls.some(p => p[0] === F.pl)) F.pl = ''; if (F.on && !pls.some(p => p[0] === F.on)) F.on = '';
+  const opt = (v, l, cur) => `<option value="${_acA(v)}"${v === cur ? ' selected' : ''}>${_esc(l)}</option>`;
+  const tyOpts = AC_FILT.map(g => Array.isArray(g[1]) ? `<optgroup label="${g[0]}">${g[1].map(([v, l]) => opt(v, l, F.tp)).join('')}</optgroup>` : opt(g[0], g[1], F.tp)).join('');
+  const L = _acFilter(F), any = F.m || F.tm || F.tp || F.per || F.clutch;
+  const shots = L.filter(x => /^T[23L]_/.test(x.tp)), made = shots.filter(x => /_OK$/.test(x.tp)).length;
+  const chip = (attr, v, l, cur, t) => `<button type="button" class="ac-chip${v === cur ? ' on' : ''}" ${attr}="${_acA(v)}"${t ? ' title="' + _acA(t) + '"' : ''}>${l}</button>`;
+  const QT = [['', 'Todas'], ['pts', 'Canastas'], ['miss', 'Fallos'], ['t3', 'Triples'], ['tl', 'Tiros libres'], ['reb', 'Rebotes'], ['ASISTENCIA', 'Asistencias'], ['PERDIDA', 'Pérdidas'], ['ROBO', 'Robos'], ['TAPON', 'Tapones'], ['FALTA', 'Faltas']], quick = QT.some(q => q[0] === F.tp);
+  const moreTp = `<select data-f="tp" class="ac-tpmore${quick ? '' : ' on'}" title="Más tipos de jugada"><option value="" disabled hidden${quick ? ' selected' : ''}>Más tipos…</option>${AC_FILT.filter(g => Array.isArray(g[1])).map(g => `<optgroup label="${g[0]}">${g[1].map(([v, l]) => `<option value="${_acA(v)}"${!quick && v === F.tp ? ' selected' : ''}>${_esc(l)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+  const head = `<div class="ac-f"><div class="ac-r">
+    <label class="ac-fl">Partido<select data-f="m">${opt('', 'Todos (' + Ms.length + ')', F.m)}${Ms.map(m => opt(String(m.id), `${m.homeTeam} vs ${m.awayTeam}${m.date ? ' · ' + String(m.date).slice(0, 10) : ''}`, F.m)).join('')}</select></label>
+    <label>Equipo<select data-f="tm">${opt('', 'Los dos equipos', F.tm)}${[...TM.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es')).map(([k, e]) => opt(k, e.name, F.tm)).join('')}</select></label>
+    ${F.tm ? `<div class="ac-fl"><span class="ac-lb">Jugadas</span><div class="ac-seg" role="group" aria-label="Qué jugadas"><button type="button" data-mode="hace" class="${F.mode !== 'concede' ? 'on' : ''}">Las que hace</button><button type="button" data-mode="concede" class="${F.mode === 'concede' ? 'on' : ''}">Las que le hacen</button></div></div>` : ''}
+    </div>
+    <div class="ac-r"><div class="ac-fl ac-grow"><span class="ac-lb">Jugada</span><div class="ac-chips">${QT.map(([v, l]) => chip('data-tp', v, l, F.tp)).join('')}${moreTp}</div></div></div>
+    <div class="ac-r">
+    ${F.tm && F.mode !== 'concede' ? `<label class="ac-fl">Jugador<select data-f="pl">${opt('', 'Todos', F.pl)}${pls.map(([k, p]) => opt(k, p.l, F.pl)).join('')}</select></label>` : ''}
+    ${F.tm ? `<div class="ac-fl"><span class="ac-lb">En pista</span><div class="ac-on"><div class="ac-seg sm">${['con', 'sin'].map(v => `<button type="button" data-onm="${v}" class="${F.onm === v ? 'on' : ''}">${v}</button>`).join('')}</div><select data-f="on">${opt('', 'cualquiera', F.on)}${pls.map(([k, p]) => opt(k, p.l, F.on)).join('')}</select></div></div>` : ''}
+    <div class="ac-fl"><span class="ac-lb">Cuarto</span><div class="ac-chips">${[['', 'Todos'], ['1', '1º'], ['2', '2º'], ['3', '3º'], ['4', '4º'], ['pr', 'Prórroga']].map(([v, l]) => chip('data-per', v, l, F.per)).join('')}</div></div>
+    <div class="ac-fl"><span class="ac-lb">&nbsp;</span><div class="ac-chips"><button type="button" class="ac-chip ac-hot${F.clutch ? ' on' : ''}" data-clutch title="Últimos 5 minutos del 4º cuarto o de la prórroga, con 6 puntos o menos de diferencia">🔥 Final apretado</button>${any ? '<button type="button" class="ac-clr">✕ Quitar filtros</button>' : ''}</div></div>
+    </div>
+  </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver lo que hace y lo que le hacen, por jugador y por quién está en pista.</div>'}
+  <div class="ac-sum"><span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shots.length ? ` · tiros <b>${made}/${shots.length}</b> (${Math.round(100 * made / shots.length)}%)` : ''}</span>${L.length ? `<button type="button" class="ac-all">▶ Ver todas seguidas</button>` : ''}<span style="flex:1"></span>${imp}</div>`;
+  let rows = '', k = 0, shown = 0;
+  const byM = new Map(); L.forEach(x => { if (!byM.has(x.m)) byM.set(x.m, []); byM.get(x.m).push(x); });
+  byM.forEach((xs, m) => {
+    if (shown >= window._acLim) { k += xs.length; return; }
+    rows += `<div class="ac-mh"><span>📂 ${_esc(m.homeTeam)} ${m.scoreHome != null ? _esc(m.scoreHome) + '–' + _esc(m.scoreAway) : 'vs'} ${_esc(m.awayTeam)}${m.date ? ' <small>' + _esc(String(m.date).slice(0, 10)) + '</small>' : ''}</span><span class="ac-mn">${xs.length}</span>${staff ? `<button type="button" data-yt="${_acA(m.id)}" title="Cambiar el enlace de YouTube">🔗</button><button type="button" data-del="${_acA(m.id)}" title="Quitar las jugadas en vídeo de este partido">🗑</button>` : ''}</div>`;
+    xs.forEach(x => { if (shown < window._acLim) { const ty = AC_TY[x.tp] || [x.tp, ''];
+      rows += `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}</span><span class="ac-pl"><i class="ac-dt ${x.s}"></i>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; shown++; }
+      k++; });
+  });
+  if (L.length > shown) rows += `<button type="button" class="ac-more">▼ Mostrar más (quedan ${L.length - shown})</button>`;
+  if (!L.length) rows = '<div class="ac-empty">Ninguna jugada con estos filtros.</div>';
+  el.innerHTML = head + `<div class="ac-list">${rows}</div>`;
+  const title = _acTitle(F);
+  el.querySelectorAll('[data-f]').forEach(c => c.onchange = () => { F[c.dataset.f] = c.type === 'checkbox' ? c.checked : c.value; if (c.dataset.f === 'tm') { F.pl = ''; F.on = ''; } window._acLim = 150; renderActions(); });
+  el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { F.mode = b.dataset.mode; window._acLim = 150; renderActions(); });
+  const set = (k, v) => { F[k] = v; window._acLim = 150; renderActions(); };
+  el.querySelectorAll('[data-tp]').forEach(b => b.onclick = () => set('tp', b.dataset.tp));
+  el.querySelectorAll('[data-per]').forEach(b => b.onclick = () => set('per', b.dataset.per));
+  el.querySelectorAll('[data-onm]').forEach(b => b.onclick = () => set('onm', b.dataset.onm));
+  el.querySelectorAll('[data-clutch]').forEach(b => b.onclick = () => set('clutch', !F.clutch));
+  const clr = el.querySelector('.ac-clr'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', tm: '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false }); renderActions(); };
+  const all = el.querySelector('.ac-all'); if (all) all.onclick = () => acPlay(L, 0, title);
+  const more = el.querySelector('.ac-more'); if (more) more.onclick = () => { window._acLim += 300; renderActions(); };
+  el.querySelectorAll('.ac-row').forEach(r => { r.onclick = () => acPlay(L, +r.dataset.k, title); r.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); r.click(); } }; });
+  el.querySelectorAll('[data-yt]').forEach(b => b.onclick = () => acSetYt(b.dataset.yt));
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => acDrop(b.dataset.del));
+}
+
+// ── 🎬 Explorador de jugadas de un jugador (pestaña Claret): al tocar T2%, T3%, TL%, RO, RD, RT, AST, STL, BLK, PER o FC
+//    salen todas sus jugadas de ese tipo que tienen vídeo, con filtros (partido, acierto/fallo, tipo de rebote, cuarto, marcador, final apretado)
+const AX_KEYS = [['t2', 'T2'], ['t3', 'T3'], ['tl', 'TL'], ['reb', 'Rebotes'], ['ast', 'Asist.'], ['stl', 'Robos'], ['blk', 'Tapones'], ['to', 'Pérdidas'], ['fc', 'Faltas']];
+const AX_COL = { t2m: ['t2', ''], t3m: ['t3', ''], tlm: ['tl', ''], ro: ['reb', 'of'], rd: ['reb', 'def'], reb: ['reb', ''], ast: ['ast', ''], stl: ['stl', ''], blk: ['blk', ''], to: ['to', ''], fc: ['fc', ''] };
+const _axCol = F => ({ t2: 't2m', t3: 't3m', tl: 'tlm', ast: 'ast', stl: 'stl', blk: 'blk', to: 'to', fc: 'fc' })[F.key] || (F.sub === 'of' ? 'ro' : F.sub === 'def' ? 'rd' : 'reb');
+const AX_PROG_L = { t2m: 'T2%', t3m: 'T3%', tlm: 'TL%', ro: 'RO', rd: 'RD', reb: 'RT', ast: 'AST', stl: 'STL', blk: 'BLK', to: 'PER', fc: 'FC' };
+function _axProgress(name, col) {
+  const ours = window._oursCache || [];
+  window._advSrc = window._advSrc || {}; window._advSrc.cl = ours.map(o => o.m); window._clSides = new Set(ours.map(o => o.m.id + '|' + o.side));
+  _advHistory(name, col, 'cl');
+}
+function _axClips(name) {
+  const nn = _acNN(name), out = [];
+  _acMsSorted().forEach(m => {
+    const side = ['home', 'away'].find(sd => ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).some(p => _acNN(p.name) === nn)); if (!side) return;
+    const d = _acDorsalOf(m, side, nn);
+    _acList(m).forEach(x => { if (x.s === side && (x.pn === nn || (d != null && x.d === d))) out.push(x); });
+  });
+  return out;
+}
+// la fila de la tabla del Claret: las columnas con jugadas en vídeo abren el explorador; el resto, la ficha del jugador como siempre
+function clRowClick(ev, tr) {
+  const td = ev.target.closest('td[data-ax]'), name = tr.dataset.n;
+  if (td) { ev.stopPropagation(); const [key, sub] = AX_COL[td.dataset.ax] || []; if (key) { acExplore(name, key, sub); return; } }
+  openPlayerProfile(name, '__CLARET__');
+}
+window._axF = window._axF || {};
+function acExplore(name, key, sub) {
+  window._axF = { name, key: key || 't2', sub: sub || '', m: '', res: '', per: '', sit: '', clutch: false };
+  document.querySelectorAll('.ax-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov ax-ov';
+  ov.innerHTML = '<div class="vm-box ax-box" role="dialog" aria-label="Jugadas en vídeo del jugador"><header><b></b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header><div class="ax-body"></div></div>';
+  document.body.appendChild(ov);
+  const onKey = e => { if (e.key === 'Escape' && !_acP && document.body.contains(ov)) { e.preventDefault(); close(); } };
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); };
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) close(); };
+  document.addEventListener('keydown', onKey, true);
+  _axDraw(ov);
+}
+function _axDraw(ov) {
+  const F = window._axF, all = _axClips(F.name), T = AC_STAT[F.key] || [], shot = /^(t2|t3|tl)$/.test(F.key);
+  const mine = all.filter(x => T.includes(x.tp));
+  const diffOf = x => x.sc ? (x.s === 'home' ? x.sc[0] - x.sc[1] : x.sc[1] - x.sc[0]) : null;
+  const L = mine.filter(x => {
+    if (F.m && String(x.m.id) !== F.m) return false;
+    if (shot && F.res && (F.res === 'ok') !== /_OK$/.test(x.tp)) return false;
+    if (F.key === 'reb' && F.sub && x.tp !== (F.sub === 'of' ? 'REBOTE_OF' : 'REBOTE_DEF')) return false;
+    if (F.per && (F.per === 'pr' ? (x.per || 0) < 5 : String(x.per) !== F.per)) return false;
+    if (F.sit) { const d = diffOf(x); if (d == null || (F.sit === 'gan' ? d <= 0 : F.sit === 'per' ? d >= 0 : d !== 0)) return false; }
+    if (F.clutch && !x.clutch) return false;
+    return true; });
+  const p0 = all[0], dorsal = p0 && p0.d != null ? '#' + p0.d + ' ' : '', made = L.filter(x => /_OK$/.test(x.tp)).length;
+  ov.querySelector('header b').textContent = `🎬 ${dorsal}${F.name} · ${AC_STAT_L[F.key]}${F.key === 'reb' && F.sub ? (F.sub === 'of' ? ' ofensivos' : ' defensivos') : ''}`;
+  const chip = (attr, v, l, cur, t) => `<button type="button" class="ac-chip${v === cur ? ' on' : ''}" ${attr}="${_acA(v)}"${t ? ' title="' + _acA(t) + '"' : ''}>${l}</button>`;
+  const ms = []; mine.forEach(x => { if (!ms.includes(x.m)) ms.push(x.m); });
+  const cnt = m => { const xs = mine.filter(x => x.m === m), k = xs.filter(x => /_OK$/.test(x.tp)).length; return shot ? k + '/' + xs.length : String(xs.length); };
+  const any = F.m || F.res || F.sub || F.per || F.sit || F.clutch;
+  const multi = ms.length > 1;
+  const noV = !mine.length;
+  ov.querySelector('.ax-body').innerHTML = `
+    <div class="ax-keys">${AX_KEYS.map(([k, l]) => { const n = all.filter(x => (AC_STAT[k] || []).includes(x.tp)).length; return `<button type="button" class="ac-chip${k === F.key ? ' on' : ''}" data-key="${k}"${n ? '' : ' disabled'}>${l} <small>${n}</small></button>`; }).join('')}</div>
+    ${noV ? `<div class="ax-none">🎬 No hay ningún vídeo de ${AC_STAT_L[F.key].toLowerCase()}${F.key === 'reb' && F.sub ? (F.sub === 'of' ? ' ofensivos' : ' defensivos') : ''} de este jugador.<small>Salen aquí cuando se añade al apartado «Acciones en vídeo» un partido suyo con el analizador.</small></div>` : ''}
+    <div class="ac-f ax-f"${noV ? ' hidden' : ''}><div class="ac-r">
+      <label class="ac-fl">Partido<select data-ax="m"><option value="">Todos (${ms.length})</option>${ms.map(m => `<option value="${_acA(m.id)}"${String(m.id) === F.m ? ' selected' : ''}>${_esc(m.homeTeam)} vs ${_esc(m.awayTeam)}${m.date ? ' · ' + _esc(String(m.date).slice(0, 10)) : ''} · ${cnt(m)}</option>`).join('')}</select></label>
+      ${shot ? `<div class="ac-fl"><span class="ac-lb">Tiro</span><div class="ac-seg">${[['', 'Todos'], ['ok', 'Anotados'], ['ko', 'Fallados']].map(([v, l]) => `<button type="button" data-res="${v}" class="${F.res === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>` : ''}
+      ${F.key === 'reb' ? `<div class="ac-fl"><span class="ac-lb">Rebote</span><div class="ac-seg">${[['', 'Todos'], ['of', 'Ofensivos'], ['def', 'Defensivos']].map(([v, l]) => `<button type="button" data-sub="${v}" class="${F.sub === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>` : ''}
+    </div><div class="ac-r">
+      <div class="ac-fl"><span class="ac-lb">Cuarto</span><div class="ac-chips">${[['', 'Todos'], ['1', '1º'], ['2', '2º'], ['3', '3º'], ['4', '4º'], ['pr', 'Prórroga']].map(([v, l]) => chip('data-per', v, l, F.per)).join('')}</div></div>
+      <div class="ac-fl"><span class="ac-lb">Marcador antes</span><div class="ac-chips">${[['', 'Da igual'], ['gan', 'Ganando'], ['per', 'Perdiendo'], ['emp', 'Empate']].map(([v, l]) => chip('data-sit', v, l, F.sit)).join('')}</div></div>
+      <div class="ac-fl"><span class="ac-lb">&nbsp;</span><div class="ac-chips"><button type="button" class="ac-chip ac-hot${F.clutch ? ' on' : ''}" data-clutch title="Últimos 5 minutos del 4º cuarto o de la prórroga, con 6 puntos o menos de diferencia">🔥 Final apretado</button>${any ? '<button type="button" class="ac-clr">✕ Quitar filtros</button>' : ''}</div></div>
+    </div></div>
+    <div class="ac-sum">${noV ? '' : `<span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shot && L.length ? ` · <b>${made}/${L.length}</b> (${Math.round(100 * made / L.length)}%)` : ''}</span>${L.length ? '<button type="button" class="ac-all">▶ Ver todas seguidas</button>' : ''}`}<span style="flex:1"></span><button type="button" class="ac-clr ax-prog" title="Partido a partido y acumulado de esta stat, como en la tabla avanzada">📈 Progreso de ${AX_PROG_L[_axCol(F)]}</button><button type="button" class="ac-clr ax-prof" title="La ficha del jugador de siempre">📊 Ficha del jugador</button></div>
+    <div class="ac-list ax-list"${noV ? ' hidden' : ''}>${L.length ? L.map((x, k) => { const ty = AC_TY[x.tp] || [x.tp, ''];
+      return `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}</span><span class="ac-pl">${multi ? 'vs ' + _esc(x.s === 'home' ? x.m.awayTeam : x.m.homeTeam) : ''}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; }).join('') : `<div class="ac-empty">${mine.length ? 'Ninguna jugada con estos filtros.' : 'Todavía no hay ' + AC_STAT_L[F.key].toLowerCase() + ' suyos con vídeo.'}</div>`}</div>`;
+  const re = () => _axDraw(ov), b = ov.querySelector('.ax-body');
+  b.querySelectorAll('[data-key]').forEach(x => x.onclick = () => { if (F.key !== x.dataset.key) { F.key = x.dataset.key; F.sub = ''; F.res = ''; } re(); });
+  b.querySelectorAll('select[data-ax]').forEach(x => x.onchange = () => { F[x.dataset.ax] = x.value; re(); });
+  b.querySelectorAll('[data-res]').forEach(x => x.onclick = () => { F.res = x.dataset.res; re(); });
+  b.querySelectorAll('[data-sub]').forEach(x => x.onclick = () => { F.sub = x.dataset.sub; re(); });
+  b.querySelectorAll('[data-per]').forEach(x => x.onclick = () => { F.per = x.dataset.per; re(); });
+  b.querySelectorAll('[data-sit]').forEach(x => x.onclick = () => { F.sit = x.dataset.sit; re(); });
+  b.querySelectorAll('[data-clutch]').forEach(x => x.onclick = () => { F.clutch = !F.clutch; re(); });
+  const clr = b.querySelector('.ac-clr:not(.ax-prof):not(.ax-prog)'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', res: '', sub: '', per: '', sit: '', clutch: false }); re(); };
+  b.querySelector('.ax-prof').onclick = () => { ov.remove(); openPlayerProfile(F.name, '__CLARET__'); };
+  b.querySelector('.ax-prog').onclick = () => { ov.remove(); _axProgress(F.name, _axCol(F)); };
+  const title = `${dorsal}${_acShort(F.name)} · ${AC_STAT_L[F.key]}`;
+  const all2 = b.querySelector('.ac-all'); if (all2) all2.onclick = () => acPlay(L, 0, title);
+  b.querySelectorAll('.ac-row').forEach(r => { r.onclick = () => acPlay(L, +r.dataset.k, title); r.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); r.click(); } }; });
+}
+
+// pestaña Vídeo: «Acciones en vídeo» o «Clips de scouting»
+function _vtApply() {
+  const t = document.getElementById('t-video'); if (!t) return; const n = _acMs().length; let v = ''; try { v = localStorage.getItem('vt_view') || ''; } catch (e) { }
+  if (v !== 'acc' && v !== 'clips') v = n ? 'acc' : 'clips'; t.dataset.vt = v;
+  t.querySelectorAll('.vt-nav button').forEach(b => { const on = b.dataset.vt === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  const a = document.getElementById('vt-n-acc'); if (a) a.textContent = n ? n + ' partido' + (n !== 1 ? 's' : '') : '';
+  const c = document.getElementById('vt-n-clips'); if (c) { let k = 0; [...(S.videoLibs || []), ...(S.matches || []).filter(m => m.videoClips)].forEach(m => k += _vLibCount(m)); c.textContent = k ? k + ' clip' + (k !== 1 ? 's' : '') : ''; }
+}
+function vtView(v) { try { localStorage.setItem('vt_view', v); } catch (e) { } _vtApply(); }
+// 📥 archivo del analizador → el partido de la web (por su id; si no, por equipos y fecha)
+async function acImport(inp) {
+  const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+  let j; try { j = JSON.parse(await f.text()); } catch (e) { toast('Ese archivo no es el del analizador', 'err'); return; }
+  if (!j || !Array.isArray(j.clips) || !j.clips.length) { toast('El archivo no trae jugadas', 'err'); return; }
+  let m = j.matchId != null ? (S.matches || []).find(x => String(x.id) === String(j.matchId)) : null;
+  if (!m) { const h = _teamKey(j.home), a = _teamKey(j.away), d = String(j.date || '').slice(0, 10); m = (S.matches || []).find(x => _teamKey(x.homeTeam) === h && _teamKey(x.awayTeam) === a && (!d || String(x.date || '').slice(0, 10) === d)); }
+  if (!m) { toast(`No encuentro el partido ${j.home || ''} vs ${j.away || ''} en la web`, 'err'); return; }
+  let yt = _acYt(j.yt);
+  if (!yt) { const u = prompt(`Enlace de YouTube del partido ${m.homeTeam} vs ${m.awayTeam} (subido como «Oculto»):`); if (u == null) return; yt = _acYt(u); if (!yt) { toast('Ese enlace de YouTube no es válido', 'err'); return; } }
+  if (m.videoActions && !confirm(`${m.homeTeam} vs ${m.awayTeam} ya tiene ${m.videoActions.clips.length} jugadas en vídeo. ¿Cambiarlas por las ${j.clips.length} del archivo?`)) return;
+  const num = x => Number.isFinite(+x) ? +x : null;
+  const clips = j.clips.filter(c => c && num(c.t0) != null && num(c.t1) != null && +c.t1 > +c.t0 && (c.s === 'home' || c.s === 'away') && AC_TY[c.tp]).map(c => ({
+    t: num(c.t), t0: +c.t0, t1: +c.t1, tp: c.tp, s: c.s, d: c.d != null && c.d !== '' && Number.isFinite(+c.d) ? String(+c.d) : null, n: String(c.n || '').slice(0, 80), per: +c.per || 1, clk: String(c.clk || '').slice(0, 12),
+    sc: Array.isArray(c.sc) ? [+c.sc[0] || 0, +c.sc[1] || 0] : null, on: c.on && Array.isArray(c.on.home) && Array.isArray(c.on.away) ? { home: c.on.home.map(x => String(+x)), away: c.on.away.map(x => String(+x)) } : null, ok: c.ok ? 1 : 0 }));
+  if (!clips.length) { toast('El archivo no trae jugadas válidas', 'err'); return; }
+  m.videoActions = { yt, added: Date.now(), clips }; _acSave();
+  Object.assign(window._acF, { m: String(m.id) }); renderActions();
+  toast(`✅ ${clips.length} jugadas en vídeo · ${m.homeTeam} vs ${m.awayTeam}`, 'ok');
+}
+function acSetYt(id) {
+  const m = (S.matches || []).find(x => String(x.id) === String(id)); if (!m || !m.videoActions) return;
+  const u = prompt(`Enlace de YouTube de ${m.homeTeam} vs ${m.awayTeam}:`, 'https://youtu.be/' + m.videoActions.yt); if (u == null) return;
+  const yt = _acYt(u); if (!yt) { toast('Ese enlace de YouTube no es válido', 'err'); return; }
+  m.videoActions.yt = yt; _acSave(); renderActions(); toast('🔗 Enlace cambiado', 'ok');
+}
+function acDrop(id) {
+  const m = (S.matches || []).find(x => String(x.id) === String(id)); if (!m || !m.videoActions) return;
+  if (!confirm(`¿Quitar las ${m.videoActions.clips.length} jugadas en vídeo de ${m.homeTeam} vs ${m.awayTeam}? El vídeo de YouTube no se toca y puedes volver a añadirlas con el archivo del analizador.`)) return;
+  delete m.videoActions; _acSave(); renderActions(); toast('🗑 Jugadas en vídeo quitadas', 'ok');
+}
+
 function vDeleteMatch(mkKey){
     if(!confirm(`¿Eliminar TODOS los clips de "${mkKey}"?`)) return;
     _vDropLib(_vLib(mkKey));
@@ -20973,7 +21525,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vTeamSel,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vRepairMatch,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,
+  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vRepairMatch,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,acStatEl,acImport,acPlay,acClose,renderActions,acToggleCells,vtView,clRowClick,acExplore,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
@@ -21704,8 +22256,23 @@ const _ADV_COLS = {
   usg:     { l: 'USG%',     g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) + '%' },
   astTo:   { l: 'AST/TO',   g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) },
   pir:     { l: 'PIR',      g: 'Partido', c: 'Acum. (total)', f: x => String(Math.round(x)), sg: true },
+  // clásicas (tabla del Claret → explorador → «📈 Progreso»): v = valor de un grupo de partidos a partir de sus líneas de stats
+  t2m: { l: 'T2%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%', v: L => _clPct(L, 't2Made', 't2Att') },
+  t3m: { l: 'T3%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%', v: L => _clPct(L, 't3Made', 't3Att') },
+  tlm: { l: 'TL%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%', v: L => _clPct(L, 'tlMade', 'tlAtt') },
+  ro:  { l: 'RO',  g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'ro') },
+  rd:  { l: 'RD',  g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'rd') },
+  reb: { l: 'RT',  g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'reb') },
+  ast: { l: 'AST', g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'ast') },
+  stl: { l: 'STL', g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'stl') },
+  blk: { l: 'BLK', g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'blk') },
+  to:  { l: 'PER', g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'to'), low: true },
+  fc:  { l: 'FC',  g: 'Partido', c: 'Acum. (media)', f: x => _clNum(x), v: L => _clAvg(L, 'fc'), low: true },
   eff:     { l: 'EFF',      g: 'Partido', c: 'Acum. (total)', f: x => String(Math.round(x)), sg: true }
 };
+const _clPct = (L, m, a) => { const A = L.reduce((s, p) => s + (+p[a] || 0), 0); return A ? L.reduce((s, p) => s + (+p[m] || 0), 0) / A : NaN; };
+const _clAvg = (L, k) => L.length ? L.reduce((s, p) => s + (+p[k] || 0), 0) / L.length : NaN;
+const _clNum = x => Number.isInteger(x) ? String(x) : x.toFixed(1);
 function _advHistory(name, col, scope){
   const C = _ADV_COLS[col], src = (window._advSrc || {})[scope]; if (!C || !src) return;
   const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(), key = norm(name);
@@ -21714,13 +22281,15 @@ function _advHistory(name, col, scope){
   const sideOf = m => ['home', 'away'].find(s => (scope !== 'cl' || window._clSides.has(m.id + '|' + s)) && ((s === 'home' ? m.homePlayers : m.awayPlayers) || []).some(p => norm(p.name) === key));
   const rowOf = ms => _advRowsFor(ms, scope).find(r => norm(r.name) === key);
   const val = r => r && Number.isFinite(r[col]) ? r[col] : NaN;
+  const meIn = m => { const sd = sideOf(m); return sd ? ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).find(p => norm(p.name) === key) : null; };
+  const valOf = ms => C.v ? C.v(ms.map(meIn).filter(Boolean)) : val(rowOf(ms));
   const games = [];
   sorted.forEach((m, i) => {
     const side = sideOf(m); if (!side) return;
     const me = ((side === 'home' ? m.homePlayers : m.awayPlayers) || []).find(p => norm(p.name) === key) || {};
     const my = Number(side === 'home' ? m.scoreHome : m.scoreAway) || 0, op = Number(side === 'home' ? m.scoreAway : m.scoreHome) || 0;
     games.push({ m, home: side === 'home', team: side === 'home' ? m.homeTeam : m.awayTeam, rival: side === 'home' ? m.awayTeam : m.homeTeam, my, op,
-      dorsal: me.dorsal, min: _minNum(me.min), g: val(rowOf([m])), c: val(rowOf(sorted.slice(0, i + 1))) });
+      dorsal: me.dorsal, min: _minNum(me.min), g: valOf([m]), c: valOf(sorted.slice(0, i + 1)) });
   });
 
   // ── formatos y datos de resumen ──

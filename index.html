@@ -4550,9 +4550,9 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
         
         <div style="height:10px"></div> <!-- Separador -->
 
-        <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
-        <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas Eq. Partido" onclick="tacSideModal('heatt_match', 'home')">📍<br><small style="font-size:9px;font-weight:900;color:var(--ac)">HOY</small></button>
         <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'home')">⛹️<br><small style="font-size:9px;font-weight:900;color:var(--ac)">HOY</small></button>
       </div>
@@ -4613,6 +4613,7 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
          <div class="d-token action" data-type="action" data-action="blk" style="left: 50%; top: 22%;">TAPÓN</div>
          <div class="d-token action" data-type="action" data-action="to" style="left: 64%; top: 22%;">PÉRDIDA</div>
          
+         <div class="d-token action" data-type="action_click" data-action="and1" title="Canasta + falta: vale 2 o 3 según dónde toques en la pista" style="left: 36%; top: 32%; background:#dcfce7; color:#166534; border:2px solid #16a34a; cursor:pointer; z-index:15;">+1</div>
          <div class="d-token action red" data-type="action" data-action="foul" style="left: 50%; top: 32%;">FALTA</div>
 
 
@@ -4645,9 +4646,9 @@ table.ba-in > tbody > tr:nth-child(14) { animation-delay: .26s }
         <div style="height:10px"></div> <!-- Separador -->
 
         <!-- Mapas del Rival -->
-        <button class="tac-sb-btn" title="Mapas Eq. Histórico" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'away')">📊<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
-        <button class="tac-sb-btn" title="Mapas Indiv. Histórico" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
+        <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas Eq. Partido" onclick="tacSideModal('heatt_match', 'away')">📍<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
         <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'away')">⛹️<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
       </div>
@@ -5648,7 +5649,7 @@ window.askTimeout = function() {
 
 window._registrarTimeout = function(side, teamName) {
     if (!lv.events) return;
-    lv.events.push({
+    _lvEv({
         id: Date.now(), period: lv.period, min: lv.curMin || 0,
         team: side, type: 'timeout',
         score: { home: lv.score.home, away: lv.score.away },
@@ -6434,6 +6435,7 @@ function pickPlayContext(contextType) {
     rLvAll();
     svL();
   }
+  if (window._andOneNext) { const nx = window._andOneNext; window._andOneNext = null; setTimeout(nx, 200); }
 }
 
 
@@ -6445,7 +6447,7 @@ function lvAstFor(name,scorer,team){
     s.ast=(s.ast||0)+1;
     lv.log.unshift({team,msg:`🤝 Asist. — ${name.split(' ')[0]}${scorer?' → '+scorer.split(' ')[0]:''}`,period:lv.period,min:lv.curMin});
     // Evento con la pareja (to = anotador) para poder analizar parejas de asistencias
-    lv.events.push({type:'ast',player:name,to:scorer||null,team,period:lv.period,min:lv.curMin,score:{...lv.score}});
+    _lvEv({type:'ast',player:name,to:scorer||null,team,period:lv.period,min:lv.curMin,score:{...lv.score}});
   }
   rLvAll();svL();
 }
@@ -6471,9 +6473,9 @@ function askRebound(shooterTeam){
     <div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:2px">🏀 ¿Quién coge el rebote?</div>
     <div style="font-size:10px;color:var(--t3);text-align:center;margin-bottom:9px">Tiro fallado de <b>${(lv.selPl||'').split(' ')[0]}</b></div>
     ${own.length?`<div style="font-size:9.5px;font-weight:800;color:#b45309;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">📌 Ofensivo · ${tName(shooterTeam)}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:9px">${grid(own,'own','#f59e0b','#fffbeb')}</div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:9px">${grid(own,'own','#f59e0b','#fffbeb')}<button onclick="pickRebound('own',-1)" style="grid-column:span 2;background:#fffbeb;border:2px dashed #f59e0b;border-radius:9px;padding:8px;cursor:pointer;font-size:11px;font-weight:800;color:#92400e">📌 Ofensivo del equipo (no se ve quién)</button></div>`:''}
     ${rival.length?`<div style="font-size:9.5px;font-weight:800;color:#1e40af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">🛡️ Defensivo · ${tName(opp)}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">${grid(rival,'rival','#3b82f6','#eff6ff')}</div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">${grid(rival,'rival','#3b82f6','#eff6ff')}<button onclick="pickRebound('rival',-1)" style="grid-column:span 2;background:#eff6ff;border:2px dashed #3b82f6;border-radius:9px;padding:8px;cursor:pointer;font-size:11px;font-weight:800;color:#1e40af">🛡️ Defensivo del equipo (no se ve quién)</button></div>`:''}
     <button onclick="closeSP(null)" style="width:100%;margin-top:9px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer">✕ Sin rebote / fuera</button>`;
   popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;min-width:280px;max-width:360px;max-height:88vh;overflow-y:auto';
   _popupCb=null;
@@ -6484,12 +6486,13 @@ function pickRebound(side,i){
   const p=(isOwn?c.own:c.rival)[i];
   const team=isOwn?c.shooterTeam:c.opp;
   closeSP(null);
+  if(i===-1){ lvTeamAct(isOwn?'ro':'rd',team); return; }
   if(!p)return;
   const s=lv.st[team]?.[p.name];if(!s)return;
   const type=isOwn?'ro':'rd';
   if(isOwn)s.ro=(s.ro||0)+1;else s.rd=(s.rd||0)+1;
   lv.log.unshift({team,msg:`${isOwn?'📌 Reb.Of.':'🛡️ Reb.Def.'} — ${p.name.split(' ')[0]}`,period:lv.period,min:lv.curMin});
-  lv.events.push({type,player:p.name,team,period:lv.period,min:lv.curMin,score:{...lv.score}});
+  _lvEv({type,player:p.name,team,period:lv.period,min:lv.curMin,score:{...lv.score}});
   rLvAll();svL();
 }
 
@@ -6528,7 +6531,7 @@ function tlClick(idx,made){
     }
     s.tlAtt=(s.tlAtt||0)+1;
     lv.log.unshift({team:shooterTeam,msg:`${made?'✅':'❌'} TL${idx} — ${ts.player.split(' ')[0]}`,period:lv.period});
-    lv.events.push({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
+    _lvEv({type:made?'tl_in':'tl_out',player:ts.player,team:shooterTeam,period:lv.period,min:lv.curMin,score:{...lv.score},oc:_lvOC()});
   }
   ts.done++;
   
@@ -7409,12 +7412,12 @@ function _lvRecordShot(x,y,made,type){
     lv.onCourt[team].forEach(n=>{if(lv.st[team][n])lv.st[team][n].pm+=pts;});
     lv.onCourt[opp].forEach(n=>{if(lv.st[opp][n])lv.st[opp][n].pm-=pts;});
     lv.log.unshift({team,msg:`✅ +${pts} ${type} — ${short}`,period:lv.period,min});
-    lv.events.push({type:type==='T3'?'pts3':'pts2',player:pl,team,period:lv.period,min,score:{...lv.score},oc:_lvOC(),sid});
+    _lvEv({type:type==='T3'?'pts3':'pts2',player:pl,team,period:lv.period,min,score:{...lv.score},oc:_lvOC(),sid});
     setTimeout(()=>{ if(typeof askAssist==='function') askAssist(()=>{}); },150);
   } else {
     if(type==='T3')s.t3Att++; else s.t2Att++;
     lv.log.unshift({team,msg:`❌ Falla ${type} — ${short}`,period:lv.period,min});
-    lv.events.push({type:type==='T3'?'miss3':'miss2',player:pl,team,period:lv.period,min,score:{...lv.score},sid});
+    _lvEv({type:type==='T3'?'miss3':'miss2',player:pl,team,period:lv.period,min,score:{...lv.score},sid});
     setTimeout(()=>{ if(typeof askRebound==='function') askRebound(team); },120);
   }
   rLvAll(); svL();
@@ -7555,7 +7558,7 @@ function applyActionToPlayer(action, name, team) {
         s.tech = (s.tech || 0) + 1;
         s.fc = (s.fc || 0) + 1;
         lv.log.unshift({team, msg: `🟡 Técnica — ${name.split(' ')[0]}`, period: lv.period, min: lv.curMin});
-        lv.events.push({type: 'tech', player: name, team, period: lv.period, min: lv.curMin});
+        _lvEv({type: 'tech', player: name, team, period: lv.period, min: lv.curMin});
 
         // Preguntamos INMEDIATAMENTE quién tira del otro equipo
         const opp = team === 'home' ? 'away' : 'home';
@@ -7675,10 +7678,10 @@ window.tacSideModal = function(type, team) {
     const isAcc = type.includes('_acc');
     let tShots = [];
     if (isAcc) {
-        const _ms = new Map(S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName).map(m => [String(m.id), m]));
+        const _ms = new Map(_lvAccMatches(tName).map(m => [String(m.id), m]));
         tShots = [...S.shots.filter(s => _ms.has(String(s.mId || s.matchId))), ...[..._ms.values()].flatMap(m => (m.shots || []).map(s => ({...s, mId: m.id})))].filter(s => {
             const m = _ms.get(String(s.mId || s.matchId));
-            return m && s.team === (m.homeTeam === tName ? 'home' : 'away');
+            return m && s.team === _lvAccSide(m, tName);
         });
     } else {
         tShots = lv.shots.filter(s => s.team === team);
@@ -7695,17 +7698,17 @@ window.tacSideModal = function(type, team) {
 
     if (type.includes('heatt_')) {
         htmlContent = `
-            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">🗺️ MAPAS EQUIPO: ${tName} (${isAcc?'HISTÓRICO':'SOLO ESTE PARTIDO'})</div>
+            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">🗺️ MAPAS EQUIPO: ${tName} (${isAcc?'TEMPORADA '+_currentSeason():'SOLO ESTE PARTIDO'})</div>
             <div class="g2" style="gap:16px">
                 <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--bd)"><div style="font-size:12px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px">Mapa de Calor</div><div class="cw"><canvas id="tac-m-heat"></canvas></div></div>
                 <div style="background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--bd)"><div style="font-size:12px;font-weight:800;text-align:center;color:var(--nv);margin-bottom:10px">Por Zonas (%)</div><div class="cw"><canvas id="tac-m-zone"></canvas></div></div>
             </div>`;
     } 
     else if (type === 'stats_acc') {
-        const matches = S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName);
+        const matches = _lvAccMatches(tName);
         const advData = _advancedTeam(matches, tName);
-        htmlContent = `<div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">📊 STATS Y CONCLUSIONES: ${tName}</div>`;
-        if(!matches.length) htmlContent += `<div class="empty">No hay partidos históricos de este equipo.</div>`;
+        htmlContent = `<div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">📊 STATS Y CONCLUSIONES: ${tName} · TEMPORADA ${_currentSeason()} (${matches.length} partidos)</div>`;
+        if(!matches.length) htmlContent += `<div class="empty">No hay partidos de este equipo en la temporada ${_currentSeason()}.</div>`;
         else {
             const splits = _v4AnalyzeTeamSplits(matches, tName);
             htmlContent += `<div style="background:#f8fafc;padding:16px;border-radius:12px;border:1px solid var(--bd);max-height:65vh;overflow-y:auto">${splits.htmlSplit}</div>`;
@@ -7715,10 +7718,10 @@ window.tacSideModal = function(type, team) {
         let pStats = [];
         // Calcular estadísticas según si es Histórico o del Partido
         if (isAcc) {
-            const matches = S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName);
+            const matches = _lvAccMatches(tName);
             const pMap = {};
             matches.forEach(m => {
-                const isHome = m.homeTeam === tName;
+                const isHome = _lvAccSide(m, tName) === 'home';
                 const pls = isHome ? m.homePlayers : m.awayPlayers;
                 (pls||[]).forEach(p => {
                     if(!pMap[p.name]) pMap[p.name] = { name: p.name, dorsal: p.dorsal, games: 0, min: 0, pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, tlm: 0, tla: 0, reb: 0, ast: 0 };
@@ -7749,7 +7752,7 @@ window.tacSideModal = function(type, team) {
         const pc = (m,a) => a ? Math.round(m/a*100)+'%' : '0%';
 
         htmlContent = `
-            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">👥 PLANTILLA Y MAPAS INDIVIDUALES (${isAcc?'HISTÓRICO':'SOLO ESTE PARTIDO'})</div>
+            <div style="font-size:16px;font-weight:900;color:${color};text-transform:uppercase;margin-bottom:16px">👥 PLANTILLA Y MAPAS INDIVIDUALES (${isAcc?'TEMPORADA '+_currentSeason():'SOLO ESTE PARTIDO'})</div>
             <div class="tw" style="margin-bottom:0;border:1px solid var(--bd);border-radius:10px;max-height:65vh;overflow-y:auto;">
                 <table style="width:100%; border-collapse:collapse; min-width:750px;">
                     <thead style="position:sticky; top:0; z-index:5;">
@@ -7828,10 +7831,10 @@ window.toggleTacIndivPl = function(idx, name, team, isAcc) {
         let tShots = [];
         const tName = team === 'home' ? lv.hn : lv.an;
         if (isAcc) {
-            const _ms = new Map(S.matches.filter(m => m.homeTeam === tName || m.awayTeam === tName).map(m => [String(m.id), m]));
+            const _ms = new Map(_lvAccMatches(tName).map(m => [String(m.id), m]));
             tShots = [...S.shots.filter(s => s.player === name && _ms.has(String(s.mId || s.matchId))), ...[..._ms.values()].flatMap(m => (m.shots || []).filter(s => s.player === name).map(s => ({...s, mId: m.id})))].filter(s => {
                 const m = _ms.get(String(s.mId || s.matchId));
-                return m && s.player === name && s.team === (m.homeTeam === tName ? 'home' : 'away');
+                return m && s.player === name && s.team === _lvAccSide(m, tName);
             });
         } else {
             tShots = lv.shots.filter(s => s.team === team && s.player === name);
@@ -7899,6 +7902,7 @@ function onPtrUp(e) {
         return;
     }
 
+    if (!wasDragging && dState.type === 'action' && ['stl', 'blk', 'to'].includes(dState.data.action)) { lvActionPicker(dState.data.action); return; }
     if (!wasDragging) return; 
 
     // 2. SOLTAR ACCIÓN (ROBOS, FALTAS...) SOBRE UN JUGADOR
@@ -7975,6 +7979,10 @@ function onPtrDown(e) {
         promptTechStaff();
         return;
     }
+    if (token.dataset.type === 'action_click' && /^and1/.test(token.dataset.action)) {
+        lvAndOne();
+        return;
+    }
 
     e.preventDefault(); // Bloquea comportamientos raros del móvil al instante
     token.setPointerCapture(e.pointerId); // El móvil ancla el seguimiento a esta ficha
@@ -8046,6 +8054,16 @@ window._isEjected = function(team, name) {
     return false;
 };
 
+// Acumulado del directo: solo la temporada en curso, solo los partidos de ese equipo y sin partidos repetidos
+const _lvTK = x => { try { return _teamKey(x); } catch (e) { return String(x || '').trim().toLowerCase(); } };
+function _lvAccMatches(tName) {
+  const cur = _currentSeason(), tn = _lvTK(tName), srA = typeof _SR_A_KEY !== 'undefined' && tn === _SR_A_KEY, by = new Map();
+  (S.matches || []).forEach(m => { if (_lvTK(m.homeTeam) !== tn && _lvTK(m.awayTeam) !== tn) return; if (srA && !_isOurSeniorA(m)) return;
+    if (_isFriendly(m) || _osSeasonOf(m) !== cur || !(m.scoreHome || m.scoreAway)) return;
+    const k = String(m.date || '') + '|' + _lvTK(m.homeTeam) + '|' + _lvTK(m.awayTeam), o = by.get(k); if (!o || (o.type !== 'live' && m.type === 'live')) by.set(k, m); });
+  return [...by.values()];
+}
+const _lvAccSide = (m, tName) => _lvTK(m.homeTeam) === _lvTK(tName) ? 'home' : 'away';
 function renderTacticalBoard() {
     const layer = document.getElementById('tac-slots-layer');
     const bHome = document.getElementById('tac-bench-home');
@@ -8053,7 +8071,7 @@ function renderTacticalBoard() {
     if(!layer || !bHome || !bAway) return;
 
     let htmlSlots = '', htmlBenchHome = '', htmlBenchAway = '';
-    let acc = {}; let today = {}; let minAcc = 101, minToday = 101;
+    let acc = {}; let today = {}; let minAcc = 101, minToday = 101; const accMs = {};
 
     ['home', 'away'].forEach(t => {
         lv.pl[t].forEach(p => {
@@ -8063,10 +8081,10 @@ function renderTacticalBoard() {
             const tpct = ta > 0 ? (tm / ta) * 100 : null;
             today[pName] = {m: tm, a: ta, pct: tpct};
 
-            let am = 0, aa = 0;
-            S.matches.forEach(m => {
-                [...(m.homePlayers||[]), ...(m.awayPlayers||[])].forEach(bp => {
-                    if (bp.name === pName && bp.tlAtt > 0) { am += bp.tlMade; aa += bp.tlAtt; }
+            let am = 0, aa = 0; const _tn = t === 'home' ? lv.hn : lv.an;
+            (accMs[t] || (accMs[t] = _lvAccMatches(_tn))).forEach(m => {
+                ((_lvAccSide(m, _tn) === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(bp => {
+                    if (bp.name === pName && bp.tlAtt > 0) { am += bp.tlMade || 0; aa += bp.tlAtt; }
                 });
             });
             const apct = aa > 0 ? (am / aa) * 100 : null;
@@ -8460,6 +8478,9 @@ function renderLiveStatsModal() {
     </tr>`;
   }).join('');
 
+  { const te = lv.events.filter(e => e.teamOnly && e.team === aTeam && (isAll || (window._lvStatsQ || []).includes(e.period))); const c = k => te.filter(e => e.type === k).length; const tro = c('ro'), trd = c('rd'), tstl = c('stl'), tblk = c('blk'), tto = c('to');
+    if (tro + trd + tstl + tblk + tto) { t_ro += tro; t_rd += trd; t_stl += tstl; t_blk += tblk; t_to += tto;
+      rowsStr += `<tr style="background:#f8fafc; border-bottom:1px solid var(--bd); font-style:italic;"><td style="position:sticky; left:0; z-index:10; background:#f8fafc; width:36px; min-width:36px; max-width:36px; padding:8px 0; text-align:center; box-sizing:border-box;">—</td><td style="position:sticky; left:36px; z-index:10; background:#f8fafc; width:120px; min-width:120px; max-width:120px; padding:8px 10px; font-weight:700; text-align:left; white-space:nowrap; box-sizing:border-box; border-right:1px solid var(--bd);">Equipo</td><td></td><td></td><td></td><td></td><td></td><td style="text-align:center"><b>${tro}/${trd}</b></td><td style="text-align:center"><b>${tro + trd}</b></td><td></td><td style="text-align:center">${tstl}</td><td style="text-align:center">${tblk}</td><td style="text-align:center">${tto}</td><td></td><td></td><td></td></tr>`; } }
   rowsStr += `<tr style="background:#e2e8f0; border-top: 2px solid var(--bd); font-size:11px;">
       <td colspan="2" style="position:sticky; left:0; z-index:11; background:#e2e8f0; font-weight:900; text-align:right; padding:10px 10px; box-sizing:border-box; border-right:1px solid var(--bd);">TOTAL EQUIPO</td>
       <td style="font-weight:800; text-align:center; color:var(--nv)">${fmtSecs(t_secs)}</td>
@@ -8664,9 +8685,58 @@ function closeLiveStatsModal(){document.getElementById('live-stats-modal').style
 
 
 function _lvOC(){return {home:[...lv.onCourt.home],away:[...lv.onCourt.away]};}
+// Acciones «del equipo»: cuentan para el equipo pero no para ningún jugador (cuando no se ve quién)
+function _lvTeamStats(){ const r={home:{ro:0,rd:0,stl:0,blk:0,to:0},away:{ro:0,rd:0,stl:0,blk:0,to:0}}; lv.events.forEach(e=>{ if(e.teamOnly&&r[e.team]&&r[e.team][e.type]!=null) r[e.team][e.type]++; }); return r; }
+function lvTeamAct(type,team,noFollow){
+  const min=_lvNowMin(); lv.curMin=min;
+  const L={ro:'📌 Reb.Of.',rd:'🛡️ Reb.Def.',stl:'🔥 Robo',blk:'✋ Tapón',to:'💨 Pérdida'};
+  lv.log.unshift({team,msg:`${L[type]||type} — Equipo`,period:lv.period,min});
+  if(noFollow) window._lastEvLen=lv.events.length+1;   // la segunda pregunta (robo ↔ pérdida) ya se ha contestado
+  _lvEv({type,player:'',team,teamOnly:true,period:lv.period,min,score:{...lv.score},oc:_lvOC()});
+  rLvAll(); svL();
+}
+// Tocar ROBO / TAPÓN / PÉRDIDA: los 5 en pista de cada equipo y «Equipo»
+function lvActionPicker(action){
+  const L={stl:'🔥 Robo',blk:'✋ Tapón',to:'💨 Pérdida'}, tName=t=>t==='home'?(lv.hn||'Local'):(lv.an||'Visitante');
+  const onC=t=>{const a=[...lv.onCourt[t]].map(n=>lv.pl[t].find(p=>p.name===n)).filter(Boolean);return a.length?a:lv.pl[t];};
+  window._actPick=(t,i)=>{ document.getElementById('shot-popup').style.display='none'; if(i===-1){ lvTeamAct(action,t); return; } const p=onC(t)[i]; if(p) applyActionToPlayer(action,p.name,t); };
+  const col=(t,color,bg)=>`<div><div style="font-size:9.5px;font-weight:800;color:${color};text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">${_esc(tName(t))}</div><div style="display:grid;gap:5px">${onC(t).map((p,i)=>`<button onclick="window._actPick('${t}',${i})" style="display:flex;align-items:center;gap:5px;background:${bg};border:2px solid ${color};border-radius:9px;padding:9px 7px;cursor:pointer;text-align:left"><span style="background:${color};color:#fff;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:800">#${_esc(p.dorsal)}</span><span style="font-size:11px;font-weight:700">${_esc(p.name.split(' ')[0])}</span></button>`).join('')}<button onclick="window._actPick('${t}',-1)" style="background:${bg};border:2px dashed ${color};border-radius:9px;padding:8px;cursor:pointer;font-size:11px;font-weight:800">Equipo (no se ve quién)</button></div></div>`;
+  const popup=document.getElementById('shot-popup'), inner=document.getElementById('shot-popup-inner');
+  inner.innerHTML=`<div style="font-weight:900;font-size:13px;text-align:center;margin-bottom:9px;color:var(--nv)">${L[action]} · ¿de quién?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${col('home','#3b82f6','#eff6ff')}${col('away','#ef4444','#fef2f2')}</div><button onclick="document.getElementById('shot-popup').style.display='none'" style="width:100%;margin-top:9px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✕ Cancelar</button>`;
+  popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;width:min(440px,94vw);max-height:90vh;overflow:auto';
+}
+// 2+1 / 3+1: equipo → quién anota → dónde (canasta con su asistencia y origen) → quién hace la falta → 1 tiro libre del que anotó (si falla, rebote)
+function lvAndOne(){
+  // 2+1 o 3+1: el valor lo da el punto de la pista donde se toca el tiro (dentro o fuera del arco)
+  const P=()=>window._a1&&window._a1.pts?window._a1.pts+'+1':'+1';
+  const tName=t=>t==='home'?(lv.hn||'Local'):(lv.an||'Visitante'), popup=document.getElementById('shot-popup'), inner=document.getElementById('shot-popup-inner');
+  const show=()=>{ popup.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:14px;border:2px solid var(--bd);display:block;width:min(400px,94vw);max-height:90vh;overflow:auto'; };
+  const onC=t=>{const a=[...lv.onCourt[t]].map(n=>lv.pl[t].find(p=>p.name===n)).filter(Boolean);return a.length?a:lv.pl[t];};
+  const btn=(fn,p,color,bg)=>`<button onclick="${fn}" style="display:flex;align-items:center;gap:6px;background:${bg};border:2px solid ${color};border-radius:10px;padding:11px 8px;cursor:pointer;text-align:left"><span style="background:${color};color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800">#${_esc(p.dorsal)}</span><span style="font-size:12px;font-weight:700">${_esc(p.name.split(' ')[0])}</span></button>`;
+  const cancel='<button onclick="document.getElementById(\'shot-popup\').style.display=\'none\'" style="width:100%;margin-top:9px;background:#f1f5f9;border:none;color:var(--t3);border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✕ Cancelar</button>';
+  window._a1={pts:0};
+  window._a1Team=t=>{ window._a1.team=t; const L=onC(t); window._a1L=L; inner.innerHTML=`<div style="font-weight:900;font-size:13px;text-align:center;margin-bottom:9px;color:var(--nv)">+1 · ¿quién anota?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${L.map((p,i)=>btn('window._a1Pl('+i+')',p,'#16a34a','#f0fdf4')).join('')}</div>${cancel}`; };
+  window._a1Pl=i=>{ const a=window._a1, p=window._a1L[i]; if(!p) return; popup.style.display='none'; a.scorer=p.name;
+    // dónde ha tirado: la misma pista de los tiros; según el punto vale 2 o 3
+    lv.selPl=p.name; lv.actTeam=a.team; const modal=document.getElementById('tac-shot-modal'), cv=document.getElementById('tac-shot-cv'), nameEl=document.getElementById('tac-shot-name');
+    if(!modal||!cv){ window._a1Shot(null,null); return; } modal.style.setProperty('z-index','2147483640','important'); nameEl.textContent=p.name.split(' ')[0]+' · +1 · toca dónde tiró (2 o 3 según el punto)'; modal.style.display='flex'; cv.width=CW; cv.height=CH; drawCourt(cv.getContext('2d'));
+    cv.onclick=e=>{ const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)/r.width*CW), y=Math.round((e.clientY-r.top)/r.height*CH); modal.style.display='none'; cv.onclick=null; window._a1Shot(x,y); }; };
+  window._a1Shot=(x,y)=>{ const a=window._a1; window._andOneNext=()=>window._a1Foul(); if(x==null){ x=Math.round(CW/2); y=Math.round(CH/2); } const t3=isThree(x,y); a.pts=t3?3:2; _lvRecordShot(x,y,true,t3?'T3':'T2'); };
+  window._a1Foul=()=>{ const a=window._a1, opp=a.team==='home'?'away':'home', L=onC(opp); window._a1F=L;
+    inner.innerHTML=`<div style="font-weight:900;font-size:13px;text-align:center;margin-bottom:2px;color:var(--nv)">⚠️ ¿Quién hace la falta?</div><div style="font-size:11px;color:var(--t3);text-align:center;margin-bottom:9px">${P()} de <b>${_esc(a.scorer.split(' ')[0])}</b> · falta de ${_esc(tName(opp))}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${L.map((p,i)=>btn('window._a1Fl('+i+')',p,'#ef4444','#fef2f2')).join('')}</div><button onclick="window._a1Fl(-1)" style="width:100%;margin-top:8px;background:#fef2f2;border:2px dashed #ef4444;border-radius:8px;padding:9px;font-size:12px;font-weight:800;color:#991b1b;cursor:pointer">Sin especificar</button>`; show(); };
+  window._a1Fl=i=>{ const a=window._a1, opp=a.team==='home'?'away':'home', p=i>=0?window._a1F[i]:null, min=_lvNowMin(); lv.curMin=min;
+    if(p){ const st=lv.st[opp]?.[p.name]; if(st) st.fc=(st.fc||0)+1; const v=lv.st[a.team]?.[a.scorer]; if(v) v.fr=(v.fr||0)+1; lv.log.unshift({team:opp,msg:`⚠️ Falta — ${p.name.split(' ')[0]} (${P()})`,period:lv.period,min}); _lvEv({type:'foul',player:p.name,team:opp,victim:a.scorer,andOne:true,period:lv.period,min,score:{...lv.score},oc:_lvOC()}); }
+    else { lv.log.unshift({team:opp,msg:`⚠️ Falta — Equipo (${P()})`,period:lv.period,min}); _lvEv({type:'foul',player:'',team:opp,teamOnly:true,victim:a.scorer,andOne:true,period:lv.period,min,score:{...lv.score},oc:_lvOC()}); }
+    rLvAll(); svL(); popup.style.display='none';
+    // siempre 1 tiro libre del que ha anotado
+    window._foulCtx={fouledBy:p?p.name:'',fouledByTeam:opp,shooterTeam:a.team,nTL:1,shooter:a.scorer}; askTL(a.scorer,1); };
+  inner.innerHTML=`<div style="font-weight:900;font-size:14px;text-align:center;margin-bottom:10px;color:var(--nv)">+1 · ¿qué equipo anota?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="window._a1Team('home')" style="padding:14px;border-radius:10px;border:2px solid #3b82f6;background:#eff6ff;font-weight:900;cursor:pointer">${_esc(tName('home'))}</button><button onclick="window._a1Team('away')" style="padding:14px;border-radius:10px;border:2px solid #ef4444;background:#fef2f2;font-weight:900;cursor:pointer">${_esc(tName('away'))}</button></div>${cancel}`; show();
+}
+// Cada jugada anotada en directo guarda también la hora real del toque (ts): sirve para encajarla después en el vídeo sin depender del reloj del partido
+function _lvEv(e){ if(e && e.ts==null) e.ts=Date.now(); return lv.events.push(e); }
 
 function _lvEventLabel(ev){
-  const n=(ev.player||'').split(' ')[0];
+  const n=ev.player?(ev.player||'').split(' ')[0]:(ev.teamOnly?'Equipo':'');
   const L={pts2:'✅ Canasta 2',pts3:'✅ Triple',tl_in:'✅ TL dentro',miss2:'❌ Falla 2',miss3:'❌ Falla 3',
     tl_out:'❌ TL fuera',ro:'📌 Reb. ofensivo',rd:'🛡️ Reb. defensivo',ast:'🤝 Asistencia',
     foul:'⚠️ Falta',stl:'🔥 Robo',blk:'✋ Tapón',to:'💨 Pérdida',tech:'🟡 Técnica',anti:'🔴 Antideportiva'};
@@ -8774,7 +8844,7 @@ function setPer(n) {
   lv.log = lv.log || [];
   lv.events = lv.events || [];
   lv.log.unshift({ team: 'home', msg: `⏳ Inicio de ${qName}`, period: p, min: lv.curMin || 0 });
-  lv.events.push({ type: 'period_start', player: '', team: 'home', period: p, min: lv.curMin || 0, score: { ...lv.score }, oc: _lvOC() });
+  _lvEv({ type: 'period_start', player: '', team: 'home', period: p, min: lv.curMin || 0, score: { ...lv.score }, oc: _lvOC() });
   
   rLvAll();
   if (typeof svL === 'function') svL();
@@ -8922,7 +8992,7 @@ function lvAct(type){
   
   if(msg){
       lv.log.unshift({team,msg,period:lv.period,min});
-      lv.events.push({type,player:p,team,period:lv.period,min,score:{...lv.score},oc:_lvOC()});
+      _lvEv({type,player:p,team,period:lv.period,min,score:{...lv.score},oc:_lvOC()});
   }
   
   rLvAll(); svL(); 
@@ -8981,11 +9051,12 @@ function rLvAll(){
       if (newEv.type === 'to') {
           setTimeout(() => {
               window._selStl = function(stlName) {
+                  if (stlName === '__EQUIPO__') { document.getElementById('shot-popup').style.display = 'none'; lvTeamAct('stl', opp, true); return; }
                   if (stlName !== 'NADIE') {
                       const stOpp = lv.st[opp][stlName];
                       if (stOpp) stOpp.stl = (stOpp.stl || 0) + 1;
                       lv.log.unshift({team: opp, msg: `🔥 Robo — ${stlName.split(' ')[0]}`, period: lv.period, min: lv.curMin});
-                      lv.events.push({type: 'stl', player: stlName, team: opp, period: lv.period, min: lv.curMin, score: {...lv.score}, oc: _lvOC()});
+                      _lvEv({type: 'stl', player: stlName, team: opp, period: lv.period, min: lv.curMin, score: {...lv.score}, oc: _lvOC()});
                       window._lastEvLen = lv.events.length;
                       rLvAll(); svL();
                   }
@@ -9002,6 +9073,7 @@ function rLvAll(){
                     <span style="background:#ef4444;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800">#${_esc(pl.dorsal)}</span>
                     <span style="font-size:12px;font-weight:700">${_esc(pl.name.split(' ')[0])}</span></button>`).join('')}
                 </div>
+                <button onclick="window._selStl('__EQUIPO__')" style="margin-top:10px;width:100%;padding:10px;background:#fef2f2;border:2px dashed #ef4444;border-radius:8px;font-weight:800;color:#991b1b;cursor:pointer">🔥 Robo del equipo (no se ve quién)</button>
                 <button onclick="window._selStl('NADIE')" style="margin-top:10px;width:100%;padding:10px;background:#f1f5f9;border:2px solid #cbd5e1;border-radius:8px;font-weight:700;color:var(--t2);cursor:pointer">Nadie (Pase fuera, pasos, 24s...)</button>
               `;
               popup.style.display = 'block';
@@ -9009,11 +9081,12 @@ function rLvAll(){
       } else if (newEv.type === 'stl') {
           setTimeout(() => {
               window._selTo = function(toName) {
+                  if (toName === '__EQUIPO__') { document.getElementById('shot-popup').style.display = 'none'; lvTeamAct('to', opp, true); return; }
                   if (toName !== 'NADIE') {
                       const stOpp = lv.st[opp][toName];
                       if (stOpp) stOpp.to = (stOpp.to || 0) + 1;
                       lv.log.unshift({team: opp, msg: `💨 Pérdida — ${toName.split(' ')[0]}`, period: lv.period, min: lv.curMin});
-                      lv.events.push({type: 'to', player: toName, team: opp, period: lv.period, min: lv.curMin, score: {...lv.score}, oc: _lvOC()});
+                      _lvEv({type: 'to', player: toName, team: opp, period: lv.period, min: lv.curMin, score: {...lv.score}, oc: _lvOC()});
                       window._lastEvLen = lv.events.length;
                       rLvAll(); svL();
                   }
@@ -9030,6 +9103,7 @@ function rLvAll(){
                     <span style="background:#3b82f6;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800">#${_esc(pl.dorsal)}</span>
                     <span style="font-size:12px;font-weight:700">${_esc(pl.name.split(' ')[0])}</span></button>`).join('')}
                 </div>
+                <button onclick="window._selTo('__EQUIPO__')" style="margin-top:10px;width:100%;padding:10px;background:#fff7ed;border:2px dashed #f97316;border-radius:8px;font-weight:800;color:#9a3412;cursor:pointer">💨 Pérdida del equipo (no se ve quién)</button>
                 <button onclick="window._selTo('NADIE')" style="margin-top:10px;width:100%;padding:10px;background:#f1f5f9;border:2px solid #cbd5e1;border-radius:8px;font-weight:700;color:var(--t2);cursor:pointer">Omitir (No apuntar pérdida a nadie)</button>
               `;
               popup.style.display = 'block';
@@ -9118,7 +9192,7 @@ async function endLive(){
       if(!raw) return new Date().toLocaleDateString('es-ES');
       const parts = raw.split('-');  
       return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : raw;
-    })() ,competition:_lvComp,group:_lvGrp,season:_lvSea,homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
+    })() ,competition:_lvComp,group:_lvGrp,season:_lvSea,homeTeam:lv.hn,awayTeam:lv.an,scoreHome:lv.score.home,scoreAway:lv.score.away,homePlayers:mkPl('home'),awayPlayers:mkPl('away'),teamStats:_lvTeamStats(),events:lv.events,shots:lv.shots,subEvents:lv.subEvents,type:'live'};
   S.matches.push(m);
   
   // 🛠️ GUARDADO DEFINITIVO EN SUPABASE
@@ -9382,6 +9456,7 @@ function _teamTotals(matches,side){
       t.tlm+=p.tlMade||0;t.tla+=p.tlAtt||0;t.fc+=p.fc||0;t.reb+=p.reb||0;t.ast+=p.ast||0;
       t.stl+=p.stl||0;t.blk+=p.blk||0;t.to+=p.to||0;t.ro+=p.ro||0;t.rd+=p.rd||0;
     });
+    const ts=m.teamStats&&m.teamStats[side]; if(ts){ t.ro+=ts.ro||0;t.rd+=ts.rd||0;t.reb+=(ts.ro||0)+(ts.rd||0);t.stl+=ts.stl||0;t.blk+=ts.blk||0;t.to+=ts.to||0; }
   });
   return t;
 }
@@ -22929,7 +23004,7 @@ window.lvActTechInteligente = function() {
             
             const label = opt === "2" ? "Entrenador" : "Banquillo";
             lv.log.unshift({team, msg: `🟡 Técnica a ${label} (${team.toUpperCase()})`, period: lv.period, min: lv.curMin});
-            lv.events.push({type:'tech_tac', player: label, team, period:lv.period, min:lv.curMin, score:{...lv.score}});
+            _lvEv({type:'tech_tac', player: label, team, period:lv.period, min:lv.curMin, score:{...lv.score}});
             rLvAll(); svL();
             
             setTimeout(() => {

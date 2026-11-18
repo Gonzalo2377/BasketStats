@@ -4365,6 +4365,29 @@ body.vp-fs-on .vp-fs-out{display:inline}
 .ax-none small{display:block;font-weight:500;font-size:11.5px;color:#64748b;margin-top:4px}
 .vm-box .ax-prog:not(.vm-x){background:#f0fdf4;color:#15803d}
 
+/* v86 */
+.ac-lk{color:#7c3aed;font-weight:700;font-size:11px;margin-left:6px;white-space:nowrap}
+.ax-ins{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:8px 12px;font-size:12.5px;color:#4c1d95;line-height:1.6;margin:0 0 8px}
+.ax-ins small{color:#7c3aed}
+.al-body .ac-f{margin-top:12px}
+
+/* v86b */
+.ac-ato{display:inline-block;background:#0f172a;color:#fff;border-radius:5px;font-size:9.5px;font-weight:900;padding:1px 5px;margin-left:5px;vertical-align:1px;letter-spacing:.03em}
+.ac-ov{z-index:4100!important}
+.al-ov{z-index:4000!important}
+.al-ov .ax-box{max-width:860px;max-height:calc(100vh - 24px)}
+.al-ov .ac-f{gap:9px}
+.al-ov .ac-r{gap:8px 12px}
+.al-ov .ac-fl,.al-ov .ac-lb{font-size:9.5px!important}
+.al-ov .ac-f select{height:32px!important;font-size:12.5px!important;padding:0 28px 0 10px!important}
+.al-ov .ac-r>label.ac-fl{flex:1 1 200px;max-width:300px}
+.vm-box.ax-box .ac-chip:not(.vm-x){height:29px;padding:0 11px;font-size:12px}
+.vm-box.ax-box .ac-seg{height:32px}
+.vm-box.ax-box .ac-seg button:not(.vm-x){font-size:12px;padding:0 11px}
+.vm-box .ac-seg button:not(.vm-x):disabled{color:#94a3b8;background:#f8fafc;cursor:default}
+.al-ov .ac-row{padding:4px 8px}
+.al-ov .ac-sum{margin:10px 0 4px}
+
 </style>
 </head>
 <body>
@@ -4720,6 +4743,7 @@ body.vp-fs-on .vp-fs-out{display:inline}
         
         <div style="height:10px"></div> <!-- Separador -->
 
+        <button class="tac-sb-btn" title="Vídeos de este equipo: finales de cuarto, finales de partido, jugadas…" onclick="acLive('home')">🎬<br><small style="font-size:9px;font-weight:900;color:#7c3aed">VÍDEO</small></button>
         <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
@@ -4816,6 +4840,7 @@ body.vp-fs-on .vp-fs-out{display:inline}
         <div style="height:10px"></div> <!-- Separador -->
 
         <!-- Mapas del Rival -->
+        <button class="tac-sb-btn" title="Vídeos de este equipo: finales de cuarto, finales de partido, jugadas…" onclick="acLive('away')">🎬<br><small style="font-size:7px;font-weight:900;color:#7c3aed">VÍDEO</small></button>
         <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'away')">📊<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
@@ -17080,6 +17105,20 @@ const AC_STAT_L = { tc: 'Tiros de campo', tl: 'Tiros libres', t2: 'Tiros de 2', 
 const AC_FILT = [['', 'Todas las jugadas'],
   ['Tiros', [['pts', 'Canastas (de 2 y triples)'], ['miss', 'Tiros fallados (de 2 y triples)'], ['T3_OK', 'Triples anotados'], ['T3_FALLO', 'Triples fallados'], ['t3', 'Triples (todos)'], ['T2_OK', 'Canastas de 2'], ['T2_FALLO', 'Tiros de 2 fallados'], ['t2', 'Tiros de 2 (todos)'], ['tl', 'Tiros libres']]],
   ['Otras', [['reb', 'Rebotes (todos)'], ['REBOTE_OF', 'Rebotes ofensivos'], ['REBOTE_DEF', 'Rebotes defensivos'], ['ASISTENCIA', 'Asistencias'], ['ASIST_POT', 'Asistencias potenciales'], ['PERDIDA', 'Pérdidas'], ['ROBO', 'Robos'], ['TAPON', 'Tapones'], ['FALTA', 'Faltas']]]];
+// momento del partido
+const AC_MO = [['', 'Todo el partido', ''], ['fq', 'Final de cuarto', 'Últimos 30 segundos del 1º, 2º y 3º cuarto'], ['fp', 'Final de partido', 'Últimos 2 minutos del 4º cuarto o de la prórroga'], ['clutch', '🔥 Final apretado', 'Últimos 5 minutos del 4º o de la prórroga, con 6 puntos o menos de diferencia'], ['ato', '⏸ ATO', 'La jugada que sale de cada tiempo muerto: lo que hace el equipo que lo pide hasta que pierde el balón']];
+// tiempos muertos: del directo (quién lo pide y en qué minuto) o, si no, del acta de la FCBQ
+function _acTimeouts(m) { const out = [];
+  (m.events || []).forEach(e => { if (e.type === 'timeout' && (e.team === 'home' || e.team === 'away') && e.min != null) out.push({ per: +e.period || 1, g: +e.min * 60, s: e.team }); });
+  if (!out.length && Array.isArray(m.fcbqMoves)) m.fcbqMoves.forEach(x => { if (x.code !== 'TM') return; const sd = String(x.idTeam) === String(m.localId) ? 'home' : String(x.idTeam) === String(m.visitId) ? 'away' : null; if (!sd) return;
+    const per = +x.period || 1, base = per <= 4 ? (per - 1) * 600 : 2400 + (per - 5) * 300, len = per <= 4 ? 600 : 300; out.push({ per, g: base + len - ((+x.min || 0) * 60 + (+x.sec || 0)), s: sd }); });
+  return out; }
+const _acMoOk = (x, mo) => !mo || mo === 'ato' ? (!mo || !!x.ato) : (mo === 'fq' ? (x.per || 0) <= 3 && x.rem != null && x.rem <= 30 : mo === 'fp' ? (x.per || 0) >= 4 && x.rem != null && x.rem <= 120 : mo === 'clutch' ? !!x.clutch : true);
+const _acMoChips = (F, chip) => AC_MO.map(([v, l, t]) => chip('data-mo', v, l, F.mo || '', t)).join('');
+const AC_CREA = ['pts', 'T2_OK', 'T3_OK', 't2', 't3'];
+const _acAsiSeg = F => `<div class="ac-fl"><span class="ac-lb">Canastas</span><div class="ac-seg">${[['', 'Todas'], ['si', '🤝 Asistidas'], ['no', 'Sin asistencia']].map(([v, l]) => `<button type="button" data-asi="${v}" class="${(F.asi || '') === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
+// quién le dio el pase (en una canasta) o para quién fue (en una asistencia)
+const _acLink = x => x.ast ? ` <small class="ac-lk" title="Asistencia">🤝 ${x.ast.d != null ? '#' + _esc(x.ast.d) + ' ' : ''}${_esc(_acShort(x.ast.name))}</small>` : x.to ? ` <small class="ac-lk" title="Canasta que sale de su pase">→ ${x.to.d != null ? '#' + _esc(x.to.d) + ' ' : ''}${_esc(_acShort(x.to.name))} · ${_esc((AC_TY[x.to.tp] || [''])[0])}</small>` : '';
 const _acTyOk = (k, tp) => !k || (k === 'pts' ? /^T[23]_OK$/.test(tp) : k === 'miss' ? /^T[23]_FALLO$/.test(tp) : AC_STAT[k] ? AC_STAT[k].includes(tp) : k === tp);
 const _acTyL = k => { for (const g of AC_FILT) { if (Array.isArray(g[1])) { const x = g[1].find(y => y[0] === k); if (x) return x[1]; } else if (g[0] === k) return g[1]; } return ''; };
 const _acA = s => _esc(s).replace(/"/g, '&quot;');
@@ -17096,7 +17135,20 @@ function _acList(m) {
   const byD = { home: {}, away: {} };
   ['home', 'away'].forEach(sd => ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => { if (p.dorsal != null && p.dorsal !== '') byD[sd][String(+p.dorsal)] = p.name; }));
   const L = va.clips.map((c, i) => { const name = (c.d != null && byD[c.s] && byD[c.s][c.d]) || c.n || '', r = String(c.clk || '').match(/(\d+):(\d\d)\s*$/), rem = r ? +r[1] * 60 + +r[2] : null;
-    return { ...c, m, i, yt: va.yt, name, pn: _acNN(name), team: c.s === 'home' ? m.homeTeam : m.awayTeam, clutch: (c.per || 0) >= 4 && rem != null && rem <= 300 && !!c.sc && Math.abs(c.sc[0] - c.sc[1]) <= 6 }; });
+    return { ...c, m, i, yt: va.yt, name, pn: _acNN(name), team: c.s === 'home' ? m.homeTeam : m.awayTeam, rem, clutch: (c.per || 0) >= 4 && rem != null && rem <= 300 && !!c.sc && Math.abs(c.sc[0] - c.sc[1]) <= 6 }; });
+  const asB = { home: [], away: [] }; L.forEach(x => { if (x.tp === 'ASISTENCIA' && asB[x.s]) asB[x.s].push(x); });
+  L.forEach(x => { if (!/^T[23]_OK$/.test(x.tp)) return; let best = null;
+    (asB[x.s] || []).forEach(a => { if (a.to || (a.d != null && a.d === x.d)) return; const d = Math.abs(a.t - x.t); if (d <= 4 && (!best || d < best.d)) best = { a, d }; });
+    if (best) { x.ast = best.a; best.a.to = x; } });
+  // ATO: tras cada tiempo muerto, las jugadas del equipo que lo pidió hasta que acaba su ataque (canasta, pérdida o rebote/robo del rival; 24 s de reloj como mucho)
+  L.forEach(x => { const per = x.per || 1, base = per <= 4 ? (per - 1) * 600 : 2400 + (per - 5) * 300, len = per <= 4 ? 600 : 300; x.g = x.rem != null ? base + len - x.rem : null; });
+  _acTimeouts(m).forEach(to => { const xs = L.filter(x => x.g != null && (x.per || 1) === to.per && x.g >= to.g - 0.5 && x.g <= to.g + 24).sort((a, b) => a.g - b.g || a.t - b.t);
+    const DEF = /^(FALTA|TAPON|REBOTE_DEF|ROBO)$/; let mine = null;
+    for (const x of xs) { if (mine === null) { if (DEF.test(x.tp)) continue; mine = x.s === to.s; if (!mine) break; }   // el primer ataque tras el tiempo muerto dice quién tiene el balón
+      if (x.s !== to.s) { if (/^(REBOTE_DEF|ROBO)$/.test(x.tp)) break; continue; }
+      if (DEF.test(x.tp)) continue; x.ato = to; if (/^(T[23]_OK|PERDIDA)$/.test(x.tp)) break; } });
+  // si un equipo casi no tiene asistencias apuntadas en ese partido (pasa con el rival), sus canastas no se cuentan como «sin asistencia»: no se sabe
+  ['home', 'away'].forEach(sd => { const fg = L.filter(x => x.s === sd && /^T[23]_OK$/.test(x.tp)); if (fg.length && (asB[sd] || []).length < 0.3 * fg.length) fg.forEach(x => x.astNA = true); });
   _acC.set(va, { n: va.clips.length, yt: va.yt, L }); return L;
 }
 
@@ -17148,8 +17200,8 @@ function acPlay(list, i, title) {
   const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
   const multiM = new Set(list.map(y => y.m)).size > 1, msg = ov.querySelector('.ac-msg');
   const draw = () => { const x = P.list[P.i], ty = AC_TY[x.tp] || [x.tp, ''];
-    ov.querySelector('.ac-now').innerHTML = `<span class="ac-n">${P.i + 1} de ${P.list.length}</span><b>${_esc(x.clk || '')}</b> · ${ty[1]} ${_esc(ty[0])} · <b>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}</b> <span class="ac-tm">${_esc(x.team)}</span>${x.sc ? `<br><span class="ac-sc">Marcador antes: ${_esc(x.m.homeTeam)} <b>${x.sc[0]} – ${x.sc[1]}</b> ${_esc(x.m.awayTeam)}</span>` : ''}`;
-    ov.querySelector('.ac-lst').innerHTML = P.list.map((y, k) => `<div class="ac-it${k === P.i ? ' on' : ''}" data-k="${k}"><span class="ac-dot ${/_OK$/.test(y.tp) ? 'ok' : /_FALLO$/.test(y.tp) ? 'ko' : ''}"></span><span class="ac-q">${_esc(y.clk || '')}</span><span class="ac-tx">${_esc((AC_TY[y.tp] || [y.tp])[0])} · ${y.d != null ? '#' + _esc(y.d) + ' ' : ''}${_esc(_acShort(y.name))}${multiM ? ' · <i>' + _esc(y.m.homeTeam + ' vs ' + y.m.awayTeam) + '</i>' : ''}</span>${y.sc ? `<span class="ac-sc">${y.sc[0]}–${y.sc[1]}</span>` : ''}<span class="ac-pl">▶</span></div>`).join('');
+    ov.querySelector('.ac-now').innerHTML = `<span class="ac-n">${P.i + 1} de ${P.list.length}</span><b>${_esc(x.clk || '')}</b> · ${ty[1]} ${_esc(ty[0])} · <b>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}</b> <span class="ac-tm">${_esc(x.team)}</span>${_acLink(x)}${x.sc ? `<br><span class="ac-sc">Marcador antes: ${_esc(x.m.homeTeam)} <b>${x.sc[0]} – ${x.sc[1]}</b> ${_esc(x.m.awayTeam)}</span>` : ''}`;
+    ov.querySelector('.ac-lst').innerHTML = P.list.map((y, k) => `<div class="ac-it${k === P.i ? ' on' : ''}" data-k="${k}"><span class="ac-dot ${/_OK$/.test(y.tp) ? 'ok' : /_FALLO$/.test(y.tp) ? 'ko' : ''}"></span><span class="ac-q">${_esc(y.clk || '')}</span><span class="ac-tx">${_esc((AC_TY[y.tp] || [y.tp])[0])} · ${y.d != null ? '#' + _esc(y.d) + ' ' : ''}${_esc(_acShort(y.name))}${_acLink(y)}${multiM ? ' · <i>' + _esc(y.m.homeTeam + ' vs ' + y.m.awayTeam) + '</i>' : ''}</span>${y.sc ? `<span class="ac-sc">${y.sc[0]}–${y.sc[1]}</span>` : ''}<span class="ac-pl">▶</span></div>`).join('');
     ov.querySelectorAll('.ac-it').forEach(e => e.onclick = () => go(+e.dataset.k));
     const cur = ov.querySelector('.ac-it.on'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' }); };
   const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
@@ -17175,7 +17227,7 @@ function acPlay(list, i, title) {
 }
 
 // ── sección «Acciones en vídeo» de la pestaña Vídeo: filtros y lista
-window._acF = window._acF || { m: '', tm: '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false };
+window._acF = window._acF || { m: '', tm: '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', mo: '', asi: '' };
 window._acLim = 150;
 function _acTeams() { const M = new Map(); _acMs().forEach(m => [m.homeTeam, m.awayTeam].forEach(n => { const k = _teamKey(n); if (!k) return; const e = M.get(k) || { name: n, n: 0 }; e.n++; M.set(k, e); })); return M; }
 const _acSideOf = (m, tk) => _teamKey(m.homeTeam) === tk ? 'home' : _teamKey(m.awayTeam) === tk ? 'away' : null;
@@ -17198,7 +17250,8 @@ function _acFilter(F) {
       if (F.on && tSide) { const inC = onD != null && !!x.on && (x.on[tSide] || []).includes(onD); if (F.onm === 'con' ? !inC : inC) return; }
       if (!_acTyOk(F.tp, x.tp)) return;
       if (F.per && (F.per === 'pr' ? (x.per || 0) < 5 : String(x.per) !== F.per)) return;
-      if (F.clutch && !x.clutch) return;
+      if (!_acMoOk(x, F.mo || (F.clutch ? 'clutch' : ''))) return;
+      if (F.asi && AC_CREA.includes(F.tp) && (!/^T[23]_OK$/.test(x.tp) || (F.asi === 'si' ? !x.ast : (!!x.ast || x.astNA)))) return;
       out.push(x);
     });
   });
@@ -17211,28 +17264,29 @@ function _acTitle(F) {
   if (F.pl && F.mode !== 'concede' && P.get(F.pl)) parts.push(P.get(F.pl).l);
   if (F.on && P.get(F.on)) parts.push((F.onm === 'con' ? 'con ' : 'sin ') + P.get(F.on).l + ' en pista');
   if (F.per) parts.push(F.per === 'pr' ? 'prórroga' : F.per + 'º cuarto');
-  if (F.clutch) parts.push('final apretado');
+  if (F.mo) parts.push(((AC_MO.find(a => a[0] === F.mo) || [])[1] || '').replace('🔥 ', '').toLowerCase());
+  if (F.asi && AC_CREA.includes(F.tp)) parts.push(F.asi === 'si' ? 'asistidas' : 'sin asistencia');
   if (F.m) { const m = _acMs().find(x => String(x.id) === F.m); if (m) parts.push(m.homeTeam + ' vs ' + m.awayTeam); }
   return parts.join(' · ');
 }
-function renderActions() {
-  const el = document.getElementById('ac-sec'); if (!el) return;
-  const staff = _acStaff(), Ms = _acMsSorted();
+function renderActions(el, F, o) {
+  el = el || document.getElementById('ac-sec'); if (!el) return; F = F || window._acF; o = o || {}; const re = () => renderActions(el, F, o);
+  const staff = _acStaff() && !o.mini, Ms = _acMsSorted();
   const imp = staff ? `<label class="ac-imp" title="El archivo que descarga el analizador con «📤 Enviar a la web»">📥 Añadir partido del analizador<input type="file" accept=".json,application/json" hidden onchange="acImport(this)"></label>` : '';
   if (!Ms.length) { el.innerHTML = `<div class="ac-empty">Todavía no hay ningún partido con las jugadas en vídeo.${staff ? '<br>Sube el vídeo del partido a YouTube como <b>Oculto</b>, en el analizador pulsa <b>📤 Enviar a la web</b> y añade aquí el archivo.' : ''}</div>${imp}`; return; }
-  const F = window._acF, TM = _acTeams();
+  const TM = _acTeams();
   if (F.tm && !TM.has(F.tm)) F.tm = ''; if (F.m && !Ms.some(m => String(m.id) === F.m)) F.m = '';
   const pls = F.tm ? _acPlayersOf(F.tm) : []; if (F.pl && !pls.some(p => p[0] === F.pl)) F.pl = ''; if (F.on && !pls.some(p => p[0] === F.on)) F.on = '';
   const opt = (v, l, cur) => `<option value="${_acA(v)}"${v === cur ? ' selected' : ''}>${_esc(l)}</option>`;
   const tyOpts = AC_FILT.map(g => Array.isArray(g[1]) ? `<optgroup label="${g[0]}">${g[1].map(([v, l]) => opt(v, l, F.tp)).join('')}</optgroup>` : opt(g[0], g[1], F.tp)).join('');
-  const L = _acFilter(F), any = F.m || F.tm || F.tp || F.per || F.clutch;
-  const shots = L.filter(x => /^T[23L]_/.test(x.tp)), made = shots.filter(x => /_OK$/.test(x.tp)).length;
+  F.asi = ''; const L = _acFilter(F), any = F.m || F.tm || F.tp || F.per || F.mo;
+  const shots = L.filter(x => /^T[23L]_/.test(x.tp)), made = shots.filter(x => /_OK$/.test(x.tp)).length, fgm = L.filter(x => /^T[23]_OK$/.test(x.tp) && !x.astNA), fga = fgm.filter(x => x.ast).length;
   const chip = (attr, v, l, cur, t) => `<button type="button" class="ac-chip${v === cur ? ' on' : ''}" ${attr}="${_acA(v)}"${t ? ' title="' + _acA(t) + '"' : ''}>${l}</button>`;
   const QT = [['', 'Todas'], ['pts', 'Canastas'], ['miss', 'Fallos'], ['t3', 'Triples'], ['tl', 'Tiros libres'], ['reb', 'Rebotes'], ['ASISTENCIA', 'Asistencias'], ['PERDIDA', 'Pérdidas'], ['ROBO', 'Robos'], ['TAPON', 'Tapones'], ['FALTA', 'Faltas']], quick = QT.some(q => q[0] === F.tp);
   const moreTp = `<select data-f="tp" class="ac-tpmore${quick ? '' : ' on'}" title="Más tipos de jugada"><option value="" disabled hidden${quick ? ' selected' : ''}>Más tipos…</option>${AC_FILT.filter(g => Array.isArray(g[1])).map(g => `<optgroup label="${g[0]}">${g[1].map(([v, l]) => `<option value="${_acA(v)}"${!quick && v === F.tp ? ' selected' : ''}>${_esc(l)}</option>`).join('')}</optgroup>`).join('')}</select>`;
   const head = `<div class="ac-f"><div class="ac-r">
     <label class="ac-fl">Partido<select data-f="m">${opt('', 'Todos (' + Ms.length + ')', F.m)}${Ms.map(m => opt(String(m.id), `${m.homeTeam} vs ${m.awayTeam}${m.date ? ' · ' + String(m.date).slice(0, 10) : ''}`, F.m)).join('')}</select></label>
-    <label>Equipo<select data-f="tm">${opt('', 'Los dos equipos', F.tm)}${[...TM.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es')).map(([k, e]) => opt(k, e.name, F.tm)).join('')}</select></label>
+    ${o.teams ? `<div class="ac-fl"><span class="ac-lb">Equipo</span><div class="ac-seg">${o.teams.map(([k, n]) => `<button type="button" data-tmk="${_acA(k)}" class="${F.tm === k ? 'on' : ''}"${TM.has(k) ? '' : ' disabled title="Aún no hay vídeos de este equipo"'}>${_esc(n)}</button>`).join('')}</div></div>` : ''}<label class="ac-fl"${o.teams ? ' hidden' : ''}>Equipo<select data-f="tm">${opt('', 'Los dos equipos', F.tm)}${[...TM.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es')).map(([k, e]) => opt(k, e.name, F.tm)).join('')}</select></label>
     ${F.tm ? `<div class="ac-fl"><span class="ac-lb">Jugadas</span><div class="ac-seg" role="group" aria-label="Qué jugadas"><button type="button" data-mode="hace" class="${F.mode !== 'concede' ? 'on' : ''}">Las que hace</button><button type="button" data-mode="concede" class="${F.mode === 'concede' ? 'on' : ''}">Las que le hacen</button></div></div>` : ''}
     </div>
     <div class="ac-r"><div class="ac-fl ac-grow"><span class="ac-lb">Jugada</span><div class="ac-chips">${QT.map(([v, l]) => chip('data-tp', v, l, F.tp)).join('')}${moreTp}</div></div></div>
@@ -17240,7 +17294,8 @@ function renderActions() {
     ${F.tm && F.mode !== 'concede' ? `<label class="ac-fl">Jugador<select data-f="pl">${opt('', 'Todos', F.pl)}${pls.map(([k, p]) => opt(k, p.l, F.pl)).join('')}</select></label>` : ''}
     ${F.tm ? `<div class="ac-fl"><span class="ac-lb">En pista</span><div class="ac-on"><div class="ac-seg sm">${['con', 'sin'].map(v => `<button type="button" data-onm="${v}" class="${F.onm === v ? 'on' : ''}">${v}</button>`).join('')}</div><select data-f="on">${opt('', 'cualquiera', F.on)}${pls.map(([k, p]) => opt(k, p.l, F.on)).join('')}</select></div></div>` : ''}
     <div class="ac-fl"><span class="ac-lb">Cuarto</span><div class="ac-chips">${[['', 'Todos'], ['1', '1º'], ['2', '2º'], ['3', '3º'], ['4', '4º'], ['pr', 'Prórroga']].map(([v, l]) => chip('data-per', v, l, F.per)).join('')}</div></div>
-    <div class="ac-fl"><span class="ac-lb">&nbsp;</span><div class="ac-chips"><button type="button" class="ac-chip ac-hot${F.clutch ? ' on' : ''}" data-clutch title="Últimos 5 minutos del 4º cuarto o de la prórroga, con 6 puntos o menos de diferencia">🔥 Final apretado</button>${any ? '<button type="button" class="ac-clr">✕ Quitar filtros</button>' : ''}</div></div>
+    <div class="ac-fl"><span class="ac-lb">Momento</span><div class="ac-chips">${_acMoChips(F, chip)}</div></div>
+    ${any ? '<div class="ac-fl"><span class="ac-lb">&nbsp;</span><button type="button" class="ac-clr">✕ Quitar filtros</button></div>' : ''}
     </div>
   </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver lo que hace y lo que le hacen, por jugador y por quién está en pista.</div>'}
   <div class="ac-sum"><span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shots.length ? ` · tiros <b>${made}/${shots.length}</b> (${Math.round(100 * made / shots.length)}%)` : ''}</span>${L.length ? `<button type="button" class="ac-all">▶ Ver todas seguidas</button>` : ''}<span style="flex:1"></span>${imp}</div>`;
@@ -17250,28 +17305,34 @@ function renderActions() {
     if (shown >= window._acLim) { k += xs.length; return; }
     rows += `<div class="ac-mh"><span>📂 ${_esc(m.homeTeam)} ${m.scoreHome != null ? _esc(m.scoreHome) + '–' + _esc(m.scoreAway) : 'vs'} ${_esc(m.awayTeam)}${m.date ? ' <small>' + _esc(String(m.date).slice(0, 10)) + '</small>' : ''}</span><span class="ac-mn">${xs.length}</span>${staff ? `<button type="button" data-yt="${_acA(m.id)}" title="Cambiar el enlace de YouTube">🔗</button><button type="button" data-del="${_acA(m.id)}" title="Quitar las jugadas en vídeo de este partido">🗑</button>` : ''}</div>`;
     xs.forEach(x => { if (shown < window._acLim) { const ty = AC_TY[x.tp] || [x.tp, ''];
-      rows += `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}</span><span class="ac-pl"><i class="ac-dt ${x.s}"></i>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; shown++; }
+      rows += `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}${x.ato ? ' <small class="ac-ato" title="Jugada tras tiempo muerto">ATO</small>' : ''}</span><span class="ac-pl"><i class="ac-dt ${x.s}"></i>${x.d != null ? '#' + _esc(x.d) + ' ' : ''}${_esc(_acShort(x.name))}${_acLink(x)}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; shown++; }
       k++; });
   });
   if (L.length > shown) rows += `<button type="button" class="ac-more">▼ Mostrar más (quedan ${L.length - shown})</button>`;
   if (!L.length) rows = '<div class="ac-empty">Ninguna jugada con estos filtros.</div>';
   el.innerHTML = head + `<div class="ac-list">${rows}</div>`;
   const title = _acTitle(F);
-  el.querySelectorAll('[data-f]').forEach(c => c.onchange = () => { F[c.dataset.f] = c.type === 'checkbox' ? c.checked : c.value; if (c.dataset.f === 'tm') { F.pl = ''; F.on = ''; } window._acLim = 150; renderActions(); });
-  el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { F.mode = b.dataset.mode; window._acLim = 150; renderActions(); });
-  const set = (k, v) => { F[k] = v; window._acLim = 150; renderActions(); };
+  el.querySelectorAll('[data-f]').forEach(c => c.onchange = () => { F[c.dataset.f] = c.type === 'checkbox' ? c.checked : c.value; if (c.dataset.f === 'tm') { F.pl = ''; F.on = ''; } window._acLim = 150; re(); });
+  el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { F.mode = b.dataset.mode; window._acLim = 150; re(); });
+  const set = (k, v) => { F[k] = v; window._acLim = 150; re(); };
   el.querySelectorAll('[data-tp]').forEach(b => b.onclick = () => set('tp', b.dataset.tp));
   el.querySelectorAll('[data-per]').forEach(b => b.onclick = () => set('per', b.dataset.per));
   el.querySelectorAll('[data-onm]').forEach(b => b.onclick = () => set('onm', b.dataset.onm));
-  el.querySelectorAll('[data-clutch]').forEach(b => b.onclick = () => set('clutch', !F.clutch));
-  const clr = el.querySelector('.ac-clr'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', tm: '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false }); renderActions(); };
+  el.querySelectorAll('[data-mo]').forEach(b => b.onclick = () => { F.clutch = false; set('mo', b.dataset.mo); });
+  el.querySelectorAll('[data-tmk]').forEach(b => b.onclick = () => { F.tm = b.dataset.tmk; F.pl = ''; F.on = ''; re(); });
+  el.querySelectorAll('[data-asi]').forEach(b => b.onclick = () => set('asi', b.dataset.asi));
+  const clr = el.querySelector('.ac-clr'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', tm: o.mini ? F.tm : '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false, mo: '', asi: '' }); re(); };
   const all = el.querySelector('.ac-all'); if (all) all.onclick = () => acPlay(L, 0, title);
-  const more = el.querySelector('.ac-more'); if (more) more.onclick = () => { window._acLim += 300; renderActions(); };
+  const more = el.querySelector('.ac-more'); if (more) more.onclick = () => { window._acLim += 300; re(); };
   el.querySelectorAll('.ac-row').forEach(r => { r.onclick = () => acPlay(L, +r.dataset.k, title); r.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); r.click(); } }; });
   el.querySelectorAll('[data-yt]').forEach(b => b.onclick = () => acSetYt(b.dataset.yt));
   el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => acDrop(b.dataset.del));
 }
 
+// PTS AST%: de sus puntos, cuántos son de canastas con asistencia (L = sus jugadas con vídeo)
+function _acPtsAst(L) { let a = 0, t = 0; const who = [];
+  L.forEach(x => { if (x.astNA) return; const p = x.tp === 'T3_OK' ? 3 : x.tp === 'T2_OK' ? 2 : x.tp === 'TL_OK' ? 1 : 0; if (!p) return; t += p; if (x.ast && p > 1) { a += p; who.push(x.ast); } });
+  return { a, t, who }; }
 // ── 🎬 Explorador de jugadas de un jugador (pestaña Claret): al tocar T2%, T3%, TL%, RO, RD, RT, AST, STL, BLK, PER o FC
 //    salen todas sus jugadas de ese tipo que tienen vídeo, con filtros (partido, acierto/fallo, tipo de rebote, cuarto, marcador, final apretado)
 const AX_KEYS = [['t2', 'T2'], ['t3', 'T3'], ['tl', 'TL'], ['reb', 'Rebotes'], ['ast', 'Asist.'], ['stl', 'Robos'], ['blk', 'Tapones'], ['to', 'Pérdidas'], ['fc', 'Faltas']];
@@ -17300,7 +17361,7 @@ function clRowClick(ev, tr) {
 }
 window._axF = window._axF || {};
 function acExplore(name, key, sub) {
-  window._axF = { name, key: key || 't2', sub: sub || '', m: '', res: '', per: '', sit: '', clutch: false };
+  window._axF = { name, key: key || 't2', sub: sub || '', m: '', res: '', per: '', sit: '', mo: '', asi: '' };
   document.querySelectorAll('.ax-ov').forEach(o => o.remove());
   const ov = document.createElement('div'); ov.className = 'vm-ov ax-ov';
   ov.innerHTML = '<div class="vm-box ax-box" role="dialog" aria-label="Jugadas en vídeo del jugador"><header><b></b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header><div class="ax-body"></div></div>';
@@ -17321,14 +17382,20 @@ function _axDraw(ov) {
     if (F.key === 'reb' && F.sub && x.tp !== (F.sub === 'of' ? 'REBOTE_OF' : 'REBOTE_DEF')) return false;
     if (F.per && (F.per === 'pr' ? (x.per || 0) < 5 : String(x.per) !== F.per)) return false;
     if (F.sit) { const d = diffOf(x); if (d == null || (F.sit === 'gan' ? d <= 0 : F.sit === 'per' ? d >= 0 : d !== 0)) return false; }
-    if (F.clutch && !x.clutch) return false;
+    if (!_acMoOk(x, F.mo)) return false;
+    if (F.asi && /^(t2|t3)$/.test(F.key) && (!/_OK$/.test(x.tp) || (F.asi === 'si' ? !x.ast : (!!x.ast || x.astNA)))) return false;
     return true; });
   const p0 = all[0], dorsal = p0 && p0.d != null ? '#' + p0.d + ' ' : '', made = L.filter(x => /_OK$/.test(x.tp)).length;
   ov.querySelector('header b').textContent = `🎬 ${dorsal}${F.name} · ${AC_STAT_L[F.key]}${F.key === 'reb' && F.sub ? (F.sub === 'of' ? ' ofensivos' : ' defensivos') : ''}`;
   const chip = (attr, v, l, cur, t) => `<button type="button" class="ac-chip${v === cur ? ' on' : ''}" ${attr}="${_acA(v)}"${t ? ' title="' + _acA(t) + '"' : ''}>${l}</button>`;
   const ms = []; mine.forEach(x => { if (!ms.includes(x.m)) ms.push(x.m); });
   const cnt = m => { const xs = mine.filter(x => x.m === m), k = xs.filter(x => /_OK$/.test(x.tp)).length; return shot ? k + '/' + xs.length : String(xs.length); };
-  const any = F.m || F.res || F.sub || F.per || F.sit || F.clutch;
+  F.asi = ''; const any = F.m || F.res || F.sub || F.per || F.sit || F.mo;
+  // resumen de asistencias: cuántas de sus canastas vienen de pase y de quién; o, en AST, a quién se las da
+  let ins = '';
+  const tally = xs => { const by = {}; xs.forEach(p => { const k = (p.d != null ? '#' + p.d + ' ' : '') + _acShort(p.name); by[k] = (by[k] || 0) + 1; }); return Object.entries(by).sort((p, q) => q[1] - p[1]).map(([k, n]) => _esc(k) + ' (' + n + ')').join(' · '); };
+  if (/^(t2|t3|tl)$/.test(F.key)) { const pa = _acPtsAst(all); if (pa.t) ins = `<div class="ax-ins">🤝 <b>PTS AST% ${Math.round(100 * pa.a / pa.t)}%</b>: ${pa.a} de sus ${pa.t} puntos llegan tras una asistencia${pa.who.length ? '<br>Le asisten: ' + tally(pa.who) : ''}</div>`; }
+  if (F.key === 'ast' && L.length) { const t = L.filter(x => x.to); ins = `<div class="ax-ins">🤝 Asiste a: ${t.length ? tally(t.map(x => x.to)) : '—'}${L.length - t.length ? ` <small>(${L.length - t.length} sin canasta enlazada)</small>` : ''}</div>`; }
   const multi = ms.length > 1;
   const noV = !mine.length;
   ov.querySelector('.ax-body').innerHTML = `
@@ -17341,11 +17408,13 @@ function _axDraw(ov) {
     </div><div class="ac-r">
       <div class="ac-fl"><span class="ac-lb">Cuarto</span><div class="ac-chips">${[['', 'Todos'], ['1', '1º'], ['2', '2º'], ['3', '3º'], ['4', '4º'], ['pr', 'Prórroga']].map(([v, l]) => chip('data-per', v, l, F.per)).join('')}</div></div>
       <div class="ac-fl"><span class="ac-lb">Marcador antes</span><div class="ac-chips">${[['', 'Da igual'], ['gan', 'Ganando'], ['per', 'Perdiendo'], ['emp', 'Empate']].map(([v, l]) => chip('data-sit', v, l, F.sit)).join('')}</div></div>
-      <div class="ac-fl"><span class="ac-lb">&nbsp;</span><div class="ac-chips"><button type="button" class="ac-chip ac-hot${F.clutch ? ' on' : ''}" data-clutch title="Últimos 5 minutos del 4º cuarto o de la prórroga, con 6 puntos o menos de diferencia">🔥 Final apretado</button>${any ? '<button type="button" class="ac-clr">✕ Quitar filtros</button>' : ''}</div></div>
+      <div class="ac-fl"><span class="ac-lb">Momento</span><div class="ac-chips">${_acMoChips(F, chip)}</div></div>
+      ${any ? '<div class="ac-fl"><span class="ac-lb">&nbsp;</span><button type="button" class="ac-clr">✕ Quitar filtros</button></div>' : ''}
     </div></div>
     <div class="ac-sum">${noV ? '' : `<span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shot && L.length ? ` · <b>${made}/${L.length}</b> (${Math.round(100 * made / L.length)}%)` : ''}</span>${L.length ? '<button type="button" class="ac-all">▶ Ver todas seguidas</button>' : ''}`}<span style="flex:1"></span><button type="button" class="ac-clr ax-prog" title="Partido a partido y acumulado de esta stat, como en la tabla avanzada">📈 Progreso de ${AX_PROG_L[_axCol(F)]}</button><button type="button" class="ac-clr ax-prof" title="La ficha del jugador de siempre">📊 Ficha del jugador</button></div>
+    ${noV ? '' : ins}
     <div class="ac-list ax-list"${noV ? ' hidden' : ''}>${L.length ? L.map((x, k) => { const ty = AC_TY[x.tp] || [x.tp, ''];
-      return `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}</span><span class="ac-pl">${multi ? 'vs ' + _esc(x.s === 'home' ? x.m.awayTeam : x.m.homeTeam) : ''}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; }).join('') : `<div class="ac-empty">${mine.length ? 'Ninguna jugada con estos filtros.' : 'Todavía no hay ' + AC_STAT_L[F.key].toLowerCase() + ' suyos con vídeo.'}</div>`}</div>`;
+      return `<div class="ac-row" data-k="${k}" role="button" tabindex="0"><span class="ac-play">▶</span><span class="ac-q">${_esc(x.clk || '')}</span><span class="ac-ty">${ty[1]} ${_esc(ty[0])}${x.ato ? ' <small class="ac-ato" title="Jugada tras tiempo muerto">ATO</small>' : ''}</span><span class="ac-pl">${multi ? 'vs ' + _esc(x.s === 'home' ? x.m.awayTeam : x.m.homeTeam) : ''}${_acLink(x)}</span><span class="ac-sc" title="Marcador antes de la jugada">${x.sc ? x.sc[0] + '–' + x.sc[1] : ''}</span></div>`; }).join('') : `<div class="ac-empty">${mine.length ? 'Ninguna jugada con estos filtros.' : 'Todavía no hay ' + AC_STAT_L[F.key].toLowerCase() + ' suyos con vídeo.'}</div>`}</div>`;
   const re = () => _axDraw(ov), b = ov.querySelector('.ax-body');
   b.querySelectorAll('[data-key]').forEach(x => x.onclick = () => { if (F.key !== x.dataset.key) { F.key = x.dataset.key; F.sub = ''; F.res = ''; } re(); });
   b.querySelectorAll('select[data-ax]').forEach(x => x.onchange = () => { F[x.dataset.ax] = x.value; re(); });
@@ -17353,8 +17422,9 @@ function _axDraw(ov) {
   b.querySelectorAll('[data-sub]').forEach(x => x.onclick = () => { F.sub = x.dataset.sub; re(); });
   b.querySelectorAll('[data-per]').forEach(x => x.onclick = () => { F.per = x.dataset.per; re(); });
   b.querySelectorAll('[data-sit]').forEach(x => x.onclick = () => { F.sit = x.dataset.sit; re(); });
-  b.querySelectorAll('[data-clutch]').forEach(x => x.onclick = () => { F.clutch = !F.clutch; re(); });
-  const clr = b.querySelector('.ac-clr:not(.ax-prof):not(.ax-prog)'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', res: '', sub: '', per: '', sit: '', clutch: false }); re(); };
+  b.querySelectorAll('[data-mo]').forEach(x => x.onclick = () => { F.mo = x.dataset.mo; re(); });
+  b.querySelectorAll('[data-asi]').forEach(x => x.onclick = () => { F.asi = x.dataset.asi; re(); });
+  const clr = b.querySelector('.ac-clr:not(.ax-prof):not(.ax-prog)'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', res: '', sub: '', per: '', sit: '', mo: '', asi: '' }); re(); };
   b.querySelector('.ax-prof').onclick = () => { ov.remove(); openPlayerProfile(F.name, '__CLARET__'); };
   b.querySelector('.ax-prog').onclick = () => { ov.remove(); _axProgress(F.name, _axCol(F)); };
   const title = `${dorsal}${_acShort(F.name)} · ${AC_STAT_L[F.key]}`;
@@ -17362,6 +17432,21 @@ function _axDraw(ov) {
   b.querySelectorAll('.ac-row').forEach(r => { r.onclick = () => acPlay(L, +r.dataset.k, title); r.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); r.click(); } }; });
 }
 
+// 🎬 desde el Directo: los vídeos de ese equipo (de partidos anteriores con vídeo), empezando por los finales de cuarto
+function acLive(side) {
+  const nm = (side === 'home' ? lv.hn : lv.an) || '', TM = _acTeams(), tk = _teamKey(nm), has = !!tk && TM.has(tk);
+  document.querySelectorAll('.al-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov ax-ov al-ov';
+  ov.innerHTML = `<div class="vm-box ax-box" role="dialog" aria-label="Vídeos del equipo"><header><b>🎬 ${_esc(nm || 'Equipo')} · vídeos</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header><div class="al-note"></div><div class="al-body"></div></div>`;
+  document.body.appendChild(ov);
+  const onKey = e => { if (e.key === 'Escape' && !_acP && document.body.contains(ov)) { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); };
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) close(); };
+  document.addEventListener('keydown', onKey, true);
+  if (!has) ov.querySelector('.al-note').innerHTML = `<div class="ax-none">🎬 Todavía no hay ningún partido de ${_esc(nm || 'este equipo')} con vídeo.<small>Debajo tienes todos los vídeos que hay. Saldrán aquí en cuanto se añada un partido suyo en «Acciones en vídeo».</small></div>`;
+  const teams = [lv.hn, lv.an].filter(Boolean).map(n => [_teamKey(n), n]);
+  renderActions(ov.querySelector('.al-body'), { m: '', tm: has ? tk : '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', mo: 'fq', asi: '' }, { mini: true, teams: teams.length === 2 ? teams : null });
+}
 // pestaña Vídeo: «Acciones en vídeo» o «Clips de scouting»
 function _vtApply() {
   const t = document.getElementById('t-video'); if (!t) return; const n = _acMs().length; let v = ''; try { v = localStorage.getItem('vt_view') || ''; } catch (e) { }
@@ -21525,7 +21610,7 @@ Object.assign(window,{
   jumpToClip,closeClipModal,importFromFCBQ, openRadarProfile,
   vLoadVideo,vSetTeams,vTeamSel,vFullscreen,vSaveClip,vCancelClip,vSetTeamSide,vSetCat,vToggleNewFolder,
   vTogglePlay,vSeekBy,vSpeedForward,vSpeedBackward,vClipMark,vToggleZoom,
-  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vRepairMatch,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,acStatEl,acImport,acPlay,acClose,renderActions,acToggleCells,vtView,clRowClick,acExplore,
+  renderVideoLib,vToggleFolder,vRegenPending,vMergeTeams,vRenameClip,vPlaceClip,vRepairMatch,vDownloadFolder,vDeleteClip,vDeleteFolder,vDeleteMatch,vDownloadMatch,vScrub,acStatEl,acImport,acPlay,acClose,renderActions,acToggleCells,vtView,clRowClick,acExplore,acLive,
   renderClub,renderStandings,onStdLeagueChange,recalcAllShots,renderCompare,renderClubAstPairs, toggleAdvancedColumns,  openMatchEdit,closeMatchEdit,saveMatchEdit,
   rAll,svL,exportBackup,importBackupFile,undoDeleteMatch,doLogin,doLogout,changeAccessCodes,initAccess,resumeLive,discardLive,checkLiveResume,
   _generateHomeAwayHTML,_installAdvancedUI,renderFisio, openFisioProfile, saveFisioData, deleteFisioData,
@@ -22223,7 +22308,8 @@ function _advRowsFor(source, scope){
       efg: a.efg ? a.efg : 0, 
       ts: a.ts ? a.ts : 0, 
       usg: safeUsg, 
-      astTo: a.astTo ? a.astTo : 0, 
+      astTo: a.astTo ? a.astTo : 0,
+      pAst: (() => { try { const ms = source.filter(m => m && m.videoActions && m.videoActions.yt); if (!ms.length) return NaN; const pa = _acPtsAst(_axClips(p.name).filter(x => ms.includes(x.m))); return pa.t ? pa.a / pa.t : NaN; } catch (e) { return NaN; } })(), 
       ppp: onCourtPPP, 
       dppp: onCourtDefPPP, 
       net: netPPP,
@@ -22255,6 +22341,7 @@ const _ADV_COLS = {
   ts:      { l: 'TS%',      g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%' },
   usg:     { l: 'USG%',     g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) + '%' },
   astTo:   { l: 'AST/TO',   g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) },
+  pAst:    { l: 'PTS AST%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%' },
   pir:     { l: 'PIR',      g: 'Partido', c: 'Acum. (total)', f: x => String(Math.round(x)), sg: true },
   // clásicas (tabla del Claret → explorador → «📈 Progreso»): v = valor de un grupo de partidos a partir de sus líneas de stats
   t2m: { l: 'T2%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%', v: L => _clPct(L, 't2Made', 't2Att') },
@@ -22481,6 +22568,7 @@ function _renderAdvancedPlayerTable(scope){
       <td data-c="ts" class="adv-c" style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
       <td data-c="usg" class="adv-c" style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
       <td data-c="astTo" class="adv-c" style="font-weight:700;text-align:center">${num(p.astTo)}</td>
+      <td data-c="pAst" class="adv-c" style="font-weight:800;text-align:center;color:#7c3aed" title="De sus puntos, los que llegan tras una asistencia (partidos con vídeo)">${Number.isFinite(p.pAst) ? Math.round(p.pAst * 100) + '%' : '<span style="color:var(--t3);font-weight:600">—</span>'}</td>
       <td data-c="pir" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${pirC}">${num0(p.pir)}</td>
       <td data-c="eff" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${effC}">${num0(p.eff)}</td>
     </tr>`;
@@ -22506,6 +22594,7 @@ function _renderAdvancedPlayerTable(scope){
         <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
         <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
         <th onclick="advSort('astTo','${scope}')" style="cursor:pointer;text-align:center">AST/TO${arrIcon('astTo')}</th>
+        <th onclick="advSort('pAst','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de sus puntos que llegan tras una asistencia (solo partidos con vídeo)">PTS AST%${arrIcon('pAst')}</th>
         <th onclick="advSort('pir','${scope}')" style="cursor:pointer;text-align:center" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
         <th onclick="advSort('eff','${scope}')" style="cursor:pointer;text-align:center" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
       </tr>

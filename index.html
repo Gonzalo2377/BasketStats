@@ -4564,6 +4564,16 @@ body.vp-fs-on .vp-fs-out{display:inline}
 .psc-lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0 18px;font-size:10px;color:#64748b}
 .psc-lg>span{display:flex;gap:2px}.psc-lg i{width:14px;height:9px;border-radius:3px;display:block}
 .psc-vx{color:#1c5cab}
+/* v92 · Colocar clip: en pantalla completa el formulario va a un lado y el clip se sigue viendo; velocidad J/L */
+body.vp-fs-on .vp-ov.vp-show .vp-vid{right:auto;width:calc(100% - min(440px,38vw))}
+body.vp-fs-on .vp-ov .vp-panel{left:auto!important;right:12px!important;top:58px!important;bottom:12px!important;transform:none!important;width:min(420px,calc(38vw - 24px))!important;max-height:none!important;padding:10px 14px 12px!important}
+body.vp-fs-on .vp-ov .vp-panel .vp-acts{flex-wrap:wrap;position:sticky;bottom:-12px;background:#fff;padding:8px 0 4px;margin-bottom:-4px}
+body.vp-fs-on .vp-ov .vp-panel .vp-fskeys{text-align:left;line-height:1.7}
+.vp-box .vp-fskeys{display:block;font-size:10.5px;color:#64748b;margin:8px 0 2px;line-height:1.7}
+.vp-box .vp-fskeys b{font-family:monospace;background:rgba(148,163,184,.25);border-radius:4px;padding:0 4px}
+.vp-spd{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:5000;background:rgba(15,23,42,.85);color:#fff;font-weight:900;font-size:18px;padding:6px 14px;border-radius:10px;pointer-events:none}
+body.vp-fs-on .vp-ov.vp-show .vp-spd{left:calc((100vw - min(440px,38vw)) / 2)}
+@media (max-width:760px){body.vp-fs-on .vp-ov.vp-show .vp-vid{width:100%;bottom:auto;height:45vh}body.vp-fs-on .vp-ov .vp-panel{left:8px!important;right:8px!important;top:auto!important;width:auto!important;height:54vh}}
 
 </style>
 </head>
@@ -4921,6 +4931,7 @@ body.vp-fs-on .vp-fs-out{display:inline}
         <div style="height:10px"></div> <!-- Separador -->
 
         <button class="tac-sb-btn" title="Vídeos de este equipo: finales de cuarto, finales de partido, jugadas…" onclick="acLive('home')">🎬<br><small style="font-size:9px;font-weight:900;color:#7c3aed">VÍDEO</small></button>
+        <button class="tac-sb-btn bq-btn" title="🧠 Banquillo: lo que funciona y lo que no, y el informe del descanso" onclick="bqOpen()">🧠<br><small style="font-size:9px;font-weight:900;color:#0f766e">BANQ</small><span class="bq-dot"></span></button>
         <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
@@ -7773,6 +7784,8 @@ function clrImp(){['i-hs','i-as','i-cr','i-date'].forEach(id=>document.getElemen
 // LIVE MATCH
 // ═══════════════════════════════════════════
 let lv={hn:'',an:'',pl:{home:[],away:[]},st:{home:{},away:{}},score:{home:0,away:0},period:1,curMin:0,actTeam:'home',selPl:null,log:[],events:[],onCourt:{home:new Set(),away:new Set()},stType:'made',shots:[],subEvents:[],periodScores:[],statsVisible:true,timer:{running:false,seconds:600,interval:null},courtView:'live'};
+// 🧠 Banquillo (banquillo.js) lee el partido en directo desde fuera del módulo
+Object.defineProperty(window,'__lv',{configurable:true,get:()=>lv}); window.__lvNowMin=()=>_lvNowMin(); window.__isOur=n=>isOurTeam(n);
 
 // Minuto exacto del partido (con decimales), leído del reloj real
 function _lvNowMin(){
@@ -9384,6 +9397,7 @@ function lvAct(type){
 
 function rLvAll(){
   window.__lvTick = performance.now();
+  if (window.__bqTick) window.__bqTick();
   const sh = document.getElementById('lv-score-h'); if(sh) sh.textContent = lv.score.home;
   const sa = document.getElementById('lv-score-a'); if(sa) sa.textContent = lv.score.away;
   if(typeof renderTimer === 'function') renderTimer();
@@ -17271,7 +17285,7 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
     const st={mk:f.mk, side:tName===f.mk.awayTeam&&tName!==f.mk.homeTeam?'away':'home', cat, folder, label:f.cl.label||'', newF:false, players:new Set(f.cl.players||[])};
     const ov=document.createElement('div'); ov.className='vm-ov vp-ov';
     const fmt=s=>{s=Math.max(0,s||0);return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');};
-    const close=keepFs=>{ const v=ov.querySelector('video'); if(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}} ov.remove(); document.removeEventListener('keydown',onKey,true); if(keepFs!==true) _vpFsExit(); };
+    const close=keepFs=>{ try{ TL.speed('k'); }catch(e){} const v=ov.querySelector('video'); if(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}} ov.remove(); document.removeEventListener('keydown',onKey,true); if(keepFs!==true) _vpFsExit(); };
     const folders=()=>{
         const out=[_vUNS,...(window._vFolders[st.cat]||[])], tn=st.side==='home'?st.mk.homeTeam:st.mk.awayTeam;
         Object.keys(st.mk.videoClips.teams?.[tn]?.[st.cat]||{}).forEach(x=>{if(!out.includes(x))out.push(x);});
@@ -17290,13 +17304,10 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
           <label class="vp-l">Carpeta</label>
           <div class="vp-chips">${fl.map((x,i)=>`<button type="button" data-f="${_esc(x)}" class="${st.folder===x&&!st.newF?'on':''}${x===_vUNS?' uns':''}">${x===_vUNS?'📥 ':''}${_esc(x)}</button>`).join('')}${st.newF?`<input id="vp-nf" placeholder="Nombre de la carpeta nueva" value="${_esc(st.newF===true?'':st.newF)}">`:'<button type="button" data-f="__new" class="new">+ Nueva</button>'}</div>
           <label class="vp-l">Descripción</label>
-          <input id="vp-lab" class="vp-in" placeholder="Opcional" value="${_esc(st.label)}">
-          <label class="vp-l">Jugadores del clip <span class="vp-lh">· sus emparejados lo verán en Próximo rival</span></label>
-          <div class="vp-pls">${[st.side, st.side==='home'?'away':'home'].map(sd=>{ const tn=sd==='home'?st.mk.homeTeam:st.mk.awayTeam, L=_vTeamPl(tn, st.mk, sd); return L.length?`<div class="vp-plt"><b>${_esc(tn)}</b><div class="vp-chips vp-plc">${L.map(p=>`<button type="button" data-pl="${_esc(p.name)}" class="${[...st.players].some(n=>_acNN(n)===_acNN(p.name))?'on':''}">${p.dorsal!=null&&p.dorsal!==''?'#'+_esc(p.dorsal)+' ':''}${_esc(_shortName(p.name))}</button>`).join('')}</div></div>`:''; }).join('') || '<div class="vp-lh">No hay plantilla de estos equipos.</div>'}</div>`;
+          <input id="vp-lab" class="vp-in" placeholder="Opcional" value="${_esc(st.label)}">`;
         b.querySelector('#vp-mk').onchange=e=>{ keep(); const m=libs.find(x=>x.name===e.target.value); if(m){ st.mk=m; st.folder=st.folder===_vUNS?_vUNS:''; } draw(); };
         b.querySelectorAll('[data-side]').forEach(x=>x.onclick=()=>{ keep(); st.side=x.dataset.side; draw(); });
         b.querySelectorAll('[data-cat]').forEach(x=>x.onclick=()=>{ keep(); if(st.cat!==x.dataset.cat){ st.cat=x.dataset.cat; if(st.folder!==_vUNS) st.folder=''; } draw(); });
-        b.querySelectorAll('[data-pl]').forEach(x=>x.onclick=()=>{ keep(); const n=x.dataset.pl, ex=[...st.players].find(y=>_acNN(y)===_acNN(n)); if(ex) st.players.delete(ex); else st.players.add(n); draw(); });
         b.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{ keep(); if(x.dataset.f==='__new'){ st.newF=true; draw(); setTimeout(()=>ov.querySelector('#vp-nf')?.focus(),0); } else { st.folder=x.dataset.f; st.newF=false; draw(); } });
         const nf=b.querySelector('#vp-nf'); if(nf) nf.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); keep(); draw(); } };
         const n=nUns()-(folder===_vUNS?1:0); const nx=ov.querySelector('#vp-next'); if(nx){ nx.style.display=n>0?'':'none'; nx.textContent=`Guardar y siguiente sin clasificar (${n}) ▸`; }
@@ -17335,7 +17346,7 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
     // 🗑️ Descartar: el clip sale de la biblioteca (si estaba esperando para cortarse, ya no se corta)
     const discard=()=>{
         const cur=_vFindClip(mkKey,tName,cat,folder,id); if(!cur){ close(); return; }
-        const db=ov.querySelector('#vp-del'); if(!db.dataset.sure){ db.dataset.sure='1'; db.textContent='¿Seguro? Pulsa otra vez'; setTimeout(()=>{ if(db.isConnected){ delete db.dataset.sure; db.textContent='🗑️ Descartar'; } },3000); return; }
+        const db=ov.querySelector('#vp-del'); if(!db.dataset.sure){ db.dataset.sure='1'; db.textContent='¿Seguro? Pulsa otra vez (o X)'; setTimeout(()=>{ if(db.isConnected){ delete db.dataset.sure; db.textContent='🗑️ Descartar'; } },3000); return; }
         cur.arr.splice(cur.arr.indexOf(cur.cl),1);
         const ST=f.mk.videoClips.teams; if(!cur.arr.length) delete ST[tName][cat][folder];
         if(ST[tName]&&!Object.values(ST[tName]).some(c=>Object.keys(c||{}).length)) delete ST[tName];
@@ -17349,26 +17360,28 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
     };
     const onKey=e=>{ const typing=/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
         // con el cuadro abierto, los atajos del vídeo de la pestaña (espacio, flechas, J/K/L, B…) no se disparan debajo
-        if(!typing&&/^( |Enter|Escape|Arrow\w+|[fFeEiIoOjJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();
+        if(!typing&&/^( |Enter|Escape|Arrow\w+|[fFeEiIoOjJkKlLbBxX])$/.test(e.key)) e.stopImmediatePropagation();
         if(!typing&&(e.key==='f'||e.key==='F')){ e.preventDefault(); fsBtn(); return; }
         if(!typing&&e.key===' '&&TL.D){ e.preventDefault(); TL.toggle(); return; }
+        if(!typing&&(e.key==='x'||e.key==='X')){ e.preventDefault(); discard(); return; }
+        if(!typing&&TL.D&&/^[jJkKlL]$/.test(e.key)){ e.preventDefault(); TL.speed(e.key.toLowerCase()); return; }
         if(!typing&&(e.key==='e'||e.key==='E')&&_vpFsOn()){ e.preventDefault(); ov.classList.toggle('vp-show'); return; }
         if(e.key==='Escape'&&_vpFsOn()){ e.preventDefault(); _vpFsExit(); return; }
         if(!typing&&TL.D&&(e.key==='i'||e.key==='I')){ e.preventDefault(); TL.set('i',TL.now()); return; }
         if(!typing&&TL.D&&(e.key==='o'||e.key==='O')){ e.preventDefault(); TL.set('o',TL.now()); return; }
-        if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'&&e.target.tagName!=='BUTTON'){ e.preventDefault(); save(folder===_vUNS); } };
+        if(e.key==='Escape'){ e.preventDefault(); close(); } else if(e.key==='Enter'&&e.target.id!=='vp-nf'&&e.target.tagName!=='SELECT'){ e.preventDefault(); save(true); } };
     const src=f.cl.videoUrl||(_vMatchKey===mkKey&&_vSrcUrl?_vSrcUrl:null), part=!f.cl.videoUrl&&src;
     ov.innerHTML=`<div class="vm-box vp-box" role="dialog" aria-label="Colocar clip"><header><b>⇄ Colocar clip <small>${fmt(f.cl.timeSecs)}–${fmt(f.cl.timeEnd)}</small></b>${src?'<button type="button" class="vp-fsb" title="Pantalla completa (F): al acabar el clip te sale este formulario encima del vídeo"><span class="vp-fs-in">⛶ Pantalla completa</span><span class="vp-fs-out">✕ Salir de pantalla completa</span></button>':''}<button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
       ${src?`<video class="vp-vid" ${f.cl.videoUrl?`src="${_esc(src)}"`:''} muted autoplay playsinline controls controlslist="nofullscreen" disablepictureinpicture></video>
-      <div class="vp-fshint">Al acabar el clip sale el formulario · <b>E</b> sacarlo ya · <b>ESPACIO</b> pausa · <b>F</b> o <b>Esc</b> salir</div>
-      <div class="vp-panel"><div class="vp-fskeys"><b>ESPACIO</b> ver otra vez · <b>INTRO</b> guardar y siguiente · <b>E</b> ocultar · <b>F</b> salir de pantalla completa</div>
+      <div class="vp-fshint">Al acabar el clip sale el formulario · <b>E</b> sacarlo ya · <b>ESPACIO</b> pausa · <b>J</b>/<b>L</b> velocidad · <b>F</b> o <b>Esc</b> salir</div><div class="vp-spd" hidden></div>
+      <div class="vp-panel"><div class="vp-fskeys"><b>ESPACIO</b> play/pausa · <b>INTRO</b> guardar y siguiente · <b>X</b> descartar (2 veces) · <b>J</b>/<b>L</b> atrás/adelante ×1,5 ×2 ×4 · <b>K</b> pausa · <b>E</b> ocultar · <b>F</b> pantalla completa</div>
       <div class="vp-tl"><div class="vp-tl-bar"><i class="vp-tl-sel"></i><i class="vp-tl-ph"></i><b class="vp-tl-h" data-h="i" title="Inicio (tecla I)"></b><b class="vp-tl-h" data-h="o" title="Final (tecla O)"></b></div>
         <div class="vp-tl-info"><b id="vp-tl-t"></b><span></span><button type="button" id="vp-tl-reset" style="visibility:hidden">↺ Deshacer</button></div><div class="vp-tl-hint">✂️ Arrastra los bordes para recortar por delante o por detrás · <kbd>I</kbd> / <kbd>O</kbd> = inicio / final en el punto actual</div></div>`:'<div class="vp-nov">Este clip aún no tiene vídeo (solo marca de tiempo).</div><div class="vp-panel">'}
       <div class="vp-form"></div>
       <div class="vp-acts"><button type="button" class="sec" id="vp-cancel">Cancelar</button><button type="button" class="del" id="vp-del">🗑️ Descartar</button><span style="flex:1"></span><button type="button" class="sec" id="vp-ok">Guardar</button><button type="button" id="vp-next">Guardar y siguiente ▸</button></div></div></div>`;
     document.body.appendChild(ov);
     // línea de tiempo del clip (0 = inicio del clip): reproduce en bucle solo el tramo elegido
-    const TL={D:0,i:0,o:0,now:()=>0,set:()=>{},toggle:()=>{},restart:()=>{}};
+    const TL={D:0,i:0,o:0,now:()=>0,set:()=>{},toggle:()=>{},restart:()=>{},speed:()=>{}};
     const fsBtn=()=>{ _vpFsToggle(); ov.classList.remove('vp-show'); if(_vpFsOn()) TL.restart(); };
     const v=ov.querySelector('video');
     if(v){
@@ -17385,16 +17398,24 @@ function vPlaceClip(mkKey,tName,cat,folder,id){
         v.addEventListener('loadedmetadata',init,{once:true});
         let drag=null;
         TL.restart=()=>{ if(!TL.D) return; v.currentTime=off+TL.i; v.play().catch(()=>{}); };
-        TL.toggle=()=>{ if(v.paused){ if(TL.now()>=TL.o-0.1) v.currentTime=off+TL.i; ov.classList.remove('vp-show'); v.play().catch(()=>{}); } else v.pause(); };
+        // ⏩ L adelante y ⏪ J atrás: ×1,5 → ×2 → ×4 en cada pulsación; K pausa y vuelve a ×1. Hacia atrás el vídeo del navegador no va: se mueve el punto a mano
+        const SP=[1.5,2,4], rv={on:false,k:-1,t:null}, fw={k:-1}, spd=ov.querySelector('.vp-spd'), xs=n=>'×'+String(n).replace('.',',');
+        const badge=txt=>{ if(!spd) return; spd.textContent=txt||''; spd.hidden=!txt; };
+        const stopRev=()=>{ if(rv.t) clearInterval(rv.t); rv.t=null; rv.on=false; rv.k=-1; };
+        TL.speed=k=>{ if(k==='k'){ stopRev(); fw.k=-1; v.playbackRate=1; v.pause(); badge(''); return; }
+            if(k==='l'){ const was=!rv.on&&!v.paused&&v.playbackRate>1; stopRev(); fw.k=was?Math.min(fw.k+1,SP.length-1):0; v.playbackRate=SP[fw.k]; if(TL.now()>=TL.o-0.1) v.currentTime=off+TL.i; TL.hold=false; v.play().catch(()=>{}); badge('⏩ '+xs(SP[fw.k])); return; }
+            if(k==='j'){ rv.k=rv.on?Math.min(rv.k+1,SP.length-1):0; fw.k=-1; v.playbackRate=1; v.pause(); TL.hold=false; badge('⏪ '+xs(SP[rv.k]));
+                if(!rv.on){ rv.on=true; rv.t=setInterval(()=>{ if(!document.body.contains(ov)){ stopRev(); return; } let nt=v.currentTime-SP[rv.k]*0.05; if(nt<=off+TL.i){ nt=off+TL.i; stopRev(); badge(''); } v.currentTime=nt; paint(); },50); } } };
+        TL.toggle=()=>{ if(rv.on){ stopRev(); badge(v.playbackRate>1?'⏩ '+xs(v.playbackRate):''); } if(v.paused){ if(TL.now()>=TL.o-0.1) v.currentTime=off+TL.i; if(!_vpFsOn()) ov.classList.remove('vp-show'); v.play().catch(()=>{}); } else v.pause(); };
         v.addEventListener('dblclick',e=>{ e.preventDefault(); fsBtn(); });
         // en pantalla completa, al llegar al final del clip se queda parado ahí (TL.hold) y sale el formulario, hasta que se vuelve a darle al play
         const holdEnd=()=>{ TL.hold=true; v.pause(); ov.classList.add('vp-show'); paint(); };
         v.addEventListener('play',()=>{ TL.hold=false; });
         v.addEventListener('timeupdate',()=>{ if(!TL.D||drag) return; const t=v.currentTime-off;
             if(TL.hold){ paint(); return; }
-            if(_vpFsOn()&&t>=TL.o-0.03&&!ov.classList.contains('vp-show')){ holdEnd(); return; }
+            if(_vpFsOn()&&t>=TL.o-0.03&&!v.paused){ holdEnd(); return; }
             if(t>=TL.o-0.03||t<TL.i-0.3){ v.currentTime=off+TL.i; if(v.paused&&t>=TL.o-0.03) v.play().catch(()=>{}); } paint(); });
-        v.addEventListener('ended',()=>{ if(TL.hold) return; if(_vpFsOn()&&!ov.classList.contains('vp-show')){ holdEnd(); return; } if(TL.D){ v.currentTime=off+TL.i; v.play().catch(()=>{}); } });
+        v.addEventListener('ended',()=>{ if(TL.hold) return; if(_vpFsOn()){ holdEnd(); return; } if(TL.D){ v.currentTime=off+TL.i; v.play().catch(()=>{}); } });
         const tAt=e=>{ const r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*TL.D; };
         bar.addEventListener('pointerdown',e=>{ if(!TL.D) return; e.preventDefault(); const t=tAt(e);
             const h=e.target.dataset.h||(Math.abs(t-TL.i)*bar.clientWidth/TL.D<14?'i':Math.abs(t-TL.o)*bar.clientWidth/TL.D<14?'o':null);
@@ -17441,10 +17462,16 @@ const AC_FILT = [['', 'Todas las jugadas'],
 // momento del partido
 const AC_MO = [['', 'Todo el partido', ''], ['fq', 'Final de cuarto', 'Últimos 30 segundos del 1º, 2º y 3º cuarto'], ['fp', 'Final de partido', 'Últimos 2 minutos del 4º cuarto o de la prórroga'], ['clutch', '🔥 Final apretado', 'Últimos 5 minutos del 4º o de la prórroga, con 6 puntos o menos de diferencia'], ['ato', '⏸ ATO', 'La jugada que sale de cada tiempo muerto: lo que hace el equipo que lo pide hasta que pierde el balón']];
 // tiempos muertos: del directo (quién lo pide y en qué minuto) o, si no, del acta de la FCBQ
-function _acTimeouts(m) { const out = [];
-  (m.events || []).forEach(e => { if (e.type === 'timeout' && (e.team === 'home' || e.team === 'away') && e.min != null) out.push({ per: +e.period || 1, g: +e.min * 60, s: e.team }); });
-  if (!out.length && Array.isArray(m.fcbqMoves)) m.fcbqMoves.forEach(x => { if (x.code !== 'TM') return; const sd = String(x.idTeam) === String(m.localId) ? 'home' : String(x.idTeam) === String(m.visitId) ? 'away' : null; if (!sd) return;
-    const per = +x.period || 1, base = per <= 4 ? (per - 1) * 600 : 2400 + (per - 5) * 300, len = per <= 4 ? 600 : 300; out.push({ per, g: base + len - ((+x.min || 0) * 60 + (+x.sec || 0)), s: sd }); });
+// g = segundos de partido transcurridos; tol = cuánto puede fallar ese momento
+function _acTimeouts(m) { const out = [], bs = per => per <= 4 ? (per - 1) * 600 : 2400 + (per - 5) * 300, ln = per => per <= 4 ? 600 : 300;
+  // 1) el acta de la FCBQ: minuto y segundo que quedan en el cuarto (lo más preciso)
+  if (Array.isArray(m.fcbqMoves)) m.fcbqMoves.forEach(x => { if (x.code !== 'TM') return; const sd = String(x.idTeam) === String(m.localId) ? 'home' : String(x.idTeam) === String(m.visitId) ? 'away' : null; if (!sd) return;
+    const per = +x.period || 1; out.push({ per, g: bs(per) + ln(per) - ((+x.min || 0) * 60 + (+x.sec || 0)), s: sd, tol: 3 }); });
+  if (out.length) return out;
+  // 2) los eventos: del Directo (minuto de partido transcurrido, con decimales) o importados del acta (minuto que queda en el cuarto, sin segundos)
+  const E = (m.events || []).filter(e => e.type === 'timeout' && (e.team === 'home' || e.team === 'away') && e.min != null);
+  const live = (m.events || []).some(e => e.oc || e.sid || (e.min != null && (+e.min % 1 !== 0 || +e.min > 10)));
+  E.forEach(e => { const per = +e.period || 1; out.push(live ? { per, g: +e.min * 60, s: e.team, tol: 8 } : { per, g: bs(per) + ln(per) - (+e.min * 60 + 30), s: e.team, tol: 32 }); });
   return out; }
 const _acMoOk = (x, mo) => !mo || mo === 'ato' ? (!mo || !!x.ato) : (mo === 'fq' ? (x.per || 0) <= 3 && x.rem != null && x.rem <= 30 : mo === 'fp' ? (x.per || 0) >= 4 && x.rem != null && x.rem <= 120 : mo === 'clutch' ? !!x.clutch : true);
 const _acMoChips = (F, chip) => AC_MO.map(([v, l, t]) => chip('data-mo', v, l, F.mo || '', t)).join('');
@@ -17475,10 +17502,19 @@ function _acList(m) {
     if (best) { x.ast = best.a; best.a.to = x; } });
   // ATO: tras cada tiempo muerto, las jugadas del equipo que lo pidió hasta que acaba su ataque (canasta, pérdida o rebote/robo del rival; 24 s de reloj como mucho)
   L.forEach(x => { const per = x.per || 1, base = per <= 4 ? (per - 1) * 600 : 2400 + (per - 5) * 300, len = per <= 4 ? 600 : 300; x.g = x.rem != null ? base + len - x.rem : null; });
-  _acTimeouts(m).forEach(to => { const xs = L.filter(x => x.g != null && (x.per || 1) === to.per && x.g >= to.g - 0.5 && x.g <= to.g + 24).sort((a, b) => a.g - b.g || a.t - b.t);
-    const DEF = /^(FALTA|TAPON|REBOTE_DEF|ROBO)$/; let mine = null;
-    for (const x of xs) { if (mine === null) { if (DEF.test(x.tp)) continue; mine = x.s === to.s; if (!mine) break; }   // el primer ataque tras el tiempo muerto dice quién tiene el balón
-      if (x.s !== to.s) { if (/^(REBOTE_DEF|ROBO)$/.test(x.tp)) break; continue; }
+  // Solo la primera posesión del equipo que pide el tiempo muerto. En el vídeo el tiempo muerto es un salto de más de ~40 s
+  // con el reloj de juego parado: lo de antes del salto no cuenta (p. ej. la canasta del rival que lo provoca, en el mismo segundo).
+  _acTimeouts(m).forEach(to => { const tol = to.tol || 3;
+    const near = L.filter(x => x.g != null && (x.per || 1) === to.per && x.g >= to.g - tol - 20 && x.g <= to.g + tol + 30).sort((a, b) => a.t - b.t);
+    let st = -1, best = 0;
+    for (let i = 1; i < near.length; i++) { const a = near[i - 1], b = near[i], gap = b.t - a.t, dg = b.g - a.g;
+      if (gap >= 40 && dg >= -4 && dg <= 6 && Math.abs(a.g - to.g) <= tol + 4 && gap > best) { best = gap; st = i; } }
+    if (st < 0) st = near.findIndex(x => x.g > to.g + 0.5);   // sin salto en el vídeo (cortado): lo que pasa después de ese segundo
+    if (st < 0) return;
+    const g0 = near[st].g, DEF = /^(FALTA|TAPON|REBOTE_DEF|ROBO)$/; let mine = null;
+    for (const x of near.slice(st)) { if (x.g > g0 + 26) break;
+      if (mine === null) { if (DEF.test(x.tp)) continue; mine = x.s === to.s; if (!mine) break; }   // el primer ataque tras el tiempo muerto dice quién tiene el balón
+      if (x.s !== to.s) { if (/^(REBOTE_DEF|ROBO|T[23]_(OK|FALLO)|PERDIDA)$/.test(x.tp)) break; continue; }   // el rival recupera o ataca: se acabó
       if (DEF.test(x.tp)) continue; x.ato = to; if (/^(T[23]_OK|PERDIDA)$/.test(x.tp)) break; } });
   // si un equipo casi no tiene asistencias apuntadas en ese partido (pasa con el rival), sus canastas no se cuentan como «sin asistencia»: no se sabe
   ['home', 'away'].forEach(sd => { const fg = L.filter(x => x.s === sd && /^T[23]_OK$/.test(x.tp)); if (fg.length && (asB[sd] || []).length < 0.3 * fg.length) fg.forEach(x => x.astNA = true); });
@@ -33213,6 +33249,239 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     say(`🧠 Aprendido de ${set.length} partido${set.length > 1 ? 's' : ''}: acierto ${pc(res.before)} → ${pc(res.after)}. Las pendientes se han vuelto a proponer.`);
     counter(); drawStrip(); if (mode === "ask" || mode === "play") { const i = G.clips.findIndex(c => c.st === "pend"); if (i >= 0) show(i); else allDone(); }
   }
+})();
+
+/* BasketApp · 🧠 Banquillo (Directo): lo que funciona y lo que no, para decírselo al entrenador.
+   «Ahora»: avisos cortos ordenados por importancia (parciales, con/sin cada jugador, quinteto en pista, faltas, rebote, pérdidas,
+   tiro, quién nos hace daño, tras tiempo muerto…). «Informe»: la hoja del descanso (o del momento) con todo junto y para copiar.
+   Lee el partido del Directo (window.__lv); cada jugada guarda quién estaba en pista (oc), el marcador y el minuto. */
+(function () {
+  'use strict';
+  if (window.__baBanq) return; window.__baBanq = true;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const PTS = { pts2: 2, pts3: 3, tl_in: 1 }, FOUL = ['foul', 'anti', 'tech'];
+  const mmss = m => { const s = Math.max(0, Math.round(m * 60)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const sg = n => (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n);
+  const pc = (a, b) => b ? Math.round(100 * a / b) + '%' : '—';
+  // SRC: un partido ya jugado abierto en solo lectura (bqOpenMatch); si no, el Directo
+  let SRC = null;
+  const L = () => SRC || window.__lv;
+  const now = () => { if (SRC) return 0; try { return window.__lvNowMin ? window.__lvNowMin() : (L().curMin || 0); } catch (e) { return 0; } };
+
+  function ctx() {
+    const lv = L(); if (!lv || !lv.events) return null;
+    const isOur = window.__isOur || (n => /claret/i.test(n || ''));
+    const us = isOur(lv.an) && !isOur(lv.hn) ? 'away' : 'home', op = us === 'home' ? 'away' : 'home';
+    const nm = { home: lv.hn || 'Local', away: lv.an || 'Rival' };
+    const dors = (t, n) => { const p = ((lv.pl || {})[t] || []).find(p => p.name === n); return p && p.dorsal != null && p.dorsal !== '' ? '#' + p.dorsal + ' ' : ''; };
+    const short = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? p[0] + ' ' + p[1][0] + '.' : p[0] || ''; };
+    const who = (t, n) => dors(t, n) + short(n);
+    const E = lv.events.filter(e => e && e.type && e.type !== 'period_start' && e.min != null).slice().sort((a, b) => a.min - b.min);
+    return { lv, us, op, nm, who, E, t: Math.max(now(), E.length ? E[E.length - 1].min : 0) };
+  }
+
+  // ── tramos con quién estaba en pista: minutos, puntos a favor y en contra ──
+  function stints(C) {
+    const S = []; let oc = null, t0 = null;
+    C.E.forEach(e => {
+      if (oc && t0 != null && e.min > t0) S.push({ oc, a: t0, b: e.min });
+      if (e.oc && e.oc.home && e.oc.away) oc = { home: [...e.oc.home], away: [...e.oc.away] };
+      t0 = e.min;
+    });
+    if (oc && t0 != null && C.t > t0) S.push({ oc, a: t0, b: C.t });
+    return S;
+  }
+  function onOff(C) {
+    const S = stints(C), P = {}, tot = { min: 0, pf: 0, pa: 0 };
+    const pl = n => P[n] || (P[n] = { n, on: { min: 0, pf: 0, pa: 0 }, off: { min: 0, pf: 0, pa: 0 } });
+    ((C.lv.pl || {})[C.us] || []).forEach(p => pl(p.name));
+    S.forEach(s => { const d = s.b - s.a; tot.min += d; Object.values(P).forEach(p => { (s.oc[C.us].includes(p.n) ? p.on : p.off).min += d; }); s.oc[C.us].forEach(n => pl(n)); });
+    // los puntos: con el quinteto que había al anotar (las canastas guardan quién estaba en pista)
+    let oc = null;
+    C.E.forEach(e => { if (e.oc && e.oc.home) oc = e.oc; const v = PTS[e.type]; if (!v || !oc) return; const mine = e.team === C.us;
+      if (mine) tot.pf += v; else tot.pa += v;
+      Object.values(P).forEach(p => { const k = (oc[C.us] || []).includes(p.n) ? p.on : p.off; if (mine) k.pf += v; else k.pa += v; }); });
+    return { P: Object.values(P).filter(p => p.on.min > 0.01), tot };
+  }
+  function lineups(C, side) {
+    const Q = {}; let oc = null;
+    stints(C).forEach(s => { const k = [...s.oc[side]].sort().join('|'); if (s.oc[side].length !== 5) return; (Q[k] || (Q[k] = { k, ns: [...s.oc[side]], min: 0, pf: 0, pa: 0 })).min += s.b - s.a; });
+    C.E.forEach(e => { if (e.oc && e.oc.home) oc = e.oc; const v = PTS[e.type]; if (!v || !oc) return; const k = [...oc[side]].sort().join('|'); if (!Q[k]) return; if (e.team === side) Q[k].pf += v; else Q[k].pa += v; });
+    return Object.values(Q).sort((a, b) => b.min - a.min);
+  }
+  function box(C, side) {
+    const B = {}, b = n => B[n] || (B[n] = { n, pts: 0, fgm: 0, fga: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, fc: 0, to: 0 });
+    C.E.forEach(e => { if (e.team !== side || !e.player || e.teamOnly) return; const x = b(e.player);
+      if (e.type === 'pts2') { x.pts += 2; x.fgm++; x.fga++; } else if (e.type === 'pts3') { x.pts += 3; x.fgm++; x.fga++; x.t3m++; x.t3a++; }
+      else if (e.type === 'miss2') x.fga++; else if (e.type === 'miss3') { x.fga++; x.t3a++; }
+      else if (e.type === 'tl_in') { x.pts++; x.ftm++; x.fta++; } else if (e.type === 'tl_out') x.fta++;
+      else if (FOUL.includes(e.type)) x.fc++; else if (e.type === 'to') x.to++; });
+    return Object.values(B);
+  }
+  function team(C, side, from) {
+    const r = { pts: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ftm: 0, fta: 0, ro: 0, rd: 0, to: 0, stl: 0, fc: 0, ptsRo: 0, ptsTo: 0 };
+    const E = C.E.filter(e => from == null || e.min >= from);
+    E.forEach((e, i) => { if (e.team !== side) return;
+      switch (e.type) { case 'pts2': r.pts += 2; r.t2m++; r.t2a++; break; case 'miss2': r.t2a++; break; case 'pts3': r.pts += 3; r.t3m++; r.t3a++; break; case 'miss3': r.t3a++; break;
+        case 'tl_in': r.pts++; r.ftm++; r.fta++; break; case 'tl_out': r.fta++; break; case 'ro': case 'reb_off': r.ro++; break; case 'rd': case 'reb_def': r.rd++; break;
+        case 'to': r.to++; break; case 'stl': r.stl++; break; default: if (FOUL.includes(e.type)) r.fc++; } });
+    // puntos de segunda oportunidad (tras su rebote ofensivo) y tras pérdida del otro (en los 20 s siguientes)
+    E.forEach((e, i) => { const off = e.type === 'ro' || e.type === 'reb_off', tov = e.type === 'to';
+      if (!(off && e.team === side) && !(tov && e.team !== side)) return;
+      for (let j = i + 1; j < E.length && E[j].min - e.min <= 0.34; j++) { const x = E[j]; if (x.team !== side && (PTS[x.type] || /^miss|^to$/.test(x.type))) break;
+        if (x.team === side && PTS[x.type] && x.type !== 'tl_in') { if (off) r.ptsRo += PTS[x.type]; else r.ptsTo += PTS[x.type]; break; } } });
+    return r;
+  }
+  const fg = r => [r.t2m + r.t3m, r.t2a + r.t3a];
+
+  // ── los avisos ──
+  function insights(C) {
+    const out = [], add = (lvl, ico, txt, w, tag) => out.push({ lvl, ico, txt, w, tag });
+    const { us, op, nm, who, E, t } = C, per = C.lv.period || 1;
+    // 1) parcial: la racha sin que anote el otro y lo de los últimos 3 minutos
+    const sc = E.filter(e => PTS[e.type]);
+    if (sc.length) { const last = sc[sc.length - 1].team; let run = 0, t0 = null; for (let i = sc.length - 1; i >= 0 && sc[i].team === last; i--) { run += PTS[sc[i].type]; t0 = sc[i].min; }
+      let prev = 0; for (let i = sc.length - 1; i >= 0; i--) if (sc[i].team !== last) { prev = sc[i].min; break; }
+      if (run >= 7) { const dur = t - Math.max(prev, (t0 || t) - 0.01), mine = last === us;
+        const tos = E.filter(e => e.min >= prev && e.team === us && e.type === 'to').length, miss = E.filter(e => e.min >= prev && e.team === us && /^miss/.test(e.type)).length;
+        add(mine ? 'good' : 'bad', mine ? '🚀' : '🧯', mine ? `Parcial ${run}-0 a favor en ${mmss(dur)}` : `Parcial 0-${run} en contra en ${mmss(dur)}${tos || miss ? ` · nosotros ${miss} fallo${miss !== 1 ? 's' : ''} y ${tos} pérdida${tos !== 1 ? 's' : ''}` : ''}`, 10 + run, 'run'); } }
+    const w3 = E.filter(e => e.min >= t - 3 && PTS[e.type]); const a3 = w3.filter(e => e.team === us).reduce((s, e) => s + PTS[e.type], 0), b3 = w3.filter(e => e.team === op).reduce((s, e) => s + PTS[e.type], 0);
+    if (t > 3 && Math.abs(a3 - b3) >= 7 && !out.some(o => o.tag === 'run')) add(a3 > b3 ? 'good' : 'bad', a3 > b3 ? '📈' : '📉', `Últimos 3 min: ${a3}-${b3}`, 8 + Math.abs(a3 - b3) / 2);
+    // 2) con / sin cada jugador nuestro
+    const OO = onOff(C);
+    OO.P.forEach(p => { if (p.on.min < 4 || p.off.min < 3) return; const pmOn = p.on.pf - p.on.pa, pmOff = p.off.pf - p.off.pa, d = pmOn / p.on.min * 10 - pmOff / p.off.min * 10;
+      const onNow = ((C.lv.onCourt || {})[us] || new Set()).has ? C.lv.onCourt[us].has(p.n) : false;
+      if (Math.abs(d) < 8 || Math.abs(pmOn - pmOff) < 5) return;
+      const txt = `Con ${who(us, p.n)} en pista ${sg(pmOn)} (${Math.round(p.on.min)} min) · sin él ${sg(pmOff)} (${Math.round(p.off.min)} min)`;
+      if (d > 0) add('good', onNow ? '💪' : '🪑', txt + (onNow ? '' : ' · está en el banquillo'), 6 + d / 3 + (onNow ? 0 : 3), 'onoff');
+      else add('bad', '⚠️', txt + (onNow ? ' · está en pista' : ''), 5 + Math.abs(d) / 3 + (onNow ? 3 : 0), 'onoff'); });
+    // 3) quinteto en pista y el mejor hasta ahora
+    const LU = lineups(C, us), cur = [...((C.lv.onCourt || {})[us] || [])].sort().join('|');
+    const q = LU.find(x => x.k === cur); if (q && q.min >= 3) { const pm = q.pf - q.pa; if (Math.abs(pm) >= 5) add(pm > 0 ? 'good' : 'bad', '🖐', `El quinteto en pista va ${sg(pm)} (${q.pf}-${q.pa}) en ${Math.round(q.min)} min`, 6 + Math.abs(pm) / 2); }
+    const bestQ = LU.filter(x => x.min >= 3 && x.k !== cur).sort((a, b) => (b.pf - b.pa) - (a.pf - a.pa))[0];
+    if (bestQ && bestQ.pf - bestQ.pa >= 6) add('good', '🏆', `Mejor quinteto: ${bestQ.ns.map(n => who(us, n)).join(', ')} · ${sg(bestQ.pf - bestQ.pa)} en ${Math.round(bestQ.min)} min`, 5 + (bestQ.pf - bestQ.pa) / 3);
+    // 4) faltas
+    const BU = box(C, us), BO = box(C, op);
+    BU.forEach(p => { const lim = per <= 1 ? 2 : per <= 2 ? 3 : 4; if (p.fc >= lim && p.fc < 5) add('warn', '🟨', `${who(us, p.n)} lleva ${p.fc} faltas${per <= 2 ? ' en la 1ª parte' : ''}`, 7 + p.fc); if (p.fc >= 5) add('info', '🚫', `${who(us, p.n)} eliminado (5 faltas)`, 3); });
+    BO.forEach(p => { if (p.fc === 4 || (per <= 2 && p.fc === 3)) add('good', '🎯', `${who(op, p.n)} (${nm[op]}) lleva ${p.fc} faltas: atacarle`, 6 + p.fc); });
+    const tf = s => E.filter(e => e.period === per && e.team === s && FOUL.includes(e.type)).length;
+    if (tf(us) >= 4) add('warn', '🛑', `Estamos en bonus (${tf(us)} faltas de equipo en el ${per}º cuarto): cada falta son 2 tiros libres`, 7);
+    else if (tf(us) === 3) add('warn', '⚠️', `3 faltas de equipo en el ${per}º cuarto: una más y bonus`, 4);
+    if (tf(op) >= 4) add('good', '✅', `${nm[op]} en bonus (${tf(op)} faltas): atacar el aro`, 7);
+    // 5) tiro
+    const TU = team(C, us), TO = team(C, op);
+    if (TU.t3a >= 8 && TU.t3m / TU.t3a < 0.25) add('bad', '🧱', `Triples ${TU.t3m}/${TU.t3a} (${pc(TU.t3m, TU.t3a)})${TU.t2a ? ` y de 2 ${TU.t2m}/${TU.t2a} (${pc(TU.t2m, TU.t2a)})` : ''}`, 7);
+    if (TU.t3a >= 6 && TU.t3m / TU.t3a >= 0.42) add('good', '🎯', `Triples ${TU.t3m}/${TU.t3a} (${pc(TU.t3m, TU.t3a)})`, 5);
+    if (TO.t3a >= 6 && TO.t3m / TO.t3a >= 0.4) add('bad', '🔥', `${nm[op]} mete ${TO.t3m}/${TO.t3a} triples (${pc(TO.t3m, TO.t3a)})`, 7 + TO.t3m / 2);
+    if (TU.fta >= 6 && TU.ftm / TU.fta < 0.55) add('bad', '🎲', `Tiros libres ${TU.ftm}/${TU.fta} (${pc(TU.ftm, TU.fta)})`, 5);
+    // 6) rebote y pérdidas
+    if (TO.ro >= 4 && TO.ro > TU.ro) add('bad', '🧲', `${nm[op]} lleva ${TO.ro} rebotes ofensivos (nosotros ${TU.ro})${TO.ptsRo ? ` · ${TO.ptsRo} pts de 2ª oportunidad` : ''}`, 6 + TO.ro / 2 + TO.ptsRo / 3);
+    if (TU.ro >= 4 && TU.ro > TO.ro + 2) add('good', '🧲', `Nos llevamos el rebote de ataque: ${TU.ro} ofensivos${TU.ptsRo ? ` (${TU.ptsRo} pts)` : ''}`, 5);
+    const toP = E.filter(e => e.period === per && e.team === us && e.type === 'to').length;
+    if (TU.to >= 7 || toP >= 4) add('bad', '💨', `${TU.to} pérdidas${toP >= 3 ? ` (${toP} este cuarto)` : ''}${TO.ptsTo ? ` · ${TO.ptsTo} pts del rival tras ellas` : ''}`, 6 + toP + TO.ptsTo / 3);
+    // 7) jugadores: calientes y fríos
+    BO.forEach(p => { if (p.pts >= 8 && (p.fga ? p.fgm / p.fga >= 0.55 : true)) add('bad', '🔥', `${who(op, p.n)} (${nm[op]}) lleva ${p.pts} pts · ${p.fgm}/${p.fga} de campo${p.t3m ? `, ${p.t3m}/${p.t3a} triples` : ''}`, 6 + p.pts / 3); });
+    const totO = BO.reduce((s, p) => s + p.pts, 0), topO = BO.slice().sort((a, b) => b.pts - a.pts)[0];
+    if (topO && totO >= 15 && topO.pts / totO >= 0.38) add('warn', '🎯', `${who(op, topO.n)} hace el ${Math.round(100 * topO.pts / totO)}% de los puntos de ${nm[op]}: negarle el balón`, 6);
+    BU.forEach(p => { if (p.fga >= 5 && p.fgm <= 1) add('bad', '🥶', `${who(us, p.n)} ${p.fgm}/${p.fga} de campo`, 4 + p.fga / 3);
+      if (p.pts >= 10 && p.fga && p.fgm / p.fga >= 0.55) add('good', '🔥', `${who(us, p.n)} está enchufado: ${p.pts} pts (${p.fgm}/${p.fga})`, 5 + p.pts / 4); });
+    // 8) tras nuestros tiempos muertos: qué sale de la primera posesión
+    const tms = E.filter(e => e.type === 'timeout' && e.team === us); let ok = 0, n = 0;
+    tms.forEach(tm => { const nx = E.find(e => e.min >= tm.min && e.ts >= (tm.ts || 0) && e.team === us && (PTS[e.type] && e.type !== 'tl_in' || /^miss[23]$|^to$/.test(e.type) || e.type === 'tl_in')); if (!nx) return; n++; if (PTS[nx.type]) ok++; });
+    if (n >= 2) add(ok / n >= 0.5 ? 'good' : 'bad', '⏸', `Tras nuestros tiempos muertos: ${ok} de ${n} acaban en puntos`, 4 + n / 2);
+    return out.sort((a, b) => b.w - a.w);
+  }
+
+  // ── la ventana ──
+  const CSS = `.bq-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:4200;display:flex;align-items:center;justify-content:center;padding:12px}
+  .bq-box{background:#fff;border-radius:16px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden}
+  .bq-hd{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#0f172a;color:#fff}.bq-hd b{font-size:15px;flex:1}.bq-hd button{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:8px;padding:6px 11px;font-size:12.5px;cursor:pointer}
+  .bq-tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid #e2e8f0;background:#f8fafc}.bq-tabs button{border:0;background:none;padding:8px 12px;font-weight:800;font-size:13px;color:#64748b;border-bottom:3px solid transparent;cursor:pointer}.bq-tabs button.on{color:#0f172a;border-color:#2563eb}
+  .bq-bd{overflow:auto;padding:12px 14px 16px}
+  .bq-sc{display:flex;align-items:center;justify-content:center;gap:12px;font-weight:900;font-size:15px;color:#0f172a;margin:2px 0 10px}.bq-sc small{font-weight:600;color:#64748b;font-size:11.5px}
+  .bq-it{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:11px;margin-bottom:7px;border:1px solid;font-size:13.5px;line-height:1.4}
+  .bq-it i{font-style:normal;font-size:17px;line-height:1.1}.bq-good{background:#f0fdf4;border-color:#bbf7d0;color:#14532d}.bq-bad{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}.bq-warn{background:#fffbeb;border-color:#fde68a;color:#78350f}.bq-info{background:#f8fafc;border-color:#e2e8f0;color:#334155}
+  .bq-none{color:#64748b;font-size:13px;text-align:center;padding:24px 8px}
+  .bq-sec{margin:14px 0 6px;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#475569}
+  .bq-tb{width:100%;border-collapse:collapse;font-size:12.5px}.bq-tb th{text-align:left;font-size:10.5px;color:#64748b;font-weight:800;padding:5px 6px;border-bottom:1px solid #e2e8f0}.bq-tb td{padding:6px;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums}
+  .bq-tb td.p{color:#15803d;font-weight:800}.bq-tb td.n{color:#b91c1c;font-weight:800}
+  .bq-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:600px){.bq-g2{grid-template-columns:1fr}}
+  .bq-act{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.bq-act button{border:1px solid #cbd5e1;background:#fff;border-radius:9px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer}
+  .bq-btn{position:relative}.bq-dot{position:absolute;top:3px;right:3px;min-width:16px;height:16px;border-radius:8px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;line-height:16px;padding:0 4px;display:none}`;
+  function css() { if (!document.getElementById('bq-css')) { const s = document.createElement('style'); s.id = 'bq-css'; s.textContent = CSS; document.head.appendChild(s); } }
+
+  const itemsHtml = A => A.length ? A.map(a => `<div class="bq-it bq-${a.lvl}"><i>${a.ico}</i><span>${esc(a.txt)}</span></div>`).join('') : '<div class="bq-none">Todavía no hay nada que destacar. Los avisos salen solos cuando algo se sale de lo normal (parciales, con/sin un jugador, faltas, rebote, pérdidas, tiro…).</div>';
+  function scoreHtml(C) { const s = C.lv.score || { home: 0, away: 0 }; return `<div class="bq-sc">${esc(C.nm.home)} ${s.home} – ${s.away} ${esc(C.nm.away)} <small>${C.lv.period > 4 ? 'Prórroga' : (C.lv.period || 1) + 'º cuarto'} · min ${mmss(C.t)}</small></div>`; }
+  function nowHtml(C) { const A = insights(C); return scoreHtml(C) + itemsHtml(A.slice(0, 12)); }
+
+  function reportHtml(C) {
+    const A = insights(C), good = A.filter(a => a.lvl === 'good'), bad = A.filter(a => a.lvl === 'bad'), warn = A.filter(a => a.lvl === 'warn');
+    const per = {}; C.E.forEach(e => { const v = PTS[e.type]; if (!v) return; const p = e.period || 1; per[p] = per[p] || { home: 0, away: 0 }; per[p][e.team] += v; });
+    const qs = Object.keys(per).sort((a, b) => a - b).map(p => `${p > 4 ? 'PR' : 'Q' + p} ${per[p][C.us]}-${per[p][C.op]}`).join(' · ');
+    const OO = onOff(C), rows = OO.P.filter(p => p.on.min >= 1).sort((a, b) => b.on.min - a.on.min).map(p => { const on = p.on.pf - p.on.pa, off = p.off.pf - p.off.pa;
+      return `<tr><td>${esc(C.who(C.us, p.n))}</td><td>${Math.round(p.on.min)}'</td><td class="${on > 0 ? 'p' : on < 0 ? 'n' : ''}">${sg(on)}</td><td class="${off > 0 ? 'p' : off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(off) : '—'}</td><td class="${on - off > 0 ? 'p' : on - off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(on - off) : '—'}</td></tr>`; }).join('');
+    const LU = lineups(C, C.us).filter(q => q.min >= 1.5).slice(0, 5).map(q => `<tr><td>${q.ns.map(n => esc(C.who(C.us, n))).join(', ')}</td><td>${Math.round(q.min)}'</td><td class="${q.pf - q.pa > 0 ? 'p' : q.pf - q.pa < 0 ? 'n' : ''}">${sg(q.pf - q.pa)}</td><td>${q.pf}-${q.pa}</td></tr>`).join('');
+    const TU = team(C, C.us), TO = team(C, C.op), r = (l, a, b) => `<tr><td>${l}</td><td>${a}</td><td>${b}</td></tr>`, f = x => fg(x);
+    const tiro = r('Campo', `${f(TU)[0]}/${f(TU)[1]} (${pc(...f(TU))})`, `${f(TO)[0]}/${f(TO)[1]} (${pc(...f(TO))})`) + r('Tiros de 2', `${TU.t2m}/${TU.t2a} (${pc(TU.t2m, TU.t2a)})`, `${TO.t2m}/${TO.t2a} (${pc(TO.t2m, TO.t2a)})`) + r('Triples', `${TU.t3m}/${TU.t3a} (${pc(TU.t3m, TU.t3a)})`, `${TO.t3m}/${TO.t3a} (${pc(TO.t3m, TO.t3a)})`) + r('Tiros libres', `${TU.ftm}/${TU.fta} (${pc(TU.ftm, TU.fta)})`, `${TO.ftm}/${TO.fta} (${pc(TO.ftm, TO.fta)})`)
+      + r('Rebotes of / def', `${TU.ro} / ${TU.rd}`, `${TO.ro} / ${TO.rd}`) + r('Pts 2ª oportunidad', TU.ptsRo, TO.ptsRo) + r('Pérdidas', TU.to, TO.to) + r('Pts tras pérdida', TU.ptsTo, TO.ptsTo) + r('Faltas', TU.fc, TO.fc);
+    const BO = box(C, C.op).sort((a, b) => b.pts - a.pts).slice(0, 5).map(p => `<tr><td>${esc(C.who(C.op, p.n))}</td><td>${p.pts}</td><td>${p.fgm}/${p.fga}</td><td>${p.t3m}/${p.t3a}</td><td>${p.fc}</td></tr>`).join('');
+    const fouls = box(C, C.us).filter(p => p.fc >= 2).sort((a, b) => b.fc - a.fc).map(p => `${esc(C.who(C.us, p.n))} ${p.fc}`).join(' · ');
+    const list = (t, A) => A.length ? `<div class="bq-sec">${t}</div>${itemsHtml(A.slice(0, 6))}` : '';
+    return scoreHtml(C) + `<div style="text-align:center;font-size:12px;color:#475569;margin:-4px 0 6px">${esc(qs)}</div>`
+      + list('✅ Lo que funciona', good) + list('❌ Lo que no', bad) + list('⚠️ Ojo', warn)
+      + `<div class="bq-sec">👥 Con y sin cada jugador (${esc(C.nm[C.us])})</div>${rows ? `<table class="bq-tb"><thead><tr><th>Jugador</th><th>Min</th><th>En pista</th><th>Fuera</th><th>Diferencia</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="bq-none">Faltan cambios apuntados en el Directo para saber quién estaba en pista.</div>'}`
+      + (LU ? `<div class="bq-sec">🖐 Quintetos (los más usados)</div><table class="bq-tb"><thead><tr><th>Quinteto</th><th>Min</th><th>+/-</th><th>Parcial</th></tr></thead><tbody>${LU}</tbody></table>` : '')
+      + `<div class="bq-g2"><div><div class="bq-sec">📊 Nosotros vs ${esc(C.nm[C.op])}</div><table class="bq-tb"><thead><tr><th></th><th>${esc(C.nm[C.us])}</th><th>${esc(C.nm[C.op])}</th></tr></thead><tbody>${tiro}</tbody></table></div>`
+      + `<div><div class="bq-sec">🎯 Quién nos hace daño</div>${BO ? `<table class="bq-tb"><thead><tr><th>Rival</th><th>Pts</th><th>Campo</th><th>T3</th><th>F</th></tr></thead><tbody>${BO}</tbody></table>` : '<div class="bq-none">—</div>'}${fouls ? `<div class="bq-sec">🟨 Faltas nuestras</div><div style="font-size:12.5px">${fouls}</div>` : ''}</div></div>`
+      + `<div class="bq-act"><button type="button" data-bq="copy">📋 Copiar para WhatsApp</button></div>`;
+  }
+  function reportText(C) {
+    const A = insights(C), s = C.lv.score || {}, line = a => `${a.ico} ${a.txt}`;
+    const g = A.filter(a => a.lvl === 'good').slice(0, 5), b = A.filter(a => a.lvl === 'bad').slice(0, 5), w = A.filter(a => a.lvl === 'warn').slice(0, 4);
+    const OO = onOff(C).P.filter(p => p.on.min >= 3 && p.off.min >= 2).map(p => ({ p, d: (p.on.pf - p.on.pa) - (p.off.pf - p.off.pa) })).sort((x, y) => y.d - x.d);
+    return [`*${C.nm.home} ${s.home} – ${s.away} ${C.nm.away}* (${C.lv.period > 4 ? 'prórroga' : (C.lv.period || 1) + 'º cuarto'}, min ${mmss(C.t)})`,
+      g.length ? '\n✅ *Funciona*\n' + g.map(line).join('\n') : '', b.length ? '\n❌ *No funciona*\n' + b.map(line).join('\n') : '', w.length ? '\n⚠️ *Ojo*\n' + w.map(line).join('\n') : '',
+      OO.length ? '\n👥 *Con/sin (diferencia)*\n' + OO.map(x => `${C.who(C.us, x.p.n)} ${sg(x.d)}`).join(' · ') : ''].filter(Boolean).join('\n');
+  }
+
+  let tab = 'now', seen = 0;
+  function open(t) {
+    css(); tab = t || tab; const C = ctx(); if (!C) return;
+    document.querySelectorAll('.bq-ov').forEach(o => o.remove());
+    const ov = document.createElement('div'); ov.className = 'bq-ov';
+    ov.innerHTML = `<div class="bq-box" role="dialog" aria-label="Banquillo"><div class="bq-hd"><b>🧠 Banquillo</b><button type="button" data-bq="x">✕ Cerrar</button></div>
+      <div class="bq-tabs"><button type="button" data-tab="now">⚡ Ahora</button><button type="button" data-tab="rep">🧾 Informe</button></div><div class="bq-bd"></div></div>`;
+    document.body.appendChild(ov);
+    const draw = () => { const C = ctx(); if (!C) return; ov.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); ov.querySelector('.bq-bd').innerHTML = tab === 'rep' ? reportHtml(C) : nowHtml(C); };
+    ov.onclick = e => { const b = e.target.closest('[data-bq],[data-tab]');
+      if (e.target === ov || (b && b.dataset.bq === 'x')) { ov.remove(); SRC = null; document.removeEventListener('keydown', key, true); return; }
+      if (b && b.dataset.tab) { tab = b.dataset.tab; draw(); }
+      if (b && b.dataset.bq === 'copy') { const txt = reportText(ctx()); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => window.toast && toast('📋 Copiado: pégalo en WhatsApp', 'ok')).catch(() => { prompt('Copia el texto:', txt); }); } };
+    const key = e => { if (e.key === 'Escape' && document.body.contains(ov)) { e.preventDefault(); e.stopImmediatePropagation(); ov.remove(); SRC = null; document.removeEventListener('keydown', key, true); } };
+    document.addEventListener('keydown', key, true);
+    ov.__draw = draw; draw();
+    // lo que ya se ha visto no cuenta para el puntito rojo
+    seen = imp(C).length; badge(0);
+  }
+  const imp = C => insights(C).filter(a => a.lvl === 'bad' || a.lvl === 'warn');
+  function badge(n) { document.querySelectorAll('.bq-dot').forEach(d => { d.textContent = n; d.style.display = n > 0 ? 'block' : 'none'; }); }
+  // cada jugada del Directo: refresca la ventana si está abierta y el puntito rojo con los avisos nuevos importantes
+  let lastPer = null, tmr = null;
+  window.__bqTick = function () {
+    clearTimeout(tmr); tmr = setTimeout(() => { const C = ctx(); if (!C) return;
+      const ov = document.querySelector('.bq-ov'); if (ov && ov.__draw) { if (!SRC) { ov.__draw(); seen = imp(C).length; } return; }
+      const n = imp(C).length; badge(Math.max(0, n - seen)); if (n < seen) seen = n;
+      // en el descanso: aviso de que el informe está listo
+      const per = C.lv.period || 1; if (lastPer === 2 && per === 3 && window.toast) toast('🧾 Informe del descanso listo: botón 🧠 BANQ', 'ok'); lastPer = per; }, 250);
+  };
+  window.bqOpen = t => { SRC = null; open(t); };
+  // un partido guardado (con las jugadas del Directo), hasta el cuarto que se quiera: solo lectura, no toca el Directo
+  window.bqOpenMatch = function (m, upto) { if (!m || !(m.events || []).length) return; const ev = m.events.filter(e => !upto || (e.period || 1) <= upto);
+    const last = ev.filter(e => e.score).pop() || { score: {} }, oc = (ev.filter(e => e.oc).pop() || {}).oc || { home: [], away: [] };
+    SRC = { hn: m.homeTeam, an: m.awayTeam, events: ev, period: upto || Math.max(1, ...ev.map(e => e.period || 1)), score: { home: last.score.home ?? last.score.h ?? 0, away: last.score.away ?? last.score.a ?? 0 },
+      pl: { home: (m.homePlayers || []).map(p => ({ name: p.name, dorsal: p.dorsal })), away: (m.awayPlayers || []).map(p => ({ name: p.name, dorsal: p.dorsal })) }, onCourt: { home: new Set(oc.home), away: new Set(oc.away) } };
+    open('rep'); };
+  window.__bqTest = { ctx, insights, onOff, lineups, team, box, reportText };
 })();
 
 </script>

@@ -4478,6 +4478,92 @@ body.vp-fs-on .vp-fs-out{display:inline}
 .acd-act{display:flex;gap:8px;margin-top:14px}
 .vm-box .acd-go:not(.vm-x):disabled{opacity:.35;cursor:default}
 .mu-mine{margin-left:0;flex-shrink:0}
+/* v90 · ⏱ reloj de posesión en el tiro (Acciones en vídeo) */
+.ac-clk{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -8px rgba(15,23,42,.12);padding:14px 16px;margin:8px 0 14px}
+.ac-clk>summary{cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;list-style:none}
+.ac-clk>summary::-webkit-details-marker{display:none}
+.cz-ic{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2a78d6,#0d366b);display:grid;place-items:center;font-size:17px;box-shadow:0 4px 10px -4px rgba(13,54,107,.6)}
+.cz-tt{display:flex;flex-direction:column;flex:1 1 220px;min-width:0}
+.cz-tt b{font-size:14.5px;color:#0f172a;letter-spacing:-.01em}
+.cz-tt small{font-size:11.5px;color:#64748b}
+.cz-tt b::after{content:' ▾';color:#94a3b8;font-size:11px}
+.ac-clk:not([open]) .cz-tt b::after{content:' ▸'}
+.cz-lg{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#64748b}
+.cz-lg>span{display:flex;gap:2px}
+.cz-lg i{width:16px;height:10px;border-radius:3px;display:block}
+.cz-cards{display:grid;gap:12px;margin-top:14px}
+@media (min-width:1000px){.cz-cards.two{grid-template-columns:1fr 1fr}}
+.cz-card{border:1px solid #eef2f7;border-radius:12px;padding:12px 12px 10px;background:linear-gradient(#fbfdff,#fff);min-width:0}
+.cz-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:10px}
+.cz-h>b{font-size:13.5px;color:#0f172a;text-transform:uppercase;letter-spacing:.02em}
+.cz-kpi{display:flex;gap:6px}
+.cz-kpi span{display:flex;flex-direction:column;align-items:center;background:#f1f5f9;border-radius:9px;padding:4px 10px;min-width:58px}
+.cz-kpi b{font-size:15px;color:#0f172a;font-variant-numeric:tabular-nums;line-height:1.2}
+.cz-kpi small{font-size:9.5px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.cz-plot{position:relative;height:150px;margin-left:18px}
+.cz-grid{position:absolute;inset:20px 0 0 0;pointer-events:none}
+.cz-gl{position:absolute;left:0;right:0;border-top:1px dashed #e2e8f0}
+.cz-gl span{position:absolute;left:-18px;top:-7px;font-size:9.5px;color:#94a3b8;width:14px;text-align:right}
+.cz-bands,.cz-bars{position:absolute;inset:0;display:grid;grid-template-columns:repeat(25,1fr);column-gap:3px}
+.cz-bands{top:-2px;pointer-events:none}
+.cz-band{border-radius:8px 8px 0 0;position:relative}
+.cz-band.b0,.cz-band.b2{background:rgba(42,120,214,.045)}
+.cz-bars{border-bottom:2px solid #cbd5e1;padding-top:20px}
+.cz-bar{all:unset;box-sizing:border-box;height:100%;display:flex;align-items:flex-end;cursor:pointer;min-width:0;position:relative}
+.cz-bar.z{cursor:default}
+.cz-bar i{display:block;width:100%;border-radius:4px 4px 0 0;position:relative;transition:opacity .15s,transform .15s;transform-origin:bottom}
+.cz-bar i b{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:3px;font-size:10.5px;font-weight:700;color:#0f172a;font-style:normal}
+.cz-plot.hov .cz-bar:not(.on) i{opacity:.3}
+.cz-bar.on i{transform:scaleY(1.03)}
+.cz-bar:focus-visible i{outline:2px solid #0f172a;outline-offset:2px}
+.cz-tip{position:absolute;bottom:calc(100% - 14px);z-index:3;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:8px 11px;font-size:11.5px;line-height:1.5;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.5);pointer-events:none}
+.cz-tip>b{color:#fff;font-size:12.5px}
+.cz-tip small{color:#94a3b8;margin-left:4px}
+.cz-tip div{display:flex;align-items:center;gap:6px}
+.cz-tip div i{width:10px;height:10px;border-radius:3px;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.cz-tip div b{color:#fff}
+.cz-tip em{display:block;font-style:normal;color:#93c5fd;font-size:10.5px}
+.cz-ax{display:grid;grid-template-columns:repeat(25,1fr);column-gap:3px;margin:4px 0 0 18px;font-size:10px;color:#64748b;font-variant-numeric:tabular-nums}
+.cz-ax span{text-align:center}
+.cz-zr{display:grid;grid-template-columns:repeat(25,1fr);column-gap:3px;margin:6px 0 0 18px}
+.cz-zr span{border-top:2px solid #cbd5e1;padding-top:3px;text-align:center;font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin:0 2px}
+.cz-zr span.b1{border-color:#94a3b8}
+.cz-zs3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.cz-z{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:9px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s,transform .15s;min-width:0}
+.cz-z:hover:not([disabled]){border-color:#86b6ef;box-shadow:0 6px 16px -10px rgba(28,92,171,.6);transform:translateY(-1px)}
+.cz-z:focus-visible{outline:2px solid #2a78d6;outline-offset:2px}
+.cz-z[disabled]{opacity:.5;cursor:default}
+.cz-zl{font-size:10.5px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.05em}
+.cz-zl small{font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0}
+.cz-zv{display:flex;align-items:center;gap:7px;font-size:21px;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;line-height:1.15}
+.cz-zv i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.cz-zs{font-size:11px;color:#64748b}
+.cz-zb{display:block;height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden;margin-top:3px}
+.cz-zb i{display:block;height:100%;background:#94a3b8;border-radius:2px}
+.cz-foot{font-size:11px;color:#64748b;margin-top:10px}
+@media (max-width:560px){
+  .ac-clk{padding:12px}
+  .cz-lg{width:100%}
+  .cz-h{flex-direction:column;align-items:flex-start}
+  .cz-kpi{width:100%}.cz-kpi span{flex:1}
+  .cz-plot{height:120px}
+  .cz-bands,.cz-bars,.cz-ax{column-gap:1px}
+  .cz-zr{column-gap:1px}
+  .cz-zs3{gap:6px}.cz-z{padding:8px}
+  .cz-zv{font-size:17px}.cz-zs{font-size:10px}
+}
+
+/* v90 · Scouting: posesión exacta (vídeo) + estimada (acta) */
+.psc-src{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.psc-src span{font-size:10.5px;font-weight:600;color:#475569;background:#f1f5f9;border-radius:999px;padding:3px 10px}
+.psc-src span.ex{color:#0d366b;background:#e6f0fc}
+.psc-plot{height:130px}
+.psc-ch .cz-tip{bottom:calc(100% - 6px)}
+.psc-ts{display:block;color:#cbd5e1;font-size:10.5px}
+.cz-bar:focus-visible{outline:none}
+.psc-lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0 18px;font-size:10px;color:#64748b}
+.psc-lg>span{display:flex;gap:2px}.psc-lg i{width:14px;height:9px;border-radius:3px;display:block}
+.psc-vx{color:#1c5cab}
 
 </style>
 </head>
@@ -17516,6 +17602,61 @@ function _acTitle(F) {
   if (F.m) { const m = _acMs().find(x => String(x.id) === F.m); if (m) parts.push(m.homeTeam + ' vs ' + m.awayTeam); }
   return parts.join(' · ');
 }
+// ⏱ Reloj de posesión en el tiro (leído del vídeo: s24 = lo que marca el reloj de 24 al tirar). Segundo de posesión = 24 − s24.
+// Una gráfica por equipo: barras = tiros en ese segundo; cuanto más oscura, más acierto en ese segundo.
+const AC_CLK_Z = [[0, 7, 'Inicio', '0–7 s'], [8, 16, 'Mitad', '8–16 s'], [17, 24, 'Final', '17–24 s']];
+// acierto en 5 tramos de un solo azul (claro = poco acierto, oscuro = mucho)
+const AC_CLK_R = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#0d366b'], AC_CLK_RL = ['0–19%', '20–39%', '40–59%', '60–79%', '80–100%'];
+const _acClkCol = p => p == null ? '#e2e8f0' : AC_CLK_R[Math.min(4, Math.floor(p * 5))];
+const _acPct = xs => xs.length ? xs.filter(x => /_OK$/.test(x.tp)).length / xs.length : null;
+function _acClockData(L) {
+  const fg = L.filter(x => /^T[23]_(OK|FALLO)$/.test(x.tp)), withC = fg.filter(x => Number.isFinite(x.s24) && x.s24 >= 0 && x.s24 <= 24);
+  const G = new Map(); withC.forEach(x => { const k = x.team; if (!G.has(k)) G.set(k, { team: k, b: Array.from({ length: 25 }, () => []) }); G.get(k).b[24 - Math.round(x.s24)].push(x); });
+  return { fg, withC, groups: [...G.values()].sort((a, b) => b.b.flat().length - a.b.flat().length) };
+}
+function _acClockHtml(L) {
+  const D = _acClockData(L); if (!D.withC.length) return '';
+  let open = true; try { open = localStorage.getItem('ac_clk') !== '0'; } catch (e) { }
+  const cards = D.groups.map((g, gi) => { const all = g.b.flat(), mx = Math.max(...g.b.map(b => b.length)), top = mx <= 4 ? mx : Math.ceil(mx / 2) * 2, mk = all.filter(x => /_OK$/.test(x.tp)).length;
+    const avg = all.reduce((s, x) => s + 24 - x.s24, 0) / all.length;
+    const bands = AC_CLK_Z.map(([a, b, l, r], zi) => `<div class="cz-band b${zi}" style="grid-column:${a + 1}/${b + 2}"></div>`).join('');
+    const bars = g.b.map((xs, s) => { const h = xs.length ? Math.max(4, 100 * xs.length / top) : 0;
+      return `<button type="button" class="cz-bar${xs.length ? '' : ' z'}" data-cb="${gi}|${s}"${xs.length ? '' : ' tabindex="-1" aria-hidden="true"'} aria-label="${_acA(`Segundo ${s}: ${xs.length} tiros, ${xs.filter(x => /_OK$/.test(x.tp)).length} dentro`)}"><i style="height:${h}%;background:${_acClkCol(_acPct(xs))}">${xs.length === mx ? `<b>${mx}</b>` : ''}</i></button>`; }).join('');
+    const grid = [top, top / 2].filter((v, k) => k === 0 || Number.isInteger(v)).map(v => `<div class="cz-gl" style="bottom:${100 * v / top}%"><span>${v}</span></div>`).join('');
+    const zones = AC_CLK_Z.map(([a, b, l, r], zi) => { const xs = g.b.slice(a, b + 1).flat(), p = _acPct(xs), k = xs.filter(x => /_OK$/.test(x.tp)).length, sh = Math.round(100 * xs.length / all.length);
+      return `<button type="button" class="cz-z" data-cz="${gi}|${zi}"${xs.length ? '' : ' disabled'}><span class="cz-zl">${l} <small>${r}</small></span>
+        <span class="cz-zv"><i style="background:${_acClkCol(p)}"></i>${p == null ? '—' : Math.round(100 * p) + '%'}</span>
+        <span class="cz-zs">${k}/${xs.length} · ${sh}% de sus tiros</span><span class="cz-zb"><i style="width:${sh}%"></i></span></button>`; }).join('');
+    return `<section class="cz-card"><header class="cz-h"><b>${_esc(g.team)}</b>
+        <div class="cz-kpi"><span><b>${all.length}</b><small>tiros</small></span><span><b>${Math.round(100 * mk / all.length)}%</b><small>acierto</small></span><span><b>${avg.toFixed(1).replace('.', ',')} s</b><small>tiro medio</small></span></div></header>
+      <div class="cz-plot" data-gi="${gi}"><div class="cz-grid">${grid}</div><div class="cz-bands">${bands}</div><div class="cz-bars">${bars}</div><div class="cz-tip" hidden></div></div>
+      <div class="cz-ax">${g.b.map((_, s) => `<span>${s % 4 === 0 ? s : ''}</span>`).join('')}</div>
+      <div class="cz-zr">${AC_CLK_Z.map(([a, b, l], zi) => `<span class="b${zi}" style="grid-column:${a + 1}/${b + 2}">${l}</span>`).join('')}</div>
+      <div class="cz-zs3">${zones}</div></section>`; }).join('');
+  const miss = D.fg.length - D.withC.length;
+  return `<details class="ac-clk"${open ? ' open' : ''}><summary><span class="cz-ic">⏱</span><span class="cz-tt"><b>Reloj de posesión en el tiro</b><small>En qué segundo de la posesión se tira · 0 = el reloj marca 24</small></span>
+      <span class="cz-lg" aria-label="Color: acierto en ese segundo"><small>Acierto</small><span>${AC_CLK_R.map((c, k) => `<i style="background:${c}" title="${AC_CLK_RL[k]}"></i>`).join('')}</span><small>0 → 100%</small></span></summary>
+    <div class="cz-cards${D.groups.length > 1 ? ' two' : ''}">${cards}</div>
+    <div class="cz-foot">Toca una barra o un tramo para ver esos tiros en vídeo.${miss ? ` Con el reloj leído: <b>${D.withC.length}</b> de ${D.fg.length} tiros de campo (los demás no se ven en el vídeo o el partido aún no tiene el reloj leído).` : ''}</div></details>`;
+}
+function _acClockBind(el, L, title) {
+  const D = _acClockData(L), d = el.querySelector('.ac-clk'); if (!d) return;
+  d.ontoggle = () => { try { localStorage.setItem('ac_clk', d.open ? '1' : '0'); } catch (e) { } };
+  const byT = xs => xs.slice().sort((a, b) => (a.m === b.m ? 0 : String(a.m.id).localeCompare(String(b.m.id))) || a.t - b.t);
+  const tt = g => title.includes(g.team) ? title : title + ' · ' + g.team;
+  d.querySelectorAll('[data-cb]').forEach(b => b.onclick = () => { const [gi, s] = b.dataset.cb.split('|').map(Number), g = D.groups[gi], xs = g && g.b[s]; if (xs && xs.length) acPlay(byT(xs), 0, `${tt(g)} · segundo ${s} de posesión`); });
+  d.querySelectorAll('[data-cz]').forEach(b => b.onclick = () => { const [gi, zi] = b.dataset.cz.split('|').map(Number), g = D.groups[gi], [a, z, l, r] = AC_CLK_Z[zi], xs = g ? g.b.slice(a, z + 1).flat() : []; if (xs.length) acPlay(byT(xs), 0, `${tt(g)} · ${l} (${r})`); });
+  // al pasar por una barra: ficha con los datos y el resto de barras se apagan
+  d.querySelectorAll('.cz-plot').forEach(pl => { const tip = pl.querySelector('.cz-tip'), g = D.groups[+pl.dataset.gi];
+    const show = b => { const s = +b.dataset.cb.split('|')[1], xs = g.b[s], k = xs.filter(x => /_OK$/.test(x.tp)).length, p = _acPct(xs);
+      pl.classList.add('hov'); pl.querySelectorAll('.cz-bar').forEach(x => x.classList.toggle('on', x === b));
+      tip.innerHTML = `<b>Segundo ${s}</b> <small>reloj en ${24 - s}</small><div><i style="background:${_acClkCol(p)}"></i>${xs.length} tiro${xs.length !== 1 ? 's' : ''} · ${k} dentro · <b>${Math.round(100 * p)}%</b></div><em>▶ Toca para verlos</em>`;
+      tip.hidden = false; const r = pl.getBoundingClientRect(), br = b.getBoundingClientRect(), w = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(r.width - w, br.left - r.left + br.width / 2 - w / 2)) + 'px'; };
+    const hide = () => { pl.classList.remove('hov'); tip.hidden = true; pl.querySelectorAll('.cz-bar.on').forEach(x => x.classList.remove('on')); };
+    pl.querySelectorAll('.cz-bar:not(.z)').forEach(b => { b.onmouseenter = () => show(b); b.onfocus = () => show(b); b.onblur = hide; });
+    pl.onmouseleave = hide; });
+}
 function renderActions(el, F, o) {
   el = el || document.getElementById('ac-sec'); if (!el) return; F = F || window._acF; o = o || {}; const re = () => renderActions(el, F, o);
   const staff = _acStaff() && !o.mini, Ms = _acMsSorted();
@@ -17546,6 +17687,7 @@ function renderActions(el, F, o) {
     </div>
   </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver lo que hace y lo que le hacen, por jugador y por quién está en pista.</div>'}
   <div class="ac-sum"><span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shots.length ? ` · tiros <b>${made}/${shots.length}</b> (${Math.round(100 * made / shots.length)}%)` : ''}</span>${L.length ? `<button type="button" class="ac-all">▶ Ver todas seguidas</button>` : ''}${staff && L.length ? (() => { const ns = L.filter(x => x.star).length; return `<button type="button" class="ac-stall" title="Las que ve quien defiende a cada jugador, en Próximo rival">${ns === L.length ? '☆ Quitar todas las filtradas' : '⭐ Marcar todas las filtradas'}</button>${ns ? `<span class="ac-stn">⭐ ${ns} para su emparejado</span>` : ''}`; })() : ''}<span style="flex:1"></span>${imp}</div>
+  ${o.mini ? '' : _acClockHtml(L)}
   ${o.mini || !L.length ? '' : (() => { const nSel = window._acSel.size, allF = L.length && L.every(x => window._acSel.has(_acKey(x)));
     return `<div class="ac-dlb"><label class="ac-ckall"><input type="checkbox"${allF ? ' checked' : ''}> Elegir todas las filtradas</label>
       <span class="ac-dln">${nSel ? `<b>${nSel}</b> elegida${nSel !== 1 ? 's' : ''}` : 'Marca las jugadas que quieras bajarte'}</span>${nSel ? '<button type="button" class="ac-dlx">✕ Quitar selección</button>' : ''}
@@ -17575,6 +17717,7 @@ function renderActions(el, F, o) {
   el.querySelectorAll('[data-asi]').forEach(b => b.onclick = () => set('asi', b.dataset.asi));
   const clr = el.querySelector('.ac-clr'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', tm: o.mini ? F.tm : '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false, mo: '', asi: '' }); re(); };
   const all = el.querySelector('.ac-all'); if (all) all.onclick = () => acPlay(L, 0, title);
+  if (!o.mini) _acClockBind(el, L, title);
   const more = el.querySelector('.ac-more'); if (more) more.onclick = () => { window._acLim += 300; re(); };
   // ⭐ para su emparejado: se guarda en la jugada (en el partido) y la copia de la lista se actualiza sin recalcular
   const setStar = (x, on) => { const c = x.m.videoActions.clips[x.i]; if (!c) return; if (on) c.star = 1; else delete c.star; x.star = on ? 1 : 0; };
@@ -17789,11 +17932,16 @@ async function acImport(inp) {
   if (!m) { toast(`No encuentro el partido ${j.home || ''} vs ${j.away || ''} en la web`, 'err'); return; }
   let yt = _acYt(j.yt);
   if (!yt) { const u = prompt(`Enlace de YouTube del partido ${m.homeTeam} vs ${m.awayTeam} (subido como «Oculto»):`); if (u == null) return; yt = _acYt(u); if (!yt) { toast('Ese enlace de YouTube no es válido', 'err'); return; } }
-  if (m.videoActions && !confirm(`${m.homeTeam} vs ${m.awayTeam} ya tiene ${m.videoActions.clips.length} jugadas en vídeo. ¿Cambiarlas por las ${j.clips.length} del archivo?`)) return;
+  if (m.videoActions && !confirm(`${m.homeTeam} vs ${m.awayTeam} ya tiene ${m.videoActions.clips.length} jugadas en vídeo. ¿Cambiarlas por las ${j.clips.length} del archivo?\n(Las ⭐ que ya estaban marcadas se mantienen)`)) return;
   const num = x => Number.isFinite(+x) ? +x : null;
+  // las ⭐ de antes se guardan: misma jugada = mismo momento, tipo, equipo y dorsal
+  const kOf = c => [Math.round(+c.t * 2), c.tp, c.s, c.d == null || c.d === '' ? '' : String(+c.d)].join('|');
+  const starred = new Set(((m.videoActions && m.videoActions.clips) || []).filter(c => c.star).map(kOf));
   const clips = j.clips.filter(c => c && num(c.t0) != null && num(c.t1) != null && +c.t1 > +c.t0 && (c.s === 'home' || c.s === 'away') && AC_TY[c.tp]).map(c => ({
     t: num(c.t), t0: +c.t0, t1: +c.t1, tp: c.tp, s: c.s, d: c.d != null && c.d !== '' && Number.isFinite(+c.d) ? String(+c.d) : null, n: String(c.n || '').slice(0, 80), per: +c.per || 1, clk: String(c.clk || '').slice(0, 12),
-    sc: Array.isArray(c.sc) ? [+c.sc[0] || 0, +c.sc[1] || 0] : null, on: c.on && Array.isArray(c.on.home) && Array.isArray(c.on.away) ? { home: c.on.home.map(x => String(+x)), away: c.on.away.map(x => String(+x)) } : null, ok: c.ok ? 1 : 0 }));
+    sc: Array.isArray(c.sc) ? [+c.sc[0] || 0, +c.sc[1] || 0] : null, on: c.on && Array.isArray(c.on.home) && Array.isArray(c.on.away) ? { home: c.on.home.map(x => String(+x)), away: c.on.away.map(x => String(+x)) } : null, ok: c.ok ? 1 : 0,
+    ...(/^T[23]_/.test(c.tp) && c.s24 != null && c.s24 !== '' && Number.isFinite(+c.s24) && +c.s24 >= 0 && +c.s24 <= 24 ? { s24: Math.round(+c.s24) } : {}),
+    ...(c.star || starred.has(kOf(c)) ? { star: 1 } : {}) }));
   if (!clips.length) { toast('El archivo no trae jugadas válidas', 'err'); return; }
   m.videoActions = { yt, added: Date.now(), clips }; _acSave();
   Object.assign(window._acF, { m: String(m.id) }); renderActions();
@@ -23483,7 +23631,10 @@ function _fcbqTimeoutsV2(moves, stats) {
 
 function _analyzePossessionClocks(matches, rivalTeam) {
   const statsByZone = { '24-14': { att: 0, made: 0 }, '14-5':  { att: 0, made: 0 }, '5-0':   { att: 0, made: 0 } };
-  const histogram = Array(25).fill(0); 
+  const histogram = Array(25).fill(0), madeH = Array(25).fill(0), exactH = Array(25).fill(0), exactX = Array.from({ length: 25 }, () => []), src = { exactM: 0, estM: 0, exact: 0, est: 0 };
+  // un tiro: segundo de posesión (0–24), lo que marca el reloj, si entra y si es del vídeo (exacto) o estimado con el acta
+  const add = (sec, shotClock, made, exact) => { histogram[sec]++; if (made) madeH[sec]++; if (exact) { exactH[sec]++; src.exact++; } else src.est++;
+    const zone = shotClock >= 14 ? '24-14' : shotClock >= 5 ? '14-5' : '5-0'; statsByZone[zone].att++; if (made) statsByZone[zone].made++; };
 
   try {
     matches.forEach(m => {
@@ -23491,8 +23642,12 @@ function _analyzePossessionClocks(matches, rivalTeam) {
       const isHomeRival = (m.homeTeam || '').trim().toLowerCase() === rName;
       const isAwayRival = (m.awayTeam || '').trim().toLowerCase() === rName;
       if (!isHomeRival && !isAwayRival) return;
-      
+
       const rivalSide = isHomeRival ? 'home' : 'away';
+      // 🎬 Partido con el reloj de 24 leído del vídeo → datos exactos y nada de estimación en este partido
+      const vc = m.videoActions && Array.isArray(m.videoActions.clips) ? m.videoActions.clips.filter(c => c && c.s === rivalSide && /^T[23]_(OK|FALLO)$/.test(c.tp) && Number.isFinite(c.s24) && c.s24 >= 0 && c.s24 <= 24) : [];
+      if (vc.length) { src.exactM++; vc.forEach(c => { const s24 = Math.round(c.s24); add(24 - s24, s24, /_OK$/.test(c.tp), true); exactX[24 - s24].push({ m, c }); }); return; }
+      const est0 = src.est;
       let sortedMoves = [];
 
       // 1. Priorizamos movimientos FCBQ si existen
@@ -23559,11 +23714,7 @@ function _analyzePossessionClocks(matches, rivalTeam) {
               if (elapsed < 0 || elapsed > maxClock + 2) return;
               const mappedElapsed = Math.max(0, Math.min(24, secondChance ? elapsed + 10 : elapsed));
               const bucket = Math.min(24, Math.max(1, Math.floor(mappedElapsed)));
-              histogram[bucket]++;
-              const shotClock = 24 - mappedElapsed;
-              const zone = shotClock >= 14 ? '24-14' : shotClock >= 5 ? '14-5' : '5-0';
-              statsByZone[zone].att++;
-              if (isMade(mv.text)) statsByZone[zone].made++;
+              add(bucket, 24 - mappedElapsed, isMade(mv.text), false);
             };
 
       sortedMoves.forEach(mv => {
@@ -23608,9 +23759,10 @@ function _analyzePossessionClocks(matches, rivalTeam) {
           pendingMiss = null;
         }
       });
+      if (src.est > est0) src.estM++;
     });
   } catch (error) { console.error("Error reloj:", error); }
-  return { statsByZone, histogram };
+  return { statsByZone, histogram, madeH, exactH, exactX, src };
 }
 function _renderScoutPossessionClocksSeguro() {
   const container = document.getElementById('sc-possession-clock');
@@ -23630,7 +23782,7 @@ function _renderScoutPossessionClocksSeguro() {
   const totalAtt = z['24-14'].att + z['14-5'].att + z['5-0'].att;
 
   if (!totalAtt) {
-    container.innerHTML = `<div class="card" style="margin-bottom:10px"><div class="ct">⏱️ Distribución de tiro por segundos de posesión</div><div class="empty">Sin datos exactos de posesión para esta temporada.</div></div>`;
+    container.innerHTML = `<div class="card" style="margin-bottom:10px"><div class="ct">⏱️ Distribución de tiro por segundos de posesión</div><div class="empty">Todavía no hay tiros con la posesión localizada (ni del vídeo ni del acta).</div></div>`;
     return;
   }
 
@@ -23649,62 +23801,46 @@ function _renderScoutPossessionClocksSeguro() {
       </div>`;
   };
 
-  // Gráfico Derecho con Eje Y
-  const maxC = Math.max(...data.histogram.slice(0, 24), 1);
-  const midC = Math.round(maxC / 2);
-  const W = 360, H = 100;
-  const marginLeft = 28, marginBottom = 15;
-  const gW = W - marginLeft, gH = H - marginBottom;
-  
-  const barsHtml = data.histogram.slice(0, 24).map((val, i) => {
-      const barH = (val / maxC) * gH;
-      const barW = (gW / 24) - 1.5;
-      const x = marginLeft + i * (gW / 24) + 0.75;
-      const y = gH - barH;
-      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1.5" fill="var(--ac)" opacity="${val > 0 ? '0.95' : '0.05'}" />
-              <rect x="${x}" y="${y}" width="${barW}" height="2" fill="var(--nv)" opacity="${val > 0 ? '1' : '0'}" />`; 
-  }).join('');
+  // Gráfico derecho: segundo 0–24 de la posesión; color = acierto en ese segundo (claro = poco, oscuro = mucho).
+  // Partidos con el reloj leído del vídeo → exacto; el resto → estimado con el acta. Se suman.
+  const Hh = data.histogram, mx = Math.max(...Hh, 1), top = mx <= 4 ? mx : Math.ceil(mx / 2) * 2, S0 = data.src;
+  const bars = Hh.map((n, s) => `<button type="button" class="cz-bar${n ? '' : ' z'}${data.exactH[s] ? ' vx' : ''}" data-s="${s}"${n ? '' : ' tabindex="-1" aria-hidden="true"'} aria-label="Segundo ${s}: ${n} tiros, ${data.madeH[s]} dentro"><i style="height:${n ? Math.max(4, 100 * n / top) : 0}%;background:${_acClkCol(n ? data.madeH[s] / n : null)}">${n === mx ? `<b>${mx}</b>` : ''}</i></button>`).join('');
+  const grid = [top, top / 2].filter((v, k) => k === 0 || Number.isInteger(v)).map(v => `<div class="cz-gl" style="bottom:${100 * v / top}%"><span>${v}</span></div>`).join('');
+  const ZB = [[0, 10, 'Rápido'], [11, 19, 'Sistema'], [20, 24, 'Apuro']];   // reloj 24–14 · 13–5 · 4–0
+  const pl = (n, w) => n + ' ' + w + (n !== 1 ? 's' : '');
+  const srcHtml = `<div class="psc-src">${S0.exactM ? `<span class="ex">🎬 ${pl(S0.exactM, 'partido')} con vídeo: exacto · ${S0.exact} tiros</span>` : ''}${S0.estM ? `<span>📊 ${pl(S0.estM, 'partido')} sin vídeo: estimado con el acta · ${S0.est} tiros</span>` : ''}</div>`;
 
   container.innerHTML = `
     <div class="card" style="margin-bottom:10px">
       <div class="ct">⏱️ Distribución de tiro por segundos de posesión</div>
-      <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Analiza en qué segundo exacto de la posesión gasta los tiros el rival.</div>
-      
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px">En qué segundo de la posesión tira el rival (0 = el reloj marca 24).</div>
+      ${srcHtml}
       <div style="display:flex; gap:35px; align-items:center; flex-wrap:wrap;">
-        
-        <!-- Izquierda: Resumen de Rango, Volumen y Acierto -->
-        <div style="flex: 1.5; min-width: 320px;">
+        <div style="flex: 1.5; min-width: min(320px, 100%);">
           ${renderBar('24-14', '24s – 14s (Transición / Rápido)')}
           ${renderBar('14-5', '14s – 5s (Desarrollo / Sistema)')}
           ${renderBar('5-0', '5s – 0s (Clutch / Apuro)')}
         </div>
-        
-        <!-- Derecha: Histograma 24 barras con Eje Y -->
-        <div style="flex: 1; min-width: 250px;">
-          <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block">
-            <!-- Guías Horizontales -->
-            <line x1="${marginLeft}" y1="1" x2="${W}" y2="1" stroke="var(--bd)" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>
-            <line x1="${marginLeft}" y1="${gH/2}" x2="${W}" y2="${gH/2}" stroke="var(--bd)" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>
-            
-            ${barsHtml}
-            
-            <!-- Ejes Base -->
-            <line x1="${marginLeft}" y1="${gH}" x2="${W}" y2="${gH}" stroke="var(--bd)" stroke-width="1.5"/>
-            
-            <!-- Textos Eje Y -->
-            <text x="${marginLeft-4}" y="5" font-size="9" fill="var(--t3)" text-anchor="end" font-weight="700">${maxC}</text>
-            <text x="${marginLeft-4}" y="${gH/2 + 3}" font-size="9" fill="var(--t3)" text-anchor="end" font-weight="700">${midC}</text>
-            <text x="${marginLeft-4}" y="${gH}" font-size="9" fill="var(--t3)" text-anchor="end" font-weight="700">0</text>
-            
-            <!-- Textos Eje X -->
-            <text x="${marginLeft}" y="${H-2}" font-size="9" fill="var(--t3)" font-weight="800">Inicio (0s)</text>
-            <text x="${marginLeft + gW/2}" y="${H-2}" font-size="9" fill="var(--t3)" text-anchor="middle" font-weight="800">12s</text>
-            <text x="${W}" y="${H-2}" font-size="9" fill="var(--t3)" text-anchor="end" font-weight="800">24s</text>
-          </svg>
+        <div class="psc-ch" style="flex: 1; min-width: min(280px, 100%);">
+          <div class="cz-plot psc-plot"><div class="cz-grid">${grid}</div><div class="cz-bands">${ZB.map(([a, b], k) => `<div class="cz-band b${k}" style="grid-column:${a + 1}/${b + 2}"></div>`).join('')}</div><div class="cz-bars">${bars}</div><div class="cz-tip" hidden></div></div>
+          <div class="cz-ax">${Hh.map((_, s) => `<span>${s % 4 === 0 ? s : ''}</span>`).join('')}</div>
+          <div class="cz-zr">${ZB.map(([a, b, l], k) => `<span class="b${k}" style="grid-column:${a + 1}/${b + 2}">${l}</span>`).join('')}</div>
+          <div class="psc-lg"><small>Acierto</small><span>${AC_CLK_R.map((c, k) => `<i style="background:${c}" title="${AC_CLK_RL[k]}"></i>`).join('')}</span><small>0 → 100%</small>${S0.exact ? '<small class="psc-vx">· ▶ toca una barra para ver los tiros del vídeo</small>' : ''}</div>
         </div>
-
       </div>
     </div>`;
+  // al pasar por una barra: ficha con el detalle; al tocarla, los tiros de ese segundo que hay en vídeo
+  const plot = container.querySelector('.psc-plot'), tip = plot.querySelector('.cz-tip');
+  const show = b => { const s = +b.dataset.s, n = Hh[s], k = data.madeH[s], ex = data.exactH[s];
+    plot.classList.add('hov'); plot.querySelectorAll('.cz-bar').forEach(x => x.classList.toggle('on', x === b));
+    tip.innerHTML = `<b>Segundo ${s}</b> <small>reloj en ${24 - s}</small><div><i style="background:${_acClkCol(k / n)}"></i>${pl(n, 'tiro')} · ${k} dentro · <b>${Math.round(100 * k / n)}%</b></div><span class="psc-ts">${ex === n ? '🎬 todos del vídeo' : ex ? `🎬 ${ex} del vídeo · 📊 ${n - ex} estimado${n - ex !== 1 ? 's' : ''}` : '📊 estimado con el acta'}</span>${ex ? '<em>▶ Toca para ver los del vídeo</em>' : ''}`;
+    tip.hidden = false; const r = plot.getBoundingClientRect(), br = b.getBoundingClientRect(), w = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(r.width - w, br.left - r.left + br.width / 2 - w / 2)) + 'px'; };
+  const hide = () => { plot.classList.remove('hov'); tip.hidden = true; plot.querySelectorAll('.cz-bar.on').forEach(x => x.classList.remove('on')); };
+  plot.querySelectorAll('.cz-bar:not(.z)').forEach(b => { b.onmouseenter = () => show(b); b.onfocus = () => show(b); b.onblur = hide;
+    b.onclick = () => { const s = +b.dataset.s, L = data.exactX[s].map(({ m, c }) => { try { return m.videoActions.yt ? _acList(m)[m.videoActions.clips.indexOf(c)] : null; } catch (e) { return null; } }).filter(Boolean);
+      if (L.length) acPlay(L.sort((a, b2) => a.t - b2.t), 0, `${currentRival} · segundo ${s} de posesión (reloj en ${24 - s})`); else show(b); }; });
+  plot.onmouseleave = hide;
 }
 
 // Añadir jugada al historial del directo de forma ultra-rápida

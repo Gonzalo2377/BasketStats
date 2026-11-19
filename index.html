@@ -3958,6 +3958,13 @@ body.player-mode .cx-card{display:none!important}
 .tp-more{margin-top:6px;font-size:11.5px}
 .tp-more summary{cursor:pointer;font-weight:800;color:#475569;margin-bottom:4px}
 
+.tp-th{margin:14px 0 6px;font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:.04em}
+.tp-tir{display:block;width:100%;height:auto;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+.tp-tnl{display:grid;gap:5px;margin-top:6px}
+.tp-tni{display:flex;align-items:center;gap:8px;font-size:11px;color:#334155}
+.tp-tni span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tp-tni input{width:130px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 7px;font-size:12px;font-weight:800;text-transform:uppercase;color:#e11d2a}
+
 /* ── 🎬 Vídeo de scouting (Próximo rival) ── */
 .scv{margin-bottom:14px;border-left:4px solid #e8402a}
 .scv-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -4387,6 +4394,35 @@ body.vp-fs-on .vp-fs-out{display:inline}
 .vm-box .ac-seg button:not(.vm-x):disabled{color:#94a3b8;background:#f8fafc;cursor:default}
 .al-ov .ac-row{padding:4px 8px}
 .al-ov .ac-sum{margin:10px 0 4px}
+
+/* v88: imagen de emparejamientos */
+.mu-imgb{margin-left:auto;background:#1f4e9e;color:#fff;border:0;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:800;cursor:pointer;text-transform:none;letter-spacing:0}
+.mu-imgb:hover{filter:brightness(1.1)}
+.mui-box{max-width:860px}
+.mui-f{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 10px}
+.mui-f label{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:900;text-transform:uppercase;color:#64748b;flex:1 1 120px}
+.mui-f input{height:32px;border:1px solid #cbd5e1;border-radius:8px;padding:0 9px;font-size:13px;font-weight:800;text-transform:uppercase;color:#0f172a}
+.mui-cv{display:block;width:100%;height:auto;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+.mui-act{display:flex;gap:6px;margin:8px 0 12px}
+.vm-box .mui-act button:not(.vm-x){border:1.5px solid #0f172a;background:#fff;color:#0f172a;border-radius:999px;padding:6px 13px}
+.vm-box .mui-act .mui-dl:not(.vm-x){background:#0f172a;color:#fff}
+.mui-box h5 small{font-weight:600;color:#64748b;text-transform:none;letter-spacing:0}
+.mui-rl{display:grid;gap:4px}
+.mui-r{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px}
+.mui-r:hover{background:#f8fafc}
+.mui-n{flex:1;min-width:0;font-size:12.5px;font-weight:800;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mui-n.red{color:#e11d2a}.mui-n small{color:#94a3b8;font-weight:600}
+.mui-seg{display:inline-flex;border:1px solid #d0d5dd;border-radius:8px;overflow:hidden}
+.vm-box .mui-seg button:not(.vm-x){background:#fff;color:#334155;border-radius:0;padding:4px 10px;font-size:12px}
+.vm-box .mui-seg button+button:not(.vm-x){border-left:1px solid #d0d5dd}
+.vm-box .mui-seg button.on:not(.vm-x){background:#0f172a;color:#fff}
+.vm-box .mui-red:not(.vm-x){background:#fff;border:1px solid #d0d5dd;padding:3px 7px;opacity:.35}
+.vm-box .mui-red.on:not(.vm-x){opacity:1;border-color:#e11d2a;background:#fef2f2}
+.mui-ap{margin-top:10px}.mui-ap summary{cursor:pointer;font-size:12px;font-weight:800;color:#1f4e9e}
+.mui-apl{display:grid;gap:4px;margin-top:6px}
+.mui-apl label{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#334155}
+.mui-apl label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mui-apl input{width:130px;height:28px;border:1px solid #cbd5e1;border-radius:6px;padding:0 7px;font-size:12px;font-weight:800;text-transform:uppercase;color:#1f4e9e}
 
 </style>
 </head>
@@ -16204,8 +16240,9 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
     window._muRivOrder = rivList.map(r => r.name);
     window._muOurByMin = [...ourList].sort((a, b) => (b.games ? b.min / b.games : 0) - (a.games ? a.min / a.games : 0)).map(o => o.name);
   }
+  if (!_playerMode) window._muImgCtx = { ourList, rivList, ordered, rival, myTeamName };
   return `<div class="card" style="margin-bottom:16px">
-    <div class="ct" style="font-size:13px;margin-bottom:10px">⚔️ Emparejamientos defensivos <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none">— a quién defiende cada jugador de ${_esc(myTeamName)}, por orden</span></div>
+    <div class="ct" style="font-size:13px;margin-bottom:10px">⚔️ Emparejamientos defensivos <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none">— a quién defiende cada jugador de ${_esc(myTeamName)}, por orden</span>${!_playerMode && groups.length ? '<button type="button" class="mu-imgb" onclick="window.muImage()" title="Crea la imagen «PARTIT Jx CLARET - RIVAL» para el tríptico">🖼️ Imagen para el tríptico</button>' : ''}</div>
     ${cards}${editor}</div>`;
 }
 // Mapas del rival dentro de un emparejamiento
@@ -16251,6 +16288,87 @@ window.saveMatchups = function () {
   delete S.nextMatch.matchupsByRival; delete S.nextMatch.matchups;
   svL(); renderCompare();
   if (typeof toast === 'function') toast('✅ Emparejamientos guardados', 'ok');
+};
+
+// 🖼️ Imagen de los emparejamientos para el tríptico (solo staff): «PARTIT Jx CLARET - RIVAL», bloques B / A / P con los rivales
+// (los peligrosos en rojo) y, a la derecha, en azul, quién defiende a cada uno por orden de prioridad (con los apodos del vestuario).
+// La posición (B/A/P), los que van en rojo, la jornada y el nombre corto del rival se guardan con el próximo partido.
+const _MU_APODOS = { 'albert sitjes lozano': 'SITJES', 'hector gimenez anton': 'HECTOR', 'oriol aby tascon marquie': 'ORIOL', 'adria torroja corbella': 'TORROJA', 'sergi carrasco leon': 'CARRA',
+  'javier vicente nieto': 'JAVI', 'adria ordobas bengado': 'ORDO', 'jordi poch campabadal': 'POCH', 'sowkin shetty': 'SOW', 'gonzalo fernando badal': 'GONZALO', 'armak karimi gonzalez': 'ARMAK', 'marti gomez garcia': 'MARTI' };
+const _muNk = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+const _muApGet = () => { try { return JSON.parse(localStorage.getItem('ba_mu_apodos') || '{}'); } catch (e) { return {}; } };
+const _muApodo = n => _muApGet()[_muNk(n)] || _MU_APODOS[_muNk(n)] || String(n || '').trim().split(/\s+/)[0].toUpperCase();
+// posición sugerida por cómo tira: mucho triple → A, casi nada de triple y bastante de 2 → P, el resto → B
+const _muPosGuess = r => { const a = (r.t2a || 0) + (r.t3a || 0), g = r.games || 1, r3 = a ? (r.t3a || 0) / a : 0; return r3 >= 0.4 ? 'A' : (r3 < 0.12 && (r.t2a || 0) / g >= 2 ? 'P' : 'B'); };
+function _muImgData() {
+  const C = window._muImgCtx; if (!C) return null; const nm = S.nextMatch || {}; const st = nm.muImg || {};
+  const byName = {}; C.rivList.forEach(r => byName[r.name] = r);
+  const ppg = r => r && r.games ? r.pts / r.games : 0;
+  // rivales con algún defensor: sus defensores por prioridad (posición en la lista de cada jugador nuestro)
+  const def = {}; Object.entries(C.ordered || {}).forEach(([our, list]) => (list || []).forEach((rv, k) => { (def[rv] = def[rv] || []).push({ our, k }); }));
+  const rivs = Object.keys(def).filter(n => byName[n]).map(n => byName[n]);
+  const top = rivs.slice().sort((a, b) => ppg(b) - ppg(a)).slice(0, 3).filter(r => ppg(r) >= 8).map(r => r.name);
+  const red = n => st.red && n in st.red ? !!st.red[n] : top.includes(n);
+  const pos = r => (st.grp && st.grp[r.name] != null ? st.grp[r.name] : _muPosGuess(r));
+  const ourMin = {}; (C.ourList || []).forEach(o => ourMin[o.name] = o.games ? o.min / o.games : 0);
+  const groups = ['B', 'A', 'P'].map(g => ({ g, rows: rivs.filter(r => pos(r) === g).sort((a, b) => (red(b.name) - red(a.name)) || ppg(b) - ppg(a))
+    .map(r => ({ r, red: red(r.name), defs: def[r.name].sort((x, y) => x.k - y.k || (ourMin[y.our] || 0) - (ourMin[x.our] || 0)).map(x => _muApodo(x.our)) })) })).filter(G => G.rows.length);
+  const short = n => String(n || '').toUpperCase().replace(/^(U\.?\s?E\.?|C\.?\s?B\.?|C\.?\s?E\.?\s?B?\.?|A\.?\s?E\.?|B\.?\s?C\.?|F\.?\s?C\.?|CEB|UE|CB|CE|AE|BC|FC|CLUB BASQUET|CLUB BÀSQUET)\s+/i, '').split(/\s+/)[0];
+  return { st, rivs, red, pos, groups, j: st.j != null ? st.j : (nm.round || nm.jornada || ''), tit: st.tit || short(C.rival), my: st.my || 'CLARET' };
+}
+function _muDraw(cv, D) {
+  const S2 = 2, W = 1206, RH = 35, TOP = 100, GAP = 20; const rowsOf = G => Math.max(G.rows.length, G.rows.filter(x => x.defs.length).length, 1);
+  const H = TOP + D.groups.reduce((s, G) => s + rowsOf(G) * RH + 40 + GAP, 0) + 10;
+  cv.width = W * S2; cv.height = H * S2; const c = cv.getContext('2d'); c.setTransform(S2, 0, 0, S2, 0, 0);
+  c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
+  const FT = (sz, w) => `${w || 800} ${sz}px Calibri, "Segoe UI", Arial, sans-serif`, BLUE = '#1f4e9e', RED = '#e11d2a', INK = '#111';
+  const rr = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+  const tit = `PARTIT ${D.j ? 'J' + D.j + ' ' : ''}${D.my} - ${D.tit}`.toUpperCase();
+  c.fillStyle = INK; c.font = FT(40, 900); c.textAlign = 'center'; c.fillText(tit, W / 2, 62); const tw = c.measureText(tit).width; c.fillRect(W / 2 - tw / 2, 72, tw, 4);
+  let y = TOP;
+  D.groups.forEach(G => { const n = rowsOf(G), h = n * RH + 40;
+    c.fillStyle = INK; c.font = FT(36, 900); c.textAlign = 'center'; c.fillText(G.g, 58, y + h / 2 + 13);
+    c.lineWidth = 3; c.strokeStyle = INK; rr(103, y, 522, h, 22); c.stroke();
+    c.textAlign = 'left'; G.rows.forEach((x, i) => { c.fillStyle = x.red ? RED : INK; c.font = FT(23, 800); const t = `#${x.r.dorsal ?? ''} ${_shortName(x.r.name)}`.toUpperCase(); c.fillText(t, 125, y + 20 + RH * i + 25); });
+    const lines = G.rows.filter(x => x.defs.length).map(x => x.defs.join(' + ')), lh = lines.length * RH + 40, ly = y + (h - lh) / 2;
+    c.strokeStyle = BLUE; rr(646, ly, 524, lh, 22); c.stroke();
+    c.fillStyle = BLUE; c.font = FT(23, 800); c.textAlign = 'center'; lines.forEach((t, i) => c.fillText(t.toUpperCase(), 908, ly + 20 + RH * i + 25));
+    y += h + GAP; });
+}
+window.muImage = function () {
+  if (_playerMode) return; const D0 = _muImgData(); if (!D0) return;
+  if (!D0.rivs.length) { if (typeof toast === 'function') toast('Primero guarda algún emparejamiento', 'err'); return; }
+  document.querySelectorAll('.mui-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov mui-ov';
+  ov.innerHTML = `<div class="vm-box mui-box" role="dialog" aria-label="Imagen de los emparejamientos"><header><b>🖼️ Emparejamientos para el tríptico</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header><div class="mui-b"></div></div>`;
+  document.body.appendChild(ov);
+  const save = () => { if (!S.nextMatch) return; svL(); };
+  const st = () => { const nm = S.nextMatch; nm.muImg = nm.muImg || {}; nm.muImg.grp = nm.muImg.grp || {}; nm.muImg.red = nm.muImg.red || {}; return nm.muImg; };
+  const draw = () => { const D = _muImgData(), b = ov.querySelector('.mui-b');
+    b.innerHTML = `<div class="mui-f"><label>Jornada<input data-k="j" value="${_esc(D.j)}" placeholder="7"></label><label>Nosotros<input data-k="my" value="${_esc(D.my)}"></label><label>Rival<input data-k="tit" value="${_esc(D.tit)}"></label></div>
+      <canvas class="mui-cv" aria-label="Imagen de los emparejamientos"></canvas>
+      <div class="mui-act"><button type="button" class="mui-dl">⬇️ Descargar imagen</button><button type="button" class="mui-cp">📋 Copiar imagen</button></div>
+      <h5>Rivales <small>· posición y quién va en rojo (los peligrosos)</small></h5>
+      <div class="mui-rl">${D.rivs.slice().sort((a, b) => ['B', 'A', 'P', ''].indexOf(D.pos(a)) - ['B', 'A', 'P', ''].indexOf(D.pos(b)) || (b.games ? b.pts / b.games : 0) - (a.games ? a.pts / a.games : 0)).map(r => `<div class="mui-r">
+        <span class="mui-n${D.red(r.name) ? ' red' : ''}">#${_esc(r.dorsal ?? '')} ${_esc(_shortName(r.name))}<small>${r.games ? ' · ' + (r.pts / r.games).toFixed(1) + ' pts' : ''}</small></span>
+        <span class="mui-seg">${['B', 'A', 'P', ''].map(g => `<button type="button" data-rv="${_esc(r.name)}" data-g="${g}" class="${D.pos(r) === g ? 'on' : ''}" title="${g ? '' : 'No sale en la imagen'}">${g || '✕'}</button>`).join('')}</span>
+        <button type="button" class="mui-red${D.red(r.name) ? ' on' : ''}" data-red="${_esc(r.name)}" title="En rojo: jugador peligroso">🔴</button></div>`).join('')}</div>
+      <details class="mui-ap"><summary>✏️ Apodos de nuestros jugadores</summary><div class="mui-apl">${(window._muImgCtx.ourList || []).filter(o => (window._muImgCtx.ordered[o.name] || []).length).map(o => `<label><span>#${_esc(o.dorsal ?? '')} ${_esc(o.name)}</span><input data-ap="${_esc(o.name)}" value="${_esc(_muApodo(o.name))}"></label>`).join('')}</div></details>`;
+    _muDraw(b.querySelector('.mui-cv'), D); };
+  draw();
+  ov.addEventListener('click', e => {
+    if (e.target === ov || e.target.closest('.vm-x')) { ov.remove(); return; }
+    const g = e.target.closest('[data-g]'); if (g) { st().grp[g.dataset.rv] = g.dataset.g; save(); draw(); return; }
+    const rd = e.target.closest('[data-red]'); if (rd) { const D = _muImgData(); st().red[rd.dataset.red] = D.red(rd.dataset.red) ? 0 : 1; save(); draw(); return; }
+    const cv = ov.querySelector('.mui-cv'), D = _muImgData(), fn = `emparejamientos_${String(D.tit || 'rival').replace(/[^\w]+/g, '_')}.png`;
+    if (e.target.closest('.mui-dl')) { const a = document.createElement('a'); a.download = fn; a.href = cv.toDataURL('image/png'); a.click(); return; }
+    const cp = e.target.closest('.mui-cp'); if (cp) cv.toBlob(bl => { try { navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })]).then(() => { cp.textContent = '✔ Copiada'; setTimeout(() => cp.textContent = '📋 Copiar imagen', 1200); }, () => { cp.textContent = 'Usa «Descargar»'; }); } catch (er) { cp.textContent = 'Usa «Descargar»'; } }, 'image/png');
+  });
+  ov.addEventListener('change', e => {
+    const k = e.target.dataset.k; if (k) { st()[k] = e.target.value.trim(); save(); draw(); return; }
+    const ap = e.target.dataset.ap; if (ap) { const o = _muApGet(), v = e.target.value.trim().toUpperCase(); if (v) o[_muNk(ap)] = v; else delete o[_muNk(ap)]; try { localStorage.setItem('ba_mu_apodos', JSON.stringify(o)); } catch (er) { } const det = ov.querySelector('.mui-ap'); const open = det && det.open; draw(); if (open) ov.querySelector('.mui-ap').open = true; }
+  });
+  const onKey = e => { if (e.key === 'Escape' && document.body.contains(ov)) { ov.remove(); document.removeEventListener('keydown', onKey); } }; document.addEventListener('keydown', onKey);
 };
 
 function closePlayerProfile() {
@@ -31265,7 +31383,12 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const L = Object.values(pl).filter(p => p[mk[1]] >= minA).map(p => ({ p, m: p[mk[0]], a: p[mk[1]], pc: p[mk[0]] / p[mk[1]] }));
     const best = L.slice().sort((x, y) => wil(y.m, y.a, true) - wil(x.m, x.a, true)).slice(0, 3);
     const worst = L.filter(x => !best.includes(x)).sort((x, y) => wil(x.m, x.a, false) - wil(y.m, y.a, false)).slice(0, 2);
-    return { best, worst, minA };
+    // mucho volumen «por el medio»: ni de los 3 mejores ni de los peores, pero de los que más tiran → va el primero de la flecha
+    const med = L.map(x => x.a).sort((p, q) => p - q)[Math.floor(L.length / 2)] || 0;
+    const vol = L.filter(x => !best.includes(x) && !worst.includes(x)).sort((x, y) => y.a - x.a)[0];
+    const big = vol && vol.a >= Math.max(minA * 2, med * 1.5) && vol.a >= Math.max(...L.map(x => x.a)) * 0.6 ? vol : null;
+    if (big) big.vol = true;
+    return { best, worst: big ? [big, ...worst] : worst, minA };
   }
 
   // ── 2) estadísticas del equipo ──
@@ -31456,6 +31579,42 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     });
   }
 
+  // ── imagen «TIR 1P / TIR 3P» como la del tríptico: 1-2-3 en cuadros, flecha roja y debajo los peores ──
+  const TN_KEY = 'ba_tir_names';
+  const tnGet = () => { try { return JSON.parse(localStorage.getItem(TN_KEY) || '{}'); } catch (e) { return {}; } };
+  const tnSet = o => { try { localStorage.setItem(TN_KEY, JSON.stringify(o)); } catch (e) { } };
+  // nombre en la imagen: el que haya puesto el staff o, si no, el primer apellido (o el nombre si solo hay uno)
+  const PART = new Set(['DE', 'DEL', 'LA', 'LAS', 'LOS', 'Y', 'I', 'DA', 'DOS', 'DI', 'VAN', 'VON']);   // «DE ANDRES», no «DE»
+  const tirName = p => { const o = tnGet()[p.k]; if (o) return o; const w = String(p.name || '').trim().toUpperCase().split(/\s+/); if (w.length < 2) return w[0] || '';
+    const out = []; let i = 1; while (i < w.length - 1 && PART.has(w[i])) out.push(w[i++]); out.push(w[i]); return out.join(' '); };
+  function drawTir(cv, tl, t3) {
+    const S2 = 2, colW = 560, rowH = 66, pad = 26;
+    const nB = Math.max(tl.best.length, t3.best.length, 1), nW = Math.max(tl.worst.length, t3.worst.length);
+    const W = colW * 2 + pad * 2, H = pad * 2 + nB * rowH + (nW ? 30 + nW * 40 : 0);
+    cv.width = W * S2; cv.height = H * S2; const c = cv.getContext('2d'); c.setTransform(S2, 0, 0, S2, 0, 0);
+    c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
+    const RED = '#e11d2a', INK = '#111', FT = (w, sz) => `${w} ${sz}px "Segoe UI", Calibri, Arial, sans-serif`;
+    const col = (x0, lab, s) => {
+      // etiqueta vertical
+      c.save(); c.translate(x0 + 18, pad + (nB * rowH) / 2 + 10); c.rotate(-Math.PI / 2); c.fillStyle = INK; c.font = FT(900, 24); c.textAlign = 'center'; c.fillText(lab, 0, 0); c.restore();
+      const bx = x0 + 50, nx = x0 + 120, sx = x0 + 360;
+      s.best.forEach((x, i) => { const y = pad + i * rowH;
+        c.lineWidth = 3; c.strokeStyle = INK; c.fillStyle = '#fff'; c.fillRect(bx, y + 6, 44, 44); c.strokeRect(bx, y + 6, 44, 44);
+        c.fillStyle = INK; c.font = FT(900, 24); c.textAlign = 'center'; c.fillText(String(i + 1), bx + 22, y + 37);
+        c.textAlign = 'left'; c.fillStyle = RED; c.font = FT(900, 24); c.fillText(`${tirName(x.p)}${x.p.dorsal ? ' #' + x.p.dorsal : ''}`, nx, y + 37);
+        c.fillStyle = INK; c.font = FT(800, 24); c.fillText(`${x.m}/${x.a} ${P0(x.pc)}`, sx, y + 37); });
+      if (s.worst.length) {
+        // flecha roja curva desde el último cuadro hacia los peores
+        const ax = bx + 22, ay = pad + nB * rowH + 4, ey = ay + 26 + (s.worst.length - 1) * 20;
+        c.strokeStyle = RED; c.lineWidth = 3; c.beginPath(); c.moveTo(ax, ay - 6); c.quadraticCurveTo(ax - 4, ey - 6, ax + 22, ey); c.stroke();
+        c.fillStyle = RED; c.beginPath(); c.moveTo(ax + 26, ey); c.lineTo(ax + 14, ey - 8); c.lineTo(ax + 15, ey + 7); c.closePath(); c.fill();
+        s.worst.forEach((x, i) => { const y = pad + nB * rowH + 30 + i * 40;
+          c.textAlign = 'left'; c.fillStyle = RED; c.font = FT(900, 21); c.fillText(`${tirName(x.p)}${x.p.dorsal ? ' #' + x.p.dorsal : ''}`, nx, y);
+          c.fillStyle = INK; c.font = FT(800, 21); c.fillText(`${x.m}/${x.a} ${P0(x.pc)}`, sx, y); });
+      }
+    };
+    col(pad, 'TIR 1P', tl); col(pad + colW, 'TIR 3P', t3);
+  }
   // ── la ventana ──
   function line(txt, cls) { return `<div class="tp-l ${cls || ''}"><span>${esc(txt)}</span><button type="button" class="tp-cp" title="Copiar" data-t="${esc(txt)}">📋</button></div>`; }
   window.__baTriptych = (ctx, rival, my) => {
@@ -31487,7 +31646,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
 
     const shoot = (lab, s, kind) => `<div class="tp-sh"><h5>${lab} <small>mín. ${s.minA} intentos</small></h5>
       ${s.best.length ? s.best.map((x, i) => line(`${i + 1}. ${tag(x.p)}  ${ma(x.m, x.a)}  ${P0(x.pc)}`, 'g')).join('') : '<p class="tp-none">Nadie llega al mínimo de intentos todavía.</p>'}
-      ${s.worst.length ? `<div class="tp-worst">↓ el que peor ${kind}</div>${s.worst.map(x => line(`${tag(x.p)}  ${ma(x.m, x.a)}  ${P0(x.pc)}`, 'b')).join('')}` : ''}</div>`;
+      ${s.worst.length ? `<div class="tp-worst">↓ el que peor ${kind}</div>${s.worst.map(x => line(`${tag(x.p)}  ${ma(x.m, x.a)}  ${P0(x.pc)}${x.vol ? '  (mucho volumen)' : ''}`, 'b')).join('')}` : ''}</div>`;
     const stRows = stats.map(s => line(`${s.star ? '⭐ ' : ''}${s.txt}`, s.star ? (s.good ? 'g' : 'b') : '')).join('');
     const extra = [];
     if (bi) extra.push(line(`Titulares ${Math.round(bi.pct)}% de los puntos · suplentes ${Math.round(100 - bi.pct)}%${bi.avg != null ? ` · media liga ${Math.round(bi.avg)}% titulares (${bi.pct > bi.avg ? 'dependen más de los titulares' : 'reparten más al banquillo'})` : ''}`, bi.avg != null && Math.abs(bi.pct - bi.avg) >= 8 ? 'g' : ''));
@@ -31559,7 +31718,11 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
         <section class="tp-col"><h4>1 · Tiradores</h4>
           ${both ? `<div class="tp-sv"><button type="button" class="on" data-sv="0">${esc(curLab)}</button><button type="button" data-sv="1">Acumulado total</button></div>` : ''}
           <div data-svp="0">${shoot('TIR 1P · tiro libre', tl, 'tira los libres')}${shoot('TIR 3P · triple', t3, 'tira de tres')}</div>
-          ${both ? `<div data-svp="1" hidden><p class="tp-sub">Acumulado ${esc(both.lab)} · solo jugadores que siguen en el equipo.</p>${shoot('TIR 1P · tiro libre', both.tl, 'tira los libres')}${shoot('TIR 3P · triple', both.t3, 'tira de tres')}</div>` : ''}</section>
+          ${both ? `<div data-svp="1" hidden><p class="tp-sub">Acumulado ${esc(both.lab)} · solo jugadores que siguen en el equipo.</p>${shoot('TIR 1P · tiro libre', both.tl, 'tira los libres')}${shoot('TIR 3P · triple', both.t3, 'tira de tres')}</div>` : ''}
+          <h5 class="tp-th">🖼️ Imagen para el tríptico</h5>
+          <canvas class="tp-tir" aria-label="Imagen de tiro libre y triple"></canvas>
+          <div class="tp-ib"><button type="button" class="tp-dl" data-img="tir">⬇️ Descargar imagen</button><button type="button" class="tp-ci" data-img="tir">📋 Copiar imagen</button></div>
+          <details class="tp-more tp-tn"><summary>✏️ Nombres en la imagen</summary><p class="tp-sub">Como los llamáis vosotros (MOSES, ROGER…). Se recuerda para la próxima vez.</p><div class="tp-tnl"></div></details></section>
         <section class="tp-col"><h4>2 · Estadísticas del equipo</h4>
           ${cand.length ? `<p class="tp-sub">Lo que más se sale de lo normal en la liga, ya elegido. Toca una etiqueta para quitarla o añadirla (máx. 4).</p>
           <div class="tp-chips">${order.map(i => `<button type="button" data-ci="${i}"${pick.includes(i) ? ' class="on"' : ''}>${esc(cand[i].chip)}</button>`).join('')}</div>
@@ -31572,17 +31735,27 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     document.body.appendChild(ov);
     const redraw = () => { const cv = ov.querySelector('.tp-img'); if (cv) drawCards(cv, pick.map(i => cand[i]), curLab); };
     redraw();
+    // imagen de tiradores: la de la temporada o la del acumulado, según lo que esté elegido arriba
+    let svCur = '0';
+    const tirSet = () => svCur === '1' && both ? both : { tl, t3 };
+    const drawTirNow = () => { const cv = ov.querySelector('.tp-tir'); if (!cv) return; const d = tirSet(); drawTir(cv, d.tl, d.t3);
+      const ps = []; [...d.tl.best, ...d.tl.worst, ...d.t3.best, ...d.t3.worst].forEach(x => { if (!ps.includes(x.p)) ps.push(x.p); });
+      const box = ov.querySelector('.tp-tnl'); if (box) box.innerHTML = ps.map(p => `<label class="tp-tni"><span>${esc(p.name)}${p.dorsal ? ' #' + esc(p.dorsal) : ''}</span><input data-tk="${esc(p.k)}" value="${esc(tirName(p))}"></label>`).join(''); };
+    drawTirNow();
+    ov.addEventListener('input', e => { const i = e.target.closest('[data-tk]'); if (!i) return; const o = tnGet(); const v = i.value.trim().toUpperCase(); if (v) o[i.dataset.tk] = v; else delete o[i.dataset.tk]; tnSet(o);
+      const cv = ov.querySelector('.tp-tir'), d = tirSet(); if (cv) drawTir(cv, d.tl, d.t3); });
     const close = () => ov.remove();
     ov.addEventListener('click', e => {
       if (e.target === ov || e.target.closest('.tp-x')) return close();
       const sv = e.target.closest('[data-sv]');
-      if (sv) { ov.querySelectorAll('[data-sv]').forEach(x => x.classList.toggle('on', x === sv)); ov.querySelectorAll('[data-svp]').forEach(p => { p.hidden = p.dataset.svp !== sv.dataset.sv; }); return; }
+      if (sv) { ov.querySelectorAll('[data-sv]').forEach(x => x.classList.toggle('on', x === sv)); ov.querySelectorAll('[data-svp]').forEach(p => { p.hidden = p.dataset.svp !== sv.dataset.sv; }); svCur = sv.dataset.sv; drawTirNow(); return; }
       const ch = e.target.closest('[data-ci]');
       if (ch) { const i = +ch.dataset.ci; if (pick.includes(i)) pick = pick.filter(x => x !== i); else if (pick.length < 4) pick = [...pick, i]; else return;
         ov.querySelectorAll('[data-ci]').forEach(x => x.classList.toggle('on', pick.includes(+x.dataset.ci))); redraw(); return; }
-      if (e.target.closest('.tp-dl')) { const a = document.createElement('a'); a.download = `estadisticas_${short(rival).replace(/[^\w]+/g, '_')}.png`; a.href = ov.querySelector('.tp-img').toDataURL('image/png'); a.click(); return; }
+      const dlb = e.target.closest('.tp-dl');
+      if (dlb) { const tir = dlb.dataset.img === 'tir', a = document.createElement('a'); a.download = `${tir ? 'tiradores' : 'estadisticas'}_${short(rival).replace(/[^\w]+/g, '_')}.png`; a.href = ov.querySelector(tir ? '.tp-tir' : '.tp-img').toDataURL('image/png'); a.click(); return; }
       const cib = e.target.closest('.tp-ci');
-      if (cib) { ov.querySelector('.tp-img').toBlob(bl => { const ok = () => { cib.textContent = '✔ Copiada'; setTimeout(() => { cib.textContent = '📋 Copiar imagen'; }, 1200); };
+      if (cib) { ov.querySelector(cib.dataset.img === 'tir' ? '.tp-tir' : '.tp-img').toBlob(bl => { const ok = () => { cib.textContent = '✔ Copiada'; setTimeout(() => { cib.textContent = '📋 Copiar imagen'; }, 1200); };
         try { navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })]).then(ok, () => { cib.textContent = 'Usa «Descargar»'; }); } catch (er) { cib.textContent = 'Usa «Descargar»'; } }, 'image/png'); return; }
       const b = e.target.closest('.tp-cp, .tp-all'); if (!b) return;
       const t = b.classList.contains('tp-all') ? plain : b.dataset.t;

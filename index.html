@@ -23645,8 +23645,10 @@ function _analyzePossessionClocks(matches, rivalTeam) {
 
       const rivalSide = isHomeRival ? 'home' : 'away';
       // 🎬 Partido con el reloj de 24 leído del vídeo → datos exactos y nada de estimación en este partido
-      const vc = m.videoActions && Array.isArray(m.videoActions.clips) ? m.videoActions.clips.filter(c => c && c.s === rivalSide && /^T[23]_(OK|FALLO)$/.test(c.tp) && Number.isFinite(c.s24) && c.s24 >= 0 && c.s24 <= 24) : [];
-      if (vc.length) { src.exactM++; vc.forEach(c => { const s24 = Math.round(c.s24); add(24 - s24, s24, /_OK$/.test(c.tp), true); exactX[24 - s24].push({ m, c }); }); return; }
+      // (solo si el reloj está leído en al menos el 60% de sus tiros del vídeo: si no, el partido se queda con la estimación entera)
+      const fgV = m.videoActions && Array.isArray(m.videoActions.clips) ? m.videoActions.clips.filter(c => c && c.s === rivalSide && /^T[23]_(OK|FALLO)$/.test(c.tp)) : [];
+      const vc = fgV.filter(c => Number.isFinite(c.s24) && c.s24 >= 0 && c.s24 <= 24);
+      if (vc.length && vc.length >= 0.6 * fgV.length) { src.exactM++; vc.forEach(c => { const s24 = Math.round(c.s24); add(24 - s24, s24, /_OK$/.test(c.tp), true); exactX[24 - s24].push({ m, c }); }); return; }
       const est0 = src.est;
       let sortedMoves = [];
 
@@ -23808,7 +23810,7 @@ function _renderScoutPossessionClocksSeguro() {
   const grid = [top, top / 2].filter((v, k) => k === 0 || Number.isInteger(v)).map(v => `<div class="cz-gl" style="bottom:${100 * v / top}%"><span>${v}</span></div>`).join('');
   const ZB = [[0, 10, 'Rápido'], [11, 19, 'Sistema'], [20, 24, 'Apuro']];   // reloj 24–14 · 13–5 · 4–0
   const pl = (n, w) => n + ' ' + w + (n !== 1 ? 's' : '');
-  const srcHtml = `<div class="psc-src">${S0.exactM ? `<span class="ex">🎬 ${pl(S0.exactM, 'partido')} con vídeo: exacto · ${S0.exact} tiros</span>` : ''}${S0.estM ? `<span>📊 ${pl(S0.estM, 'partido')} sin vídeo: estimado con el acta · ${S0.est} tiros</span>` : ''}</div>`;
+  const srcHtml = `<div class="psc-src">${S0.exactM ? `<span class="ex">🎬 ${pl(S0.exactM, 'partido')} con vídeo: exacto · ${S0.exact} tiros</span>` : ''}${S0.estM ? `<span>📊 ${pl(S0.estM, 'partido')} estimado${S0.estM !== 1 ? 's' : ''} con el acta · ${S0.est} tiros</span>` : ''}</div>`;
 
   container.innerHTML = `
     <div class="card" style="margin-bottom:10px">

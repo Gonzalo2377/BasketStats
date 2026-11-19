@@ -17330,6 +17330,16 @@ function renderActions(el, F, o) {
 }
 
 // PTS AST%: de sus puntos, cuántos son de canastas con asistencia (L = sus jugadas con vídeo)
+// PTS AST% con las jugadas del directo de cada partido: canasta de 2 o 3 seguida de la asistencia de un compañero «to» = él.
+// Solo cuentan los partidos en que su equipo tiene las asistencias apuntadas (al menos 1 por cada ~3 canastas): si no, no se sabe.
+function _acPtsAstEv(ms, name) { const nn = _acNN(name); let a = 0, t = 0, n = 0; const who = [];
+  (ms || []).forEach(m => { const E = m && m.events; if (!Array.isArray(E) || !E.length) return;
+    const side = ['home', 'away'].find(sd => ((sd === 'home' ? m.homePlayers : m.awayPlayers) || []).some(p => _acNN(p.name) === nn)); if (!side) return;
+    const fg = E.filter(e => e.team === side && /^pts[23]$/.test(e.type)).length, as = E.filter(e => e.team === side && e.type === 'ast').length;
+    if (!fg || as < 0.3 * fg) return; n++;
+    E.forEach((e, i) => { if (e.team !== side || _acNN(e.player) !== nn) return; const p = e.type === 'pts3' ? 3 : e.type === 'pts2' ? 2 : e.type === 'tl_in' ? 1 : 0; if (!p) return; t += p;
+      if (p > 1) { const x = E.slice(i + 1, i + 4).find(y => y.type === 'ast' && y.team === side && _acNN(y.to) === nn); if (x) { a += p; who.push({ name: x.player, d: null }); } } }); });
+  return { a, t, who, n }; }
 function _acPtsAst(L) { let a = 0, t = 0; const who = [];
   L.forEach(x => { if (x.astNA) return; const p = x.tp === 'T3_OK' ? 3 : x.tp === 'T2_OK' ? 2 : x.tp === 'TL_OK' ? 1 : 0; if (!p) return; t += p; if (x.ast && p > 1) { a += p; who.push(x.ast); } });
   return { a, t, who }; }
@@ -17394,7 +17404,7 @@ function _axDraw(ov) {
   // resumen de asistencias: cuántas de sus canastas vienen de pase y de quién; o, en AST, a quién se las da
   let ins = '';
   const tally = xs => { const by = {}; xs.forEach(p => { const k = (p.d != null ? '#' + p.d + ' ' : '') + _acShort(p.name); by[k] = (by[k] || 0) + 1; }); return Object.entries(by).sort((p, q) => q[1] - p[1]).map(([k, n]) => _esc(k) + ' (' + n + ')').join(' · '); };
-  if (/^(t2|t3|tl)$/.test(F.key)) { const pa = _acPtsAst(all); if (pa.t) ins = `<div class="ax-ins">🤝 <b>PTS AST% ${Math.round(100 * pa.a / pa.t)}%</b>: ${pa.a} de sus ${pa.t} puntos llegan tras una asistencia${pa.who.length ? '<br>Le asisten: ' + tally(pa.who) : ''}</div>`; }
+  if (/^(t2|t3|tl)$/.test(F.key)) { const pa = _acPtsAstEv((window._oursCache || []).map(o => o.m), F.name); if (pa.t) ins = `<div class="ax-ins">🤝 <b>PTS AST% ${Math.round(100 * pa.a / pa.t)}%</b>: ${pa.a} de sus ${pa.t} puntos llegan tras una asistencia (${pa.n} partido${pa.n !== 1 ? 's' : ''} con estadística en directo)${pa.who.length ? '<br>Le asisten: ' + tally(pa.who) : ''}</div>`; }
   if (F.key === 'ast' && L.length) { const t = L.filter(x => x.to); ins = `<div class="ax-ins">🤝 Asiste a: ${t.length ? tally(t.map(x => x.to)) : '—'}${L.length - t.length ? ` <small>(${L.length - t.length} sin canasta enlazada)</small>` : ''}</div>`; }
   const multi = ms.length > 1;
   const noV = !mine.length;
@@ -22309,7 +22319,7 @@ function _advRowsFor(source, scope){
       ts: a.ts ? a.ts : 0, 
       usg: safeUsg, 
       astTo: a.astTo ? a.astTo : 0,
-      pAst: (() => { try { const ms = source.filter(m => m && m.videoActions && m.videoActions.yt); if (!ms.length) return NaN; const pa = _acPtsAst(_axClips(p.name).filter(x => ms.includes(x.m))); return pa.t ? pa.a / pa.t : NaN; } catch (e) { return NaN; } })(), 
+      pAst: (() => { try { const pa = _acPtsAstEv(source, p.name); return pa.t ? pa.a / pa.t : NaN; } catch (e) { return NaN; } })(), 
       ppp: onCourtPPP, 
       dppp: onCourtDefPPP, 
       net: netPPP,
@@ -22568,7 +22578,7 @@ function _renderAdvancedPlayerTable(scope){
       <td data-c="ts" class="adv-c" style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
       <td data-c="usg" class="adv-c" style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
       <td data-c="astTo" class="adv-c" style="font-weight:700;text-align:center">${num(p.astTo)}</td>
-      <td data-c="pAst" class="adv-c" style="font-weight:800;text-align:center;color:#7c3aed" title="De sus puntos, los que llegan tras una asistencia (partidos con vídeo)">${Number.isFinite(p.pAst) ? Math.round(p.pAst * 100) + '%' : '<span style="color:var(--t3);font-weight:600">—</span>'}</td>
+      <td data-c="pAst" class="adv-c" style="font-weight:800;text-align:center;color:#7c3aed" title="De sus puntos, los que llegan tras una asistencia (partidos con estadística en directo)">${Number.isFinite(p.pAst) ? Math.round(p.pAst * 100) + '%' : '<span style="color:var(--t3);font-weight:600">—</span>'}</td>
       <td data-c="pir" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${pirC}">${num0(p.pir)}</td>
       <td data-c="eff" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${effC}">${num0(p.eff)}</td>
     </tr>`;
@@ -22594,7 +22604,7 @@ function _renderAdvancedPlayerTable(scope){
         <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
         <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
         <th onclick="advSort('astTo','${scope}')" style="cursor:pointer;text-align:center">AST/TO${arrIcon('astTo')}</th>
-        <th onclick="advSort('pAst','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de sus puntos que llegan tras una asistencia (solo partidos con vídeo)">PTS AST%${arrIcon('pAst')}</th>
+        <th onclick="advSort('pAst','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de sus puntos que llegan tras una asistencia (partidos con estadística en directo, donde se apuntan las asistencias)">PTS AST%${arrIcon('pAst')}</th>
         <th onclick="advSort('pir','${scope}')" style="cursor:pointer;text-align:center" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
         <th onclick="advSort('eff','${scope}')" style="cursor:pointer;text-align:center" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
       </tr>

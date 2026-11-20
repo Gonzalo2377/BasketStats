@@ -4574,6 +4574,15 @@ body.vp-fs-on .vp-ov .vp-panel .vp-fskeys{text-align:left;line-height:1.7}
 .vp-spd{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:5000;background:rgba(15,23,42,.85);color:#fff;font-weight:900;font-size:18px;padding:6px 14px;border-radius:10px;pointer-events:none}
 body.vp-fs-on .vp-ov.vp-show .vp-spd{left:calc((100vw - min(440px,38vw)) / 2)}
 @media (max-width:760px){body.vp-fs-on .vp-ov.vp-show .vp-vid{width:100%;bottom:auto;height:45vh}body.vp-fs-on .vp-ov .vp-panel{left:8px!important;right:8px!important;top:auto!important;width:auto!important;height:54vh}}
+/* v93 · reproductor de jugadas limpio: sin controles ni rótulos de YouTube */
+.ac-vid .ac-yw{position:absolute;left:0;right:0;top:-62px;bottom:-62px}
+.ac-vid .ac-yw #ac-yt,.ac-vid .ac-yw iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.ac-vid .ac-shield{position:absolute;inset:0;z-index:2;cursor:pointer;background:transparent}
+.ac-vid .ac-pp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;width:64px;height:64px;border-radius:50%;background:rgba(15,23,42,.6);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;pointer-events:none;padding-left:4px}
+.ac-vid .ac-pp[hidden]{display:none}
+.ac-vid .ac-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.18);z-index:3;pointer-events:none}
+.ac-vid .ac-bar i{display:block;height:100%;width:0;background:#f97316;transition:width .12s linear}
+.ac-vid .ac-msg{z-index:4}
 
 </style>
 </head>
@@ -16352,18 +16361,18 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
       <button onclick="document.querySelectorAll('.mu-card').forEach(d=>d.open=false)" style="background:#f1f5f9;border:1px solid var(--bd);border-radius:6px;padding:4px 9px;font-size:10.5px;font-weight:800;cursor:pointer">▸ Cerrar todos</button></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-items:start">${groups.map(({ o, rivs }, gi) => `
       <details class="mu-card" style="border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fff">
-        <summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fffbeb">
+        <summary style="list-style:none;cursor:pointer;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:9px 12px;background:#fffbeb">
           <span style="font-weight:900;color:#92400e;font-size:13px;white-space:nowrap">${_esc(lbl(o))}</span>
-          <span style="font-size:10.5px;color:#1d4ed8;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">→ ${rivs.map(r => '#' + (r.dorsal ?? '')).join(', ')}</span>
-          ${(()=>{ const n=_muMine(rivs, rival).length; return n?`<button onclick="event.preventDefault();event.stopPropagation();window.muMine(this.dataset.o)" data-o="${_esc(o.name)}" class="mu-clb mu-mine" title="Vídeos escogidos por el staff de tu 1ª y 2ª opción, en ese orden">⭐ Mis vídeos (${n})</button>`:''; })()}
-          <span class="mu-ar" style="font-size:11px;color:#b45309;font-weight:900">▾</span></summary>
+          <span style="font-size:10.5px;color:#1d4ed8;font-weight:800;white-space:nowrap;flex:1 1 auto">→ ${rivs.map(r => '#' + (r.dorsal ?? '')).join(', ')}</span>
+          ${(()=>{ const n=_muMine(rivs, rival).length; return n?`<button onclick="event.preventDefault();event.stopPropagation();window.muMine(this.dataset.o)" data-o="${_esc(o.name)}" class="mu-clb mu-mine" title="Mis vídeos: los escogidos por el staff de tu 1ª y 2ª opción, en ese orden" aria-label="Mis vídeos (${n})">⭐📺 ${n}</button>`:''; })()}
+          <span class="mu-ar" style="font-size:11px;color:#b45309;font-weight:900;margin-left:auto">▾</span></summary>
         ${rivs.map((r, k) => `<div style="padding:9px 12px;border-top:1px ${k ? 'dashed' : 'solid'} ${k ? 'var(--bd)' : '#fde68a'}">
           <div style="display:flex;gap:9px">
           <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${k ? '#e2e8f0' : '#1d4ed8'};color:${k ? 'var(--t2)' : '#fff'};font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${k + 1}</span>
           <div style="min-width:0;flex:1">
-            <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:900;color:#1d4ed8;font-size:14px">${_esc(lbl(r))}</span>
-              ${(()=>{ const n=k<2?_muStarred(r, rival).length:0; return n?`<button onclick="window.muActs(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Jugadas suyas que ha escogido el staff">⭐ Vídeos (${n})</button>`:''; })()}
-              ${(()=>{ const n=k<2?_muTagged(r.name, rival).length:0; return n?`<button onclick="window.muClips(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Clips que ha escogido el staff donde sale este jugador">⭐ Clips (${n})</button>`:''; })()}
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px 6px"><span style="font-weight:900;color:#1d4ed8;font-size:14px;min-width:0;overflow-wrap:anywhere">${_esc(lbl(r))}</span>
+              ${(()=>{ const n=k<2?_muStarred(r, rival).length:0; return n?`<button onclick="window.muActs(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Vídeos: jugadas suyas que ha escogido el staff" aria-label="Vídeos (${n})">📺 ${n}</button>`:''; })()}
+              ${(()=>{ const n=k<2?_muTagged(r.name, rival).length:0; return n?`<button onclick="window.muClips(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Clips: los que ha escogido el staff donde sale este jugador" aria-label="Clips (${n})">🎬 ${n}</button>`:''; })()}
               <button onclick="window._muMaps('${gi}-${k}', this.dataset.n)" data-n="${_esc(r.name)}" style="margin-left:auto;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap"><span id="mu-mbtn-${gi}-${k}">▾</span> Mapas</button></div>
             <div style="font-size:10.5px;color:var(--t2);margin:3px 0 ${_muTips(r).length ? 5 : 0}px">${statLine(r)}</div>
             ${_muTips(r).map(t => `<div style="font-size:10.5px;font-weight:700;color:var(--nv);padding:1px 0">${t}</div>`).join('')}
@@ -17554,16 +17563,16 @@ function _acYtApi() {
     setTimeout(() => rej(new Error('YouTube no responde. Mira la conexión.')), 20000);
   });
 }
-function acClose() { if (!_acP) return; const P = _acP; _acP = null; try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
+function acClose() { if (!_acP) return; const P = _acP; _acP = null; clearInterval(P.tick); try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
 function acPlay(list, i, title) {
   acClose(); if (!list || !list.length) return;
   let auto = true; try { auto = localStorage.getItem('ac_auto') !== '0'; } catch (e) { }
   const ov = document.createElement('div'); ov.className = 'vm-ov ac-ov';
   ov.innerHTML = `<div class="vm-box ac-box" role="dialog" aria-label="Jugadas en vídeo"><header><b>🎬 ${_esc(title || 'Jugadas en vídeo')}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
-    <div class="ac-vid"><div id="ac-yt"></div><div class="ac-msg">Cargando el vídeo…</div></div>
+    <div class="ac-vid"><div class="ac-yw"><div id="ac-yt"></div></div><div class="ac-shield" title="Pausa / seguir (espacio)"></div><div class="ac-pp" hidden>▶</div><div class="ac-bar"><i></i></div><div class="ac-msg">Cargando el vídeo…</div></div>
     <div class="ac-now"></div>
     <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label></div>
-    <div class="ac-keys">← → anterior / siguiente · R repetir · Esc cerrar</div>
+    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir · Esc cerrar</div>
     <div class="ac-lst"></div></div>`;
   document.body.appendChild(ov);
   const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
@@ -17573,21 +17582,31 @@ function acPlay(list, i, title) {
     ov.querySelector('.ac-lst').innerHTML = P.list.map((y, k) => `<div class="ac-it${k === P.i ? ' on' : ''}" data-k="${k}"><span class="ac-dot ${/_OK$/.test(y.tp) ? 'ok' : /_FALLO$/.test(y.tp) ? 'ko' : ''}"></span><span class="ac-q">${_esc(y.clk || '')}</span><span class="ac-tx">${_esc((AC_TY[y.tp] || [y.tp])[0])} · ${y.d != null ? '#' + _esc(y.d) + ' ' : ''}${_esc(_acShort(y.name))}${_acLink(y)}${multiM ? ' · <i>' + _esc(y.m.homeTeam + ' vs ' + y.m.awayTeam) + '</i>' : ''}</span>${y.sc ? `<span class="ac-sc">${y.sc[0]}–${y.sc[1]}</span>` : ''}<span class="ac-pl">▶</span></div>`).join('');
     ov.querySelectorAll('.ac-it').forEach(e => e.onclick = () => go(+e.dataset.k));
     const cur = ov.querySelector('.ac-it.on'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' }); };
-  const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
+  const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); P.done = -1; try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
   const go = k => { if (k < 0 || k >= P.list.length) return; P.i = k; draw(); load(); };
   P.go = go;
+  // pausa / seguir con la capa de encima (los controles de YouTube no salen); al final del tramo se para ahí (sin pantalla final de YouTube) y, con «Seguidas», pasa a la siguiente
+  const pp = ov.querySelector('.ac-pp'), bar = ov.querySelector('.ac-bar i');
+  const toggle = () => { if (!P.ready || !P.yt) return; let s = -1; try { s = P.yt.getPlayerState(); } catch (e) { }
+    if (s === 1 || s === 3) P.yt.pauseVideo(); else { const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { } if (P.done === P.i || ct >= x.t1 - 0.3 || ct < x.t0 - 1) load(); else P.yt.playVideo(); } };
+  ov.querySelector('.ac-shield').onclick = toggle;
+  P.tick = setInterval(() => { if (_acP !== P || !P.ready || !P.yt) return; const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { return; }
+    if (Date.now() - (P.at || 0) < 900) return;
+    bar.style.width = Math.max(0, Math.min(100, 100 * (ct - x.t0) / Math.max(0.5, x.t1 - x.t0))) + '%';
+    if (P.done !== P.i && ct >= x.t1 - 0.2) { P.done = P.i; try { P.yt.pauseVideo(); } catch (e) { } if (P.auto && P.i < P.list.length - 1) setTimeout(() => { if (_acP === P && P.done === P.i) go(P.i + 1); }, 350); } }, 120);
   ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) acClose(); };
   ov.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'prev') go(P.i - 1); else if (a === 'next') go(P.i + 1); else load(); });
   ov.querySelector('.ac-auto input').onchange = e => { P.auto = e.target.checked; try { localStorage.setItem('ac_auto', P.auto ? '1' : '0'); } catch (er) { } };
   P.key = e => { if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
     if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();   // que no lleguen a los atajos del vídeo de la pestaña
+    if (e.key === ' ') { e.preventDefault(); toggle(); return; }
     if (e.key === 'Escape') { e.preventDefault(); acClose(); } else if (e.key === 'ArrowRight') { e.preventDefault(); go(P.i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(P.i - 1); } else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); load(); } };
   document.addEventListener('keydown', P.key, true);
   draw();
   _acYtApi().then(() => { if (_acP !== P) return; const x = P.list[P.i];
-    P.yt = new YT.Player('ac-yt', { width: '100%', height: '100%', videoId: x.yt, playerVars: { start: Math.floor(x.t0), end: Math.ceil(x.t1), autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
+    P.yt = new YT.Player('ac-yt', { width: '100%', height: '100%', videoId: x.yt, playerVars: { start: Math.floor(x.t0), end: Math.ceil(x.t1), autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, cc_load_policy: 0 },
       events: { onReady: () => { P.ready = true; msg.style.display = 'none'; load(); },
-        onStateChange: e => { if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1) return;
+        onStateChange: e => { if (_acP === P) pp.hidden = !(e.data === 2 || e.data === 0 || e.data === 5); if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1 || P.done === P.i) return; P.done = P.i;
           if (Date.now() - (P.at || 0) < 1500) return;   // el aviso de fin del tramo anterior al cargar el nuevo
           let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (er) { } if (ct && ct < P.list[P.i].t1 - 1.5) return;
           go(P.i + 1); },
@@ -17723,7 +17742,6 @@ function renderActions(el, F, o) {
     </div>
   </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver lo que hace y lo que le hacen, por jugador y por quién está en pista.</div>'}
   <div class="ac-sum"><span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shots.length ? ` · tiros <b>${made}/${shots.length}</b> (${Math.round(100 * made / shots.length)}%)` : ''}</span>${L.length ? `<button type="button" class="ac-all">▶ Ver todas seguidas</button>` : ''}${staff && L.length ? (() => { const ns = L.filter(x => x.star).length; return `<button type="button" class="ac-stall" title="Las que ve quien defiende a cada jugador, en Próximo rival">${ns === L.length ? '☆ Quitar todas las filtradas' : '⭐ Marcar todas las filtradas'}</button>${ns ? `<span class="ac-stn">⭐ ${ns} para su emparejado</span>` : ''}`; })() : ''}<span style="flex:1"></span>${imp}</div>
-  ${o.mini ? '' : _acClockHtml(L)}
   ${o.mini || !L.length ? '' : (() => { const nSel = window._acSel.size, allF = L.length && L.every(x => window._acSel.has(_acKey(x)));
     return `<div class="ac-dlb"><label class="ac-ckall"><input type="checkbox"${allF ? ' checked' : ''}> Elegir todas las filtradas</label>
       <span class="ac-dln">${nSel ? `<b>${nSel}</b> elegida${nSel !== 1 ? 's' : ''}` : 'Marca las jugadas que quieras bajarte'}</span>${nSel ? '<button type="button" class="ac-dlx">✕ Quitar selección</button>' : ''}
@@ -17753,7 +17771,6 @@ function renderActions(el, F, o) {
   el.querySelectorAll('[data-asi]').forEach(b => b.onclick = () => set('asi', b.dataset.asi));
   const clr = el.querySelector('.ac-clr'); if (clr) clr.onclick = () => { Object.assign(F, { m: '', tm: o.mini ? F.tm : '', mode: 'hace', pl: '', on: '', onm: 'con', tp: '', per: '', clutch: false, mo: '', asi: '' }); re(); };
   const all = el.querySelector('.ac-all'); if (all) all.onclick = () => acPlay(L, 0, title);
-  if (!o.mini) _acClockBind(el, L, title);
   const more = el.querySelector('.ac-more'); if (more) more.onclick = () => { window._acLim += 300; re(); };
   // ⭐ para su emparejado: se guarda en la jugada (en el partido) y la copia de la lista se actualiza sin recalcular
   const setStar = (x, on) => { const c = x.m.videoActions.clips[x.i]; if (!c) return; if (on) c.star = 1; else delete c.star; x.star = on ? 1 : 0; };

@@ -17730,7 +17730,7 @@ function renderActions(el, F, o) {
   const head = `<div class="ac-f"><div class="ac-r">
     <label class="ac-fl">Partido<select data-f="m">${opt('', 'Todos (' + Ms.length + ')', F.m)}${Ms.map(m => opt(String(m.id), `${m.homeTeam} vs ${m.awayTeam}${m.date ? ' · ' + String(m.date).slice(0, 10) : ''}`, F.m)).join('')}</select></label>
     ${o.teams ? `<div class="ac-fl"><span class="ac-lb">Equipo</span><div class="ac-seg">${o.teams.map(([k, n]) => `<button type="button" data-tmk="${_acA(k)}" class="${F.tm === k ? 'on' : ''}"${TM.has(k) ? '' : ' disabled title="Aún no hay vídeos de este equipo"'}>${_esc(n)}</button>`).join('')}</div></div>` : ''}<label class="ac-fl"${o.teams ? ' hidden' : ''}>Equipo<select data-f="tm">${opt('', 'Los dos equipos', F.tm)}${[...TM.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es')).map(([k, e]) => opt(k, e.name, F.tm)).join('')}</select></label>
-    ${F.tm ? `<div class="ac-fl"><span class="ac-lb">Jugadas</span><div class="ac-seg" role="group" aria-label="Qué jugadas"><button type="button" data-mode="hace" class="${F.mode !== 'concede' ? 'on' : ''}">Las que hace</button><button type="button" data-mode="concede" class="${F.mode === 'concede' ? 'on' : ''}">Las que le hacen</button></div></div>` : ''}
+    ${F.tm ? `<div class="ac-fl"><span class="ac-lb">Jugadas</span><div class="ac-seg" role="group" aria-label="Qué jugadas"><button type="button" data-mode="hace" class="${F.mode !== 'concede' ? 'on' : ''}">A favor</button><button type="button" data-mode="concede" class="${F.mode === 'concede' ? 'on' : ''}">En contra</button></div></div>` : ''}
     </div>
     <div class="ac-r"><div class="ac-fl ac-grow"><span class="ac-lb">Jugada</span><div class="ac-chips">${QT.map(([v, l]) => chip('data-tp', v, l, F.tp)).join('')}${moreTp}</div></div></div>
     <div class="ac-r">
@@ -17740,7 +17740,7 @@ function renderActions(el, F, o) {
     <div class="ac-fl"><span class="ac-lb">Momento</span><div class="ac-chips">${_acMoChips(F, chip)}</div></div>
     ${any ? '<div class="ac-fl"><span class="ac-lb">&nbsp;</span><button type="button" class="ac-clr">✕ Quitar filtros</button></div>' : ''}
     </div>
-  </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver lo que hace y lo que le hacen, por jugador y por quién está en pista.</div>'}
+  </div>${F.tm ? '' : '<div class="ac-hint">Elige un equipo para ver sus jugadas a favor y en contra, por jugador y por quién está en pista.</div>'}
   <div class="ac-sum"><span><b>${L.length}</b> jugada${L.length !== 1 ? 's' : ''}${shots.length ? ` · tiros <b>${made}/${shots.length}</b> (${Math.round(100 * made / shots.length)}%)` : ''}</span>${L.length ? `<button type="button" class="ac-all">▶ Ver todas seguidas</button>` : ''}${staff && L.length ? (() => { const ns = L.filter(x => x.star).length; return `<button type="button" class="ac-stall" title="Las que ve quien defiende a cada jugador, en Próximo rival">${ns === L.length ? '☆ Quitar todas las filtradas' : '⭐ Marcar todas las filtradas'}</button>${ns ? `<span class="ac-stn">⭐ ${ns} para su emparejado</span>` : ''}`; })() : ''}<span style="flex:1"></span>${imp}</div>
   ${o.mini || !L.length ? '' : (() => { const nSel = window._acSel.size, allF = L.length && L.every(x => window._acSel.has(_acKey(x)));
     return `<div class="ac-dlb"><label class="ac-ckall"><input type="checkbox"${allF ? ' checked' : ''}> Elegir todas las filtradas</label>

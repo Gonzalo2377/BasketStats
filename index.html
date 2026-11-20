@@ -16364,15 +16364,14 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
         <summary style="list-style:none;cursor:pointer;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:9px 12px;background:#fffbeb">
           <span style="font-weight:900;color:#92400e;font-size:13px;white-space:nowrap">${_esc(lbl(o))}</span>
           <span style="font-size:10.5px;color:#1d4ed8;font-weight:800;white-space:nowrap;flex:1 1 auto">→ ${rivs.map(r => '#' + (r.dorsal ?? '')).join(', ')}</span>
-          ${(()=>{ const n=_muMine(rivs, rival).length; return n?`<button onclick="event.preventDefault();event.stopPropagation();window.muMine(this.dataset.o)" data-o="${_esc(o.name)}" class="mu-clb mu-mine" title="Mis vídeos: los escogidos por el staff de tu 1ª y 2ª opción, en ese orden" aria-label="Mis vídeos (${n})">⭐📺 ${n}</button>`:''; })()}
+          ${(()=>{ const n=_muMine(rivs, rival).length; return n?`<button onclick="event.preventDefault();event.stopPropagation();window.muMine(this.dataset.o)" data-o="${_esc(o.name)}" class="mu-clb mu-mine" title="Mis vídeos: los escogidos por el staff de tus opciones de emparejamiento (hasta la 4ª), en ese orden" aria-label="Mis vídeos (${n})">⭐📺 ${n}</button>`:''; })()}
           <span class="mu-ar" style="font-size:11px;color:#b45309;font-weight:900;margin-left:auto">▾</span></summary>
         ${rivs.map((r, k) => `<div style="padding:9px 12px;border-top:1px ${k ? 'dashed' : 'solid'} ${k ? 'var(--bd)' : '#fde68a'}">
           <div style="display:flex;gap:9px">
           <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${k ? '#e2e8f0' : '#1d4ed8'};color:${k ? 'var(--t2)' : '#fff'};font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${k + 1}</span>
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px 6px"><span style="font-weight:900;color:#1d4ed8;font-size:14px;min-width:0;overflow-wrap:anywhere">${_esc(lbl(r))}</span>
-              ${(()=>{ const n=k<2?_muStarred(r, rival).length:0; return n?`<button onclick="window.muActs(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Vídeos: jugadas suyas que ha escogido el staff" aria-label="Vídeos (${n})">📺 ${n}</button>`:''; })()}
-              ${(()=>{ const n=k<2?_muTagged(r.name, rival).length:0; return n?`<button onclick="window.muClips(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Clips: los que ha escogido el staff donde sale este jugador" aria-label="Clips (${n})">🎬 ${n}</button>`:''; })()}
+              ${(()=>{ const n=k<4?_muStarred(r, rival).length:0; return n?`<button onclick="window.muActs(this.dataset.n)" data-n="${_esc(r.name)}" class="mu-clb" title="Vídeos: jugadas suyas que ha escogido el staff" aria-label="Vídeos (${n})">📺 ${n}</button>`:''; })()}
               <button onclick="window._muMaps('${gi}-${k}', this.dataset.n)" data-n="${_esc(r.name)}" style="margin-left:auto;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap"><span id="mu-mbtn-${gi}-${k}">▾</span> Mapas</button></div>
             <div style="font-size:10.5px;color:var(--t2);margin:3px 0 ${_muTips(r).length ? 5 : 0}px">${statLine(r)}</div>
             ${_muTips(r).map(t => `<div style="font-size:10.5px;font-weight:700;color:var(--nv);padding:1px 0">${t}</div>`).join('')}
@@ -16568,10 +16567,10 @@ function _muStarred(r, rival) {
   return out;
 }
 // ⭐ de un jugador nuestro: las jugadas marcadas de su 1ª opción y luego las de su 2ª (el orden de los emparejamientos); 3ª y 4ª no
-const _muMine = (rivs, rival) => (rivs || []).slice(0, 2).flatMap(r => _muStarred(r, rival));
+const _muMine = (rivs, rival) => (rivs || []).slice(0, 4).flatMap(r => _muStarred(r, rival));
 window.muMine = function (our) {
   const RL = window._muRivList || [], rivs = ((window._muOrd || {})[our] || []).map(n => RL.find(r => r.name === n)).filter(Boolean), L = _muMine(rivs, window._muRival); if (!L.length) return;
-  acPlay(L, 0, `⭐ ${_shortName(our)} · ${rivs.slice(0, 2).map((r, k) => `${k + 1}º #${r.dorsal ?? ''} ${_shortName(r.name)}`).join(' → ')}`);
+  acPlay(L, 0, `⭐ ${_shortName(our)} · ${rivs.slice(0, 4).map((r, k) => `${k + 1}º #${r.dorsal ?? ''} ${_shortName(r.name)}`).join(' → ')}`);
 };
 window.muActs = function (name) { const r = (window._muRivList || []).find(x => x.name === name) || { name }; const L = _muStarred(r, window._muRival); if (!L.length) return;
   acPlay(L, 0, `⭐ ${(r.dorsal != null ? '#' + r.dorsal + ' ' : '') + _shortName(name)} · jugadas escogidas por el staff`); };

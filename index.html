@@ -2039,11 +2039,12 @@ select {
 
 /* 1. Botones laterales gigantes */
 
-.tac-sidebar { width: 75px !important; gap: 12px !important; }
+.tac-sidebar { width: 75px !important; gap: 8px !important; justify-content: flex-start !important; }
 
-.tac-sb-btn { font-size: 32px !important; border-radius: 12px !important; padding: 10px 0 !important; }
+.tac-sb-btn { font-size: 26px !important; border-radius: 12px !important; padding: 4px 0 !important; aspect-ratio: auto !important; flex: 1 1 0; min-height: 44px; max-height: 90px; overflow: hidden; }
 
-.tac-sb-btn small { font-size: 11px !important; margin-top: 6px !important; }
+.tac-sb-btn small { font-size: 10px !important; margin-top: 4px !important; }
+#lv-panel:not(.zen-mode-panel) .tac-board { min-height: 700px; }
 
 
 
@@ -4583,6 +4584,33 @@ body.vp-fs-on .vp-ov.vp-show .vp-spd{left:calc((100vw - min(440px,38vw)) / 2)}
 .ac-vid .ac-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.18);z-index:3;pointer-events:none}
 .ac-vid .ac-bar i{display:block;height:100%;width:0;background:#f97316;transition:width .12s linear}
 .ac-vid .ac-msg{z-index:4}
+/* v96 · ✂️ ajustar inicio y final de una jugada (staff) */
+.ac-ed{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:8px 0 2px;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px;color:#334155;background:#f8fafc}
+.ac-ed.ch{border-color:#f97316;background:#fff7ed}
+.ac-ed .ac-edl{font-weight:800;color:#0f172a}
+.ac-ed .ac-edg{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.ac-ed .ac-edg b{font-family:monospace;font-size:12.5px;min-width:52px;text-align:center}
+.ac-ed .ac-edd{color:#64748b;font-size:11.5px}
+.ac-box .ac-ed button{background:#fff!important;color:#0f172a!important;border:1px solid #cbd5e1!important;border-radius:7px!important;padding:3px 8px!important;font-size:11.5px!important;font-weight:700!important;cursor:pointer}
+.ac-box .ac-ed button:hover{border-color:#f97316!important}
+.ac-box .ac-ed .ac-eds{background:#16a34a!important;color:#fff!important;border-color:#16a34a!important;margin-left:auto}
+.ac-box .ac-ed .ac-edu{color:#c2410c!important}
+/* v96 · en pantalla completa del Directo (z-index 999990) las ventanas y avisos tienen que ir por encima */
+body.zen-mode .vm-ov,body.zen-mode .bq-ov,body.zen-mode #live-stats-modal,body.zen-mode #shot-popup{z-index:1000001!important}
+body.zen-mode .ac-ov{z-index:1000002!important}
+body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
+/* 🧠 botón del Banquillo: el puntito rojo (sin esperar a abrirlo) */
+.bq-btn{position:relative}
+.bq-btn .bq-dot{position:absolute;top:3px;right:3px;min-width:16px;height:16px;border-radius:8px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;line-height:16px;padding:0 4px;display:none}
+/* v96 · 🖨️ hoja del partido: editor (consejo y nota de cada rival) */
+.mus-box{max-width:640px}
+.mus-p{font-size:12.5px;color:#475569;margin:10px 0}
+.mus-l{display:flex;flex-direction:column;gap:8px;max-height:58vh;overflow:auto;padding-right:4px}
+.mus-r{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;background:#f8fafc}
+.mus-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;font-size:13px;margin-bottom:4px}.mus-h span{font-size:11.5px;color:#92400e;font-weight:700}
+.mus-r label{display:block;font-size:11px;font-weight:800;color:#334155;margin-top:4px}
+.mus-r textarea,.mus-r input{display:block;width:100%;box-sizing:border-box;margin-top:2px;border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px;font:inherit;font-size:12.5px;font-weight:500;resize:vertical}
+.mus-a{display:flex;align-items:center;gap:8px;margin-top:12px}
 
 </style>
 </head>
@@ -4940,7 +4968,6 @@ body.vp-fs-on .vp-ov.vp-show .vp-spd{left:calc((100vw - min(440px,38vw)) / 2)}
         <div style="height:10px"></div> <!-- Separador -->
 
         <button class="tac-sb-btn" title="Vídeos de este equipo: finales de cuarto, finales de partido, jugadas…" onclick="acLive('home')">🎬<br><small style="font-size:9px;font-weight:900;color:#7c3aed">VÍDEO</small></button>
-        <button class="tac-sb-btn bq-btn" title="🧠 Banquillo: lo que funciona y lo que no, y el informe del descanso" onclick="bqOpen()">🧠<br><small style="font-size:9px;font-weight:900;color:#0f766e">BANQ</small><span class="bq-dot"></span></button>
         <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'home')">🗺️<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'home')">📊<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'home')">👤<br><small style="font-size:9px;font-weight:900;color:var(--t3)">ACC</small></button>
@@ -5037,7 +5064,7 @@ body.vp-fs-on .vp-ov.vp-show .vp-spd{left:calc((100vw - min(440px,38vw)) / 2)}
         <div style="height:10px"></div> <!-- Separador -->
 
         <!-- Mapas del Rival -->
-        <button class="tac-sb-btn" title="Vídeos de este equipo: finales de cuarto, finales de partido, jugadas…" onclick="acLive('away')">🎬<br><small style="font-size:7px;font-weight:900;color:#7c3aed">VÍDEO</small></button>
+        <button class="tac-sb-btn bq-btn" title="🧠 Banquillo: lo que funciona y lo que no, y el informe del descanso" onclick="bqOpen()">🧠<br><small style="font-size:9px;font-weight:900;color:#0f766e">BANQ</small><span class="bq-dot"></span></button>
         <button class="tac-sb-btn" title="Mapas del equipo · temporada actual" onclick="tacSideModal('heatt_acc', 'away')">🗺️<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Stats y Conclusiones" onclick="tacSideModal('stats_acc', 'away')">📊<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
         <button class="tac-sb-btn" title="Mapas individuales · temporada actual" onclick="tacSideModal('indiv_acc', 'away')">👤<br><small style="font-size:7px;font-weight:800;color:var(--t3)">ACC</small></button>
@@ -16409,7 +16436,7 @@ function _renderMatchups(ourList, rivList, ordered, rival, myTeamName) {
   if (!_playerMode) window._muImgCtx = { ourList, rivList, ordered, rival, myTeamName };
   window._muRival = rival; window._muRivList = rivList; window._muOrd = ordered;
   return `<div class="card" style="margin-bottom:16px">
-    <div class="ct" style="font-size:13px;margin-bottom:10px">⚔️ Emparejamientos defensivos <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none">— a quién defiende cada jugador de ${_esc(myTeamName)}, por orden</span>${!_playerMode && groups.length ? '<button type="button" class="mu-imgb" onclick="window.muImage()" title="Crea la imagen «PARTIT Jx CLARET - RIVAL» para el tríptico">🖼️ Imagen para el tríptico</button>' : ''}</div>
+    <div class="ct" style="font-size:13px;margin-bottom:10px">⚔️ Emparejamientos defensivos <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none">— a quién defiende cada jugador de ${_esc(myTeamName)}, por orden</span>${!_playerMode && groups.length ? '<button type="button" class="mu-imgb" onclick="window.muImage()" title="Crea la imagen «PARTIT Jx CLARET - RIVAL» para el tríptico">🖼️ Imagen para el tríptico</button><button type="button" class="mu-imgb" onclick="window.muSheet()" title="Hoja A4 para el banquillo y la mesa: emparejamientos y ficha de cada rival">🖨️ Hoja del partido</button>' : ''}</div>
     ${cards}${editor}</div>`;
 }
 // Mapas del rival dentro de un emparejamiento
@@ -16457,6 +16484,123 @@ window.saveMatchups = function () {
   if (typeof toast === 'function') toast('✅ Emparejamientos guardados', 'ok');
 };
 
+
+// 📸 Fotos de los jugadores: se guarda solo el enlace de la foto de la FCBQ (S.photos = { nombre normalizado: url })
+window.__baPhoto = n => { const P = S.photos || {}; return P[_muNk(n)] || ''; };
+window.baPhotoImport = function (after) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.html,.htm,text/html'; inp.multiple = true;
+  inp.onchange = async () => { let n = 0, teams = 0; S.photos = S.photos || {};
+    for (const f of inp.files) { const h = await f.text(); let k = 0;
+      h.split('<a href="https://www.basquetcatala.cat/estadistica/jugador').slice(1).forEach(p => { const a = p.slice(0, p.indexOf('</a>')), t = (a.match(/title="([^"]+)"/) || [])[1], u = (a.match(/url\((?:&quot;|")(https:\/\/[^&"]+?\.(?:jpe?g|png|webp))(?:&quot;|")\)/i) || [])[1];
+        if (t && u && /^https:\/\/[\w.-]+\.cloudfront\.net\//.test(u)) { const key = _muNk(t); if (S.photos[key] !== u) { S.photos[key] = u; n++; } k++; } });
+      if (k) teams++; }
+    if (!teams) { toast('No he encontrado fotos: guarda la página del EQUIPO de basquetcatala.cat con Ctrl+S («Página web completa»)', 'err'); return; }
+    svL(); toast(`📸 ${n} fotos nuevas (${teams} equipo${teams !== 1 ? 's' : ''})`, 'ok'); if (after) after(); };
+  inp.click(); };
+// 🖨️ Hoja del partido para los jugadores (A4 para imprimir, solo staff la crea): arriba los emparejamientos de todos en grande;
+// debajo una ficha por cada rival emparejado: quién es y cómo juega, qué hacer contra él (sale solo y se puede cambiar),
+// minimapa de tiro, quién le defiende y la nota del staff. Los consejos y notas se guardan con el próximo partido (S.nextMatch.muSheet).
+function _muAdvice(r) {
+  const g = r.games || 0; if (!g) return 'MÍRALE LOS PRIMEROS ATAQUES';
+  const t3pg = (r.t3a || 0) / g, t3 = r.t3a ? r.t3m / r.t3a : 0, t2pg = (r.t2a || 0) / g, tl = r.tla ? r.tlm / r.tla : 1, ppg = (r.pts || 0) / g;
+  if (t3pg >= 2 && t3 >= 0.32) return '¡NIÉGALE EL TRIPLE!';
+  if (ppg >= 11) return 'QUE NO RECIBA CÓMODO';
+  if (t3pg >= 2 && t3 < 0.28) return 'DÉJALE TIRAR DE 3, CIERRA LA ENTRADA';
+  if (t3pg < 0.5 && t2pg >= 2.5) return 'FLOTA: NO TIRA DE FUERA';
+  if (r.tla >= 5 && tl < 0.55) return 'FALLA TIROS LIBRES: LA FALTA, A ÉL';
+  return 'DEFENSA DURA, QUE NO RECIBA CÓMODO';
+}
+const _muSur = n => { const p = _shortName(n).split(/\s+/); return p.length > 1 ? p.slice(1).join(' ') : p[0]; };
+const _muShotImg = name => { try {
+  const nn = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  const shots = (window._currentRivalShots || []).filter(sh => nn(sh.player) === nn(name)); if (!shots.length) return { src: '', n: 0 };
+  const id = 'mush-' + Math.random().toString(36).slice(2), cv = document.createElement('canvas'); cv.id = id; cv.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(cv);
+  if (shots.length >= 3) drawHeatmap(id, shots); else { cv.width = CW; cv.height = CH; drawCourt(cv.getContext('2d')); drawShots(cv.getContext('2d'), shots); }
+  const src = cv.toDataURL('image/png'); cv.remove(); return { src, n: shots.length, pc: Math.round(100 * shots.filter(s => s.made).length / shots.length) + '% dentro' }; } catch (e) { return { src: '', n: 0 }; } };
+function _muSheetData() {
+  const C = window._muImgCtx; if (!C) return null; const nm = S.nextMatch || {}, ms = nm.muSheet || {};
+  const byName = {}; C.rivList.forEach(r => byName[r.name] = r);
+  // también los que tienen emparejamientos guardados aunque no salgan en la plantilla de esta temporada (lesionados, nombres con acentos distintos…)
+  const seen = new Set(C.ourList.map(o => _muNk(o.name))), extra = Object.keys(C.ordered).filter(n => !seen.has(_muNk(n))).map(n => ({ name: n }));
+  const ours = [...C.ourList, ...extra].filter(o => (C.ordered[o.name] || []).length).map(o => ({ o, ap: _muApodo(o.name), rivs: (C.ordered[o.name] || []).map(n => byName[n]).filter(Boolean) }));
+  const R = new Map(); ours.forEach(x => x.rivs.forEach((r, k) => { if (!R.has(r.name)) R.set(r.name, { r, def: [] }); R.get(r.name).def.push({ k: k + 1, ap: x.ap }); }));
+  const rivs = [...R.values()].sort((a, b) => (+a.r.dorsal || 99) - (+b.r.dorsal || 99));
+  rivs.forEach(x => { x.def.sort((a, b) => a.k - b.k); x.adv = (ms.adv || {})[x.r.name] ?? _muAdvice(x.r); x.note = (ms.note || {})[x.r.name] || ''; });
+  return { C, nm, ours, rivs, my: C.myTeamName, rival: C.rival };
+}
+function _muSheetHtml(D) {
+  const e = _esc;
+  const when = [D.nm.date ? String(D.nm.date).split('-').reverse().join('/') : '', D.nm.time || ''].filter(Boolean).join(' · ');
+  const PH = window.__muPhotos || {}, face = (name, dorsal, cls) => { const ph = PH[_muNk(name)] || window.__baPhoto(name); return `<span class="fc ${cls}">${ph ? `<img src="${ph}" alt="">` : `<span class="np">${e(String(name || '').trim().split(/s+/).slice(0, 2).map(w => w[0]).join(''))}</span>`}<b>${e(dorsal ?? '')}</b></span>`; };
+  const ourD = o => o.dorsal != null && o.dorsal !== '' ? o.dorsal : '';
+  const pairs = D.ours.map(x => `<div class="pr">${face(x.o.name, ourD(x.o), 'us')}<span class="o">${e(x.ap)}</span><span class="vs">➜</span>
+      <span class="r1">${face(x.rivs[0].name, x.rivs[0].dorsal, 'th')}<span class="rnm">${e(_muSur(x.rivs[0].name))}</span></span>
+      ${x.rivs.length > 1 ? `<span class="rest"><i>luego</i>${x.rivs.slice(1).map(r => face(r.name, r.dorsal, 'sm')).join('')}</span>` : ''}</div>`).join('');
+  const pc = (m, a) => a ? Math.round(100 * m / a) + '%' : '—', sl = (l, m, a) => `<span><i>${l}</i> ${m}/${a} <b>${pc(m, a)}</b></span>`;
+  const cards = D.rivs.map(x => { const r = x.r, g = r.games || 0, ph = (window.__muPhotos || {})[_muNk(r.name)] || window.__baPhoto(r.name), mp = _muShotImg(r.name);
+    return `<div class="cd"><div class="ft">${ph ? `<img src="${ph}" alt="">` : '<span class="np"></span>'}<span class="ds">${e(r.dorsal ?? '')}</span></div>
+      <div class="tx"><div class="nm">${e(_shortName(r.name))}</div><div class="pp">${g ? (r.pts / g).toFixed(1).replace('.', ',') + ' pts' : 'sin datos'}</div>
+      <div class="adv">${e(x.adv)}</div>${x.note ? `<div class="nt">${e(x.note)}</div>` : ''}
+      ${g ? `<div class="sts">${sl('T2', r.t2m || 0, r.t2a || 0)}${sl('T3', r.t3m || 0, r.t3a || 0)}${sl('TL', r.tlm || 0, r.tla || 0)}</div>` : ''}</div>
+      ${mp.src ? `<div class="mp"><img src="${mp.src}" alt=""><small>${mp.n} tiros · ${mp.pc}</small></div>` : '<div class="mp"></div>'}</div>`; }).join('');
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Hoja del partido · ${e(D.rival)}</title><style>
+    @page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .top{display:flex;justify-content:space-between;align-items:center;background:#0f172a;color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:7px}
+    .top h1{font-size:19px;margin:0}.top h1 span{color:#fbbf24}.top div{font-size:13px;font-weight:700}
+    h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;margin:8px 0 4px}
+    .prs{display:grid;grid-template-columns:1fr;gap:0}
+    .fc{position:relative;display:inline-block;flex-shrink:0}.fc img,.fc .np{display:block;border-radius:50%;object-fit:cover;background:#e2e8f0;border:2px solid #0f172a}
+    .fc .np{display:flex;align-items:center;justify-content:center;font-weight:900;color:#475569}
+    .fc b{position:absolute;right:-7px;bottom:-5px;color:#fff;font-weight:900;border-radius:999px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 3px}
+    .fc.us img,.fc.us .np{width:58px;height:58px;font-size:18px;border-color:#92400e}.fc.us b{background:#f59e0b;font-size:17px;min-width:30px;height:30px}
+    .fc.th img,.fc.th .np{width:58px;height:58px;font-size:18px}.fc.th b{background:#dc2626;font-size:17px;min-width:30px;height:30px}
+    .fc.sm img,.fc.sm .np{width:44px;height:44px;font-size:13px}.fc.sm b{background:#dc2626;font-size:13px;min-width:23px;height:23px;right:-6px}
+    .pr .vs{font-size:20px;color:#94a3b8;margin:0 2px}.pr .rest{display:inline-flex;align-items:center;gap:14px;margin-left:auto;padding-right:8px}.pr .rest i{font-style:normal;font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}.pr .r1,.pr .rn{display:inline-flex;align-items:center;gap:9px}.pr .r1 .rnm{font-size:18px;font-weight:900}.pr .rn .rnm{font-size:12.5px;color:#475569;font-weight:700}
+    .rivs{break-before:page;page-break-before:always}
+    .pr{display:flex;flex-wrap:nowrap;align-items:center;gap:6px 14px;padding:7px 8px;border-bottom:1px solid #e2e8f0}.pr:nth-child(odd){background:#f8fafc}
+    .pr .o{font-size:19px;font-weight:900;color:#92400e;min-width:104px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .cd{display:grid;grid-template-columns:auto 1fr 104px;gap:8px;align-items:center;border:1.5px solid #cbd5e1;border-radius:12px;padding:5px 7px;break-inside:avoid;page-break-inside:avoid}
+    .ft{position:relative;flex-shrink:0}.ft img,.ft .np{width:62px;height:62px;border-radius:50%;object-fit:cover;display:block;background:#e2e8f0;border:2px solid #0f172a}
+    .ds{position:absolute;right:-6px;bottom:-4px;background:#dc2626;color:#fff;font-weight:900;font-size:16px;min-width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 3px}
+    .tx{min-width:0}.nm{font-size:14px;font-weight:900;text-transform:uppercase;line-height:1.1}.pp{font-size:12px;color:#64748b;font-weight:700;margin:1px 0 3px}
+    .adv{font-size:13px;font-weight:900;color:#b91c1c;line-height:1.15}.nt{font-size:12.5px;font-weight:700;color:#1e3a8a;margin-top:2px}
+    .df{font-size:11.5px;font-weight:800;color:#92400e;margin-top:3px}
+    .sts{display:flex;flex-wrap:wrap;gap:1px 9px;margin-top:3px;font-size:11px;font-weight:700;color:#0f172a}.sts span{white-space:nowrap}.sts i{font-style:normal;color:#64748b;font-weight:800}.sts b{color:#1d4ed8}
+    .mp{text-align:center}.mp img{width:104px;border-radius:6px;display:block}.mp small{display:block;font-size:9.5px;color:#64748b;margin-top:1px}
+  </style></head><body>
+    <div class="top"><h1>${e(D.my)} <span>vs</span> ${e(D.rival)}</h1><div>${e(when)}</div></div>
+    <h2>A quién defiendes</h2><div class="prs">${pairs}</div>
+    <div class="rivs"><h2>Los rivales</h2><div class="grid">${cards}</div></div></body></html>`;
+}
+window.muSheet = function () {
+  if (_playerMode) return; const D0 = _muSheetData(); if (!D0 || !D0.rivs.length) { toast('Primero guarda los emparejamientos', 'err'); return; }
+  document.querySelectorAll('.mus-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov mus-ov';
+  const st = () => { const nm = S.nextMatch; nm.muSheet = nm.muSheet || {}; nm.muSheet.adv = nm.muSheet.adv || {}; nm.muSheet.note = nm.muSheet.note || {}; return nm.muSheet; };
+  ov.innerHTML = `<div class="vm-box mus-box" role="dialog" aria-label="Hoja del partido"><header><b>🖨️ Hoja del partido · ${_esc(D0.rival)}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+    <p class="mus-p">Una hoja A4 para el banquillo y la mesa: arriba los emparejamientos de todos y debajo una ficha de cada rival. Retoca el consejo o añade una nota si quieres; se guarda para este partido.</p>
+    <div class="mus-l">${D0.rivs.map(x => `<div class="mus-r"><div class="mus-h"><b>#${_esc(x.r.dorsal ?? '')} ${_esc(_shortName(x.r.name))}</b><span>🛡 ${x.def.map(d => d.k + 'º ' + _esc(d.ap)).join(' · ')}</span></div>
+      <label>👉 Qué hacer (corto, en mayúsculas se lee mejor) <textarea rows="1" data-k="adv" data-n="${_esc(x.r.name)}">${_esc(x.adv)}</textarea></label>
+      <label>📝 Nota del staff <input data-k="note" data-n="${_esc(x.r.name)}" value="${_esc(x.note)}" placeholder="Opcional: «no le dejes ir a su derecha»…"></label></div>`).join('')}</div>
+    <div class="mus-a"><button type="button" class="sec" data-a="photos" title="Elige la página del equipo guardada de basquetcatala.cat (Ctrl+S, «Página web completa»): la nuestra y la del rival">📸 Añadir fotos (FCBQ)</button><button type="button" class="sec" data-a="reset" title="Vuelve a poner los consejos automáticos">↺ Consejos automáticos</button><span style="flex:1"></span><button type="button" data-a="print">🖨️ Imprimir / guardar PDF</button></div></div>`;
+  document.body.appendChild(ov);
+  const save = () => { svL(); if (typeof syncFirebase === 'function') syncFirebase(); };
+  let tmr = null; ov.addEventListener('input', e => { const f = e.target.closest('[data-k]'); if (!f) return; const s = st(); s[f.dataset.k][f.dataset.n] = f.value; clearTimeout(tmr); tmr = setTimeout(save, 600); });
+  const close = () => { clearTimeout(tmr); ov.remove(); document.removeEventListener('keydown', key, true); };
+  const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+  document.addEventListener('keydown', key, true);
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) { save(); close(); return; } const b = e.target.closest('[data-a]'); if (!b) return;
+    if (b.dataset.a === 'photos') { window.baPhotoImport(); return; }
+    if (b.dataset.a === 'reset') { if (!confirm('¿Volver a los consejos automáticos? Las notas no se tocan.')) return; st().adv = {}; save(); close(); window.muSheet(); return; }
+    if (b.dataset.a === 'print') { clearTimeout(tmr); save(); const html = _muSheetHtml(_muSheetData());
+      document.querySelectorAll('iframe.mus-if').forEach(f => f.remove()); const f = document.createElement('iframe'); f.className = 'mus-if'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+      const d = f.contentWindow.document; d.open(); d.write(html); d.close();
+      // espera a que carguen las fotos (como mucho 5 s) y abre la impresión
+      const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (er) { toast('No se ha podido abrir la impresión', 'err'); } };
+      const imgs = [...d.images]; let t0 = Date.now(); const wait = () => { if (imgs.every(i => i.complete) || Date.now() - t0 > 5000) go(); else setTimeout(wait, 150); }; setTimeout(wait, 200); } };
+};
+window.__muSheetHtml = () => { const D = _muSheetData(); return D ? _muSheetHtml(D) : ''; };
 // 🖼️ Imagen de los emparejamientos para el tríptico (solo staff): «PARTIT Jx CLARET - RIVAL», bloques B / A / P con los rivales
 // (los peligrosos en rojo) y, a la derecha, en azul, quién defiende a cada uno por orden de prioridad (con los apodos del vestuario).
 // La posición (B/A/P), los que van en rojo, la jornada y el nombre corto del rival se guardan con el próximo partido.
@@ -17562,7 +17706,7 @@ function _acYtApi() {
     setTimeout(() => rej(new Error('YouTube no responde. Mira la conexión.')), 20000);
   });
 }
-function acClose() { if (!_acP) return; const P = _acP; _acP = null; clearInterval(P.tick); try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
+function acClose() { if (!_acP) return; const P = _acP; _acP = null; clearInterval(P.tick); Object.keys(P.orig || {}).forEach(i => Object.assign(P.list[i], P.orig[i])); try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
 function acPlay(list, i, title) {
   acClose(); if (!list || !list.length) return;
   let auto = true; try { auto = localStorage.getItem('ac_auto') !== '0'; } catch (e) { }
@@ -17571,7 +17715,8 @@ function acPlay(list, i, title) {
     <div class="ac-vid"><div class="ac-yw"><div id="ac-yt"></div></div><div class="ac-shield" title="Pausa / seguir (espacio)"></div><div class="ac-pp" hidden>▶</div><div class="ac-bar"><i></i></div><div class="ac-msg">Cargando el vídeo…</div></div>
     <div class="ac-now"></div>
     <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label></div>
-    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir · Esc cerrar</div>
+    ${_acStaff() ? '<div class="ac-ed"></div>' : ''}
+    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir${_acStaff() ? " · I / O inicio / final aquí" : ""} · Esc cerrar</div>
     <div class="ac-lst"></div></div>`;
   document.body.appendChild(ov);
   const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
@@ -17582,8 +17727,29 @@ function acPlay(list, i, title) {
     ov.querySelectorAll('.ac-it').forEach(e => e.onclick = () => go(+e.dataset.k));
     const cur = ov.querySelector('.ac-it.on'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' }); };
   const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); P.done = -1; try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
-  const go = k => { if (k < 0 || k >= P.list.length) return; P.i = k; draw(); load(); };
-  P.go = go;
+  // ✂️ (staff) ajustar inicio y final de la jugada: se prueba al momento y se guarda en el partido con «Guardar»
+  P.orig = {};
+  const edEl = ov.querySelector('.ac-ed'), fmtT = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
+  const curT = () => { try { return P.yt.getCurrentTime(); } catch (e) { return null; } };
+  const drawEd = () => { if (!edEl) return; const x = P.list[P.i], o = P.orig[P.i], ch = !!o && (o.t0 !== x.t0 || o.t1 !== x.t1);
+    edEl.innerHTML = `<span class="ac-edl">✂️ Ajustar</span>
+      <span class="ac-edg">Inicio <b>${fmtT(x.t0)}</b><button type="button" data-ed="t0:-1">−1 s</button><button type="button" data-ed="t0:1">+1 s</button><button type="button" data-ed="t0:now" title="El inicio, donde está ahora el vídeo (tecla I)">⏱ Aquí</button></span>
+      <span class="ac-edg">Final <b>${fmtT(x.t1)}</b><button type="button" data-ed="t1:-1">−1 s</button><button type="button" data-ed="t1:1">+1 s</button><button type="button" data-ed="t1:now" title="El final, donde está ahora el vídeo (tecla O)">⏱ Aquí</button></span>
+      <span class="ac-edd">${(x.t1 - x.t0).toFixed(1)} s</span>
+      ${ch ? '<button type="button" class="ac-edu" data-ed="undo">↺ Deshacer</button><button type="button" class="ac-eds" data-ed="save">💾 Guardar</button>' : ''}`;
+    edEl.classList.toggle('ch', ch); };
+  const edit = (k, v) => { const x = P.list[P.i]; if (!P.orig[P.i]) P.orig[P.i] = { t0: x.t0, t1: x.t1 };
+    if (k === 't0') x.t0 = Math.round(Math.max(0, Math.min(x.t1 - 1, v)) * 10) / 10; else x.t1 = Math.round(Math.max(x.t0 + 1, v) * 10) / 10;
+    drawEd(); if (k === 't0') load(); else { P.done = -1; P.at = Date.now(); try { P.yt.seekTo(Math.max(x.t0, x.t1 - 3), true); P.yt.playVideo(); } catch (e) { } } };
+  const undoEd = i => { const o = P.orig[i]; if (!o) return; Object.assign(P.list[i], o); delete P.orig[i]; };
+  const saveEd = () => { const x = P.list[P.i], c = x.m && x.m.videoActions && x.m.videoActions.clips[x.i]; if (!c) return;
+    c.t0 = x.t0; c.t1 = x.t1; delete P.orig[P.i]; _acSave(); drawEd(); toast(`💾 Jugada ajustada: ${fmtT(x.t0)} – ${fmtT(x.t1)}`, 'ok'); };
+  if (edEl) edEl.onclick = e => { const b = e.target.closest('[data-ed]'); if (!b) return; const [k, v] = b.dataset.ed.split(':'), x = P.list[P.i];
+    if (k === 'save') return saveEd(); if (k === 'undo') { undoEd(P.i); drawEd(); load(); return; }
+    if (v === 'now') { const t = curT(); if (t == null) return; edit(k, t); } else edit(k, x[k] + +v); };
+  P.edKey = k => { if (!edEl) return false; const t = curT(); if (t == null) return false; edit(k === 'i' ? 't0' : 't1', t); return true; };
+  const go = k => { if (k < 0 || k >= P.list.length) return; if (P.orig[P.i]) undoEd(P.i); P.i = k; draw(); drawEd(); load(); };
+  P.go = go; drawEd();
   // pausa / seguir con la capa de encima (los controles de YouTube no salen); al final del tramo se para ahí (sin pantalla final de YouTube) y, con «Seguidas», pasa a la siguiente
   const pp = ov.querySelector('.ac-pp'), bar = ov.querySelector('.ac-bar i');
   const toggle = () => { if (!P.ready || !P.yt) return; let s = -1; try { s = P.yt.getPlayerState(); } catch (e) { }
@@ -17592,20 +17758,21 @@ function acPlay(list, i, title) {
   P.tick = setInterval(() => { if (_acP !== P || !P.ready || !P.yt) return; const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { return; }
     if (Date.now() - (P.at || 0) < 900) return;
     bar.style.width = Math.max(0, Math.min(100, 100 * (ct - x.t0) / Math.max(0.5, x.t1 - x.t0))) + '%';
-    if (P.done !== P.i && ct >= x.t1 - 0.2) { P.done = P.i; try { P.yt.pauseVideo(); } catch (e) { } if (P.auto && P.i < P.list.length - 1) setTimeout(() => { if (_acP === P && P.done === P.i) go(P.i + 1); }, 350); } }, 120);
+    if (P.done !== P.i && ct >= x.t1 - 0.2) { P.done = P.i; try { P.yt.pauseVideo(); } catch (e) { } if (P.auto && !(P.orig && P.orig[P.i]) && P.i < P.list.length - 1) setTimeout(() => { if (_acP === P && P.done === P.i) go(P.i + 1); }, 350); } }, 120);
   ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) acClose(); };
   ov.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'prev') go(P.i - 1); else if (a === 'next') go(P.i + 1); else load(); });
   ov.querySelector('.ac-auto input').onchange = e => { P.auto = e.target.checked; try { localStorage.setItem('ac_auto', P.auto ? '1' : '0'); } catch (er) { } };
   P.key = e => { if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
     if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();   // que no lleguen a los atajos del vídeo de la pestaña
     if (e.key === ' ') { e.preventDefault(); toggle(); return; }
+    if ((e.key === 'i' || e.key === 'I' || e.key === 'o' || e.key === 'O') && P.edKey && P.edKey(e.key.toLowerCase())) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.key === 'Escape') { e.preventDefault(); acClose(); } else if (e.key === 'ArrowRight') { e.preventDefault(); go(P.i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(P.i - 1); } else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); load(); } };
   document.addEventListener('keydown', P.key, true);
   draw();
   _acYtApi().then(() => { if (_acP !== P) return; const x = P.list[P.i];
     P.yt = new YT.Player('ac-yt', { width: '100%', height: '100%', videoId: x.yt, playerVars: { start: Math.floor(x.t0), end: Math.ceil(x.t1), autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, cc_load_policy: 0 },
       events: { onReady: () => { P.ready = true; msg.style.display = 'none'; load(); },
-        onStateChange: e => { if (_acP === P) pp.hidden = !(e.data === 2 || e.data === 0 || e.data === 5); if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1 || P.done === P.i) return; P.done = P.i;
+        onStateChange: e => { if (_acP === P) pp.hidden = !(e.data === 2 || e.data === 0 || e.data === 5); if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1 || P.done === P.i || (P.orig && P.orig[P.i])) return; P.done = P.i;
           if (Date.now() - (P.at || 0) < 1500) return;   // el aviso de fin del tramo anterior al cargar el nuevo
           let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (er) { } if (ct && ct < P.list[P.i].t1 - 1.5) return;
           go(P.i + 1); },
@@ -21314,7 +21481,7 @@ function _metaPayload() {
     teams: S.teams || [], access: S.access || null,
     playerNotes: S.playerNotes || {}, watchGroups: S.watchGroups || [],
     nextMatch: S.nextMatch || null, fisio: S.fisio || {}, fisioFix: S.fisioFix || 0,
-    scoutNotes: S.scoutNotes || {}
+    scoutNotes: S.scoutNotes || {}, photos: S.photos || {}
   };
 }
 
@@ -21505,7 +21672,7 @@ async function ldLS() {
       const parsed = JSON.parse(localData);
       if (parsed) {
         S.teams = parsed.teams || []; S.playerNotes = parsed.playerNotes || {};
-        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null;
+        S.watchGroups = parsed.watchGroups || []; S.nextMatch = parsed.nextMatch || null; S.photos = parsed.photos || {};
         S.fisio = parsed.fisio || {}; S.fisioFix = parsed.fisioFix || 0;
         _refreshAfterSync();
       }
@@ -21525,7 +21692,7 @@ async function ldLS() {
       if (metaRes.data) {
           const md = metaRes.data.data;
           S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = md.photos || {};
           S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || 0;
           S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
           window._lastMetaStr = JSON.stringify(_metaPayload());
@@ -21639,7 +21806,7 @@ async function ldLS() {
               if(payload.new && payload.new.id === 'global') {
                   const md = payload.new.data;
                   S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null;
+                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = md.photos || {};
                   S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || S.fisioFix || 0;
                   S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
                   if (typeof _loadScoutNotes === 'function') _loadScoutNotes();
@@ -33292,8 +33459,10 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     const dors = (t, n) => { const p = ((lv.pl || {})[t] || []).find(p => p.name === n); return p && p.dorsal != null && p.dorsal !== '' ? '#' + p.dorsal + ' ' : ''; };
     const short = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? p[0] + ' ' + p[1][0] + '.' : p[0] || ''; };
     const who = (t, n) => dors(t, n) + short(n);
+    const face = (t, n, big) => { const ph = window.__baPhoto ? window.__baPhoto(n) : '', d = dors(t, n).replace(/[#\s]/g, ''), ini = String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('');
+      return `<span class="bq-fc${big ? ' big' : ''} ${t}" title="${esc(n)}">${ph ? `<img src="${esc(ph)}" alt="" loading="lazy">` : `<i>${esc(ini)}</i>`}${d ? `<b>${esc(d)}</b>` : ''}</span>`; };
     const E = lv.events.filter(e => e && e.type && e.type !== 'period_start' && e.min != null).slice().sort((a, b) => a.min - b.min);
-    return { lv, us, op, nm, who, E, t: Math.max(now(), E.length ? E[E.length - 1].min : 0) };
+    return { lv, us, op, nm, who, face, E, t: Math.max(now(), E.length ? E[E.length - 1].min : 0) };
   }
 
   // ── tramos con quién estaba en pista: minutos, puntos a favor y en contra ──
@@ -33352,7 +33521,7 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
 
   // ── los avisos ──
   function insights(C) {
-    const out = [], add = (lvl, ico, txt, w, tag) => out.push({ lvl, ico, txt, w, tag });
+    const out = [], add = (lvl, ico, txt, w, tag, pls) => out.push({ lvl, ico, txt, w, tag, pls });
     const { us, op, nm, who, E, t } = C, per = C.lv.period || 1;
     // 1) parcial: la racha sin que anote el otro y lo de los últimos 3 minutos
     const sc = E.filter(e => PTS[e.type]);
@@ -33369,17 +33538,17 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
       const onNow = ((C.lv.onCourt || {})[us] || new Set()).has ? C.lv.onCourt[us].has(p.n) : false;
       if (Math.abs(d) < 8 || Math.abs(pmOn - pmOff) < 5) return;
       const txt = `Con ${who(us, p.n)} en pista ${sg(pmOn)} (${Math.round(p.on.min)} min) · sin él ${sg(pmOff)} (${Math.round(p.off.min)} min)`;
-      if (d > 0) add('good', onNow ? '💪' : '🪑', txt + (onNow ? '' : ' · está en el banquillo'), 6 + d / 3 + (onNow ? 0 : 3), 'onoff');
-      else add('bad', '⚠️', txt + (onNow ? ' · está en pista' : ''), 5 + Math.abs(d) / 3 + (onNow ? 3 : 0), 'onoff'); });
+      if (d > 0) add('good', onNow ? '💪' : '🪑', txt + (onNow ? '' : ' · está en el banquillo'), 6 + d / 3 + (onNow ? 0 : 3), 'onoff', [[us, p.n]]);
+      else add('bad', '⚠️', txt + (onNow ? ' · está en pista' : ''), 5 + Math.abs(d) / 3 + (onNow ? 3 : 0), 'onoff', [[us, p.n]]); });
     // 3) quinteto en pista y el mejor hasta ahora
     const LU = lineups(C, us), cur = [...((C.lv.onCourt || {})[us] || [])].sort().join('|');
-    const q = LU.find(x => x.k === cur); if (q && q.min >= 3) { const pm = q.pf - q.pa; if (Math.abs(pm) >= 5) add(pm > 0 ? 'good' : 'bad', '🖐', `El quinteto en pista va ${sg(pm)} (${q.pf}-${q.pa}) en ${Math.round(q.min)} min`, 6 + Math.abs(pm) / 2); }
+    const q = LU.find(x => x.k === cur); if (q && q.min >= 3) { const pm = q.pf - q.pa; if (Math.abs(pm) >= 5) add(pm > 0 ? 'good' : 'bad', '🖐', `El quinteto en pista va ${sg(pm)} (${q.pf}-${q.pa}) en ${Math.round(q.min)} min`, 6 + Math.abs(pm) / 2, 'q', q.ns.map(n => [us, n])); }
     const bestQ = LU.filter(x => x.min >= 3 && x.k !== cur).sort((a, b) => (b.pf - b.pa) - (a.pf - a.pa))[0];
-    if (bestQ && bestQ.pf - bestQ.pa >= 6) add('good', '🏆', `Mejor quinteto: ${bestQ.ns.map(n => who(us, n)).join(', ')} · ${sg(bestQ.pf - bestQ.pa)} en ${Math.round(bestQ.min)} min`, 5 + (bestQ.pf - bestQ.pa) / 3);
+    if (bestQ && bestQ.pf - bestQ.pa >= 6) add('good', '🏆', `Mejor quinteto: ${sg(bestQ.pf - bestQ.pa)} (${bestQ.pf}-${bestQ.pa}) en ${Math.round(bestQ.min)} min`, 5 + (bestQ.pf - bestQ.pa) / 3, 'q', bestQ.ns.map(n => [us, n]));
     // 4) faltas
     const BU = box(C, us), BO = box(C, op);
-    BU.forEach(p => { const lim = per <= 1 ? 2 : per <= 2 ? 3 : 4; if (p.fc >= lim && p.fc < 5) add('warn', '🟨', `${who(us, p.n)} lleva ${p.fc} faltas${per <= 2 ? ' en la 1ª parte' : ''}`, 7 + p.fc); if (p.fc >= 5) add('info', '🚫', `${who(us, p.n)} eliminado (5 faltas)`, 3); });
-    BO.forEach(p => { if (p.fc === 4 || (per <= 2 && p.fc === 3)) add('good', '🎯', `${who(op, p.n)} (${nm[op]}) lleva ${p.fc} faltas: atacarle`, 6 + p.fc); });
+    BU.forEach(p => { const lim = per <= 1 ? 2 : per <= 2 ? 3 : 4; if (p.fc >= lim && p.fc < 5) add('warn', '🟨', `${who(us, p.n)} lleva ${p.fc} faltas${per <= 2 ? ' en la 1ª parte' : ''}`, 7 + p.fc, '', [[us, p.n]]); if (p.fc >= 5) add('info', '🚫', `${who(us, p.n)} eliminado (5 faltas)`, 3, '', [[us, p.n]]); });
+    BO.forEach(p => { if (p.fc === 4 || (per <= 2 && p.fc === 3)) add('good', '🎯', `${who(op, p.n)} (${nm[op]}) lleva ${p.fc} faltas: atacarle`, 6 + p.fc, '', [[op, p.n]]); });
     const tf = s => E.filter(e => e.period === per && e.team === s && FOUL.includes(e.type)).length;
     if (tf(us) >= 4) add('warn', '🛑', `Estamos en bonus (${tf(us)} faltas de equipo en el ${per}º cuarto): cada falta son 2 tiros libres`, 7);
     else if (tf(us) === 3) add('warn', '⚠️', `3 faltas de equipo en el ${per}º cuarto: una más y bonus`, 4);
@@ -33396,11 +33565,11 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     const toP = E.filter(e => e.period === per && e.team === us && e.type === 'to').length;
     if (TU.to >= 7 || toP >= 4) add('bad', '💨', `${TU.to} pérdidas${toP >= 3 ? ` (${toP} este cuarto)` : ''}${TO.ptsTo ? ` · ${TO.ptsTo} pts del rival tras ellas` : ''}`, 6 + toP + TO.ptsTo / 3);
     // 7) jugadores: calientes y fríos
-    BO.forEach(p => { if (p.pts >= 8 && (p.fga ? p.fgm / p.fga >= 0.55 : true)) add('bad', '🔥', `${who(op, p.n)} (${nm[op]}) lleva ${p.pts} pts · ${p.fgm}/${p.fga} de campo${p.t3m ? `, ${p.t3m}/${p.t3a} triples` : ''}`, 6 + p.pts / 3); });
+    BO.forEach(p => { if (p.pts >= 8 && (p.fga ? p.fgm / p.fga >= 0.55 : true)) add('bad', '🔥', `${who(op, p.n)} (${nm[op]}) lleva ${p.pts} pts · ${p.fgm}/${p.fga} de campo${p.t3m ? `, ${p.t3m}/${p.t3a} triples` : ''}`, 6 + p.pts / 3, '', [[op, p.n]]); });
     const totO = BO.reduce((s, p) => s + p.pts, 0), topO = BO.slice().sort((a, b) => b.pts - a.pts)[0];
-    if (topO && totO >= 15 && topO.pts / totO >= 0.38) add('warn', '🎯', `${who(op, topO.n)} hace el ${Math.round(100 * topO.pts / totO)}% de los puntos de ${nm[op]}: negarle el balón`, 6);
-    BU.forEach(p => { if (p.fga >= 5 && p.fgm <= 1) add('bad', '🥶', `${who(us, p.n)} ${p.fgm}/${p.fga} de campo`, 4 + p.fga / 3);
-      if (p.pts >= 10 && p.fga && p.fgm / p.fga >= 0.55) add('good', '🔥', `${who(us, p.n)} está enchufado: ${p.pts} pts (${p.fgm}/${p.fga})`, 5 + p.pts / 4); });
+    if (topO && totO >= 15 && topO.pts / totO >= 0.38) add('warn', '🎯', `${who(op, topO.n)} hace el ${Math.round(100 * topO.pts / totO)}% de los puntos de ${nm[op]}: negarle el balón`, 6, '', [[op, topO.n]]);
+    BU.forEach(p => { if (p.fga >= 5 && p.fgm <= 1) add('bad', '🥶', `${who(us, p.n)} ${p.fgm}/${p.fga} de campo`, 4 + p.fga / 3, '', [[us, p.n]]);
+      if (p.pts >= 10 && p.fga && p.fgm / p.fga >= 0.55) add('good', '🔥', `${who(us, p.n)} está enchufado: ${p.pts} pts (${p.fgm}/${p.fga})`, 5 + p.pts / 4, '', [[us, p.n]]); });
     // 8) tras nuestros tiempos muertos: qué sale de la primera posesión
     const tms = E.filter(e => e.type === 'timeout' && e.team === us); let ok = 0, n = 0;
     tms.forEach(tm => { const nx = E.find(e => e.min >= tm.min && e.ts >= (tm.ts || 0) && e.team === us && (PTS[e.type] && e.type !== 'tl_in' || /^miss[23]$|^to$/.test(e.type) || e.type === 'tl_in')); if (!nx) return; n++; if (PTS[nx.type]) ok++; });
@@ -33423,24 +33592,31 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
   .bq-tb td.p{color:#15803d;font-weight:800}.bq-tb td.n{color:#b91c1c;font-weight:800}
   .bq-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:600px){.bq-g2{grid-template-columns:1fr}}
   .bq-act{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.bq-act button{border:1px solid #cbd5e1;background:#fff;border-radius:9px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer}
+  .bq-fc{position:relative;display:inline-block;width:34px;height:34px;flex-shrink:0}.bq-fc img,.bq-fc i{width:34px;height:34px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:900;background:#e2e8f0;color:#475569;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1}
+  .bq-fc b{position:absolute;right:-5px;bottom:-4px;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 3px;border:1.5px solid #fff}.bq-fc.home b{background:#3b82f6}.bq-fc.away b{background:#ef4444}
+  .bq-fcs{display:flex;gap:6px;flex-shrink:0}.bq-q{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.bq-nm{display:inline-flex;align-items:center;gap:8px}
   .bq-btn{position:relative}.bq-dot{position:absolute;top:3px;right:3px;min-width:16px;height:16px;border-radius:8px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;line-height:16px;padding:0 4px;display:none}`;
   function css() { if (!document.getElementById('bq-css')) { const s = document.createElement('style'); s.id = 'bq-css'; s.textContent = CSS; document.head.appendChild(s); } }
 
-  const itemsHtml = A => A.length ? A.map(a => `<div class="bq-it bq-${a.lvl}"><i>${a.ico}</i><span>${esc(a.txt)}</span></div>`).join('') : '<div class="bq-none">Todavía no hay nada que destacar. Los avisos salen solos cuando algo se sale de lo normal (parciales, con/sin un jugador, faltas, rebote, pérdidas, tiro…).</div>';
+  let FACE = null;
+  const itemsHtml = A => A.length ? A.map(a => { const fs = FACE && a.pls ? a.pls.map(([t, n]) => FACE(t, n)).join('') : '';
+      return a.tag === 'q' && fs ? `<div class="bq-it bq-${a.lvl}"><i>${a.ico}</i><span>${esc(a.txt)}<span class="bq-q">${fs}</span></span></div>`
+        : `<div class="bq-it bq-${a.lvl}">${fs ? `<span class="bq-fcs">${fs}</span>` : `<i>${a.ico}</i>`}<span>${fs ? a.ico + ' ' : ''}${esc(a.txt)}</span></div>`; }).join('') : '<div class="bq-none">Todavía no hay nada que destacar. Los avisos salen solos cuando algo se sale de lo normal (parciales, con/sin un jugador, faltas, rebote, pérdidas, tiro…).</div>';
   function scoreHtml(C) { const s = C.lv.score || { home: 0, away: 0 }; return `<div class="bq-sc">${esc(C.nm.home)} ${s.home} – ${s.away} ${esc(C.nm.away)} <small>${C.lv.period > 4 ? 'Prórroga' : (C.lv.period || 1) + 'º cuarto'} · min ${mmss(C.t)}</small></div>`; }
-  function nowHtml(C) { const A = insights(C); return scoreHtml(C) + itemsHtml(A.slice(0, 12)); }
+  function nowHtml(C) { FACE = C.face; const A = insights(C); return scoreHtml(C) + itemsHtml(A.slice(0, 12)); }
 
   function reportHtml(C) {
+    FACE = C.face;
     const A = insights(C), good = A.filter(a => a.lvl === 'good'), bad = A.filter(a => a.lvl === 'bad'), warn = A.filter(a => a.lvl === 'warn');
     const per = {}; C.E.forEach(e => { const v = PTS[e.type]; if (!v) return; const p = e.period || 1; per[p] = per[p] || { home: 0, away: 0 }; per[p][e.team] += v; });
-    const qs = Object.keys(per).sort((a, b) => a - b).map(p => `${p > 4 ? 'PR' : 'Q' + p} ${per[p][C.us]}-${per[p][C.op]}`).join(' · ');
+    const qs = Object.keys(per).sort((a, b) => a - b).map(p => `${p > 4 ? 'PR' : 'Q' + p} ${per[p].home}-${per[p].away}`).join(' · ');
     const OO = onOff(C), rows = OO.P.filter(p => p.on.min >= 1).sort((a, b) => b.on.min - a.on.min).map(p => { const on = p.on.pf - p.on.pa, off = p.off.pf - p.off.pa;
-      return `<tr><td>${esc(C.who(C.us, p.n))}</td><td>${Math.round(p.on.min)}'</td><td class="${on > 0 ? 'p' : on < 0 ? 'n' : ''}">${sg(on)}</td><td class="${off > 0 ? 'p' : off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(off) : '—'}</td><td class="${on - off > 0 ? 'p' : on - off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(on - off) : '—'}</td></tr>`; }).join('');
-    const LU = lineups(C, C.us).filter(q => q.min >= 1.5).slice(0, 5).map(q => `<tr><td>${q.ns.map(n => esc(C.who(C.us, n))).join(', ')}</td><td>${Math.round(q.min)}'</td><td class="${q.pf - q.pa > 0 ? 'p' : q.pf - q.pa < 0 ? 'n' : ''}">${sg(q.pf - q.pa)}</td><td>${q.pf}-${q.pa}</td></tr>`).join('');
+      return `<tr><td><span class="bq-nm">${C.face(C.us, p.n)}${esc(C.who(C.us, p.n))}</span></td><td>${Math.round(p.on.min)}'</td><td class="${on > 0 ? 'p' : on < 0 ? 'n' : ''}">${sg(on)}</td><td class="${off > 0 ? 'p' : off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(off) : '—'}</td><td class="${on - off > 0 ? 'p' : on - off < 0 ? 'n' : ''}">${p.off.min >= 1 ? sg(on - off) : '—'}</td></tr>`; }).join('');
+    const LU = lineups(C, C.us).filter(q => q.min >= 1.5).slice(0, 5).map(q => `<tr><td><span class="bq-q">${q.ns.map(n => C.face(C.us, n)).join('')}</span></td><td>${Math.round(q.min)}'</td><td class="${q.pf - q.pa > 0 ? 'p' : q.pf - q.pa < 0 ? 'n' : ''}">${sg(q.pf - q.pa)}</td><td>${q.pf}-${q.pa}</td></tr>`).join('');
     const TU = team(C, C.us), TO = team(C, C.op), r = (l, a, b) => `<tr><td>${l}</td><td>${a}</td><td>${b}</td></tr>`, f = x => fg(x);
     const tiro = r('Campo', `${f(TU)[0]}/${f(TU)[1]} (${pc(...f(TU))})`, `${f(TO)[0]}/${f(TO)[1]} (${pc(...f(TO))})`) + r('Tiros de 2', `${TU.t2m}/${TU.t2a} (${pc(TU.t2m, TU.t2a)})`, `${TO.t2m}/${TO.t2a} (${pc(TO.t2m, TO.t2a)})`) + r('Triples', `${TU.t3m}/${TU.t3a} (${pc(TU.t3m, TU.t3a)})`, `${TO.t3m}/${TO.t3a} (${pc(TO.t3m, TO.t3a)})`) + r('Tiros libres', `${TU.ftm}/${TU.fta} (${pc(TU.ftm, TU.fta)})`, `${TO.ftm}/${TO.fta} (${pc(TO.ftm, TO.fta)})`)
       + r('Rebotes of / def', `${TU.ro} / ${TU.rd}`, `${TO.ro} / ${TO.rd}`) + r('Pts 2ª oportunidad', TU.ptsRo, TO.ptsRo) + r('Pérdidas', TU.to, TO.to) + r('Pts tras pérdida', TU.ptsTo, TO.ptsTo) + r('Faltas', TU.fc, TO.fc);
-    const BO = box(C, C.op).sort((a, b) => b.pts - a.pts).slice(0, 5).map(p => `<tr><td>${esc(C.who(C.op, p.n))}</td><td>${p.pts}</td><td>${p.fgm}/${p.fga}</td><td>${p.t3m}/${p.t3a}</td><td>${p.fc}</td></tr>`).join('');
+    const BO = box(C, C.op).sort((a, b) => b.pts - a.pts).slice(0, 5).map(p => `<tr><td><span class="bq-nm">${C.face(C.op, p.n)}${esc(C.who(C.op, p.n))}</span></td><td>${p.pts}</td><td>${p.fgm}/${p.fga}</td><td>${p.t3m}/${p.t3a}</td><td>${p.fc}</td></tr>`).join('');
     const fouls = box(C, C.us).filter(p => p.fc >= 2).sort((a, b) => b.fc - a.fc).map(p => `${esc(C.who(C.us, p.n))} ${p.fc}`).join(' · ');
     const list = (t, A) => A.length ? `<div class="bq-sec">${t}</div>${itemsHtml(A.slice(0, 6))}` : '';
     return scoreHtml(C) + `<div style="text-align:center;font-size:12px;color:#475569;margin:-4px 0 6px">${esc(qs)}</div>`

@@ -4611,6 +4611,27 @@ body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
 .mus-r label{display:block;font-size:11px;font-weight:800;color:#334155;margin-top:4px}
 .mus-r textarea,.mus-r input{display:block;width:100%;box-sizing:border-box;margin-top:2px;border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px;font:inherit;font-size:12.5px;font-weight:500;resize:vertical}
 .mus-a{display:flex;align-items:center;gap:8px;margin-top:12px}
+/* v97 · fotos desde la FCBQ (2 pasos), playbook en la hoja y la hoja en imágenes para copiar */
+.pim-box{max-width:480px}.pim-p{font-size:12.5px;color:#475569;margin:10px 0}
+.pim-s{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #2563eb;border-radius:10px;font-weight:800;font-size:13px;color:#1d4ed8;cursor:pointer;margin-top:8px}
+.pim-s span{width:24px;height:24px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.pim-s.off{opacity:.4;pointer-events:none}.pim-r{font-size:12px;color:#334155;margin:4px 2px 0;min-height:16px}
+.mus-sec{font-size:12px;font-weight:900;letter-spacing:.04em;color:#0f172a;margin:6px 0 2px}
+.mus-pl{display:flex;flex-direction:column;gap:8px}
+.mus-p1{display:grid;grid-template-columns:110px 1fr auto;gap:8px;border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#fff}
+.mus-pi{width:110px;height:82px;border:1.5px dashed #94a3b8;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;font-size:11px;font-weight:700;color:#64748b;text-align:center;background:#f8fafc}
+.mus-pi img{width:100%;height:100%;object-fit:cover}.mus-pi.busy{opacity:.6}
+.mus-pf{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mus-pf input,.mus-pf textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;resize:vertical}.mus-pf input{font-weight:800}
+.mus-pb{display:flex;flex-direction:column;gap:4px}.mus-box .mus-pb button{background:#f1f5f9!important;color:#0f172a!important;border:1px solid #cbd5e1!important;border-radius:6px!important;padding:2px 8px!important;font-size:12px!important}
+.mus-box .mus-add{align-self:flex-start;background:#fff!important;color:#2563eb!important;border:1.5px dashed #93c5fd!important;border-radius:8px!important;padding:6px 12px!important;font-weight:800!important}
+.mus-none{font-size:12px;color:#64748b;padding:6px 2px}
+.msi-box{max-width:760px;width:100%}.msi-tabs{display:flex;gap:6px;margin:10px 0 8px;flex-wrap:wrap}
+.msi-box .msi-tabs button{background:#f1f5f9!important;color:#334155!important;border:1px solid #cbd5e1!important;border-radius:999px!important;padding:5px 12px!important;font-weight:800!important;font-size:12.5px!important}
+.msi-box .msi-tabs button.on{background:#0f172a!important;color:#fff!important;border-color:#0f172a!important}
+.msi-img{max-height:62vh;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}.msi-img img{width:100%;display:block}.msi-w{padding:40px;text-align:center;color:#64748b;font-size:13px}
+.msi-a{display:flex;gap:8px;align-items:center;margin-top:10px}
+.mus-add{display:inline-block;cursor:pointer;background:#fff;color:#2563eb;border:1.5px dashed #93c5fd;border-radius:8px;padding:7px 12px;font-weight:800;font-size:12.5px;margin-top:6px}.mus-up{font-size:12px;color:#475569;margin-left:8px}
 
 </style>
 </head>
@@ -16487,16 +16508,7 @@ window.saveMatchups = function () {
 
 // 📸 Fotos de los jugadores: se guarda solo el enlace de la foto de la FCBQ (S.photos = { nombre normalizado: url })
 window.__baPhoto = n => { const P = S.photos || {}; return P[_muNk(n)] || ''; };
-window.baPhotoImport = function (after) {
-  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.html,.htm,text/html'; inp.multiple = true;
-  inp.onchange = async () => { let n = 0, teams = 0; S.photos = S.photos || {};
-    for (const f of inp.files) { const h = await f.text(); let k = 0;
-      h.split('<a href="https://www.basquetcatala.cat/estadistica/jugador').slice(1).forEach(p => { const a = p.slice(0, p.indexOf('</a>')), t = (a.match(/title="([^"]+)"/) || [])[1], u = (a.match(/url\((?:&quot;|")(https:\/\/[^&"]+?\.(?:jpe?g|png|webp))(?:&quot;|")\)/i) || [])[1];
-        if (t && u && /^https:\/\/[\w.-]+\.cloudfront\.net\//.test(u)) { const key = _muNk(t); if (S.photos[key] !== u) { S.photos[key] = u; n++; } k++; } });
-      if (k) teams++; }
-    if (!teams) { toast('No he encontrado fotos: guarda la página del EQUIPO de basquetcatala.cat con Ctrl+S («Página web completa»)', 'err'); return; }
-    svL(); toast(`📸 ${n} fotos nuevas (${teams} equipo${teams !== 1 ? 's' : ''})`, 'ok'); if (after) after(); };
-  inp.click(); };
+
 // 🖨️ Hoja del partido para los jugadores (A4 para imprimir, solo staff la crea): arriba los emparejamientos de todos en grande;
 // debajo una ficha por cada rival emparejado: quién es y cómo juega, qué hacer contra él (sale solo y se puede cambiar),
 // minimapa de tiro, quién le defiende y la nota del staff. Los consejos y notas se guardan con el próximo partido (S.nextMatch.muSheet).
@@ -16526,7 +16538,7 @@ function _muSheetData() {
   const R = new Map(); ours.forEach(x => x.rivs.forEach((r, k) => { if (!R.has(r.name)) R.set(r.name, { r, def: [] }); R.get(r.name).def.push({ k: k + 1, ap: x.ap }); }));
   const rivs = [...R.values()].sort((a, b) => (+a.r.dorsal || 99) - (+b.r.dorsal || 99));
   rivs.forEach(x => { x.def.sort((a, b) => a.k - b.k); x.adv = (ms.adv || {})[x.r.name] ?? _muAdvice(x.r); x.note = (ms.note || {})[x.r.name] || ''; });
-  return { C, nm, ours, rivs, my: C.myTeamName, rival: C.rival };
+  return { C, nm, ours, rivs, my: C.myTeamName, rival: C.rival, plays: (ms.plays || []).filter(p => p && (p.t || p.x || p.img)) };
 }
 function _muSheetHtml(D) {
   const e = _esc;
@@ -16535,7 +16547,7 @@ function _muSheetHtml(D) {
   const ourD = o => o.dorsal != null && o.dorsal !== '' ? o.dorsal : '';
   const pairs = D.ours.map(x => `<div class="pr">${face(x.o.name, ourD(x.o), 'us')}<span class="o">${e(x.ap)}</span><span class="vs">➜</span>
       <span class="r1">${face(x.rivs[0].name, x.rivs[0].dorsal, 'th')}<span class="rnm">${e(_muSur(x.rivs[0].name))}</span></span>
-      ${x.rivs.length > 1 ? `<span class="rest"><i>luego</i>${x.rivs.slice(1).map(r => face(r.name, r.dorsal, 'sm')).join('')}</span>` : ''}</div>`).join('');
+      ${x.rivs.slice(1).map(r => `<span class="r1">${face(r.name, r.dorsal, 'th')}<span class="rnm">${e(_muSur(r.name))}</span></span>`).join('')}</div>`).join('');
   const pc = (m, a) => a ? Math.round(100 * m / a) + '%' : '—', sl = (l, m, a) => `<span><i>${l}</i> ${m}/${a} <b>${pc(m, a)}</b></span>`;
   const cards = D.rivs.map(x => { const r = x.r, g = r.games || 0, ph = (window.__muPhotos || {})[_muNk(r.name)] || window.__baPhoto(r.name), mp = _muShotImg(r.name);
     return `<div class="cd"><div class="ft">${ph ? `<img src="${ph}" alt="">` : '<span class="np"></span>'}<span class="ds">${e(r.dorsal ?? '')}</span></div>
@@ -16573,32 +16585,180 @@ function _muSheetHtml(D) {
     <h2>A quién defiendes</h2><div class="prs">${pairs}</div>
     <div class="rivs"><h2>Los rivales</h2><div class="grid">${cards}</div></div></body></html>`;
 }
+// ── 📸 imágenes: subir a Cloudinary (se pueden pintar y copiar); si falla, imagen pequeña dentro de los datos ──
+async function _baImgUpload(blob, folder) {
+  try { const fd = new FormData(); fd.append('file', blob); fd.append('upload_preset', CLOUDINARY_PRESET); fd.append('folder', 'bascat/' + folder);
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd }); const j = await r.json();
+    if (j.secure_url) return j.secure_url; throw new Error((j.error && j.error.message) || 'sin enlace'); }
+  catch (e) { console.warn('Cloudinary (imagen):', e); return null; } }
+const _baFileImg = f => new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = URL.createObjectURL(f); });
+// reduce una imagen; sq = cuadrada centrada en la cara (fotos de jugador)
+function _baShrink(im, max, sq) { let w = im.naturalWidth, h = im.naturalHeight, sx = 0, sy = 0, sw = w, sh = h;
+  if (sq) { const m = Math.min(w, h); sx = (w - m) / 2; sy = Math.max(0, (h - m) / 2 - m * 0.06); sw = sh = m; w = h = max; }
+  else { const k = Math.min(1, max / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k); }
+  const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, sx, sy, sw, sh, 0, 0, w, h); return c; }
+const _cvBlob = (c, q) => new Promise(ok => c.toBlob(ok, 'image/jpeg', q || 0.85));
+async function _baStoreImg(file, folder, max, sq, fbMax) { const im = await _baFileImg(file), c = _baShrink(im, max, sq);
+  return (await _baImgUpload(await _cvBlob(c), folder)) || _baShrink(im, fbMax, sq).toDataURL('image/jpeg', 0.7); }
+
+// 📸 Fotos de los jugadores desde la página de equipo de la FCBQ guardada con Ctrl+S: 1) el .html  2) su carpeta «…_files»
+window.baPhotoImport = function (after) {
+  document.querySelectorAll('.pim-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov pim-ov';
+  ov.innerHTML = `<div class="vm-box pim-box" role="dialog" aria-label="Añadir fotos"><header><b>📸 Añadir fotos de jugadores</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+    <p class="pim-p">En basquetcatala.cat abre la página del <b>equipo</b> y guárdala con <b>Ctrl+S</b> («Página web completa»). Se guardan un archivo <b>.html</b> y una carpeta <b>…_files</b> con las fotos.</p>
+    <label class="pim-s"><span>1</span> Elige la página (.html)<input type="file" accept=".html,.htm,text/html" hidden data-s="1"></label><div class="pim-r" data-r="1"></div>
+    <label class="pim-s off"><span>2</span> Elige su carpeta «…_files»<input type="file" webkitdirectory multiple hidden data-s="2"></label><div class="pim-r" data-r="2"></div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove(); ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) close(); };
+  let map = [];
+  ov.querySelector('[data-s="1"]').onchange = async e => { const f = e.target.files[0]; if (!f) return; const h = await f.text(); map = [];
+    h.split('<a href="https://www.basquetcatala.cat/estadistica/jugador').slice(1).forEach(p => { const a = p.slice(0, p.indexOf('</a>')), t = (a.match(/title="([^"]+)"/) || [])[1], fl = (a.match(/_files\/(PER_[^"]+)"/i) || [])[1];   // alguna foto de la FCBQ no tiene extensión
+      if (t && fl && !map.some(m => m.t === t)) map.push({ t, f: decodeURIComponent(fl) }); });
+    const r = ov.querySelector('[data-r="1"]');
+    if (!map.length) { r.textContent = '⚠️ No hay jugadores con foto: ¿es la página del EQUIPO guardada como «Página web completa»?'; return; }
+    r.textContent = `✅ ${map.length} jugadores con foto`; ov.querySelector('.pim-s.off').classList.remove('off'); };
+  ov.querySelector('[data-s="2"]').onchange = async e => { if (!map.length) return; const files = [...e.target.files], byName = new Map(files.map(f => [f.name, f])), r = ov.querySelector('[data-r="2"]');
+    let n = 0, i = 0; S.photos = S.photos || {};
+    for (const m of map) { i++; r.textContent = `Subiendo fotos… ${i} de ${map.length}`; const f = byName.get(m.f); if (!f) continue;
+      try { S.photos[_muNk(m.t)] = await _baStoreImg(f, 'fotos', 220, true, 72); n++; } catch (er) { } }
+    if (!n) { r.textContent = '⚠️ En esa carpeta no están las fotos de esa página'; return; }
+    svL(); r.textContent = `✅ ${n} fotos guardadas`; toast(`📸 ${n} fotos guardadas`, 'ok'); setTimeout(close, 900); if (after) after(); };
+};
+
+// ── 🖼️ La hoja en imágenes (para copiar y pegar en WhatsApp): emparejamientos, rivales y playbook ──
+const _ldImg = src => new Promise(ok => { if (!src) return ok(null); const im = new Image(); if (!/^data:/.test(src)) im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
+function _cvWrap(x, txt, maxW) { const words = String(txt || '').split(/\s+/), lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (x.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur); return lines; }
+function _cvFace(x, im, cx, cy, r, dorsal, col, ini) {
+  x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.fillStyle = '#e2e8f0'; x.fill(); x.clip();
+  if (im) x.drawImage(im, cx - r, cy - r, r * 2, r * 2); else { x.fillStyle = '#475569'; x.font = `900 ${Math.round(r * 0.7)}px Arial`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ini || '', cx, cy + 2); }
+  x.restore(); x.lineWidth = Math.max(3, r * 0.07); x.strokeStyle = '#0f172a'; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.stroke();
+  if (dorsal != null && dorsal !== '') { const br = Math.max(16, r * 0.42), bx = cx + r * 0.72, by = cy + r * 0.72; x.font = `900 ${Math.round(br * 1.15)}px Arial`; const tw = x.measureText(String(dorsal)).width, bw = Math.max(br * 2, tw + br * 0.9);
+    x.fillStyle = col; x.strokeStyle = '#fff'; x.lineWidth = Math.max(3, br * 0.18); x.beginPath(); x.roundRect(bx - bw / 2, by - br, bw, br * 2, br); x.fill(); x.stroke();
+    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(dorsal), bx, by + 1); } }
+const _ini = n => String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('');
+function _cvHead(x, W, D, sub) { x.fillStyle = '#0f172a'; x.fillRect(0, 0, W, 96); x.textBaseline = 'middle'; x.textAlign = 'left';
+  x.font = '900 40px Arial'; const a = D.my + ' ', b = 'vs ', c = D.rival; let px = 32; x.fillStyle = '#fff'; x.fillText(a, px, 48); px += x.measureText(a).width; x.fillStyle = '#fbbf24'; x.fillText(b, px, 48); px += x.measureText(b).width; x.fillStyle = '#fff'; x.fillText(c, px, 48);
+  const when = [D.nm.date ? String(D.nm.date).split('-').reverse().join('/') : '', D.nm.time || ''].filter(Boolean).join(' · '); x.textAlign = 'right'; x.font = '700 26px Arial'; x.fillStyle = '#cbd5e1'; x.fillText(when, W - 32, 48);
+  x.textAlign = 'left'; x.fillStyle = '#64748b'; x.font = '800 24px Arial'; x.fillText(sub, 32, 132); }
+async function _muSheetImages(D) {
+  const PH = n => (window.__muPhotos || {})[_muNk(n)] || window.__baPhoto(n), cache = new Map(), img = async n => { const s = PH(n); if (!cache.has(s)) cache.set(s, await _ldImg(s)); return cache.get(s); };
+  const W = 1240, out = {};
+  // 1) emparejamientos: nuestro jugador ➜ sus rivales en orden, todos del mismo tamaño
+  { const RH = 176, top = 156, c = document.createElement('canvas'); c.width = W; c.height = top + D.ours.length * RH + 24; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
+    _cvHead(x, W, D, 'A QUIÉN DEFIENDES (POR ORDEN)');
+    for (let i = 0; i < D.ours.length; i++) { const o = D.ours[i], y = top + i * RH; if (i % 2 === 0) { x.fillStyle = '#f8fafc'; x.fillRect(0, y, W, RH); } x.fillStyle = '#e2e8f0'; x.fillRect(0, y + RH - 2, W, 2);
+      const cy = y + RH / 2 - 8; _cvFace(x, await img(o.o.name), 92, cy, 58, o.o.dorsal, '#f59e0b', _ini(o.o.name));
+      x.textAlign = 'center'; x.textBaseline = 'top'; x.fillStyle = '#92400e'; x.font = '900 28px Arial'; x.fillText(o.ap, 92, cy + 68);
+      x.fillStyle = '#94a3b8'; x.font = '900 46px Arial'; x.textBaseline = 'middle'; x.fillText('➜', 218, cy);
+      for (let k = 0; k < Math.min(4, o.rivs.length); k++) { const r = o.rivs[k], tx = 280 + k * 238, tcx = tx + 104;
+        _cvFace(x, await img(r.name), tcx, cy, 58, r.dorsal, '#dc2626', _ini(r.name));
+        x.fillStyle = '#0f172a'; x.font = '900 25px Arial'; x.textBaseline = 'top'; let nm = _muSur(r.name).toUpperCase(); while (x.measureText(nm).width > 226 && nm.length > 3) nm = nm.slice(0, -1); x.fillText(nm, tcx, cy + 68);
+        x.fillStyle = '#64748b'; x.font = '800 20px Arial'; x.textAlign = 'left'; x.fillText((k + 1) + 'º', tx + 6, y + 10); x.textAlign = 'center'; } }
+    out.pairs = c; }
+  // 2) rivales: foto y dorsal, puntos, consejo, T2/T3/TL y mapa de calor
+  { const colW = 590, gap = 20, m = 20, mapW = 178, cards = [];
+    const mx = document.createElement('canvas').getContext('2d');
+    for (const v of D.rivs) { const r = v.r, g = r.games || 0, txW = colW - 168 - mapW - 26; mx.font = '900 25px Arial'; const adv = _cvWrap(mx, v.adv, txW).slice(0, 4); mx.font = '700 21px Arial'; const nt = v.note ? _cvWrap(mx, v.note, txW).slice(0, 3) : [];
+      const nmS = _shortName(r.name).toUpperCase(); let nfs = 28; mx.font = `900 ${nfs}px Arial`; while (nfs > 22 && nmS.split(/s+/).some(w => mx.measureText(w).width > txW)) { nfs -= 2; mx.font = `900 ${nfs}px Arial`; } const nmL = _cvWrap(mx, nmS, txW).slice(0, 2);
+      const st = g ? [['T2', r.t2m || 0, r.t2a || 0], ['T3', r.t3m || 0, r.t3a || 0], ['TL', r.tlm || 0, r.tla || 0]] : [];
+      const h = Math.max(212, 26 + nmL.length * 32 + 30 + adv.length * 30 + nt.length * 26 + (st.length ? 3 * 28 : 0) + 20);
+      const sh = _muShotImg(r.name); cards.push({ v, r, g, adv, nt, nmL, nfs, st, h, sh, im: await img(r.name), mp: sh.src ? await _ldImg(sh.src) : null }); }
+    const rows = []; for (let i = 0; i < cards.length; i += 2) rows.push(Math.max(cards[i].h, cards[i + 1] ? cards[i + 1].h : 0));
+    const top = 156, c = document.createElement('canvas'); c.width = W; c.height = top + rows.reduce((s, h) => s + h + gap, 0) + 10; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
+    _cvHead(x, W, D, 'LOS RIVALES'); let y = top;
+    rows.forEach((rh, ri) => { [0, 1].forEach(j => { const cd = cards[ri * 2 + j]; if (!cd) return; const cx0 = m + j * (colW + gap);
+      x.fillStyle = '#fff'; x.strokeStyle = '#cbd5e1'; x.lineWidth = 3; x.beginPath(); x.roundRect(cx0, y, colW, rh, 18); x.fill(); x.stroke();
+      _cvFace(x, cd.im, cx0 + 80, y + rh / 2, 62, cd.r.dorsal, '#dc2626', _ini(cd.r.name));
+      let ty = y + 26; const tx = cx0 + 164; x.textAlign = 'left'; x.textBaseline = 'top';
+      x.fillStyle = '#0f172a'; x.font = `900 ${cd.nfs}px Arial`; cd.nmL.forEach(l => { x.fillText(l, tx, ty); ty += 32; });
+      x.fillStyle = '#64748b'; x.font = '700 22px Arial'; x.fillText(cd.g ? (cd.r.pts / cd.g).toFixed(1).replace('.', ',') + ' pts por partido' : 'sin datos', tx, ty); ty += 32;
+      x.fillStyle = '#b91c1c'; x.font = '900 25px Arial'; cd.adv.forEach(l => { x.fillText(l, tx, ty); ty += 30; });
+      x.fillStyle = '#1e3a8a'; x.font = '700 21px Arial'; cd.nt.forEach(l => { x.fillText(l, tx, ty); ty += 26; });
+      if (cd.st.length) { ty += 4; cd.st.forEach(([l, a, b]) => { x.font = '800 21px Arial'; x.fillStyle = '#64748b'; x.fillText(l, tx, ty); x.fillStyle = '#0f172a'; x.font = '700 21px Arial'; x.fillText(`${a}/${b}`, tx + 40, ty); x.fillStyle = '#1d4ed8'; x.font = '900 21px Arial'; x.fillText(b ? Math.round(100 * a / b) + '%' : '—', tx + 130, ty); ty += 28; }); }
+      if (cd.mp) { const mh = mapW * cd.mp.naturalHeight / cd.mp.naturalWidth, my = y + (rh - mh - 24) / 2; x.drawImage(cd.mp, cx0 + colW - mapW - 14, my, mapW, mh); x.fillStyle = '#64748b'; x.font = '600 16px Arial'; x.textAlign = 'center'; x.fillText(`${cd.sh.n} tiros · ${cd.sh.pc}`, cx0 + colW - mapW / 2 - 14, my + mh + 4); } });
+      y += rh + gap; });
+    out.rivals = c; }
+  // 3) playbook: cada jugada con su título, foto y texto
+  if ((D.plays || []).length) { const pw = W - 64, mx = document.createElement('canvas').getContext('2d'), P = [];
+    for (const p of D.plays) { mx.font = '600 26px Arial'; const tl = _cvWrap(mx, p.x || '', pw).length ? String(p.x || '').split('\n').flatMap(par => _cvWrap(mx, par, pw)) : []; const im = p.img ? await _ldImg(p.img) : null;
+      const ih = im ? Math.min(760, pw * im.naturalHeight / im.naturalWidth) : 0; P.push({ p, tl, im, ih, h: 64 + (im ? ih + 16 : 0) + tl.length * 34 + 30 }); }
+    const top = 156, c = document.createElement('canvas'); c.width = W; c.height = top + P.reduce((s, q) => s + q.h + 18, 0) + 10; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
+    _cvHead(x, W, D, 'PLAYBOOK'); let y = top;
+    P.forEach((q, i) => { x.fillStyle = '#f8fafc'; x.strokeStyle = '#cbd5e1'; x.lineWidth = 3; x.beginPath(); x.roundRect(20, y, W - 40, q.h, 18); x.fill(); x.stroke();
+      x.fillStyle = '#0f172a'; x.beginPath(); x.roundRect(20, y, W - 40, 56, [18, 18, 0, 0]); x.fill(); x.fillStyle = '#fbbf24'; x.font = '900 28px Arial'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(`${i + 1}. ${q.p.t || 'Jugada ' + (i + 1)}`.toUpperCase(), 40, y + 29);
+      let ty = y + 72; if (q.im) { const iw = q.ih * q.im.naturalWidth / q.im.naturalHeight; x.drawImage(q.im, (W - iw) / 2, ty, iw, q.ih); ty += q.ih + 16; }
+      x.fillStyle = '#0f172a'; x.font = '600 26px Arial'; x.textBaseline = 'top'; q.tl.forEach(l => { x.fillText(l, 32, ty); ty += 34; }); y += q.h + 18; });
+    out.plays = c; }
+  return out;
+}
+window.muSheetImages = async function () {
+  const D = _muSheetData(); if (!D) return; document.querySelectorAll('.msi-ov').forEach(o => o.remove());
+  const ov = document.createElement('div'); ov.className = 'vm-ov msi-ov';
+  ov.innerHTML = `<div class="vm-box msi-box" role="dialog" aria-label="Hoja en imágenes"><header><b>🖼️ Hoja del partido · ${_esc(D.rival)}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
+    <div class="msi-tabs"></div><div class="msi-img"><div class="msi-w">Preparando las imágenes…</div></div>
+    <div class="msi-a"><button type="button" class="sec" data-a="print">🖨️ Imprimir</button><span style="flex:1"></span><button type="button" class="sec" data-a="dl">⬇️ Descargar</button><button type="button" data-a="cp">📋 Copiar imagen</button></div></div>`;
+  document.body.appendChild(ov); const close = () => ov.remove(); ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) close(); };
+  let I; try { I = await _muSheetImages(D); } catch (e) { console.error(e); ov.querySelector('.msi-w').textContent = '⚠️ No se han podido crear las imágenes'; return; }
+  const T = [['pairs', '⚔️ Emparejamientos'], ['rivals', '🔎 Rivales'], ['plays', '📘 Playbook']].filter(([k]) => I[k]); let cur = T[0][0];
+  const draw = () => { ov.querySelector('.msi-tabs').innerHTML = T.map(([k, l]) => `<button type="button" data-t="${k}" class="${k === cur ? 'on' : ''}">${l}</button>`).join('');
+    ov.querySelector('.msi-img').innerHTML = `<img src="${I[cur].toDataURL('image/png')}" alt="">`; };
+  draw();
+  ov.querySelector('.msi-tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { cur = b.dataset.t; draw(); } };
+  ov.querySelector('.msi-a').onclick = e => { const b = e.target.closest('[data-a]'); if (!b) return; const cv = I[cur], name = `${cur === 'pairs' ? 'emparejamientos' : cur === 'rivals' ? 'rivales' : 'playbook'}_${String(D.rival).replace(/[^\w]+/g, '_')}.png`;
+    if (b.dataset.a === 'print') { window.__muPrint && window.__muPrint(); return; }
+    cv.toBlob(bl => { if (b.dataset.a === 'dl') { const a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return; }
+      try { navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })]).then(() => { b.textContent = '✔ Copiada: pégala en WhatsApp'; setTimeout(() => b.textContent = '📋 Copiar imagen', 2200); }, () => toast('No se ha podido copiar: usa «Descargar»', 'err')); }
+      catch (er) { toast('No se ha podido copiar: usa «Descargar»', 'err'); } }, 'image/png'); };
+};
+window.__muPrint = function () { const html = _muSheetHtml(_muSheetData());
+  document.querySelectorAll('iframe.mus-if').forEach(f => f.remove()); const f = document.createElement('iframe'); f.className = 'mus-if'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open(); d.write(html); d.close();
+  // espera a que carguen las fotos (como mucho 5 s) y abre la impresión
+  const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (er) { toast('No se ha podido abrir la impresión', 'err'); } };
+  const imgs = [...d.images]; const t0 = Date.now(); const wait = () => { if (imgs.every(i => i.complete) || Date.now() - t0 > 5000) go(); else setTimeout(wait, 150); }; setTimeout(wait, 200); };
 window.muSheet = function () {
   if (_playerMode) return; const D0 = _muSheetData(); if (!D0 || !D0.rivs.length) { toast('Primero guarda los emparejamientos', 'err'); return; }
   document.querySelectorAll('.mus-ov').forEach(o => o.remove());
   const ov = document.createElement('div'); ov.className = 'vm-ov mus-ov';
-  const st = () => { const nm = S.nextMatch; nm.muSheet = nm.muSheet || {}; nm.muSheet.adv = nm.muSheet.adv || {}; nm.muSheet.note = nm.muSheet.note || {}; return nm.muSheet; };
+  const st = () => { const nm = S.nextMatch; nm.muSheet = nm.muSheet || {}; nm.muSheet.adv = nm.muSheet.adv || {}; nm.muSheet.note = nm.muSheet.note || {}; nm.muSheet.plays = nm.muSheet.plays || []; return nm.muSheet; };
   ov.innerHTML = `<div class="vm-box mus-box" role="dialog" aria-label="Hoja del partido"><header><b>🖨️ Hoja del partido · ${_esc(D0.rival)}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
-    <p class="mus-p">Una hoja A4 para el banquillo y la mesa: arriba los emparejamientos de todos y debajo una ficha de cada rival. Retoca el consejo o añade una nota si quieres; se guarda para este partido.</p>
-    <div class="mus-l">${D0.rivs.map(x => `<div class="mus-r"><div class="mus-h"><b>#${_esc(x.r.dorsal ?? '')} ${_esc(_shortName(x.r.name))}</b><span>🛡 ${x.def.map(d => d.k + 'º ' + _esc(d.ap)).join(' · ')}</span></div>
+    <p class="mus-p">Tres partes para los jugadores: los <b>emparejamientos</b>, una ficha de cada <b>rival</b> y el <b>playbook</b>. Retoca lo que quieras (se guarda para este partido) y sácalas como imágenes para pegarlas en WhatsApp.</p>
+    <div class="mus-l"><div class="mus-sec">🔎 Rivales: qué hacer contra cada uno</div>${D0.rivs.map(x => `<div class="mus-r"><div class="mus-h"><b>#${_esc(x.r.dorsal ?? '')} ${_esc(_shortName(x.r.name))}</b><span>🛡 ${x.def.map(d => d.k + 'º ' + _esc(d.ap)).join(' · ')}</span></div>
       <label>👉 Qué hacer (corto, en mayúsculas se lee mejor) <textarea rows="1" data-k="adv" data-n="${_esc(x.r.name)}">${_esc(x.adv)}</textarea></label>
-      <label>📝 Nota del staff <input data-k="note" data-n="${_esc(x.r.name)}" value="${_esc(x.note)}" placeholder="Opcional: «no le dejes ir a su derecha»…"></label></div>`).join('')}</div>
-    <div class="mus-a"><button type="button" class="sec" data-a="photos" title="Elige la página del equipo guardada de basquetcatala.cat (Ctrl+S, «Página web completa»): la nuestra y la del rival">📸 Añadir fotos (FCBQ)</button><button type="button" class="sec" data-a="reset" title="Vuelve a poner los consejos automáticos">↺ Consejos automáticos</button><span style="flex:1"></span><button type="button" data-a="print">🖨️ Imprimir / guardar PDF</button></div></div>`;
+      <label>📝 Nota del staff <input data-k="note" data-n="${_esc(x.r.name)}" value="${_esc(x.note)}" placeholder="Opcional: «no le dejes ir a su derecha»…"></label></div>`).join('')}
+      <div class="mus-sec">📘 Playbook: imágenes de la pizarra con su comentario</div><div class="mus-pl"></div>
+      <label class="mus-add">🖼️ Subir imágenes de la pizarra<input type="file" accept="image/*" multiple hidden data-addimgs></label><span class="mus-up"></span></div>
+    <div class="mus-a"><button type="button" class="sec" data-a="photos" title="Fotos de los jugadores desde la página del equipo de basquetcatala.cat (la nuestra y la del rival)">📸 Fotos (FCBQ)</button><button type="button" class="sec" data-a="reset" title="Vuelve a poner los consejos automáticos">↺ Consejos automáticos</button><span style="flex:1"></span><button type="button" data-a="imgs">🖼️ Ver y copiar imágenes</button></div></div>`;
   document.body.appendChild(ov);
   const save = () => { svL(); if (typeof syncFirebase === 'function') syncFirebase(); };
-  let tmr = null; ov.addEventListener('input', e => { const f = e.target.closest('[data-k]'); if (!f) return; const s = st(); s[f.dataset.k][f.dataset.n] = f.value; clearTimeout(tmr); tmr = setTimeout(save, 600); });
-  const close = () => { clearTimeout(tmr); ov.remove(); document.removeEventListener('keydown', key, true); };
+  const drawPlays = () => { const P = st().plays; ov.querySelector('.mus-pl').innerHTML = P.length ? P.map((p, i) => `<div class="mus-p1" data-i="${i}">
+      <label class="mus-pi" title="Foto de la jugada (pizarra, captura…)">${p.img ? `<img src="${_esc(p.img)}" alt="">` : '<span>🖼️<br>Añadir foto</span>'}<input type="file" accept="image/*" hidden data-pimg="${i}"></label>
+      <div class="mus-pf"><input data-pk="t" data-i="${i}" value="${_esc(p.t || '')}" placeholder="Título (opcional): «CUERNOS 1»…"><textarea rows="3" data-pk="x" data-i="${i}" placeholder="Comentario: qué hacemos, lecturas, a quién buscamos…">${_esc(p.x || '')}</textarea></div>
+      <div class="mus-pb"><button type="button" data-pm="up" data-i="${i}" title="Subir"${i ? '' : ' disabled'}>↑</button><button type="button" data-pm="down" data-i="${i}" title="Bajar"${i < P.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-pm="del" data-i="${i}" title="Quitar">🗑</button></div></div>`).join('') : '<div class="mus-none">Todavía no hay imágenes. Sube fotos o capturas de la pizarra (puedes elegir varias a la vez) y escribe un comentario en cada una.</div>'; };
+  drawPlays();
+  let tmr = null; ov.addEventListener('input', e => { const f = e.target.closest('[data-k],[data-pk]'); if (!f) return; const s = st();
+    if (f.dataset.k) s[f.dataset.k][f.dataset.n] = f.value; else { const p = s.plays[+f.dataset.i]; if (p) p[f.dataset.pk] = f.value; }
+    clearTimeout(tmr); tmr = setTimeout(save, 700); });
+  ov.addEventListener('change', async e => { const ad = e.target.closest('[data-addimgs]');
+    if (ad) { const fs = [...ad.files]; ad.value = ''; const up = ov.querySelector('.mus-up'); let k = 0;
+      for (const fl of fs) { k++; up.textContent = `Subiendo ${k} de ${fs.length}…`; try { st().plays.push({ id: Date.now().toString(36) + k, t: '', x: '', img: await _baStoreImg(fl, 'playbook', 1500, false, 900) }); } catch (er) { toast('No se ha podido usar ' + fl.name, 'err'); } }
+      up.textContent = ''; save(); drawPlays(); return; }
+    const f = e.target.closest('[data-pimg]'); if (!f || !f.files[0]) return; const p = st().plays[+f.dataset.pimg]; if (!p) return;
+    const lb = f.closest('.mus-pi'); lb.classList.add('busy'); lb.querySelector('span,img') && (lb.firstElementChild.outerHTML = '<span>Subiendo…</span>');
+    try { p.img = await _baStoreImg(f.files[0], 'playbook', 1500, false, 900); save(); } catch (er) { toast('No se ha podido usar esa imagen', 'err'); } drawPlays(); });
+  const close = () => { clearTimeout(tmr); save(); ov.remove(); document.removeEventListener('keydown', key, true); };
   const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
   document.addEventListener('keydown', key, true);
-  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) { save(); close(); return; } const b = e.target.closest('[data-a]'); if (!b) return;
+  ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) { close(); return; }
+    const pm = e.target.closest('[data-pm]'); if (pm) { const P = st().plays, i = +pm.dataset.i;
+      if (pm.dataset.pm === 'del') { if (!confirm('¿Quitar esta jugada del playbook?')) return; P.splice(i, 1); } else { const j = pm.dataset.pm === 'up' ? i - 1 : i + 1; if (j < 0 || j >= P.length) return; [P[i], P[j]] = [P[j], P[i]]; }
+      save(); drawPlays(); return; }
+    const b = e.target.closest('[data-a]'); if (!b) return;
     if (b.dataset.a === 'photos') { window.baPhotoImport(); return; }
-    if (b.dataset.a === 'reset') { if (!confirm('¿Volver a los consejos automáticos? Las notas no se tocan.')) return; st().adv = {}; save(); close(); window.muSheet(); return; }
-    if (b.dataset.a === 'print') { clearTimeout(tmr); save(); const html = _muSheetHtml(_muSheetData());
-      document.querySelectorAll('iframe.mus-if').forEach(f => f.remove()); const f = document.createElement('iframe'); f.className = 'mus-if'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
-      const d = f.contentWindow.document; d.open(); d.write(html); d.close();
-      // espera a que carguen las fotos (como mucho 5 s) y abre la impresión
-      const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (er) { toast('No se ha podido abrir la impresión', 'err'); } };
-      const imgs = [...d.images]; let t0 = Date.now(); const wait = () => { if (imgs.every(i => i.complete) || Date.now() - t0 > 5000) go(); else setTimeout(wait, 150); }; setTimeout(wait, 200); } };
+    if (b.dataset.a === 'reset') { if (!confirm('¿Volver a los consejos automáticos? Las notas y el playbook no se tocan.')) return; st().adv = {}; save(); close(); window.muSheet(); return; }
+    if (b.dataset.a === 'imgs') { clearTimeout(tmr); save(); window.muSheetImages(); } };
 };
 window.__muSheetHtml = () => { const D = _muSheetData(); return D ? _muSheetHtml(D) : ''; };
 // 🖼️ Imagen de los emparejamientos para el tríptico (solo staff): «PARTIT Jx CLARET - RIVAL», bloques B / A / P con los rivales

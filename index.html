@@ -4643,6 +4643,16 @@ body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
 .ac-ed .ac-tlh{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:#0f172a;border-radius:2px;pointer-events:none}
 .ac-ed .ac-tla,.ac-ed .ac-tlb{position:absolute;top:100%;margin-top:1px;font-size:10px;color:#64748b;font-family:monospace;pointer-events:none}
 .ac-ed .ac-tla{left:0}.ac-ed .ac-tlb{right:0}
+/* v100 · playbook: varias fotos por jugada */
+.mus-p1{grid-template-columns:1fr auto!important}
+.mus-p1 .mus-ims{grid-column:1;display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.mus-p1 .mus-pf{grid-column:1}
+.mus-p1 .mus-pb{grid-column:2;grid-row:1 / span 2}
+.mus-im{position:relative;width:110px;height:82px;border-radius:8px;overflow:hidden;border:1px solid #cbd5e1;background:#f8fafc}
+.mus-im img{width:100%;height:100%;object-fit:cover;display:block}
+.mus-box .mus-im button{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0!important;border-radius:50%!important;border:0!important;background:rgba(15,23,42,.75)!important;color:#fff!important;font-size:11px!important;line-height:22px;cursor:pointer}
+.mus-box .mus-im .mus-iml{right:auto;left:3px}
+.mus-p1 .mus-pi{width:110px;height:82px}
 
 </style>
 </head>
@@ -16522,6 +16532,9 @@ window.__baPhoto = n => { const P = S.photos || {}; return P[_muNk(n)] || ''; };
 // Las fotos de la nube no borran las que este dispositivo ya tiene (otro dispositivo con datos viejos podía pisarlas);
 // y las enlazadas a la FCBQ (cloudfront: no se pueden pintar en las imágenes) ceden ante una subida propia.
 const _phCF = u => /cloudfront\.net/i.test(u || '');
+// 📘 jugadas del playbook: varias fotos por jugada (p.imgs); las antiguas tenían una sola (p.img)
+function _pImgs(p) { return p ? (Array.isArray(p.imgs) && p.imgs.length ? p.imgs.filter(Boolean) : (p.img ? [p.img] : [])) : []; }
+function _pFix(p) { p.imgs = _pImgs(p).slice(); delete p.img; return p; }
 function _mergePhotos(cloud) { const L = S.photos || {}, out = { ...(cloud || {}) };
   Object.keys(L).forEach(k => { if (L[k] && (!out[k] || (_phCF(out[k]) && !_phCF(L[k])))) out[k] = L[k]; }); return out; }
 function _photosHeal(cloud) { const C = cloud || {}, L = S.photos || {}; let st = ''; try { st = localStorage.getItem('bascatRole'); } catch (e) { }
@@ -16557,7 +16570,7 @@ function _muSheetData() {
   const R = new Map(); ours.forEach(x => x.rivs.forEach((r, k) => { if (!R.has(r.name)) R.set(r.name, { r, def: [] }); R.get(r.name).def.push({ k: k + 1, ap: x.ap }); }));
   const rivs = [...R.values()].sort((a, b) => (+a.r.dorsal || 99) - (+b.r.dorsal || 99));
   rivs.forEach(x => { x.def.sort((a, b) => a.k - b.k); x.adv = (ms.adv || {})[x.r.name] ?? _muAdvice(x.r); x.note = (ms.note || {})[x.r.name] || ''; });
-  return { C, nm, ours, rivs, my: C.myTeamName, rival: C.rival, plays: (ms.plays || []).filter(p => p && (p.t || p.x || p.img)) };
+  return { C, nm, ours, rivs, my: C.myTeamName, rival: C.rival, plays: (ms.plays || []).filter(p => p && (p.t || p.x || _pImgs(p).length)) };
 }
 function _muSheetHtml(D) {
   const e = _esc;
@@ -16704,15 +16717,21 @@ async function _muSheetImages(D) {
       if (cd.mp) { const mh = mapW * cd.mp.naturalHeight / cd.mp.naturalWidth, my = y + (rh - mh - 24) / 2; x.drawImage(cd.mp, cx0 + colW - mapW - 14, my, mapW, mh); x.fillStyle = '#64748b'; x.font = '600 16px Arial'; x.textAlign = 'center'; x.fillText(`${cd.sh.n} tiros · ${cd.sh.pc}`, cx0 + colW - mapW / 2 - 14, my + mh + 4); } });
       y += rh + gap; });
     out.rivals = c; }
-  // 3) playbook: cada jugada con su título, foto y texto
+  // 3) playbook: cada jugada con su título, sus fotos (una a lo ancho; varias, de dos en dos) y el texto
   if ((D.plays || []).length) { const pw = W - 64, mx = document.createElement('canvas').getContext('2d'), P = [];
-    for (const p of D.plays) { mx.font = '600 26px Arial'; const tl = _cvWrap(mx, p.x || '', pw).length ? String(p.x || '').split('\n').flatMap(par => _cvWrap(mx, par, pw)) : []; const im = p.img ? await _ldImg(p.img) : null;
-      const ih = im ? Math.min(760, pw * im.naturalHeight / im.naturalWidth) : 0; P.push({ p, tl, im, ih, h: 64 + (im ? ih + 16 : 0) + tl.length * 34 + 30 }); }
+    for (const p of D.plays) { mx.font = '600 26px Arial'; const tl = _cvWrap(mx, p.x || '', pw).length ? String(p.x || '').split('\n').flatMap(par => _cvWrap(mx, par, pw)) : [];
+      const ims = (await Promise.all(_pImgs(p).map(_ldImg))).filter(Boolean), cells = [], one = ims.length === 1, cw = one ? pw : (pw - 16) / 2, chMax = one ? 760 : 460;
+      ims.forEach((im, k) => { const s = Math.min(cw / im.naturalWidth, chMax / im.naturalHeight); cells.push({ im, w: im.naturalWidth * s, h: im.naturalHeight * s, col: one ? 0 : k % 2, row: one ? 0 : Math.floor(k / 2) }); });
+      const rowsH = []; cells.forEach(c => rowsH[c.row] = Math.max(rowsH[c.row] || 0, c.h)); const ih = rowsH.reduce((s, h) => s + h, 0) + Math.max(0, rowsH.length - 1) * 16;
+      const im = cells.length ? { cells, rowsH, cw } : null; P.push({ p, tl, im, ih, h: 64 + (im ? ih + 16 : 0) + tl.length * 34 + 30 }); }
     const top = 156, c = document.createElement('canvas'); c.width = W; c.height = top + P.reduce((s, q) => s + q.h + 18, 0) + 10; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
     _cvHead(x, W, D, 'PLAYBOOK'); let y = top;
     P.forEach((q, i) => { x.fillStyle = '#f8fafc'; x.strokeStyle = '#cbd5e1'; x.lineWidth = 3; x.beginPath(); x.roundRect(20, y, W - 40, q.h, 18); x.fill(); x.stroke();
       x.fillStyle = '#0f172a'; x.beginPath(); x.roundRect(20, y, W - 40, 56, [18, 18, 0, 0]); x.fill(); x.fillStyle = '#fbbf24'; x.font = '900 28px Arial'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(`${i + 1}. ${q.p.t || 'Jugada ' + (i + 1)}`.toUpperCase(), 40, y + 29);
-      let ty = y + 72; if (q.im) { const iw = q.ih * q.im.naturalWidth / q.im.naturalHeight; x.drawImage(q.im, (W - iw) / 2, ty, iw, q.ih); ty += q.ih + 16; }
+      let ty = y + 72; if (q.im) { const G = q.im, one = G.cells.length === 1, x0 = 32;
+        G.cells.forEach(c => { const ry = ty + G.rowsH.slice(0, c.row).reduce((s, h) => s + h + 16, 0), cx = one ? (W - c.w) / 2 : x0 + c.col * (G.cw + 16) + (G.cw - c.w) / 2;
+          x.drawImage(c.im, cx, ry + (G.rowsH[c.row] - c.h) / 2, c.w, c.h); x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(cx, ry + (G.rowsH[c.row] - c.h) / 2, c.w, c.h); });
+        ty += q.ih + 16; }
       x.fillStyle = '#0f172a'; x.font = '600 26px Arial'; x.textBaseline = 'top'; q.tl.forEach(l => { x.fillText(l, 32, ty); ty += 34; }); y += q.h + 18; });
     out.plays = c; }
   return out;
@@ -16758,25 +16777,32 @@ window.muSheet = function () {
   document.body.appendChild(ov);
   const save = () => { svL(); if (typeof syncFirebase === 'function') syncFirebase(); };
   const drawPlays = () => { const P = st().plays; ov.querySelector('.mus-pl').innerHTML = P.length ? P.map((p, i) => `<div class="mus-p1" data-i="${i}">
-      <label class="mus-pi" title="Foto de la jugada (pizarra, captura…)">${p.img ? `<img src="${_esc(p.img)}" alt="">` : '<span>🖼️<br>Añadir foto</span>'}<input type="file" accept="image/*" hidden data-pimg="${i}"></label>
+      <div class="mus-ims">${_pImgs(p).map((u, k) => `<span class="mus-im"><img src="${_esc(u)}" alt=""><button type="button" data-rimg="${i}:${k}" title="Quitar esta foto">✕</button>${k ? `<button type="button" class="mus-iml" data-limg="${i}:${k}" title="Ponerla antes">◀</button>` : ''}</span>`).join('')}<label class="mus-pi" title="Añadir fotos a esta jugada (puedes elegir varias)"><span>➕ ${_pImgs(p).length ? 'Otra foto' : 'Añadir foto'}</span><input type="file" accept="image/*" multiple hidden data-pimg="${i}"></label></div>
       <div class="mus-pf"><input data-pk="t" data-i="${i}" value="${_esc(p.t || '')}" placeholder="Título (opcional): «CUERNOS 1»…"><textarea rows="3" data-pk="x" data-i="${i}" placeholder="Comentario: qué hacemos, lecturas, a quién buscamos…">${_esc(p.x || '')}</textarea></div>
-      <div class="mus-pb"><button type="button" data-pm="up" data-i="${i}" title="Subir"${i ? '' : ' disabled'}>↑</button><button type="button" data-pm="down" data-i="${i}" title="Bajar"${i < P.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-pm="del" data-i="${i}" title="Quitar">🗑</button></div></div>`).join('') : '<div class="mus-none">Todavía no hay imágenes. Sube fotos o capturas de la pizarra (puedes elegir varias a la vez) y escribe un comentario en cada una.</div>'; };
+      <div class="mus-pb"><button type="button" data-pm="up" data-i="${i}" title="Subir"${i ? '' : ' disabled'}>↑</button><button type="button" data-pm="down" data-i="${i}" title="Bajar"${i < P.length - 1 ? '' : ' disabled'}>↓</button>${i ? `<button type="button" data-pm="join" data-i="${i}" title="Juntar con la jugada de arriba (sus fotos y su texto pasan a esa)">⤒ Juntar</button>` : ''}<button type="button" data-pm="del" data-i="${i}" title="Quitar">🗑</button></div></div>`).join('') : '<div class="mus-none">Todavía no hay imágenes. Sube fotos o capturas de la pizarra (puedes elegir varias a la vez) y escribe un comentario en cada una.</div>'; };
   drawPlays();
   let tmr = null; ov.addEventListener('input', e => { const f = e.target.closest('[data-k],[data-pk]'); if (!f) return; const s = st();
     if (f.dataset.k) s[f.dataset.k][f.dataset.n] = f.value; else { const p = s.plays[+f.dataset.i]; if (p) p[f.dataset.pk] = f.value; }
     clearTimeout(tmr); tmr = setTimeout(save, 700); });
   ov.addEventListener('change', async e => { const ad = e.target.closest('[data-addimgs]');
     if (ad) { const fs = [...ad.files]; ad.value = ''; const up = ov.querySelector('.mus-up'); let k = 0;
-      for (const fl of fs) { k++; up.textContent = `Subiendo ${k} de ${fs.length}…`; try { st().plays.push({ id: Date.now().toString(36) + k, t: '', x: '', img: await _baStoreImg(fl, 'playbook', 1500, false, 900) }); } catch (er) { toast('No se ha podido usar ' + fl.name, 'err'); } }
+      for (const fl of fs) { k++; up.textContent = `Subiendo ${k} de ${fs.length}…`; try { st().plays.push({ id: Date.now().toString(36) + k, t: '', x: '', imgs: [await _baStoreImg(fl, 'playbook', 1500, false, 900)] }); } catch (er) { toast('No se ha podido usar ' + fl.name, 'err'); } }
       up.textContent = ''; save(); drawPlays(); return; }
-    const f = e.target.closest('[data-pimg]'); if (!f || !f.files[0]) return; const p = st().plays[+f.dataset.pimg]; if (!p) return;
-    const lb = f.closest('.mus-pi'); lb.classList.add('busy'); lb.querySelector('span,img') && (lb.firstElementChild.outerHTML = '<span>Subiendo…</span>');
-    try { p.img = await _baStoreImg(f.files[0], 'playbook', 1500, false, 900); save(); } catch (er) { toast('No se ha podido usar esa imagen', 'err'); } drawPlays(); });
+    // ➕ más fotos dentro de la misma jugada
+    const f = e.target.closest('[data-pimg]'); if (!f || !f.files.length) return; const p = st().plays[+f.dataset.pimg]; if (!p) return; const fs = [...f.files];
+    const lb = f.closest('.mus-pi'); lb.classList.add('busy'); const sp = lb.querySelector('span'); let k = 0; _pFix(p);
+    for (const fl of fs) { k++; if (sp) sp.textContent = `Subiendo ${k} de ${fs.length}…`; try { p.imgs.push(await _baStoreImg(fl, 'playbook', 1500, false, 900)); } catch (er) { toast('No se ha podido usar ' + fl.name, 'err'); } }
+    save(); drawPlays(); });
   const close = () => { clearTimeout(tmr); save(); ov.remove(); document.removeEventListener('keydown', key, true); };
   const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
   document.addEventListener('keydown', key, true);
   ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) { close(); return; }
+    const ri = e.target.closest('[data-rimg],[data-limg]'); if (ri) { e.preventDefault(); const [i, k] = (ri.dataset.rimg || ri.dataset.limg).split(':').map(Number), p = st().plays[i]; if (!p) return; _pFix(p);
+      if (ri.dataset.rimg != null) { if (!confirm('¿Quitar esta foto de la jugada?')) return; p.imgs.splice(k, 1); } else if (k > 0) [p.imgs[k - 1], p.imgs[k]] = [p.imgs[k], p.imgs[k - 1]];
+      save(); drawPlays(); return; }
     const pm = e.target.closest('[data-pm]'); if (pm) { const P = st().plays, i = +pm.dataset.i;
+      if (pm.dataset.pm === 'join') { const a = P[i - 1], b = P[i]; if (!a || !b) return; _pFix(a); _pFix(b); a.imgs.push(...b.imgs);
+        if (!a.t && b.t) a.t = b.t; if (b.x) a.x = a.x ? a.x + '\n' + b.x : b.x; P.splice(i, 1); save(); drawPlays(); toast('⤒ Juntadas en una jugada', 'ok'); return; }
       if (pm.dataset.pm === 'del') { if (!confirm('¿Quitar esta jugada del playbook?')) return; P.splice(i, 1); } else { const j = pm.dataset.pm === 'up' ? i - 1 : i + 1; if (j < 0 || j >= P.length) return; [P[i], P[j]] = [P[j], P[i]]; }
       save(); drawPlays(); return; }
     const b = e.target.closest('[data-a]'); if (!b) return;

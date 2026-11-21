@@ -4632,6 +4632,17 @@ body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
 .msi-img{max-height:62vh;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}.msi-img img{width:100%;display:block}.msi-w{padding:40px;text-align:center;color:#64748b;font-size:13px}
 .msi-a{display:flex;gap:8px;align-items:center;margin-top:10px}
 .mus-add{display:inline-block;cursor:pointer;background:#fff;color:#2563eb;border:1.5px dashed #93c5fd;border-radius:8px;padding:7px 12px;font-weight:800;font-size:12.5px;margin-top:6px}.mus-up{font-size:12px;color:#475569;margin-left:8px}
+/* v98 · ajustar jugadas: buscar libremente fuera del tramo */
+.ac-ed .ac-tlw{flex-basis:100%;display:flex;flex-direction:column;gap:7px;margin-top:4px;padding-top:7px;border-top:1px dashed #cbd5e1}
+.ac-ed .ac-nav{display:flex;align-items:center;gap:4px 5px;flex-wrap:wrap}
+.ac-ed .ac-cur{font-family:monospace;font-weight:800;font-size:12.5px;min-width:60px;text-align:center;color:#0f172a}
+.ac-ed .ac-fr{display:none;color:#c2410c;font-weight:700;font-size:11px;margin-left:6px}
+.ac-ed.free .ac-fr{display:inline}
+.ac-ed .ac-tl{position:relative;height:26px;border-radius:6px;background:#e2e8f0;cursor:pointer;touch-action:none;user-select:none;margin:0 0 13px}
+.ac-ed .ac-tlr{position:absolute;top:0;bottom:0;background:rgba(249,115,22,.35);border-left:2px solid #f97316;border-right:2px solid #f97316;box-sizing:border-box;pointer-events:none}
+.ac-ed .ac-tlh{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:#0f172a;border-radius:2px;pointer-events:none}
+.ac-ed .ac-tla,.ac-ed .ac-tlb{position:absolute;top:100%;margin-top:1px;font-size:10px;color:#64748b;font-family:monospace;pointer-events:none}
+.ac-ed .ac-tla{left:0}.ac-ed .ac-tlb{right:0}
 
 </style>
 </head>
@@ -17876,7 +17887,7 @@ function acPlay(list, i, title) {
     <div class="ac-now"></div>
     <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label></div>
     ${_acStaff() ? '<div class="ac-ed"></div>' : ''}
-    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir${_acStaff() ? " · I / O inicio / final aquí" : ""} · Esc cerrar</div>
+    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir${_acStaff() ? " · , . mover 1 s · Mayús+← → mover 5 s · I / O inicio / final aquí" : ""} · Esc cerrar</div>
     <div class="ac-lst"></div></div>`;
   document.body.appendChild(ov);
   const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
@@ -17886,25 +17897,55 @@ function acPlay(list, i, title) {
     ov.querySelector('.ac-lst').innerHTML = P.list.map((y, k) => `<div class="ac-it${k === P.i ? ' on' : ''}" data-k="${k}"><span class="ac-dot ${/_OK$/.test(y.tp) ? 'ok' : /_FALLO$/.test(y.tp) ? 'ko' : ''}"></span><span class="ac-q">${_esc(y.clk || '')}</span><span class="ac-tx">${_esc((AC_TY[y.tp] || [y.tp])[0])} · ${y.d != null ? '#' + _esc(y.d) + ' ' : ''}${_esc(_acShort(y.name))}${_acLink(y)}${multiM ? ' · <i>' + _esc(y.m.homeTeam + ' vs ' + y.m.awayTeam) + '</i>' : ''}</span>${y.sc ? `<span class="ac-sc">${y.sc[0]}–${y.sc[1]}</span>` : ''}<span class="ac-pl">▶</span></div>`).join('');
     ov.querySelectorAll('.ac-it').forEach(e => e.onclick = () => go(+e.dataset.k));
     const cur = ov.querySelector('.ac-it.on'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' }); };
-  const load = () => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.at = Date.now(); P.done = -1; try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: x.t0, endSeconds: x.t1 }); } catch (e) { } };
+  // tramo con final (se para ahí); «libre» (staff ajustando): el vídeo sigue más allá de la jugada
+  const playRange = (a, b) => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; P.free = false; P.unb = false; if (edEl) edEl.classList.remove('free'); P.at = Date.now(); P.done = -1; try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: a, endSeconds: b }); } catch (e) { } };
+  const load = () => { const x = P.list[P.i]; playRange(x.t0, x.t1); };
   // ✂️ (staff) ajustar inicio y final de la jugada: se prueba al momento y se guarda en el partido con «Guardar»
   P.orig = {};
   const edEl = ov.querySelector('.ac-ed'), fmtT = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
-  const curT = () => { try { return P.yt.getCurrentTime(); } catch (e) { return null; } };
+  // (null si el vídeo aún no ha arrancado: así nunca se marca un 0:00 por error)
+  const curT = () => { try { const s = P.yt.getPlayerState(), t = P.yt.getCurrentTime(); return (s === -1 || s === 5 || !(t > 0.05)) ? null : t; } catch (e) { return null; } };
   const drawEd = () => { if (!edEl) return; const x = P.list[P.i], o = P.orig[P.i], ch = !!o && (o.t0 !== x.t0 || o.t1 !== x.t1);
     edEl.innerHTML = `<span class="ac-edl">✂️ Ajustar</span>
       <span class="ac-edg">Inicio <b>${fmtT(x.t0)}</b><button type="button" data-ed="t0:-1">−1 s</button><button type="button" data-ed="t0:1">+1 s</button><button type="button" data-ed="t0:now" title="El inicio, donde está ahora el vídeo (tecla I)">⏱ Aquí</button></span>
       <span class="ac-edg">Final <b>${fmtT(x.t1)}</b><button type="button" data-ed="t1:-1">−1 s</button><button type="button" data-ed="t1:1">+1 s</button><button type="button" data-ed="t1:now" title="El final, donde está ahora el vídeo (tecla O)">⏱ Aquí</button></span>
       <span class="ac-edd">${(x.t1 - x.t0).toFixed(1)} s</span>
-      ${ch ? '<button type="button" class="ac-edu" data-ed="undo">↺ Deshacer</button><button type="button" class="ac-eds" data-ed="save">💾 Guardar</button>' : ''}`;
-    edEl.classList.toggle('ch', ch); };
-  const edit = (k, v) => { const x = P.list[P.i]; if (!P.orig[P.i]) P.orig[P.i] = { t0: x.t0, t1: x.t1 };
-    if (k === 't0') x.t0 = Math.round(Math.max(0, Math.min(x.t1 - 1, v)) * 10) / 10; else x.t1 = Math.round(Math.max(x.t0 + 1, v) * 10) / 10;
-    drawEd(); if (k === 't0') load(); else { P.done = -1; P.at = Date.now(); try { P.yt.seekTo(Math.max(x.t0, x.t1 - 3), true); P.yt.playVideo(); } catch (e) { } } };
+      ${ch ? '<button type="button" class="ac-edu" data-ed="undo">↺ Deshacer</button><button type="button" class="ac-eds" data-ed="save">💾 Guardar</button>' : ''}
+      <div class="ac-tlw"><div class="ac-nav"><span class="ac-edl">🎚 Buscar</span><button type="button" data-sk="-5" title="Mayús + ←">⏪ 5 s</button><button type="button" data-sk="-1" title="Tecla ,">⏪ 1 s</button><span class="ac-cur">${fmtT(curT() ?? x.t0)}</span><button type="button" data-sk="1" title="Tecla .">1 s ⏩</button><button type="button" data-sk="5" title="Mayús + →">5 s ⏩</button><span class="ac-fr">🔓 Libre: el vídeo sigue más allá de la jugada · ↺ Repetir vuelve al tramo</span></div>
+        <div class="ac-tl" title="Pincha o arrastra para ir a ese momento (también fuera de la jugada)"><i class="ac-tlr"></i><i class="ac-tlh"></i><span class="ac-tla"></span><span class="ac-tlb"></span></div></div>`;
+    edEl.classList.toggle('ch', ch); edEl.classList.toggle('free', !!P.free); tlUpd(curT()); };
+  // línea de tiempo: la jugada (naranja) con 30 s antes y después; se amplía si te vas más lejos
+  const tlUpd = ct => { const tl = edEl && edEl.querySelector('.ac-tl'); if (!tl) return; const x = P.list[P.i]; let W = P.tw;
+    if (!W || W.i !== P.i) W = P.tw = { i: P.i, lo: Math.max(0, x.t0 - 30), hi: x.t1 + 30 };
+    if (!P.tlLock) { W.lo = Math.max(0, Math.min(W.lo, x.t0 - 5, ct == null ? Infinity : ct - 5)); W.hi = Math.max(W.hi, x.t1 + 5, ct == null ? -Infinity : ct + 5); }
+    const sp = Math.max(1, W.hi - W.lo), pc = t => Math.max(0, Math.min(100, 100 * (t - W.lo) / sp));
+    const r = tl.querySelector('.ac-tlr'); r.style.left = pc(x.t0) + '%'; r.style.width = (pc(x.t1) - pc(x.t0)) + '%';
+    if (ct != null) { tl.querySelector('.ac-tlh').style.left = pc(ct) + '%'; const c = edEl.querySelector('.ac-cur'); if (c) c.textContent = fmtT(ct); }
+    tl.querySelector('.ac-tla').textContent = fmtT(W.lo); tl.querySelector('.ac-tlb').textContent = fmtT(W.hi); };
+  // ir a cualquier momento del vídeo (sin el corte del final de la jugada)
+  const freeSeek = t => { const x = P.list[P.i]; if (!P.ready || !P.yt) return; let d = 0; try { d = P.yt.getDuration() || 0; } catch (e) { }
+    t = Math.max(0, d ? Math.min(d - 0.5, t) : t); P.free = true; P.done = -1; edEl && edEl.classList.add('free');
+    if (!P.unb) { P.unb = true; P.at = Date.now(); try { P.yt.loadVideoById({ videoId: x.yt, startSeconds: t }); } catch (e) { } } else { try { P.yt.seekTo(t, true); } catch (e) { } }
+    tlUpd(t); };
+  const skip = n => { const x = P.list[P.i], t = curT(); freeSeek((t == null ? x.t0 : t) + n); };
+  P.skip = skip;
+  const edit = (k, v) => { const x = P.list[P.i]; if (!P.orig[P.i]) P.orig[P.i] = { t0: x.t0, t1: x.t1 }; const dur = Math.max(1, x.t1 - x.t0), r = n => Math.round(n * 10) / 10;
+    v = Math.max(0, v);
+    // si el inicio pasa del final (o al revés) se arrastra el otro, manteniendo la duración
+    if (k === 't0') { x.t0 = r(v); if (x.t1 < x.t0 + 1) x.t1 = r(x.t0 + dur); } else { x.t1 = r(Math.max(1, v)); if (x.t0 > x.t1 - 1) x.t0 = r(Math.max(0, x.t1 - dur)); }
+    drawEd(); if (P.free) return;   // buscando libremente: se marca y se sigue donde estás
+    if (k === 't0') load(); else playRange(Math.max(x.t0, x.t1 - 3), x.t1); };
   const undoEd = i => { const o = P.orig[i]; if (!o) return; Object.assign(P.list[i], o); delete P.orig[i]; };
   const saveEd = () => { const x = P.list[P.i], c = x.m && x.m.videoActions && x.m.videoActions.clips[x.i]; if (!c) return;
     c.t0 = x.t0; c.t1 = x.t1; delete P.orig[P.i]; _acSave(); drawEd(); toast(`💾 Jugada ajustada: ${fmtT(x.t0)} – ${fmtT(x.t1)}`, 'ok'); };
-  if (edEl) edEl.onclick = e => { const b = e.target.closest('[data-ed]'); if (!b) return; const [k, v] = b.dataset.ed.split(':'), x = P.list[P.i];
+  if (edEl) edEl.addEventListener('pointerdown', e => { const tl = e.target.closest('.ac-tl'); if (!tl || !P.tw) return; e.preventDefault();
+    const W = P.tw, at = ev => { const r = tl.getBoundingClientRect(); return W.lo + Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))) * (W.hi - W.lo); };
+    P.tlLock = true; let last = 0; try { tl.setPointerCapture(e.pointerId); } catch (er) { } freeSeek(at(e));
+    const mv = ev => { const t = at(ev); tlUpd(t); if (Date.now() - last > 220) { last = Date.now(); freeSeek(t); } };
+    const up = ev => { tl.removeEventListener('pointermove', mv); tl.removeEventListener('pointerup', up); tl.removeEventListener('pointercancel', up); freeSeek(at(ev)); P.tlLock = false; };
+    tl.addEventListener('pointermove', mv); tl.addEventListener('pointerup', up); tl.addEventListener('pointercancel', up); });
+  if (edEl) edEl.onclick = e => { const sk = e.target.closest('[data-sk]'); if (sk) { skip(+sk.dataset.sk); return; }
+    const b = e.target.closest('[data-ed]'); if (!b) return; const [k, v] = b.dataset.ed.split(':'), x = P.list[P.i];
     if (k === 'save') return saveEd(); if (k === 'undo') { undoEd(P.i); drawEd(); load(); return; }
     if (v === 'now') { const t = curT(); if (t == null) return; edit(k, t); } else edit(k, x[k] + +v); };
   P.edKey = k => { if (!edEl) return false; const t = curT(); if (t == null) return false; edit(k === 'i' ? 't0' : 't1', t); return true; };
@@ -17913,18 +17954,20 @@ function acPlay(list, i, title) {
   // pausa / seguir con la capa de encima (los controles de YouTube no salen); al final del tramo se para ahí (sin pantalla final de YouTube) y, con «Seguidas», pasa a la siguiente
   const pp = ov.querySelector('.ac-pp'), bar = ov.querySelector('.ac-bar i');
   const toggle = () => { if (!P.ready || !P.yt) return; let s = -1; try { s = P.yt.getPlayerState(); } catch (e) { }
-    if (s === 1 || s === 3) P.yt.pauseVideo(); else { const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { } if (P.done === P.i || ct >= x.t1 - 0.3 || ct < x.t0 - 1) load(); else P.yt.playVideo(); } };
+    if (s === 1 || s === 3) P.yt.pauseVideo(); else if (P.free) P.yt.playVideo(); else { const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { } if (P.done === P.i || ct >= x.t1 - 0.3 || ct < x.t0 - 1) load(); else P.yt.playVideo(); } };
   ov.querySelector('.ac-shield').onclick = toggle;
   P.tick = setInterval(() => { if (_acP !== P || !P.ready || !P.yt) return; const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { return; }
     if (Date.now() - (P.at || 0) < 900) return;
+    if (!P.tlLock) tlUpd(ct);
     bar.style.width = Math.max(0, Math.min(100, 100 * (ct - x.t0) / Math.max(0.5, x.t1 - x.t0))) + '%';
-    if (P.done !== P.i && ct >= x.t1 - 0.2) { P.done = P.i; try { P.yt.pauseVideo(); } catch (e) { } if (P.auto && !(P.orig && P.orig[P.i]) && P.i < P.list.length - 1) setTimeout(() => { if (_acP === P && P.done === P.i) go(P.i + 1); }, 350); } }, 120);
+    if (!P.free && P.done !== P.i && ct >= x.t1 - 0.2) { P.done = P.i; try { P.yt.pauseVideo(); } catch (e) { } if (P.auto && !(P.orig && P.orig[P.i]) && P.i < P.list.length - 1) setTimeout(() => { if (_acP === P && P.done === P.i) go(P.i + 1); }, 350); } }, 120);
   ov.onclick = e => { if (e.target === ov || e.target.closest('.vm-x')) acClose(); };
   ov.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'prev') go(P.i - 1); else if (a === 'next') go(P.i + 1); else load(); });
   ov.querySelector('.ac-auto input').onchange = e => { P.auto = e.target.checked; try { localStorage.setItem('ac_auto', P.auto ? '1' : '0'); } catch (er) { } };
   P.key = e => { if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
     if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();   // que no lleguen a los atajos del vídeo de la pestaña
     if (e.key === ' ') { e.preventDefault(); toggle(); return; }
+    if (edEl && ((e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) || e.key === ',' || e.key === '.')) { e.preventDefault(); e.stopImmediatePropagation(); skip(e.key === ',' ? -1 : e.key === '.' ? 1 : e.key === 'ArrowLeft' ? -5 : 5); return; }
     if ((e.key === 'i' || e.key === 'I' || e.key === 'o' || e.key === 'O') && P.edKey && P.edKey(e.key.toLowerCase())) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.key === 'Escape') { e.preventDefault(); acClose(); } else if (e.key === 'ArrowRight') { e.preventDefault(); go(P.i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(P.i - 1); } else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); load(); } };
   document.addEventListener('keydown', P.key, true);
@@ -17932,7 +17975,7 @@ function acPlay(list, i, title) {
   _acYtApi().then(() => { if (_acP !== P) return; const x = P.list[P.i];
     P.yt = new YT.Player('ac-yt', { width: '100%', height: '100%', videoId: x.yt, playerVars: { start: Math.floor(x.t0), end: Math.ceil(x.t1), autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, cc_load_policy: 0 },
       events: { onReady: () => { P.ready = true; msg.style.display = 'none'; load(); },
-        onStateChange: e => { if (_acP === P) pp.hidden = !(e.data === 2 || e.data === 0 || e.data === 5); if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1 || P.done === P.i || (P.orig && P.orig[P.i])) return; P.done = P.i;
+        onStateChange: e => { if (_acP === P) pp.hidden = !(e.data === 2 || e.data === 0 || e.data === 5); if (e.data !== 0 || !P.auto || _acP !== P || P.i >= P.list.length - 1 || P.done === P.i || P.free || (P.orig && P.orig[P.i])) return; P.done = P.i;
           if (Date.now() - (P.at || 0) < 1500) return;   // el aviso de fin del tramo anterior al cargar el nuevo
           let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (er) { } if (ct && ct < P.list[P.i].t1 - 1.5) return;
           go(P.i + 1); },

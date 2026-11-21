@@ -16519,6 +16519,14 @@ window.saveMatchups = function () {
 
 // 📸 Fotos de los jugadores: se guarda solo el enlace de la foto de la FCBQ (S.photos = { nombre normalizado: url })
 window.__baPhoto = n => { const P = S.photos || {}; return P[_muNk(n)] || ''; };
+// Las fotos de la nube no borran las que este dispositivo ya tiene (otro dispositivo con datos viejos podía pisarlas);
+// y las enlazadas a la FCBQ (cloudfront: no se pueden pintar en las imágenes) ceden ante una subida propia.
+const _phCF = u => /cloudfront\.net/i.test(u || '');
+function _mergePhotos(cloud) { const L = S.photos || {}, out = { ...(cloud || {}) };
+  Object.keys(L).forEach(k => { if (L[k] && (!out[k] || (_phCF(out[k]) && !_phCF(L[k])))) out[k] = L[k]; }); return out; }
+function _photosHeal(cloud) { const C = cloud || {}, L = S.photos || {}; let st = ''; try { st = localStorage.getItem('bascatRole'); } catch (e) { }
+  if (st !== 'staff' || !Object.keys(L).some(k => L[k] !== C[k])) return;
+  window._lastMetaStr = ''; clearTimeout(window.__phHealT); window.__phHealT = setTimeout(() => svL(), 4000); }
 
 // 🖨️ Hoja del partido para los jugadores (A4 para imprimir, solo staff la crea): arriba los emparejamientos de todos en grande;
 // debajo una ficha por cada rival emparejado: quién es y cómo juega, qué hacer contra él (sale solo y se puede cambiar),
@@ -16630,11 +16638,16 @@ window.baPhotoImport = function (after) {
     if (!map.length) { r.textContent = '⚠️ No hay jugadores con foto: ¿es la página del EQUIPO guardada como «Página web completa»?'; return; }
     r.textContent = `✅ ${map.length} jugadores con foto`; ov.querySelector('.pim-s.off').classList.remove('off'); };
   ov.querySelector('[data-s="2"]').onchange = async e => { if (!map.length) return; const files = [...e.target.files], byName = new Map(files.map(f => [f.name, f])), r = ov.querySelector('[data-r="2"]');
-    let n = 0, i = 0; S.photos = S.photos || {};
-    for (const m of map) { i++; r.textContent = `Subiendo fotos… ${i} de ${map.length}`; const f = byName.get(m.f); if (!f) continue;
-      try { S.photos[_muNk(m.t)] = await _baStoreImg(f, 'fotos', 220, true, 72); n++; } catch (er) { } }
+    let n = 0, i = 0, nc = 0; const miss = []; S.photos = S.photos || {};
+    for (const m of map) { i++; r.textContent = `Subiendo fotos… ${i} de ${map.length}`; const f = byName.get(m.f); if (!f) { miss.push(m.t); continue; }
+      try { const u = await _baStoreImg(f, 'fotos', 220, true, 72); S.photos[_muNk(m.t)] = u; n++; if (!/^data:/.test(u)) nc++; } catch (er) { miss.push(m.t); } }
     if (!n) { r.textContent = '⚠️ En esa carpeta no están las fotos de esa página'; return; }
-    svL(); r.textContent = `✅ ${n} fotos guardadas`; toast(`📸 ${n} fotos guardadas`, 'ok'); setTimeout(close, 900); if (after) after(); };
+    const sin = miss.length ? ` · ⚠️ sin foto: ${miss.map(t => _shortName(t)).join(', ')}` : '';
+    // se guarda YA en la nube y se comprueba (si no, en los otros dispositivos no salen)
+    r.textContent = 'Guardando en la nube…'; svL();
+    try { const payload = _metaPayload(); const { error } = await supabase.from('metadata').upsert({ id: 'global', data: payload }); if (error) throw error; window._lastMetaStr = JSON.stringify(payload); }
+    catch (er) { console.warn('Fotos → nube:', er); r.textContent = `⚠️ ${n} fotos en este dispositivo, pero NO se han podido guardar en la nube (mira la conexión y vuelve a probar)${sin}`; return; }
+    r.textContent = `✅ ${n} fotos guardadas en la nube${nc < n ? ` (${n - nc} en tamaño pequeño)` : ''}${sin}`; toast(`📸 ${n} fotos guardadas`, 'ok'); if (!miss.length) setTimeout(close, 1500); if (after) after(); };
 };
 
 // ── 🖼️ La hoja en imágenes (para copiar y pegar en WhatsApp): emparejamientos, rivales y playbook ──
@@ -21895,10 +21908,10 @@ async function ldLS() {
       if (metaRes.data) {
           const md = metaRes.data.data;
           S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = md.photos || {};
+          S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = _mergePhotos(md.photos);
           S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || 0;
           S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
-          window._lastMetaStr = JSON.stringify(_metaPayload());
+          window._lastMetaStr = JSON.stringify(_metaPayload()); _photosHeal(md.photos);
           // 🩹 Fisio: quita datos que el inyector antiguo metió en jugadores equivocados
           if (savedRole === 'staff' && typeof window._fisioRepair === 'function') setTimeout(() => window._fisioRepair(), 300);
       }
@@ -22009,11 +22022,11 @@ async function ldLS() {
               if(payload.new && payload.new.id === 'global') {
                   const md = payload.new.data;
                   S.teams = md.teams || []; S.playerNotes = md.playerNotes || {};
-                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = md.photos || {};
+                  S.watchGroups = md.watchGroups || []; S.nextMatch = md.nextMatch || null; S.photos = _mergePhotos(md.photos);
                   S.fisio = md.fisio || {}; S.fisioFix = md.fisioFix || S.fisioFix || 0;
                   S.scoutNotes = md.scoutNotes || S.scoutNotes || {};
                   if (typeof _loadScoutNotes === 'function') _loadScoutNotes();
-                  window._lastMetaStr = JSON.stringify(_metaPayload());
+                  window._lastMetaStr = JSON.stringify(_metaPayload()); _photosHeal(md.photos);
                   _refreshAfterSync();
                   if(typeof renderCompare === 'function') renderCompare();
               }

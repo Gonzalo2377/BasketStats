@@ -16694,27 +16694,35 @@ async function _muSheetImages(D) {
         x.fillStyle = '#0f172a'; x.font = '900 25px Arial'; x.textBaseline = 'top'; let nm = _muSur(r.name).toUpperCase(); while (x.measureText(nm).width > 226 && nm.length > 3) nm = nm.slice(0, -1); x.fillText(nm, tcx, cy + 68);
         x.fillStyle = '#64748b'; x.font = '800 20px Arial'; x.textAlign = 'left'; x.fillText((k + 1) + 'º', tx + 6, y + 10); x.textAlign = 'center'; } }
     out.pairs = c; }
-  // 2) rivales: foto y dorsal, puntos, consejo, T2/T3/TL y mapa de calor
-  { const colW = 590, gap = 20, m = 20, mapW = 178, cards = [];
+  // 2) rivales: fichas compactas (para encajarlas en el Canva): cara + nombre + pts arriba, consejo a lo ancho, T2/T3/TL en una fila y el mapa de calor a la derecha
+  { const m = 12, gap = 12, colW = (W - 2 * m - gap) / 2, pad = 14, mapW = 196, R = 46, cards = [];
     const mx = document.createElement('canvas').getContext('2d');
-    for (const v of D.rivs) { const r = v.r, g = r.games || 0, txW = colW - 168 - mapW - 26; mx.font = '900 25px Arial'; const adv = _cvWrap(mx, v.adv, txW).slice(0, 4); mx.font = '700 21px Arial'; const nt = v.note ? _cvWrap(mx, v.note, txW).slice(0, 3) : [];
-      const nmS = _shortName(r.name).toUpperCase(); let nfs = 28; mx.font = `900 ${nfs}px Arial`; while (nfs > 22 && nmS.split(/s+/).some(w => mx.measureText(w).width > txW)) { nfs -= 2; mx.font = `900 ${nfs}px Arial`; } const nmL = _cvWrap(mx, nmS, txW).slice(0, 2);
+    for (const v of D.rivs) { const r = v.r, g = r.games || 0, txW = colW - 2 * pad - mapW - 14, nW = txW - 2 * R - 12;
+      const nmS = _shortName(r.name).toUpperCase(); let nfs = 28; mx.font = `900 ${nfs}px Arial`; while (nfs > 20 && nmS.split(/\s+/).some(w => mx.measureText(w).width > nW)) { nfs -= 2; mx.font = `900 ${nfs}px Arial`; } const nmL = _cvWrap(mx, nmS, nW).slice(0, 2);
+      mx.font = '900 25px Arial'; const adv = _cvWrap(mx, v.adv, txW).slice(0, 4); mx.font = '700 20px Arial'; const nt = v.note ? _cvWrap(mx, v.note, txW).slice(0, 3) : [];
       const st = g ? [['T2', r.t2m || 0, r.t2a || 0], ['T3', r.t3m || 0, r.t3a || 0], ['TL', r.tlm || 0, r.tla || 0]] : [];
-      const h = Math.max(212, 26 + nmL.length * 32 + 30 + adv.length * 30 + nt.length * 26 + (st.length ? 3 * 28 : 0) + 20);
-      const sh = _muShotImg(r.name); cards.push({ v, r, g, adv, nt, nmL, nfs, st, h, sh, im: await img(r.name), mp: sh.src ? await _ldImg(sh.src) : null }); }
+      const headH = Math.max(2 * R + 6, nmL.length * (nfs + 4) + 28), txH = headH + 8 + adv.length * 29 + (nt.length ? 4 + nt.length * 24 : 0) + (st.length ? 10 + 48 : 0);
+      const sh = _muShotImg(r.name), mp = sh.src ? await _ldImg(sh.src) : null, mh = mp ? mapW * mp.naturalHeight / mp.naturalWidth + 22 : 0;
+      cards.push({ v, r, g, adv, nt, nmL, nfs, st, headH, txW, h: 2 * pad + Math.max(txH, mh), sh, mp, im: await img(r.name) }); }
     const rows = []; for (let i = 0; i < cards.length; i += 2) rows.push(Math.max(cards[i].h, cards[i + 1] ? cards[i + 1].h : 0));
-    const top = 156, c = document.createElement('canvas'); c.width = W; c.height = top + rows.reduce((s, h) => s + h + gap, 0) + 10; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
+    const top = 150, c = document.createElement('canvas'); c.width = W; c.height = top + rows.reduce((s, h) => s + h + gap, 0) + 4; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, c.height);
     _cvHead(x, W, D, 'LOS RIVALES'); let y = top;
-    rows.forEach((rh, ri) => { [0, 1].forEach(j => { const cd = cards[ri * 2 + j]; if (!cd) return; const cx0 = m + j * (colW + gap);
-      x.fillStyle = '#fff'; x.strokeStyle = '#cbd5e1'; x.lineWidth = 3; x.beginPath(); x.roundRect(cx0, y, colW, rh, 18); x.fill(); x.stroke();
-      _cvFace(x, cd.im, cx0 + 80, y + rh / 2, 62, cd.r.dorsal, '#dc2626', _ini(cd.r.name));
-      let ty = y + 26; const tx = cx0 + 164; x.textAlign = 'left'; x.textBaseline = 'top';
-      x.fillStyle = '#0f172a'; x.font = `900 ${cd.nfs}px Arial`; cd.nmL.forEach(l => { x.fillText(l, tx, ty); ty += 32; });
-      x.fillStyle = '#64748b'; x.font = '700 22px Arial'; x.fillText(cd.g ? (cd.r.pts / cd.g).toFixed(1).replace('.', ',') + ' pts por partido' : 'sin datos', tx, ty); ty += 32;
-      x.fillStyle = '#b91c1c'; x.font = '900 25px Arial'; cd.adv.forEach(l => { x.fillText(l, tx, ty); ty += 30; });
-      x.fillStyle = '#1e3a8a'; x.font = '700 21px Arial'; cd.nt.forEach(l => { x.fillText(l, tx, ty); ty += 26; });
-      if (cd.st.length) { ty += 4; cd.st.forEach(([l, a, b]) => { x.font = '800 21px Arial'; x.fillStyle = '#64748b'; x.fillText(l, tx, ty); x.fillStyle = '#0f172a'; x.font = '700 21px Arial'; x.fillText(`${a}/${b}`, tx + 40, ty); x.fillStyle = '#1d4ed8'; x.font = '900 21px Arial'; x.fillText(b ? Math.round(100 * a / b) + '%' : '—', tx + 130, ty); ty += 28; }); }
-      if (cd.mp) { const mh = mapW * cd.mp.naturalHeight / cd.mp.naturalWidth, my = y + (rh - mh - 24) / 2; x.drawImage(cd.mp, cx0 + colW - mapW - 14, my, mapW, mh); x.fillStyle = '#64748b'; x.font = '600 16px Arial'; x.textAlign = 'center'; x.fillText(`${cd.sh.n} tiros · ${cd.sh.pc}`, cx0 + colW - mapW / 2 - 14, my + mh + 4); } });
+    rows.forEach((rh, ri) => { [0, 1].forEach(j => { const cd = cards[ri * 2 + j]; if (!cd) return; const cx0 = m + j * (colW + gap), tx = cx0 + pad;
+      x.fillStyle = '#fff'; x.strokeStyle = '#cbd5e1'; x.lineWidth = 3; x.beginPath(); x.roundRect(cx0, y, colW, rh, 16); x.fill(); x.stroke();
+      _cvFace(x, cd.im, tx + R, y + pad + R + 2, R, cd.r.dorsal, '#dc2626', _ini(cd.r.name));
+      // nombre y puntos al lado de la cara
+      const nx = tx + 2 * R + 14, nh = cd.nmL.length * (cd.nfs + 4) + 26; let ty = y + pad + Math.max(0, (cd.headH - nh) / 2);
+      x.textAlign = 'left'; x.textBaseline = 'top'; x.fillStyle = '#0f172a'; x.font = `900 ${cd.nfs}px Arial`; cd.nmL.forEach(l => { x.fillText(l, nx, ty); ty += cd.nfs + 4; });
+      x.fillStyle = '#64748b'; x.font = '700 20px Arial'; x.fillText(cd.g ? (cd.r.pts / cd.g).toFixed(1).replace('.', ',') + ' pts por partido' : 'sin datos', nx, ty + 2);
+      // consejo y nota a lo ancho
+      ty = y + pad + cd.headH + 8; x.fillStyle = '#b91c1c'; x.font = '900 25px Arial'; cd.adv.forEach(l => { x.fillText(l, tx, ty); ty += 29; });
+      if (cd.nt.length) { ty += 4; x.fillStyle = '#1e3a8a'; x.font = '700 20px Arial'; cd.nt.forEach(l => { x.fillText(l, tx, ty); ty += 24; }); }
+      // T2 · T3 · TL en una fila: % grande y anotados/intentos debajo
+      if (cd.st.length) { ty += 10; const cw = cd.txW / 3; cd.st.forEach(([l, a, b], k) => { const sx = tx + k * cw;
+        x.font = '800 18px Arial'; x.fillStyle = '#64748b'; x.fillText(l, sx, ty + 3); x.font = '900 23px Arial'; x.fillStyle = '#1d4ed8'; x.fillText(b ? Math.round(100 * a / b) + '%' : '—', sx + 34, ty);
+        x.font = '700 18px Arial'; x.fillStyle = '#0f172a'; x.fillText(b ? `${a}/${b}` : 'sin datos', sx, ty + 27); }); }
+      if (cd.mp) { const mw = mapW, mh = mw * cd.mp.naturalHeight / cd.mp.naturalWidth, mxp = cx0 + colW - pad - mw, my = y + Math.max(pad, (rh - mh - 22) / 2); x.drawImage(cd.mp, mxp, my, mw, mh);
+        x.fillStyle = '#64748b'; x.font = '600 15px Arial'; x.textAlign = 'center'; x.fillText(`${cd.sh.n} tiros · ${cd.sh.pc}`, mxp + mw / 2, my + mh + 4); } });
       y += rh + gap; });
     out.rivals = c; }
   // 3) playbook: cada jugada con su título, sus fotos (una a lo ancho; varias, de dos en dos) y el texto
@@ -20990,6 +20998,7 @@ function _fcbqSyncTeams(match) {
 }
 
 function _fcbqUpsertMatch(newMatch) {
+  _fgNoMissFix(newMatch);
   const i = S.matches.findIndex(m => String(m.id) === String(newMatch.id));
   if (i >= 0) S.matches[i] = { ...S.matches[i], ...newMatch };
   else S.matches.unshift(newMatch);
@@ -21746,6 +21755,19 @@ function _rehashSome(rows) {
     _matchHashes[k] = _hash(JSON.stringify({ ...cur, placedShots: by.get(k) || [] })); });
 }
 
+// 🏀 Partidos (p. ej. júnior de la FCBQ) en los que no se apuntan los tiros de campo fallados: canastas «2/0» o todo «2/2».
+// Con eso los % de campo salen irreales (100 % o más canastas que intentos), así que en ese equipo y partido los tiros de
+// campo cuentan como «sin datos» (los puntos y los tiros libres se quedan). Lo original se guarda en p.fgRaw.
+function _fgNoMissFix(m) {
+  if (!m || !m.homePlayers && !m.awayPlayers) return;
+  ['home', 'away'].forEach(sd => { const P = (sd === 'home' ? m.homePlayers : m.awayPlayers) || []; if (!P.length) return;
+    const s = k => P.reduce((a, p) => a + (Number(p[k]) || 0), 0), made = s('t2Made') + s('t3Made'), att = s('t2Att') + s('t3Att');
+    const bad = P.some(p => (Number(p.t2Att) || 0) < (Number(p.t2Made) || 0) || (Number(p.t3Att) || 0) < (Number(p.t3Made) || 0));
+    if (!(made >= 3 && (bad || att <= made))) return;
+    m.fgNA = m.fgNA || {}; m.fgNA[sd] = 1;
+    P.forEach(p => { if (!p.fgRaw) p.fgRaw = { t2Made: p.t2Made || 0, t2Att: p.t2Att || 0, t3Made: p.t3Made || 0, t3Att: p.t3Att || 0 };
+      p.t2Made = p.t2Att = p.t3Made = p.t3Att = 0; p.t2Pct = p.t3Pct = null; p.t2 = p.t3 = '—'; }); });
+}
 function _loadMatchRows(rows) {
   if (!rows || !rows.length) return;
   const drop = new Set();
@@ -21768,6 +21790,7 @@ function _loadMatchRows(rows) {
     if (!m.name && m.homeTeam && m.awayTeam) m.name = `${m.homeTeam} vs ${m.awayTeam}`;
     if (Array.isArray(m.shots) && m.shots.some(sh => typeof sh.xRaw === 'number')) _fcbqPlaceShots(m.shots);
     if (/^\d{4}-\d{2}-\d{2}/.test(String(m.date || ''))) m.date = _fmtMatchDate(m.date);
+    _fgNoMissFix(m);
     const ps = m.placedShots || []; delete m.placedShots;
     _shotsOf[k] = ps;
     S.matches.push(m);

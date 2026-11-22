@@ -10832,6 +10832,19 @@ function _playerStints(m,player,side){
   const subs=(m.subEvents||[]).filter(e=>e.player===player&&e.team===side)
     .map(e=>({t:_elapsedMin(m,e.period,e.min,m.type!=='live'),type:e.type}))
     .sort((a,b)=>a.t-b.t);
+  // Sin ningún cambio: o jugó todo el partido (titular que no salió) o NO jugó. Antes se daba siempre por titular
+  // y los que no salían a pista aparecían con 40 minutos.
+  { // el acta dice 0 minutos (y sí trae minutos para sus compañeros): no jugó, aunque haya algún cambio suelto apuntado
+    const PL=(side==='home'?m.homePlayers:m.awayPlayers)||[], me=PL.find(p=>p.name===player);
+    if(me&&me.min!==''&&me.min!=null&&Number(me.min)===0&&PL.some(p=>Number(p.min)>0))return {stints:[],totalMin};
+  }
+  if(!subs.length){
+    const pl=((side==='home'?m.homePlayers:m.awayPlayers)||[]).find(p=>p.name===player);
+    const mn=pl?(typeof pl.min==='string'&&pl.min.includes(':')?(parseInt(pl.min,10)||0)+(parseInt(pl.min.split(':')[1],10)||0)/60:Number(pl.min)):NaN;
+    const inOc=(m.events||[]).some(e=>e.oc&&Array.isArray(e.oc[side])&&e.oc[side].includes(player));
+    const ocAny=(m.events||[]).some(e=>e.oc&&Array.isArray(e.oc[side])&&e.oc[side].length);
+    if(!inOc&&!(mn>0)&&(mn===0||ocAny||(pl&&pl.starter===false)))return {stints:[],totalMin};
+  }
   const stints=[];
   let on=!subs.length||subs[0].type==='out';   // si su primer movimiento es salir, era titular
   let start=0;

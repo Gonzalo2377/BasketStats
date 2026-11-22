@@ -8597,10 +8597,10 @@ function renderTacticalBoard() {
                     const isExp = fC >= 5 || ((s.tech || 0) + (s.anti || 0) >= 2);
                     
                     const tName = team === 'home' ? lv.hn : lv.an;
-                    const tObj = S.teams.find(x => x.name.toLowerCase() === tName.toLowerCase()) || {};
+                    const tObj = _lvTeamObj(team, tName);
                     const shirt = tObj.shirt || { pattern: 'solid', color1: (team === 'home' ? 'var(--ac)' : '#ef4444'), color2: '#ffffff' };
 
-                    let defsHtml = ''; let fillStyle = isExp ? '#991b1b' : shirt.color1;
+                    let defsHtml = ''; let fillStyle = isExp ? '#991b1b' : shirt.color1; const _dk = !isExp && _kitLight(shirt);
 
                     if (!isExp && shirt.pattern === 'stripes') {
                         const patId = `str-c-${team}-${i}`;
@@ -8619,9 +8619,9 @@ function renderTacticalBoard() {
                     htmlSlots += `<div class="d-token player-token" data-type="player" data-loc="court" data-team="${team}" data-name="${_esc(p.name)}" data-slot="${i}" style="left:${pos.x}%; top:${pos.y}%;">
                         <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));">
                             ${defsHtml}
-                            <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="#fff" stroke-width="1.5"/>
+                            <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="${_dk ? '#475569' : '#fff'}" stroke-width="1.5"/>
                         </svg>
-                        <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
+                        <span class="tk-d" style="color:${_dk ? '#0f172a' : '#fff'}; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                         <span class="tk-name-plate">${p.name.split(' ')[0]}</span>
                         
                         <div style="position:absolute; bottom:14px; left:-14px; width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:#fff; z-index:3; box-shadow:0 3px 6px rgba(0,0,0,0.4); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
@@ -8643,10 +8643,10 @@ function renderTacticalBoard() {
             const isExp = fC >= 5 || ((s.tech || 0) + (s.anti || 0) >= 2);
             
             const tName = team === 'home' ? lv.hn : lv.an;
-            const tObj = S.teams.find(x => x.name.toLowerCase() === tName.toLowerCase()) || {};
+            const tObj = _lvTeamObj(team, tName);
             const shirt = tObj.shirt || { pattern: 'solid', color1: (team === 'home' ? 'var(--ac)' : '#ef4444'), color2: '#ffffff' };
 
-            let defsHtml = ''; let fillStyle = isExp ? '#991b1b' : shirt.color1;
+            let defsHtml = ''; let fillStyle = isExp ? '#991b1b' : shirt.color1; const _dk = !isExp && _kitLight(shirt);
 
             if (!isExp && shirt.pattern === 'stripes') {
                 const patId = `str-b-${team}-${p.dorsal}`;
@@ -8662,9 +8662,9 @@ function renderTacticalBoard() {
             return `<div class="d-token player-token" data-type="player" data-loc="bench" data-team="${team}" data-name="${_esc(p.name)}" style="position:relative; transform:none;">
                 <svg viewBox="0 0 40 50" width="46" height="56" style="position:absolute; top:0; z-index:1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));">
                     ${defsHtml}
-                    <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="#fff" stroke-width="1.5"/>
+                    <path d="M10 0 Q20 12 30 0 L36 4 Q30 15 36 22 L36 46 Q36 50 32 50 L8 50 Q4 50 4 46 L4 22 Q10 15 4 4 Z" fill="${fillStyle}" stroke="${_dk ? '#475569' : '#fff'}" stroke-width="1.5"/>
                 </svg>
-                <span class="tk-d" style="color:#fff; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
+                <span class="tk-d" style="color:${_dk ? '#0f172a' : '#fff'}; z-index:2; margin-top:16px; font-size:18px; font-weight:900;">${p.dorsal}</span>
                 <span class="tk-name-plate" style="bottom:-6px; font-size:9px;">${p.name.split(' ')[0]}</span>
                 
                 <div style="position:absolute; bottom:10px; left:-8px; width:22px; height:22px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,0.3); background:${isExp?'#7f1d1d':(fC>=4?'#ef4444':'#f59e0b')}">${fC}</div>
@@ -22861,9 +22861,30 @@ function populateTeamSelects() {
     if (as) as.innerHTML = _teamSelectsCache;
 }
 
+// 👕 Camiseta blanca (o muy clara) → dorsal negro; el resto, blanco
+function _kitLight(sh) {
+  const lum = c => { c = String(c || '').trim().toLowerCase(); if (!c || c.startsWith('var(')) return 0; if (c === 'white') return 1;
+    let r, g, b, m = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/); if (m) { let h = m[1]; if (h.length === 3) h = h.split('').map(x => x + x).join(''); r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16); }
+    else if ((m = c.match(/rgba?(([^)]+))/))) [r, g, b] = m[1].split(',').map(Number); else return 0;
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+  if (!sh) return false; return sh.pattern === 'stripes' ? lum(sh.color1) >= 0.82 && lum(sh.color2) >= 0.82 : lum(sh.color1) >= 0.82;
+}
+// el equipo del Directo: si hay varios con el mismo nombre (p. ej. U.E. CLARET A sènior y júnior), el de la plantilla que está jugando
+function _lvTeamObj(team, tName) {
+  const C = (S.teams || []).filter(x => String(x.name || '').toLowerCase() === String(tName || '').toLowerCase()); if (C.length <= 1) return C[0] || {};
+  const R = new Set(((lv.pl || {})[team] || []).map(p => p.name)); const sc = t => (t.players || []).filter(p => R.has(p.name || p)).length * 10 + (t.season === '2026-27' ? 1 : 0);
+  return C.slice().sort((a, b) => sc(b) - sc(a))[0] || {};
+}
+// los desplegables del Directo: solo los equipos de la Copa Catalunya 2026-27 (con su plantilla de esa competición)
+function _lvCopaTeams() {
+  const by = {}; (S.matches || []).forEach(m => { if (!/copa catalunya/i.test(m.competition || '') || m.season !== '2026-27') return;
+    [['homeTeam', 'homePlayers'], ['awayTeam', 'awayPlayers']].forEach(([t, p]) => { const k = m[t]; if (!k) return; by[k] = by[k] || new Set(); (m[p] || []).forEach(x => by[k].add(x.name)); }); });
+  return (S.teams || []).filter(t => t.season === '2026-27' && by[t.name] && (!(t.players || []).length || (t.players || []).filter(p => by[t.name].has(p.name || p)).length >= 3));
+}
 function populateLvTeamSelects(){
+  const CC=_lvCopaTeams(), L=CC.length?CC:S.teams;
   const opts='<option value="">— base de datos —</option>'+
-    S.teams.sort((a,b)=>String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name))
+    L.slice().sort((a,b)=>String(b.season||'').localeCompare(String(a.season||'')) || a.name.localeCompare(b.name))
     .map(t=>`<option value="${t.id}">${t.name} (${t.season||'Sin temporada'})</option>`).join('');
   const hs=document.getElementById('lv-home-sel'), as=document.getElementById('lv-away-sel');
   if(hs)hs.innerHTML=opts;

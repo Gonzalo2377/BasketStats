@@ -14502,8 +14502,9 @@ function _boxTableHTML(m, side, bs, sortFn, prof, o = {}) {
   };
 
   const pc = (mk,at) => at ? Math.round(mk/at*100)+'%' : '—';
-  const fgM = p => (p.t2Made||0)+(p.t3Made||0);
+  const fgM = p => _fgMade(p,'t2Made')+_fgMade(p,'t3Made');
   const fgA = p => (p.t2Att||0)+(p.t3Att||0);
+  const anyNA = pl.some(p => p.fgRaw);
 
   const isHome = side === 'home';
   const teamScore = Number(isHome ? m.scoreHome : m.scoreAway) || 0;
@@ -14511,7 +14512,7 @@ function _boxTableHTML(m, side, bs, sortFn, prof, o = {}) {
   const diff = teamScore - oppScore;
   const won = diff > 0;
 
-  const calcVal = (p) => (p.pts||0) + (p.reb||0) + (p.ast||0) + (p.stl||0) + (p.blk||0) + (p.fr||0) - (fgA(p)-fgM(p)) - ((p.tlAtt||0)-(p.tlMade||0)) - (p.to||0) - (p.fc||0);
+  const calcVal = (p) => (p.pts||0) + (p.reb||0) + (p.ast||0) + (p.stl||0) + (p.blk||0) + (p.fr||0) - (p.fgRaw ? 0 : fgA(p)-fgM(p)) - ((p.tlAtt||0)-(p.tlMade||0)) - (p.to||0) - (p.fc||0);
 
   const calcNota = (p) => {
       if (!p._trueMinDec && !p.pts && !p.reb && !p.ast && !(p.fc||0) && !(p.t2Att||0) && !(p.t3Att||0)) return null;
@@ -14552,8 +14553,8 @@ function _boxTableHTML(m, side, bs, sortFn, prof, o = {}) {
       case 'fc': return p.fc || 0;
       case 'pm': return p.pm || 0;
       case 'tc': return fgM(p);
-      case 't2': return p.t2Made || 0;
-      case 't3': return p.t3Made || 0;
+      case 't2': return _fgMade(p,'t2Made');
+      case 't3': return _fgMade(p,'t3Made');
       case 'tl': return p.tlMade || 0;
       default: return p.pts || 0;
     }
@@ -14576,10 +14577,10 @@ function _boxTableHTML(m, side, bs, sortFn, prof, o = {}) {
 
   const tMinsStr = fmtMinDec(totMinsDec);
   const tPts = tot.pts || 0;
-  const tFm = (tot.t2Made||0) + (tot.t3Made||0);
-  const tFa = (tot.t2Att||0) + (tot.t3Att||0);
-  const t2m = tot.t2Made || 0; const t2a = tot.t2Att || 0;
-  const t3m = tot.t3Made || 0; const t3a = tot.t3Att || 0;
+  const tFa0 = (tot.t2Att||0) + (tot.t3Att||0);
+  const t2m = pl.reduce((a,p)=>a+_fgMade(p,'t2Made'),0); const t2a = anyNA ? t2m : (tot.t2Att || 0);
+  const t3m = pl.reduce((a,p)=>a+_fgMade(p,'t3Made'),0); const t3a = anyNA ? t3m : (tot.t3Att || 0);
+  const tFm = t2m + t3m; const tFa = anyNA ? tFm : tFa0;
   const tlm = tot.tlMade || 0; const tla = tot.tlAtt || 0;
   const tReb = tot.reb || 0; const tRo = tot.ro || 0; const tRd = tot.rd || 0;
   const tAst = tot.ast || 0; const tTo = tot.to || 0; const tBlk = tot.blk || 0;
@@ -14612,9 +14613,10 @@ ${o.noNota ? '' : `        <th onclick="${sortFn}('nota')" style="text-align:cen
         ${rows.map(p=>{
           const cv = calcVal(p);
           const pts = p.pts || 0;
-          const fm = fgM(p); const fa = fgA(p);
-          const p2m = p.t2Made || 0; const p2a = p.t2Att || 0;
-          const p3m = p.t3Made || 0; const p3a = p.t3Att || 0;
+          // Partido sin fallos apuntados (FCBQ júnior): se enseña canastas/canastas (4/4)
+          const fm = fgM(p); const fa = p.fgRaw ? fm : fgA(p);
+          const p2m = _fgMade(p,'t2Made'); const p2a = p.fgRaw ? p2m : (p.t2Att || 0);
+          const p3m = _fgMade(p,'t3Made'); const p3a = p.fgRaw ? p3m : (p.t3Att || 0);
           const plm = p.tlMade || 0; const pla = p.tlAtt || 0;
           const reb = p.reb || 0; const ro = p.ro || 0; const rd = p.rd || 0;
           const ast = p.ast || 0; const to = p.to || 0; const blk = p.blk || 0;
@@ -14848,8 +14850,8 @@ function openPlayerProfile(name, team, targetSeason){
   document.getElementById('pp-body').innerHTML=`
     <div class="pp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
       ${kpi(ptsG, 'Pts/partido', pts + ' tot')}
-      ${kpi(pct(t2m, t2a), 'T2%', t2m + '/' + t2a)}
-      ${kpi(pct(t3m, t3a), 'T3%', t3m + '/' + t3a)}
+      ${(() => { const n2 = _fgNA(games, 't2Made'), n3 = _fgNA(games, 't3Made');
+        return kpi(pct(t2m + n2, t2a + n2), 'T2%', (t2m + n2) + '/' + (t2a + n2)) + kpi(pct(t3m + n3, t3a + n3), 'T3%', (t3m + n3) + '/' + (t3a + n3)); })()}
       ${kpi(pct(tlm, tla), 'TL%', tlm + '/' + tla)}
       ${kpi(pmSig + pm, '+/- total', '')}
       ${kpi(fc, 'Faltas', '')}
@@ -14879,8 +14881,8 @@ function openPlayerProfile(name, team, targetSeason){
             const resCol = g.res === 'W' ? '#15803d' : (g.res === 'L' ? '#dc2626' : '#64748b');
             const gPts = g.pts ? g.pts : 0;
             const tlmG = g.tlMade ? g.tlMade : 0; const tlaG = g.tlAtt ? g.tlAtt : 0;
-            const t2mG = g.t2Made ? g.t2Made : 0; const t2aG = g.t2Att ? g.t2Att : 0;
-            const t3mG = g.t3Made ? g.t3Made : 0; const t3aG = g.t3Att ? g.t3Att : 0;
+            const t2mG = _fgMade(g,'t2Made'); const t2aG = g.fgRaw ? t2mG : (g.t2Att ? g.t2Att : 0);
+            const t3mG = _fgMade(g,'t3Made'); const t3aG = g.fgRaw ? t3mG : (g.t3Att ? g.t3Att : 0);
             const rG = g.reb ? g.reb : 0; const aG = g.ast ? g.ast : 0; const fG = g.fc ? g.fc : 0;
             const pG = g.pm ? g.pm : 0;
             const pmC = pG > 0 ? '#15803d' : (pG < 0 ? '#dc2626' : 'inherit');
@@ -15487,7 +15489,7 @@ ${(heatImg||zoneImg)?`<div class="sec">
       <td>${_esc(g.opp||'')}${g.starter?' ★':''}</td>
       <td><b style="color:${g.res==='W'?'#15803d':g.res==='L'?'#dc2626':'#64748b'}">${g.res}</b> ${g.my}-${g.op}</td>
       <td>${Math.round(g.min)||'—'}</td><td><b>${g.pts||0}</b></td>
-      <td>${g.tlMade||0}/${g.tlAtt||0}</td><td>${g.t2Made||0}/${g.t2Att||0}</td><td>${g.t3Made||0}/${g.t3Att||0}</td>
+      <td>${g.tlMade||0}/${g.tlAtt||0}</td><td>${_fgMade(g,'t2Made')}/${g.fgRaw?_fgMade(g,'t2Made'):(g.t2Att||0)}</td><td>${_fgMade(g,'t3Made')}/${g.fgRaw?_fgMade(g,'t3Made'):(g.t3Att||0)}</td>
       <td>${g.fc||0}</td>
       <td style="font-weight:700;color:${(g.pm||0)>0?'#15803d':(g.pm||0)<0?'#dc2626':'inherit'}">${(g.pm||0)>0?'+':''}${g.pm||0}</td>
     </tr>`).join('')}</tbody>
@@ -21773,6 +21775,10 @@ function _rehashSome(rows) {
 // 🏀 Partidos (p. ej. júnior de la FCBQ) en los que no se apuntan los tiros de campo fallados: canastas «2/0» o todo «2/2».
 // Con eso los % de campo salen irreales (100 % o más canastas que intentos), así que en ese equipo y partido los tiros de
 // campo cuentan como «sin datos» (los puntos y los tiros libres se quedan). Lo original se guarda en p.fgRaw.
+// Canastas de verdad de un jugador aunque el partido tenga los tiros de campo «sin datos» (se guardan en p.fgRaw).
+function _fgMade(p, k) { return p && p.fgRaw ? (Number(p.fgRaw[k]) || 0) : (Number(p && p[k]) || 0); }
+// Canastas de los partidos sin fallos apuntados (cuentan como metidas de metidas: 4/4).
+function _fgNA(games, k) { return (games || []).reduce((s, g) => s + (g && g.fgRaw ? _fgMade(g, k) : 0), 0); }
 function _fgNoMissFix(m) {
   if (!m || !m.homePlayers && !m.awayPlayers) return;
   ['home', 'away'].forEach(sd => { const P = (sd === 'home' ? m.homePlayers : m.awayPlayers) || []; if (!P.length) return;

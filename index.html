@@ -4653,6 +4653,8 @@ body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
 .mus-box .mus-im button{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0!important;border-radius:50%!important;border:0!important;background:rgba(15,23,42,.75)!important;color:#fff!important;font-size:11px!important;line-height:22px;cursor:pointer}
 .mus-box .mus-im .mus-iml{right:auto;left:3px}
 .mus-p1 .mus-pi{width:110px;height:82px}
+/* v103 · el botón del reloj (logo del Claret, en el centro de la pista) ya no se ve por encima de las ventanas (Banquillo, vídeos…) */
+#tac-board .tac-play-btn{z-index:25!important}
 
 </style>
 </head>
@@ -33855,6 +33857,120 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     return out.sort((a, b) => b.w - a.w);
   }
 
+  // ══ 🔎 Lo que sabemos de cada equipo por sus partidos anteriores (jugada a jugada con quién estaba en pista) ══
+  // Para cada jugador: minutos en pista y qué pasa con él y sin él (puntos a favor/en contra por 40 min, % de campo propio y del rival),
+  // sus tiros libres, triples y faltas; las parejas; y cómo le va al equipo en cada cuarto. Solo partidos con la misma plantilla
+  // (al menos 3 jugadores en común: así no se mezclan equipos con el mismo nombre de otra categoría) y de la última temporada.
+  const SCO = new Map();
+  function scout(team, roster, skipId) {
+    const all = (window.S && S.matches) || [], R = new Set(roster || []);
+    const key = team + '|' + [...R].sort().join(',') + '|' + all.length; if (SCO.has(key)) return SCO.get(key);
+    let Ms = all.filter(m => m && String(m.id) !== String(skipId) && (m.homeTeam === team || m.awayTeam === team) && (m.events || []).length > 20)
+      .filter(m => { const sd = m.homeTeam === team ? 'home' : 'away'; return !R.size || ((m[sd + 'Players'] || []).filter(p => R.has(p.name)).length >= 3); });
+    const lastS = Ms.map(m => m.season || '').sort().pop(); if (lastS) Ms = Ms.filter(m => (m.season || '') === lastS);
+    const P = {}, PR = {}, T = { sec: 0, pf: 0, pa: 0, fgmD: 0, fgaD: 0, fgmO: 0, fgaO: 0 }, Q = {};
+    const z = () => ({ sec: 0, pf: 0, pa: 0, fgmD: 0, fgaD: 0, fgmO: 0, fgaO: 0, g: 0, min: 0, pts: 0, ftm: 0, fta: 0, t3m: 0, t3a: 0, fc: 0 });
+    const pp = n => P[n] || (P[n] = Object.assign(z(), { n })), pr = k => PR[k] || (PR[k] = z());
+    const evT = (m, e) => { const p = e.period || 1; if (m.type === 'live') return (e.min || 0) * 60; const st = p <= 4 ? (p - 1) * 600 : 2400 + (p - 5) * 300, len = p <= 4 ? 600 : 300; return st + len - (e.min || 0) * 60 - (e.sec || 0); };
+    Ms.forEach(m => { const us = m.homeTeam === team ? 'home' : 'away';
+      (m[us + 'Players'] || []).forEach(p => { const mn = Number(p.min) || 0; if (!(mn > 0) && !(p.pts > 0)) return; const x = pp(p.name); x.g++; x.min += mn; x.pts += p.pts || 0; x.ftm += p.tlMade || 0; x.fta += p.tlAtt || 0; x.t3m += p.t3Made || 0; x.t3a += p.t3Att || 0; x.fc += Number(p.fc) || 0; });
+      const E = (m.events || []).map(e => ({ e, t: evT(m, e) })).sort((a, b) => a.t - b.t); let oc = null, lt = 0;
+      E.forEach(({ e, t }) => { if (e.oc && (e.oc[us] || []).length === 5) { if (oc) { const d = Math.max(0, Math.min(150, t - lt)); oc.forEach(n => pp(n).sec += d); for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) pr([oc[i], oc[j]].sort().join('|')).sec += d; T.sec += d; } oc = e.oc[us]; lt = t; }
+        const v = PTS[e.type] || 0, fgm = /^pts[23]$/.test(e.type) ? 1 : 0, fga = /^(pts|miss)[23]$/.test(e.type) ? 1 : 0; if (!v && !fga) return; const mine = e.team === us;
+        const q = (e.period || 1) > 4 ? 5 : (e.period || 1); Q[q] = Q[q] || { pf: 0, pa: 0, g: new Set() }; Q[q].g.add(m.id); if (mine) Q[q].pf += v; else Q[q].pa += v;
+        if (!oc) return; const add = x => { if (mine) { x.pf += v; x.fgmO += fgm; x.fgaO += fga; } else { x.pa += v; x.fgmD += fgm; x.fgaD += fga; } };
+        add(T); oc.forEach(n => add(pp(n))); for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) add(pr([oc[i], oc[j]].sort().join('|'))); }); });
+    const r40 = (a, s) => s > 0 ? a / s * 2400 : 0, pct = (a, b) => b ? 100 * a / b : null;
+    Object.values(P).forEach(x => { const o = { sec: T.sec - x.sec, pf: T.pf - x.pf, pa: T.pa - x.pa, fgmD: T.fgmD - x.fgmD, fgaD: T.fgaD - x.fgaD, fgmO: T.fgmO - x.fgmO, fgaO: T.fgaO - x.fgaO };
+      x.mOn = x.sec / 60; x.mOff = o.sec / 60; x.netOn = r40(x.pf - x.pa, x.sec); x.netOff = r40(o.pf - o.pa, o.sec); x.ptsOn = r40(x.pf, x.sec); x.ptsOff = r40(o.pf, o.sec);
+      x.dOn = pct(x.fgmD, x.fgaD); x.dOff = pct(o.fgmD, o.fgaD); x.oOn = pct(x.fgmO, x.fgaO); x.oOff = pct(o.fgmO, o.fgaO); x.ftp = pct(x.ftm, x.fta); x.t3p = pct(x.t3m, x.t3a); x.fc40 = x.min ? x.fc / x.min * 40 : 0; });
+    const pairs = Object.entries(PR).filter(([, x]) => x.sec >= 2400).map(([k, x]) => ({ ns: k.split('|'), min: x.sec / 60, net: r40(x.pf - x.pa, x.sec) }));
+    const res = { team, n: Ms.length, P, T, Q, pairs }; SCO.set(key, res); return res;
+  }
+  // las claves (frases cortas con el porqué), con mínimos de minutos para no sacar conclusiones de 4 jugadas
+  function keys(K) {
+    const A = [], V = Object.values(K.P), r = Math.round, add = (kind, ico, txt, why, w, n) => A.push({ kind, ico, txt, why, w, n });
+    if (K.n < 2) return A;
+    V.filter(x => x.mOn >= 40 && x.mOff >= 30 && x.dOn != null && x.dOff != null && x.dOn - x.dOff >= 6 && x.netOn < x.netOff - 6).sort((a, b) => (b.dOn - b.dOff) - (a.dOn - a.dOff)).slice(0, 2)
+      .forEach(x => add('atk', '🎯', 'Atacarle: es su punto débil atrás', `con él en pista sus rivales meten el ${r(x.dOn)}% de campo (sin él ${r(x.dOff)}%) · ${sg(r(x.netOn))} vs ${sg(r(x.netOff))} por 40'`, 9 + (x.dOn - x.dOff) / 2, x.n));
+    V.filter(x => x.mOn >= 50 && x.mOff >= 25 && x.netOn - x.netOff >= 12).sort((a, b) => (b.netOn - b.netOff) - (a.netOn - a.netOff)).slice(0, 2)
+      .forEach(x => add('eng', '⚡', 'Su motor: cuando se sienta, apretad', `con él ${sg(r(x.netOn))} por 40', sin él ${sg(r(x.netOff))}${x.oOn != null && x.oOff != null ? ` · meten el ${r(x.oOn)}% con él y el ${r(x.oOff)}% sin él` : ''}`, 9 + (x.netOn - x.netOff) / 4, x.n));
+    V.filter(x => x.mOn >= 40 && x.mOff >= 25 && x.netOn - x.netOff <= -10 && !A.some(a => a.n === x.n)).sort((a, b) => (a.netOn - a.netOff) - (b.netOn - b.netOff)).slice(0, 2)
+      .forEach(x => add('weak', '🪫', 'Con él en pista les va peor', `${sg(r(x.netOn))} por 40' con él, ${sg(r(x.netOff))} sin él`, 6 + (x.netOff - x.netOn) / 5, x.n));
+    const ft = V.filter(x => x.fta >= 6).sort((a, b) => a.ftp - b.ftp); if (ft[0] && ft[0].ftp < 60) add('ft', '🎲', 'Si hay que hacer falta, a él', `tiros libres ${ft[0].ftm}/${ft[0].fta} (${r(ft[0].ftp)}%)`, 5, ft[0].n);
+    const ftG = ft.filter(x => x.ftp >= 75).sort((a, b) => b.fta - a.fta)[0]; if (ftG) add('noft', '🚫', 'No le hagáis falta', `tiros libres ${ftG.ftm}/${ftG.fta} (${r(ftG.ftp)}%)`, 4, ftG.n);
+    V.filter(x => x.t3a >= 8 && x.t3p >= 34).sort((a, b) => b.t3m - a.t3m).slice(0, 2).forEach(x => add('sh', '🏹', 'Tirador: salid a la línea', `triples ${x.t3m}/${x.t3a} (${r(x.t3p)}%)`, 5 + x.t3m / 4, x.n));
+    V.filter(x => x.g >= 3 && x.min >= 50 && x.t3a / x.g < 0.8).sort((a, b) => b.min - a.min).slice(0, 3).forEach(x => add('nosh', '🧱', 'No tira de 3: flotadle', `${x.t3a} triple${x.t3a !== 1 ? 's' : ''} en ${x.g} partidos`, 3, x.n));
+    V.filter(x => x.min >= 60 && x.fc40 >= 5.5).sort((a, b) => b.fc40 - a.fc40).slice(0, 1).forEach(x => add('fc', '🟨', 'Se carga de faltas: atacadle a él', `${x.fc} faltas en ${r(x.min)} min (${x.fc40.toFixed(1).replace('.', ',')} por 40')`, 4, x.n));
+    const qs = Object.entries(K.Q).filter(([q]) => q <= 4).map(([q, v]) => ({ q, d: (v.pf - v.pa) / Math.max(1, v.g.size) })).sort((a, b) => b.d - a.d);
+    if (qs.length >= 4 && qs[0].d >= 2.5) { add('qb', '📈', `Su mejor cuarto es el ${qs[0].q}º`, `${sg(Math.round(qs[0].d * 10) / 10).replace('.', ',')} de media por partido`, 4, null); A[A.length - 1].q = +qs[0].q; }
+    if (qs.length >= 4 && qs[qs.length - 1].d <= -2) { add('qw', '📉', `Su peor cuarto es el ${qs[qs.length - 1].q}º`, `${sg(Math.round(qs[qs.length - 1].d * 10) / 10).replace('.', ',')} de media por partido`, 3, null); A[A.length - 1].q = +qs[qs.length - 1].q; }
+    const ps = K.pairs.slice().sort((a, b) => b.net - a.net); if (ps[0] && ps[0].net >= 18) add('pb', '🤝', 'Su pareja que funciona', `${sg(r(ps[0].net))} por 40' juntos (${r(ps[0].min)} min)`, 4, ps[0].ns);
+    const pw = ps[ps.length - 1]; if (pw && pw.net <= -12 && pw !== ps[0]) add('pw', '💔', 'Su pareja que no funciona', `${sg(r(pw.net))} por 40' juntos (${r(pw.min)} min)`, 3, pw.ns);
+    return A.sort((a, b) => b.w - a.w);
+  }
+
+  // ══ 🎯 Qué hacer AHORA: lo de antes cruzado con lo que pasa en pista (quién está, faltas, marcador, minuto) ══
+  function orders(C) {
+    const O = [], add = (lvl, ico, txt, why, w, pls) => O.push({ lvl, ico, txt, why, w, pls }), r = Math.round;
+    const { us, op, who, E, lv } = C, per = lv.period || 1, sc = lv.score || {}, dif = (sc[us] || 0) - (sc[op] || 0);
+    const onSet = s => { const o = (lv.onCourt || {})[s]; return new Set(o ? [...o] : []); }, onOp = onSet(op), onUs = onSet(us);
+    const KO = scout(C.nm[op], ((lv.pl || {})[op] || []).map(p => p.name), lv.matchId || lv.id), KU = scout(C.nm[us], ((lv.pl || {})[us] || []).map(p => p.name), lv.matchId || lv.id);
+    const kO = keys(KO), BO = box(C, op), BU = box(C, us), fo = n => (BO.find(p => p.n === n) || { fc: 0 }).fc;
+    const endGame = (per >= 4 && C.t >= 37.5) || per > 4;
+    // 1) a quién atacar de los que están en pista
+    kO.filter(k => k.kind === 'atk' && onOp.has(k.n)).forEach(k => add('good', '🎯', `Atacad a ${who(op, k.n)}: buscad su par`, k.why, 12, [[op, k.n]]));
+    // 2) su motor en el banquillo → apretar; en pista con su pareja buena → ojo
+    kO.filter(k => k.kind === 'eng').forEach(k => { if (!onOp.has(k.n) && onOp.size >= 5) add('good', '⚡', `${who(op, k.n)} está sentado: apretad ahora (presión, ritmo)`, k.why, 11, [[op, k.n]]);
+      else if (onOp.has(k.n) && fo(k.n) >= (per <= 2 ? 2 : 3)) add('good', '🟨', `${who(op, k.n)} (su motor) lleva ${fo(k.n)} faltas: atacadle para sentarle`, k.why, 12, [[op, k.n]]); });
+    kO.filter(k => k.kind === 'weak' && onOp.has(k.n)).slice(0, 1).forEach(k => add('info', '🪫', `Con ${who(op, k.n)} en pista les va peor: aprovechad este rato`, k.why, 5, [[op, k.n]]));
+    const pb = kO.find(k => k.kind === 'pb'); if (pb && pb.n.every(n => onOp.has(n))) add('bad', '🤝', `Está su mejor pareja: ${pb.n.map(n => who(op, n)).join(' + ')}`, pb.why + ' · cortad la conexión entre ellos', 7, pb.n.map(n => [op, n]));
+    // 3) cómo defender a los 5 que hay: tiradores y no tiradores
+    const sh = kO.filter(k => k.kind === 'sh' && onOp.has(k.n)), nosh = kO.filter(k => k.kind === 'nosh' && onOp.has(k.n));
+    if (sh.length || nosh.length) add('info', '🛡️', [sh.length ? `Salid a ${sh.map(k => who(op, k.n)).join(' y ')}` : '', nosh.length ? `flotad a ${nosh.map(k => who(op, k.n)).join(' y ')}` : ''].filter(Boolean).join(' · ').replace(/^f/, 'F'),
+      [...sh.map(k => `${who(op, k.n)} ${k.why}`), ...nosh.map(k => `${who(op, k.n)}: ${k.why}`)].join(' · '), 6, [...sh, ...nosh].map(k => [op, k.n]));
+    // 4) quién nos está haciendo daño hoy
+    BO.filter(p => p.pts >= 8 && onOp.has(p.n)).sort((a, b) => b.pts - a.pts).slice(0, 1).forEach(p => add('bad', '🔥', `Cambiad la defensa sobre ${who(op, p.n)}: ayudas y negarle el balón`, `lleva ${p.pts} pts (${p.fgm}/${p.fga} de campo${p.t3a ? `, ${p.t3m}/${p.t3a} triples` : ''})`, 8 + p.pts / 4, [[op, p.n]]));
+    // 5) faltas del rival → atacar al cargado; faltas de equipo
+    BO.filter(p => onOp.has(p.n) && (p.fc >= 4 || (per <= 2 && p.fc >= 3)) && !O.some(o => o.pls && o.pls[0] && o.pls[0][1] === p.n && /faltas/.test(o.txt))).forEach(p => add('good', '🟨', `Id a por ${who(op, p.n)}: lleva ${p.fc} faltas`, 'penetrad hacia él y buscad el contacto', 9, [[op, p.n]]));
+    const tf = s => E.filter(e => e.period === per && e.team === s && FOUL.includes(e.type)).length;
+    if (tf(op) >= 4) add('good', '✅', 'Están en bonus: atacad el aro', `${tf(op)} faltas de equipo en este cuarto: cada falta son 2 tiros libres`, 8);
+    if (tf(us) >= 4) add('warn', '🛑', 'Estamos en bonus: defended sin falta', `${tf(us)} faltas de equipo en este cuarto`, 7);
+    // 6) final apretado: a quién hacer falta y a quién no
+    if (endGame && Math.abs(dif) <= 8) { const ft = kO.filter(k => (k.kind === 'ft' || k.kind === 'noft') && onOp.has(k.n));
+      ft.filter(k => k.kind === 'ft').forEach(k => add(dif < 0 ? 'good' : 'info', '🎲', dif < 0 ? `Si hay que hacer falta: a ${who(op, k.n)}` : `${who(op, k.n)} falla tiros libres`, k.why, 10, [[op, k.n]]));
+      ft.filter(k => k.kind === 'noft').forEach(k => add('warn', '🚫', `No le hagáis falta a ${who(op, k.n)}`, k.why, 9, [[op, k.n]])); }
+    // 7) nosotros: a quién meter / sentar (temporada + hoy), quinteto que nos funciona
+    const OO = onOff(C), today = n => { const p = OO.P.find(x => x.n === n); return p && p.on.min >= 4 ? p.on.pf - p.on.pa : null; };
+    const U = Object.values(KU.P).filter(x => x.mOn >= 40 && x.mOff >= 25);
+    const bench = U.filter(x => !onUs.has(x.n) && onUs.size >= 5 && x.netOn - x.netOff >= 10 && !BU.some(p => p.n === x.n && p.fc >= 4)).sort((a, b) => (b.netOn - b.netOff) - (a.netOn - a.netOff))[0];
+    const court = U.filter(x => onUs.has(x.n) && x.netOn - x.netOff <= -8 && (today(x.n) == null || today(x.n) < 0)).sort((a, b) => (a.netOn - a.netOff) - (b.netOn - b.netOff))[0];
+    if (bench) add('good', '🔁', `Mete a ${who(us, bench.n)}${court ? ` por ${who(us, court.n)}` : ''}`, `esta temporada con ${who(us, bench.n)} ${sg(r(bench.netOn))} por 40' y sin él ${sg(r(bench.netOff))}${court ? ` · con ${who(us, court.n)} ${sg(r(court.netOn))} y sin él ${sg(r(court.netOff))}${today(court.n) != null ? `; hoy ${sg(today(court.n))}` : ''}` : ''}`, 8, [[us, bench.n], ...(court ? [[us, court.n]] : [])]);
+    BU.filter(p => onUs.has(p.n) && (p.fc >= 4 || (per <= 2 && p.fc >= 3) || (per === 1 && p.fc >= 2))).forEach(p => add('warn', '🟨', `Sienta a ${who(us, p.n)}: lleva ${p.fc} faltas`, per <= 2 ? 'que llegue a la 2ª parte' : 'que no le eliminen', 9, [[us, p.n]]));
+    // 8) parcial en contra → tiempo muerto
+    const scE = E.filter(e => PTS[e.type]); let run = 0; for (let i = scE.length - 1; i >= 0 && scE[i].team === op; i--) run += PTS[scE[i].type];
+    const w3 = E.filter(e => e.min >= C.t - 3 && PTS[e.type]), a3 = w3.filter(e => e.team === us).reduce((s, e) => s + PTS[e.type], 0), b3 = w3.filter(e => e.team === op).reduce((s, e) => s + PTS[e.type], 0);
+    const lastTO = E.filter(e => e.type === 'timeout' && e.team === us).pop();
+    if ((run >= 8 || b3 - a3 >= 9) && !(lastTO && C.t - lastTO.min < 2)) add('bad', '⏸', 'Pide tiempo muerto', run >= 8 ? `parcial 0-${run} en contra` : `últimos 3 min ${a3}-${b3}`, 13);
+    // 9) su cuarto fuerte, al empezarlo
+    const qb = kO.find(k => k.kind === 'qb'); const qN = qb && qb.q; const qStart = per <= 4 ? (per - 1) * 10 : 40;
+    if (qb && qN === per && C.t - qStart < 3) add('warn', '📈', `Ojo: el ${per}º es su mejor cuarto`, qb.why + ' · salid fuertes los primeros minutos', 6);
+    return O.sort((a, b) => b.w - a.w);
+  }
+  const ordHtml = A => A.map(a => { const fs = FACE && a.pls ? a.pls.map(([t, n]) => FACE(t, n)).join('') : '';
+    return `<div class="bq-it bq-${a.lvl} bq-or">${fs ? `<span class="bq-fcs">${fs}</span>` : `<i>${a.ico}</i>`}<span><b>${fs ? a.ico + ' ' : ''}${esc(a.txt)}</b>${a.why ? `<small>${esc(a.why)}</small>` : ''}</span></div>`; }).join('');
+  const OURS = { atk: ['🧯', 'Con él en pista sufrimos atrás'], eng: ['💪', 'Con él en pista funcionamos'], weak: ['🪫', 'Con él en pista nos va peor'], ft: ['🎲', 'Ojo al final: falla tiros libres (le harán falta)'], noft: ['✅', 'Al final, que tenga él el balón'],
+    sh: ['🏹', 'Nuestro tirador: buscadle'], fc: ['🟨', 'Se carga de faltas'], pb: ['🤝', 'Pareja que nos funciona'], pw: ['💔', 'Pareja que no nos funciona'] };
+  const GOOD_O = ['atk', 'ft', 'weak', 'qw', 'pw', 'fc', 'nosh'], GOOD_U = ['eng', 'noft', 'sh', 'pb', 'qb'];
+  function keysHtml(C) { FACE = C.face; const sec = (side, K) => { const mine = side === C.us; const A = keys(K).filter(k => !(mine && k.kind === 'nosh')).map(k => { if (!mine) return k; const o = OURS[k.kind];
+      return o ? { ...k, ico: o[0], txt: o[1] } : { ...k, txt: k.txt.replace(/^Su /, 'Nuestro ') }; });
+      return `<div class="bq-sec">${side === C.op ? '🔎' : '🏠'} ${esc(C.nm[side])} <small>(${K.n} partido${K.n !== 1 ? 's' : ''} con jugada a jugada)</small></div>`
+        + (A.length ? A.map(k => { const ns = k.n ? (Array.isArray(k.n) ? k.n : [k.n]) : []; const fs = ns.map(n => C.face(side, n)).join('');
+          const lvl = mine ? (GOOD_U.includes(k.kind) ? 'good' : 'bad') : (GOOD_O.includes(k.kind) ? 'good' : 'bad'); return `<div class="bq-it bq-${lvl} bq-or">${fs ? `<span class="bq-fcs">${fs}</span>` : `<i>${k.ico}</i>`}<span><b>${fs ? k.ico + ' ' : ''}${ns.length ? esc(ns.map(n => C.who(side, n)).join(' + ')) + ': ' : ''}${esc(k.txt)}</b><small>${esc(k.why)}</small></span></div>`; }).join('')
+          : '<div class="bq-none">No hay bastantes partidos con jugada a jugada para sacar conclusiones fiables.</div>'); };
+    const KO = scout(C.nm[C.op], ((C.lv.pl || {})[C.op] || []).map(p => p.name), C.lv.matchId || C.lv.id), KU = scout(C.nm[C.us], ((C.lv.pl || {})[C.us] || []).map(p => p.name), C.lv.matchId || C.lv.id);
+    return `<p class="bq-p">Sale de sus partidos anteriores de esta temporada: quién estaba en pista en cada jugada. Solo se muestra lo que tiene minutos suficientes; el dato del porqué va debajo.</p>` + sec(C.op, KO) + sec(C.us, KU); }
+
   // ── la ventana ──
   const CSS = `.bq-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:4200;display:flex;align-items:center;justify-content:center;padding:12px}
   .bq-box{background:#fff;border-radius:16px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden}
@@ -33873,6 +33989,8 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
   .bq-fc{position:relative;display:inline-block;width:34px;height:34px;flex-shrink:0}.bq-fc img,.bq-fc i{width:34px;height:34px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:900;background:#e2e8f0;color:#475569;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1}
   .bq-fc b{position:absolute;right:-5px;bottom:-4px;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 3px;border:1.5px solid #fff}.bq-fc.home b{background:#3b82f6}.bq-fc.away b{background:#ef4444}
   .bq-fcs{display:flex;gap:6px;flex-shrink:0}.bq-q{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.bq-nm{display:inline-flex;align-items:center;gap:8px}
+  .bq-or b{display:block;font-size:14px}.bq-or small{display:block;font-size:11.5px;opacity:.85;margin-top:2px;font-weight:600}.bq-p{font-size:12px;color:#64748b;margin:0 0 6px}.bq-sec small{font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8}
+  .bq-dt{margin-top:12px}.bq-dt summary{cursor:pointer;font-size:12px;font-weight:800;color:#475569;margin-bottom:6px}
   .bq-btn{position:relative}.bq-dot{position:absolute;top:3px;right:3px;min-width:16px;height:16px;border-radius:8px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;line-height:16px;padding:0 4px;display:none}`;
   function css() { if (!document.getElementById('bq-css')) { const s = document.createElement('style'); s.id = 'bq-css'; s.textContent = CSS; document.head.appendChild(s); } }
 
@@ -33881,7 +33999,9 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
       return a.tag === 'q' && fs ? `<div class="bq-it bq-${a.lvl}"><i>${a.ico}</i><span>${esc(a.txt)}<span class="bq-q">${fs}</span></span></div>`
         : `<div class="bq-it bq-${a.lvl}">${fs ? `<span class="bq-fcs">${fs}</span>` : `<i>${a.ico}</i>`}<span>${fs ? a.ico + ' ' : ''}${esc(a.txt)}</span></div>`; }).join('') : '<div class="bq-none">Todavía no hay nada que destacar. Los avisos salen solos cuando algo se sale de lo normal (parciales, con/sin un jugador, faltas, rebote, pérdidas, tiro…).</div>';
   function scoreHtml(C) { const s = C.lv.score || { home: 0, away: 0 }; return `<div class="bq-sc">${esc(C.nm.home)} ${s.home} – ${s.away} ${esc(C.nm.away)} <small>${C.lv.period > 4 ? 'Prórroga' : (C.lv.period || 1) + 'º cuarto'} · min ${mmss(C.t)}</small></div>`; }
-  function nowHtml(C) { FACE = C.face; const A = insights(C); return scoreHtml(C) + itemsHtml(A.slice(0, 12)); }
+  function nowHtml(C) { FACE = C.face; const O = orders(C), A = insights(C).filter(a => a.lvl !== 'info').slice(0, 5);
+    return scoreHtml(C) + `<div class="bq-sec">🎯 Qué hacer ahora</div>` + (O.length ? ordHtml(O.slice(0, 7)) : '<div class="bq-none">Nada urgente. Las órdenes salen solas según quién esté en pista, las faltas, el marcador y lo que sabemos del rival.</div>')
+      + (A.length ? `<details class="bq-dt"><summary>📊 Lo que está pasando (${A.length})</summary>${itemsHtml(A)}</details>` : ''); }
 
   function reportHtml(C) {
     FACE = C.face;
@@ -33920,9 +34040,9 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     document.querySelectorAll('.bq-ov').forEach(o => o.remove());
     const ov = document.createElement('div'); ov.className = 'bq-ov';
     ov.innerHTML = `<div class="bq-box" role="dialog" aria-label="Banquillo"><div class="bq-hd"><b>🧠 Banquillo</b><button type="button" data-bq="x">✕ Cerrar</button></div>
-      <div class="bq-tabs"><button type="button" data-tab="now">⚡ Ahora</button><button type="button" data-tab="rep">🧾 Informe</button></div><div class="bq-bd"></div></div>`;
+      <div class="bq-tabs"><button type="button" data-tab="now">⚡ Ahora</button><button type="button" data-tab="keys">🔎 Claves</button><button type="button" data-tab="rep">🧾 Informe</button></div><div class="bq-bd"></div></div>`;
     document.body.appendChild(ov);
-    const draw = () => { const C = ctx(); if (!C) return; ov.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); ov.querySelector('.bq-bd').innerHTML = tab === 'rep' ? reportHtml(C) : nowHtml(C); };
+    const draw = () => { const C = ctx(); if (!C) return; ov.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); ov.querySelector('.bq-bd').innerHTML = tab === 'rep' ? reportHtml(C) : tab === 'keys' ? keysHtml(C) : nowHtml(C); };
     ov.onclick = e => { const b = e.target.closest('[data-bq],[data-tab]');
       if (e.target === ov || (b && b.dataset.bq === 'x')) { ov.remove(); SRC = null; document.removeEventListener('keydown', key, true); return; }
       if (b && b.dataset.tab) { tab = b.dataset.tab; draw(); }
@@ -33933,7 +34053,7 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     // lo que ya se ha visto no cuenta para el puntito rojo
     seen = imp(C).length; badge(0);
   }
-  const imp = C => insights(C).filter(a => a.lvl === 'bad' || a.lvl === 'warn');
+  const imp = C => orders(C).filter(a => a.w >= 8);
   function badge(n) { document.querySelectorAll('.bq-dot').forEach(d => { d.textContent = n; d.style.display = n > 0 ? 'block' : 'none'; }); }
   // cada jugada del Directo: refresca la ventana si está abierta y el puntito rojo con los avisos nuevos importantes
   let lastPer = null, tmr = null;
@@ -33951,7 +34071,7 @@ Se cortan y se suben una tras otra: deja esta pestaña abierta hasta que acaben.
     SRC = { hn: m.homeTeam, an: m.awayTeam, events: ev, period: upto || Math.max(1, ...ev.map(e => e.period || 1)), score: { home: last.score.home ?? last.score.h ?? 0, away: last.score.away ?? last.score.a ?? 0 },
       pl: { home: (m.homePlayers || []).map(p => ({ name: p.name, dorsal: p.dorsal })), away: (m.awayPlayers || []).map(p => ({ name: p.name, dorsal: p.dorsal })) }, onCourt: { home: new Set(oc.home), away: new Set(oc.away) } };
     open('rep'); };
-  window.__bqTest = { ctx, insights, onOff, lineups, team, box, reportText };
+  window.__bqTest = { ctx, insights, onOff, lineups, team, box, reportText, scout, keys, orders, keysHtml };
 })();
 
 </script>

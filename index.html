@@ -31967,15 +31967,15 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     });
     const teams = Object.values(T).sort((x, y) => (y.v - x.v) || (x.d - y.d) || ((y.pf - y.pc) - (x.pf - x.pc)) || (y.pf - x.pf));
     // Dureza de lo que queda de la 1ª vuelta: en la 1ª vuelta cada equipo juega una vez contra todos los del grupo.
-    // Rivales que aún no se ha encontrado → media de su % de victorias actual (sin partidos = 50 %).
+    // Rivales que aún no se ha encontrado → media de su coeficiente de victorias (0.xxx = ganados / jugados; sin partidos = 0.500).
     const met = {}; Object.keys(T).forEach(n => met[n] = new Set()); matches.forEach(m => { met[m.homeTeam].add(m.awayTeam); met[m.awayTeam].add(m.homeTeam); });
-    const wpOf = n => T[n].pj ? T[n].v / T[n].pj * 100 : 50, ord = {}; teams.forEach((t, i) => ord[t.name] = i + 1);
+    const wpOf = n => T[n].pj ? T[n].v / T[n].pj : 0.5, f3 = x => x.toFixed(3), ord = {}; teams.forEach((t, i) => ord[t.name] = i + 1);
     const cal = {}; teams.forEach(t => { const left = teams.filter(o => o.name !== t.name && !met[t.name].has(o.name)).map(o => o.name); cal[t.name] = { left, avg: left.length ? left.reduce((s, n) => s + wpOf(n), 0) / left.length : null }; });
     const avgs = Object.values(cal).filter(c => c.avg != null).map(c => c.avg), lo = Math.min(...avgs), hi = Math.max(...avgs);
     const calTd = t => { const c = cal[t.name]; if (c.avg == null) return `<td class="mu" title="Ya se ha enfrentado a todos los equipos del grupo">1ª vuelta hecha</td>`;
       const r = hi > lo ? (c.avg - lo) / (hi - lo) : 0.5, col = r > 0.66 ? '#dc2626' : r < 0.34 ? '#16a34a' : '#d97706', lab = r > 0.66 ? 'dura' : r < 0.34 ? 'suave' : 'media';
-      const tip = 'Le quedan en la 1ª vuelta: ' + c.left.map(n => `${n} (${ord[n]}º, ${T[n].v}-${T[n].d})`).join(' · ');
-      return `<td title="${esc(tip)}" style="cursor:help" onclick="alert(this.title)"><b style="color:${col}">${Math.round(c.avg)}%</b> <span style="font-size:11px;color:${col};font-weight:700">${lab}</span><div style="font-size:10.5px;color:#6b7280">${c.left.length} rival${c.left.length !== 1 ? 'es' : ''}</div></td>`; };
+      const tip = 'Media de lo que le queda: ' + f3(c.avg) + ' · Le quedan en la 1ª vuelta: ' + c.left.map(n => `${n} (${ord[n]}º, ${T[n].v}-${T[n].d}, ${f3(wpOf(n))})`).join(' · ');
+      return `<td title="${esc(tip)}" style="cursor:help" onclick="alert(this.title)"><b style="color:${col}">${f3(c.avg)}</b> <span style="font-size:11px;color:${col};font-weight:700">${lab}</span><div style="font-size:10.5px;color:#6b7280">${c.left.length} rival${c.left.length !== 1 ? 'es' : ''}</div></td>`; };
     const rows = teams.map((t, i) => {
       const df = t.pf - t.pc, wp = t.pj ? Math.round(t.v / t.pj * 100) : 0;
       return `<tr class="${i < 3 ? 'bs-zone' : ''}${ours(t.name) ? ' me' : ''}">
@@ -31988,7 +31988,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     }).join('');
     const bd = bumpData(matches, Object.keys(T)), bk = bd ? 'b' + (++bumpN) : ''; if (bd) BUMP[bk] = bd;
     return `<div class="bs-wrap"><div class="bs-ttl">${esc(liga)} · Grupo ${esc(g)} <span>· ${matches.length} partido${matches.length !== 1 ? 's' : ''}</span>${bd ? `<button type="button" class="bs-bump-btn" data-k="${bk}" data-t="${esc(liga)} · Grupo ${esc(g)}" onclick="__baBump(this)" title="Ver cómo ha ido cambiando la clasificación jornada a jornada">📈 Por jornada</button>` : ''}</div>
-      <div class="bs-scroll"><table class="bs-tbl"><thead><tr><th><span class="l">Posición</span><span class="s">#</span></th><th class="tm">Equipo</th><th><span class="l">Jugados</span><span class="s">PJ</span></th><th><span class="l">Ganados</span><span class="s">G</span></th><th><span class="l">Perdidos</span><span class="s">P</span></th><th>% Vict.</th><th>P. Favor</th><th>P. Contra</th><th>+/-</th><th>Local</th><th>Visitante</th><th>Racha</th><th title="% de victorias medio de los rivales que le quedan por jugar en la 1ª vuelta (pasa el ratón para ver cuáles)">Resta 1ª vuelta</th></tr></thead>
+      <div class="bs-scroll"><table class="bs-tbl"><thead><tr><th><span class="l">Posición</span><span class="s">#</span></th><th class="tm">Equipo</th><th><span class="l">Jugados</span><span class="s">PJ</span></th><th><span class="l">Ganados</span><span class="s">G</span></th><th><span class="l">Perdidos</span><span class="s">P</span></th><th>% Vict.</th><th>P. Favor</th><th>P. Contra</th><th>+/-</th><th>Local</th><th>Visitante</th><th>Racha</th><th title="Media del coeficiente de victorias (0.xxx = ganados / jugados) de los rivales que le quedan por jugar en la 1ª vuelta (pasa el ratón para ver cuáles)">Resta 1ª vuelta</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>`;
   };
 })();

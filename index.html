@@ -4656,6 +4656,16 @@ body.zen-mode #toast,body.zen-mode #undo-toast{z-index:1000003!important}
 /* v103 · el botón del reloj (logo del Claret, en el centro de la pista) ya no se ve por encima de las ventanas (Banquillo, vídeos…) */
 #tac-board .tac-play-btn{z-index:25!important}
 
+/* pantalla completa del reproductor de acciones */
+.ac-vid .ac-fsc{display:none;position:absolute;right:12px;top:12px;z-index:5;gap:8px}
+.ac-vid:fullscreen,.ac-vid:-webkit-full-screen,.ac-vid.ac-ffs{width:100vw;height:100vh;max-width:none;aspect-ratio:auto;margin:0;border-radius:0;background:#000}
+.ac-vid.ac-ffs{position:fixed;inset:0;z-index:2147483000;width:100vw;height:100dvh}
+html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
+.ac-vid:fullscreen .ac-fsc,.ac-vid:-webkit-full-screen .ac-fsc,.ac-vid.ac-ffs .ac-fsc{display:flex}
+.ac-vid .ac-fsc button{width:46px;height:46px;border-radius:50%;border:0;background:rgba(15,23,42,.55);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;opacity:.75}
+.ac-vid .ac-fsc button:hover{opacity:1;background:rgba(15,23,42,.8)}
+.ac-ctl .ac-fs{margin-left:auto}
+
 </style>
 </head>
 <body>
@@ -17956,17 +17966,17 @@ function _acYtApi() {
     setTimeout(() => rej(new Error('YouTube no responde. Mira la conexión.')), 20000);
   });
 }
-function acClose() { if (!_acP) return; const P = _acP; _acP = null; clearInterval(P.tick); Object.keys(P.orig || {}).forEach(i => Object.assign(P.list[i], P.orig[i])); try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
+function acClose() { if (!_acP) return; const P = _acP; try { P.fsOff && P.fsOff(); } catch (e) { } _acP = null; clearInterval(P.tick); Object.keys(P.orig || {}).forEach(i => Object.assign(P.list[i], P.orig[i])); try { P.yt && P.yt.destroy(); } catch (e) { } P.ov.remove(); document.removeEventListener('keydown', P.key, true); }
 function acPlay(list, i, title) {
   acClose(); if (!list || !list.length) return;
   let auto = true; try { auto = localStorage.getItem('ac_auto') !== '0'; } catch (e) { }
   const ov = document.createElement('div'); ov.className = 'vm-ov ac-ov';
   ov.innerHTML = `<div class="vm-box ac-box" role="dialog" aria-label="Jugadas en vídeo"><header><b>🎬 ${_esc(title || 'Jugadas en vídeo')}</b><button type="button" class="vm-x" aria-label="Cerrar">✕</button></header>
-    <div class="ac-vid"><div class="ac-yw"><div id="ac-yt"></div></div><div class="ac-shield" title="Pausa / seguir (espacio)"></div><div class="ac-pp" hidden>▶</div><div class="ac-bar"><i></i></div><div class="ac-msg">Cargando el vídeo…</div></div>
+    <div class="ac-vid"><div class="ac-yw"><div id="ac-yt"></div></div><div class="ac-shield" title="Pausa / seguir (espacio)"></div><div class="ac-pp" hidden>▶</div><div class="ac-bar"><i></i></div><div class="ac-msg">Cargando el vídeo…</div><div class="ac-fsc"><button type="button" data-a="prev" title="Anterior (←)">⏮</button><button type="button" data-a="rep" title="Repetir (R)">↺</button><button type="button" data-a="next" title="Siguiente (→)">⏭</button><button type="button" class="ac-fsx" title="Salir de pantalla completa (F)">✕</button></div></div>
     <div class="ac-now"></div>
-    <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label></div>
+    <div class="ac-ctl"><button type="button" data-a="prev" class="sec">⏮ Anterior</button><button type="button" data-a="rep" class="sec">↺ Repetir</button><button type="button" data-a="next">Siguiente ⏭</button><label class="ac-auto"><input type="checkbox"${auto ? ' checked' : ''}> Seguidas</label><button type="button" class="sec ac-fs" title="Pantalla completa (tecla F)">⛶ Pantalla completa</button></div>
     ${_acStaff() ? '<div class="ac-ed"></div>' : ''}
-    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir${_acStaff() ? " · , . mover 1 s · Mayús+← → mover 5 s · I / O inicio / final aquí" : ""} · Esc cerrar</div>
+    <div class="ac-keys">Espacio pausa · ← → anterior / siguiente · R repetir · F pantalla completa${_acStaff() ? " · , . mover 1 s · Mayús+← → mover 5 s · I / O inicio / final aquí" : ""} · Esc cerrar</div>
     <div class="ac-lst"></div></div>`;
   document.body.appendChild(ov);
   const P = _acP = { list, i: Math.max(0, Math.min(list.length - 1, i || 0)), ov, auto, yt: null, ready: false };
@@ -18035,6 +18045,12 @@ function acPlay(list, i, title) {
   const toggle = () => { if (!P.ready || !P.yt) return; let s = -1; try { s = P.yt.getPlayerState(); } catch (e) { }
     if (s === 1 || s === 3) P.yt.pauseVideo(); else if (P.free) P.yt.playVideo(); else { const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { } if (P.done === P.i || ct >= x.t1 - 0.3 || ct < x.t0 - 1) load(); else P.yt.playVideo(); } };
   ov.querySelector('.ac-shield').onclick = toggle;
+  // pantalla completa del vídeo (con la misma capa: tocar = pausa); si el navegador no deja (iPhone), se agranda a toda la pantalla igualmente
+  const vid = ov.querySelector('.ac-vid'), fsEl = () => document.fullscreenElement || document.webkitFullscreenElement, fsOn = () => fsEl() === vid || vid.classList.contains('ac-ffs');
+  const fsToggle = () => { if (fsOn()) { if (vid.classList.contains('ac-ffs')) { vid.classList.remove('ac-ffs'); document.documentElement.classList.remove('ac-ffs-on'); } else { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { } } return; }
+    const fake = () => { vid.classList.add('ac-ffs'); document.documentElement.classList.add('ac-ffs-on'); }, rq = vid.requestFullscreen || vid.webkitRequestFullscreen;
+    if (!rq) { fake(); return; } try { Promise.resolve(rq.call(vid)).then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(fake); } catch (e) { fake(); } };
+  ov.querySelector('.ac-fs').onclick = fsToggle; ov.querySelector('.ac-fsx').onclick = e => { e.stopPropagation(); fsToggle(); }; P.fsOff = () => { if (fsOn()) fsToggle(); };
   P.tick = setInterval(() => { if (_acP !== P || !P.ready || !P.yt) return; const x = P.list[P.i]; let ct = 0; try { ct = P.yt.getCurrentTime(); } catch (e) { return; }
     if (Date.now() - (P.at || 0) < 900) return;
     if (!P.tlLock) tlUpd(ct);
@@ -18044,7 +18060,9 @@ function acPlay(list, i, title) {
   ov.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'prev') go(P.i - 1); else if (a === 'next') go(P.i + 1); else load(); });
   ov.querySelector('.ac-auto input').onchange = e => { P.auto = e.target.checked; try { localStorage.setItem('ac_auto', P.auto ? '1' : '0'); } catch (er) { } };
   P.key = e => { if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
-    if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbB])$/.test(e.key)) e.stopImmediatePropagation();   // que no lleguen a los atajos del vídeo de la pestaña
+    if (/^(Escape|Arrow\w+|[rR ]|[jJkKlLbBfF])$/.test(e.key)) e.stopImmediatePropagation();
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fsToggle(); return; }
+    if (e.key === 'Escape' && fsOn()) { e.preventDefault(); fsToggle(); return; }   // que no lleguen a los atajos del vídeo de la pestaña
     if (e.key === ' ') { e.preventDefault(); toggle(); return; }
     if (edEl && ((e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) || e.key === ',' || e.key === '.')) { e.preventDefault(); e.stopImmediatePropagation(); skip(e.key === ',' ? -1 : e.key === '.' ? 1 : e.key === 'ArrowLeft' ? -5 : 5); return; }
     if ((e.key === 'i' || e.key === 'I' || e.key === 'o' || e.key === 'O') && P.edKey && P.edKey(e.key.toLowerCase())) { e.preventDefault(); e.stopImmediatePropagation(); return; }

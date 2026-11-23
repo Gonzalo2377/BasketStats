@@ -12157,6 +12157,8 @@ var _SPLIT_METRICS = [
     ['PER', 'to', x=>x.toFixed(1)],
     ['TAP', 'blk', x=>x.toFixed(1)],
     ['ROB', 'stl', x=>x.toFixed(1)],
+    ['REB', 'reb', x=>x.toFixed(1), 'reb'],
+    ['%REB O', 'roPct', x=>x.toFixed(1)+'%', 'reb'],
     ['Pace', 'pace', x=>x.toFixed(1)],
     ['ORtg', 'ortg', x=>x.toFixed(1)],
     ['DRtg', 'drtg', x=>x.toFixed(1)]
@@ -12165,16 +12167,21 @@ var _SPLIT_METRICS = [
 function _calcTeamAggr(matches, team) {
     // Si no hay partidos, devolvemos todo a cero por seguridad
     if (!matches || !matches.length) {
-        return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0 };
+        return { pj:0, pf:0, pc:0, dif:0, t2:0, t3:0, tl:0, t3Rate:0, ast:0, to:0, blk:0, stl:0, pace:0, ortg:0, drtg:0, rebN:0, reb:0, ro:0, rd:0, rebOp:0, roPct:0 };
     }
 
     let pj = 0, pts = 0, opp = 0;
     let t2m = 0, t2a = 0, t3m = 0, t3a = 0, ftm = 0, fta = 0;
     let ast = 0, to = 0, blk = 0, stl = 0;
     let poss = 0; 
+    // 🏀 Rebotes: solo de los partidos que los tienen apuntados (los de la FCBQ no los traen)
+    let rebN = 0, rebT = 0, roT = 0, rdT = 0, rebOpT = 0;
+    const _rb = L => (L || []).reduce((a, p) => { const o = Number(p.ro) || 0, d = Number(p.rd) || 0, r = Number(p.reb) || (o + d); a.r += r; a.o += o; a.d += d; return a; }, { r: 0, o: 0, d: 0 });
 
     matches.forEach(m => {
         pj++;
+        { const me = _rb(m.homeTeam === team ? m.homePlayers : m.awayPlayers), op = _rb(m.homeTeam === team ? m.awayPlayers : m.homePlayers);
+          if (me.r > 0) { rebN++; rebT += me.r; roT += me.o; rdT += me.d; rebOpT += op.r; } }
         const isHome = m.homeTeam === team;
         
         // Puntos totales a favor y en contra (del marcador global)
@@ -12233,7 +12240,13 @@ function _calcTeamAggr(matches, team) {
         stl: pj ? (stl / pj) : 0,
         pace: pace,
         ortg: ortg,
-        drtg: drtg
+        drtg: drtg,
+        rebN: rebN,
+        reb: rebN ? rebT / rebN : 0,
+        ro: rebN ? roT / rebN : 0,
+        rd: rebN ? rdT / rebN : 0,
+        rebOp: rebN ? rebOpT / rebN : 0,
+        roPct: rebT ? 100 * roT / rebT : 0
     };
 }
 
@@ -12244,7 +12257,9 @@ function _renderSplitBars(labelL, labelR, h, a, colorL, colorR) {
        <span style="color:${colorL}">◀ ${labelL}</span><span style="color:${colorR}">${labelR} ▶</span>
     </div>`;
     
-    html += _SPLIT_METRICS.map(([label, key, fmt]) => {
+    // Rebotes solo si los dos lados tienen partidos con rebotes apuntados
+    const _hasReb = (h.rebN || 0) > 0 && (a.rebN || 0) > 0;
+    html += _SPLIT_METRICS.filter(x => x[3] !== 'reb' || _hasReb).map(([label, key, fmt]) => {
        const hv = h[key] || 0; 
        const av = a[key] || 0; 
        const mx = Math.max(Math.abs(hv), Math.abs(av), 1);
@@ -12259,7 +12274,7 @@ function _renderSplitBars(labelL, labelR, h, a, colorL, colorR) {
        // Si no hay empate, calculamos quién gana para hacer al perdedor transparente
        if (hv !== av) {
            // Detectamos en qué métricas "menos es mejor" basándonos en el nombre de la etiqueta
-           const isInverse = label === 'PTS CONTRA' || label === 'PER' || label === 'DRTG';
+           const _LU = label.toUpperCase(), isInverse = _LU === 'PTS CONTRA' || _LU === 'PER' || _LU === 'DRTG';
            
            const leftWins = isInverse ? (hv < av) : (hv > av);
            

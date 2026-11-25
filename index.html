@@ -3916,6 +3916,7 @@ body.player-mode .cx-card{display:none!important}
 .mr-sub{font-size:10.5px;color:#64748b;margin:4px 0 0}
 
 .cx-card>.ct{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.cx-canva{margin-left:auto;padding:6px 14px;border-radius:999px;border:0;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;font-size:11.5px;font-weight:800;cursor:pointer;text-transform:none;letter-spacing:0}
+.seg-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding:8px 12px;background:#fff;border:1px solid var(--bd);border-radius:10px;font-size:12px;font-weight:800;color:var(--nv)}.seg-bar select{height:30px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--bd);padding:0 8px;width:auto}.seg-bar small{font-weight:600;color:#b45309;font-size:11px}
 
 /* ── 🎨 Canva: tríptico del partido ── */
 .zx-tabs .zx-canva{margin-left:auto;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff}
@@ -5518,12 +5519,20 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
 <!-- ═══ TAB: CLARET ═══ -->
 <div id="t-club" class="tab"><div class="main">
   <div class="card" style="margin-bottom:10px">
-    <div class="ct">🟡 Unió Esportiva Claret
+    <div class="ct cl-head"><span class="cl-ttl">🟡 Unió Esportiva Claret</span><span class="cl-flt">
       <select id="cl-tf" onchange="setOurTeam(this.value)" style="height:28px;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;min-width:150px;margin-right:6px"></select>
       <select id="cl-sf" onchange="renderClub()" style="height:28px;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;min-width:150px">
         <option value="">Acumulado (todo)</option>
       </select>
-    </div>
+      <select id="cl-seg" onchange="_segSet('cl',this.value)" title="Qué partidos se cuentan"></select>
+    </span></div>
+    <style>
+      .cl-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px}
+      .cl-head .cl-ttl{white-space:nowrap}
+      .cl-head .cl-flt{display:flex;align-items:center;flex-wrap:wrap;gap:6px;text-transform:none;letter-spacing:0}
+      .cl-head .cl-flt select{height:32px!important;width:auto!important;min-width:0!important;max-width:300px;margin:0!important;padding:0 28px 0 10px;font-size:12px!important;font-weight:700!important;border-radius:9px;border:1px solid var(--bd);background-color:#f8fafc;color:var(--nv)}
+      .cl-head .cl-flt .ba-frbtn{height:32px;margin:0!important;padding:0 12px;border-radius:9px;font-size:12px;white-space:nowrap}
+    </style>
     <div class="g4" id="cl-kpis" style="gap:7px"></div>
   </div>
   <div class="card" style="margin-bottom:10px">
@@ -5568,6 +5577,10 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
       table.clp .adv-usg{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:48px}
       table.clp .adv-usg b{color:#b45309;font-weight:800}
       table.clp .adv-usg i{display:block;height:4px;border-radius:2px;background:linear-gradient(90deg,#fcd34d,#f59e0b);align-self:flex-start}
+      table.clp .adv-dist{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:86px}
+      table.clp .adv-db{display:flex;width:86px;height:7px;border-radius:4px;overflow:hidden;background:#f1f5f9}
+      table.clp .adv-db i{display:block;height:7px}
+      table.clp .adv-dist small{font-size:10px;color:var(--t3);font-weight:600}
       table.clp .adv-ast{display:inline-block;min-width:34px;padding:2px 7px;border-radius:999px;background:#f3e8ff;color:#7e22ce;font-weight:800;font-size:11px}
       table.clp .clp-z{color:#cbd5e1}
       table.clp .clp-pt{display:inline-block;min-width:22px;padding:2px 6px;border-radius:999px;background:#fef3c7;color:#b45309;font-weight:800;font-size:11px}
@@ -5624,6 +5637,10 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
       <div class="fc" style="flex:1">
         <label>Temporada</label>
         <select id="sc-sf" onchange="renderScouting()" style="width:100%;font-size:13px;padding:7px;border-radius:8px;border:1.5px solid var(--bd)"></select>
+      </div>
+      <div class="fc" style="flex:1">
+        <label>Partidos</label>
+        <select id="sc-seg" onchange="_segSet('sc',this.value)" style="width:100%;font-size:13px;padding:7px;border-radius:8px;border:1.5px solid var(--bd)"></select>
       </div>
       <div>
         <button onclick="exportScoutPDF()" class="btn bn" style="font-size:12px">📄 Exportar informe</button>
@@ -12708,6 +12725,7 @@ function renderScouting() {
       document.getElementById('sc-content').innerHTML = '<div class="empty">Sin datos válidos.</div>';
       return;
   }
+  { const sg = _segFill('sc-seg', matches, 'sc'); if (sg) matches = _segApply(matches, sg); }   // 📅 últimos N / un mes
   window._scMatches = matches;   // la misma lista (temporada, categoría y amistosos sí/no) para local/visitante, victorias/derrotas, posesiones y mapas por jugador
 
   // 🚀 MOTOR MANUAL PARA PUNTOS Y PORCENTAJES (Tolera empates perfectamente)
@@ -15033,6 +15051,7 @@ function renderClub(){
   
   _frButton('cl-sf', 'cl');
   if (!_frOn('cl')) { const off = ours.filter(o => !_isFriendly(o.m)); if (off.length) ours.splice(0, ours.length, ...off); }   // amistosos fuera salvo que se activen
+  { const sg = _segFill('cl-seg', ours.map(o => o.m), 'cl'); if (sg) { const keep = new Set(_segApply(ours.map(o => o.m), sg)); ours.splice(0, ours.length, ...ours.filter(o => keep.has(o.m))); } }   // 📅 últimos N / un mes
   window._oursCache = ours;   // las demás secciones de la pestaña (parejas de asistencias, avanzadas…) usan estos mismos partidos
   const G = ours.length;
   const kEl = document.getElementById('cl-kpis');
@@ -16408,6 +16427,10 @@ function renderCompare() {
         if (lastTeamSeason) myMatches = officialPreferred(_srAMatches(myTeamName).filter(m => inferredMatchSeason(m) === lastTeamSeason), lastTeamSeason);
     }
 
+    // 📅 tramo de partidos (todos / últimos N / un mes): vale para todo lo de esta pestaña
+    const _cmpSeg = _segOptions(rivMatches.concat(myMatches), window._seg.cmp || ''); window._seg.cmp = _cmpSeg.cur;
+    if (_cmpSeg.cur) { rivMatches = _segApply(rivMatches, _cmpSeg.cur); myMatches = _segApply(myMatches, _cmpSeg.cur); }
+    const _segHtml = `<div class="seg-bar"><span>📅 Partidos que se cuentan</span><select onchange="_segSet('cmp',this.value)">${_cmpSeg.html}</select>${_cmpSeg.cur ? '<small>Solo ese tramo: comparativa, cruce, mapas y cuartos</small>' : ''}</div>`;
     const getL5 = (tName, matchesArray) => {
         const matches = matchesArray.slice(-5).reverse();
         if(!matches.length) return '<div class="empty" style="font-size:10px;padding:4px">Sin partidos</div>';
@@ -16685,7 +16708,7 @@ function renderCompare() {
 
     const _muHtml = (!_playerMode && window.__baMatchupHTML) ? window.__baMatchupHTML({my: myTeamName, rival, myMatches, rivMatches, myHome: isMyTeamHome}) : '';
     const _scvHtml = window.__baScVidHTML ? window.__baScVidHTML(rival) : '';
-    tabMain.innerHTML = configHtml + headHtml + _scvHtml + compHtml + _muHtml + mapsHtml + matchupsHtml + rosterHtml;
+    tabMain.innerHTML = configHtml + _segHtml + headHtml + _scvHtml + compHtml + _muHtml + mapsHtml + matchupsHtml + rosterHtml;
 
     setTimeout(() => {
         if (rivalShots.length >= 3) drawHeatmap('nm-cv-heat', rivalShots);
@@ -19495,6 +19518,76 @@ function renderClubQuarters(ours) {
 window.__baQuarterHTML = (rival, list) => _qtrCard(list, { id: 'qt-rv', keys: ['pts', 'min'], who: { su: 'su' }, title: `⏱️ Por cuartos · ${_esc(rival)}`,
   intro: `Cómo reparten sus jugadores los <b>puntos</b> y los <b>minutos</b> entre los cuartos (jugada a jugada de la FCBQ, ${list.length} partido${list.length !== 1 ? 's' : ''}), y qué hacen sus titulares.` });
 window.renderClubQuarters = renderClubQuarters;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📅 TRAMO DE PARTIDOS: toda la temporada / últimos 3-5-10 / un mes. Lo usan Claret, Scouting y Próximo rival.
+// ═══════════════════════════════════════════════════════════════════════════
+window._seg = window._seg || { cl: '', sc: '', cmp: '' };
+const _SEG_MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const _segKey = m => _dateKey(m && m.date) || '';
+function _segApply(ms, seg) {
+  if (!seg || !ms || !ms.length) return ms;
+  const s = ms.slice().sort((a, b) => _segKey(a).localeCompare(_segKey(b)) || ((Number(a.id) || 0) - (Number(b.id) || 0)));
+  if (/^l\d+$/.test(seg)) return s.slice(-Number(seg.slice(1)));
+  if (/^m\d{6}$/.test(seg)) { const r = s.filter(m => _segKey(m).slice(0, 6) === seg.slice(1)); return r.length ? r : ms; }
+  return ms;
+}
+// opciones del desplegable según los partidos que hay (los meses, del más reciente al más antiguo)
+function _segOptions(ms, cur) {
+  const n = (ms || []).length, months = [...new Set((ms || []).map(m => _segKey(m).slice(0, 6)).filter(k => k.length === 6))].sort().reverse();
+  const o = [['', 'Todos los partidos']].concat([3, 5, 10].filter(k => n > k).map(k => ['l' + k, 'Últimos ' + k])).concat(months.length > 1 ? months.map(k => ['m' + k, _SEG_MES[+k.slice(4) - 1] + ' ' + k.slice(0, 4)]) : []);
+  const ok = o.some(x => x[0] === cur);
+  return { html: o.map(([v, l]) => `<option value="${v}"${v === cur && ok ? ' selected' : ''}>${l}</option>`).join(''), cur: ok ? cur : '' };
+}
+// rellena un <select> existente y devuelve el tramo válido
+function _segFill(id, ms, scope) {
+  const el = document.getElementById(id), r = _segOptions(ms, window._seg[scope] || '');
+  window._seg[scope] = r.cur; if (el) { el.innerHTML = r.html; el.value = r.cur; }
+  return r.cur;
+}
+window._segSet = (scope, v) => { window._seg[scope] = v || ''; if (scope === 'cl') renderClub(); else if (scope === 'sc') renderScouting(); else if (scope === 'cmp') renderCompare(); };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📊 % de rebote, % de asistencias y % de pérdidas por jugador (solo partidos apuntados en directo, que saben quién estaba en pista).
+// REB% = de los rebotes que hubo con él en pista, cuántos cogió (OREB% de ataque, DREB% de defensa).
+// AST% = de las canastas de sus compañeros con él en pista, cuántas asistió.   TOV% = pérdidas por cada 100 jugadas que acaba.
+// ═══════════════════════════════════════════════════════════════════════════
+const _ALV_REB = new Set(['ro', 'rd']);
+function _advLiveSrc(source) {   // los partidos del directo de una lista (con su motor de minutos), una vez por lista
+  if (window._alvCache && window._alvCache.src === source) return window._alvCache.list;
+  const list = (source || []).filter(m => (m.events || []).some(e => e.type === 'ast' || e.type === 'to' || e.type === 'rd')).map(m => ({ m, E: {} }));
+  window._alvCache = { src: source, list }; return list;
+}
+function _advLive(source, name) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(), key = norm(name);
+  const r = { g: 0, ro: 0, rd: 0, oAv: 0, dAv: 0, ast: 0, tmFg: 0, to: 0, fga: 0, fta: 0 };
+  _advLiveSrc(source).forEach(L => {
+    const m = L.m, side = ['home', 'away'].find(s => ((s === 'home' ? m.homePlayers : m.awayPlayers) || []).some(p => norm(p.name) === key)); if (!side) return;
+    const opp = side === 'home' ? 'away' : 'home', evs = m.events || [];
+    if (!evs.some(e => e.team === side && (e.type === 'ast' || e.type === 'to' || e.type === 'rd'))) return;
+    const oppReb = evs.some(e => e.team === opp && _ALV_REB.has(e.type));
+    if (!(side in L.E)) { let E = null; try { E = _clEngine({ m, side }); } catch (e) { } L.E[side] = E; }
+    const E = L.E[side], at = t => { if (!E) return null; const sg = E.segs.find(s => t > s.t0 && t <= s.t1) || E.segs.find(s => t >= s.t0 && t <= s.t1); return sg ? sg.court : null; };
+    let played = false;
+    evs.forEach(e => {
+      const me = e.team === side && e.player && norm(e.player) === key;
+      let court = e.oc && Array.isArray(e.oc[side]) && e.oc[side].length ? e.oc[side] : null;
+      if (!court) court = at(Math.round(_elapsedMin(m, e.period, e.min, false) * 60));
+      const on = me || (court ? court.some(n => norm(n) === key) : false); if (!on) return; played = true;
+      if (_ALV_REB.has(e.type) && (e.team === side || oppReb)) {
+        const ours = e.team === side;
+        if ((ours && e.type === 'ro') || (!ours && e.type === 'rd')) r.oAv++; else r.dAv++;
+        if (me) { if (e.type === 'ro') r.ro++; else r.rd++; }
+      }
+      if ((e.type === 'pts2' || e.type === 'pts3') && e.team === side && !me) r.tmFg++;
+      if (me) { if (e.type === 'ast') r.ast++; else if (e.type === 'to') r.to++; else if (/^(pts|miss)[23]$/.test(e.type)) r.fga++; else if (e.type === 'tl_in' || e.type === 'tl_out') r.fta++; }
+    });
+    if (played) r.g++;
+  });
+  const jug = r.fga + 0.44 * r.fta + r.to;
+  return { g: r.g, ro: r.ro, rd: r.rd, orebP: r.oAv >= 5 ? r.ro / r.oAv : NaN, drebP: r.dAv >= 5 ? r.rd / r.dAv : NaN, rebP: r.oAv + r.dAv >= 10 ? (r.ro + r.rd) / (r.oAv + r.dAv) : NaN,
+    astP: r.tmFg >= 5 ? r.ast / r.tmFg : NaN, tovP: jug >= 5 ? r.to / jug : NaN };
+}
 
 function _clComboCalc(ours, size) {
   const combos = {};
@@ -23782,9 +23875,11 @@ function _advRowsFor(source, scope){
       ptsShot: a.ptsShot ? a.ptsShot : 0, 
       efg: a.efg ? a.efg : 0, 
       ts: a.ts ? a.ts : 0, 
+      p2s: a.p2s, p3s: a.p3s, pls: a.pls, 
       usg: safeUsg, 
       astTo: a.astTo ? a.astTo : 0,
       pAst: (() => { try { const pa = _acPtsAstEv(source, p.name); return pa.t ? pa.a / pa.t : NaN; } catch (e) { return NaN; } })(), 
+      ...(() => { try { const L = _advLive(source, p.name); return { astP: L.astP, tovP: L.tovP, rebP: L.rebP, orebP: L.orebP, drebP: L.drebP, liveG: L.g }; } catch (e) { return { astP: NaN, tovP: NaN, rebP: NaN, orebP: NaN, drebP: NaN, liveG: 0 }; } })(),
       ppp: onCourtPPP, 
       dppp: onCourtDefPPP, 
       net: netPPP,
@@ -23817,6 +23912,12 @@ const _ADV_COLS = {
   usg:     { l: 'USG%',     g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) + '%' },
   astTo:   { l: 'AST/TO',   g: 'Partido', c: 'Acumulado', f: x => x.toFixed(2) },
   pAst:    { l: 'PTS AST%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%' },
+  astP:    { l: 'AST%',     g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%' },
+  tovP:    { l: 'TOV%',     g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%', low: true },
+  p3s:     { l: '% PTS de 3', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%' },
+  rebP:    { l: 'REB%',     g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%' },
+  orebP:   { l: 'OREB%',    g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%' },
+  drebP:   { l: 'DREB%',    g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(1) + '%' },
   pir:     { l: 'PIR',      g: 'Partido', c: 'Acum. (total)', f: x => String(Math.round(x)), sg: true },
   // clásicas (tabla del Claret → explorador → «📈 Progreso»): v = valor de un grupo de partidos a partir de sus líneas de stats
   t2m: { l: 'T2%', g: 'Partido', c: 'Acumulado', f: x => (x * 100).toFixed(0) + '%', v: L => _clPct(L, 't2Made', 't2Att') },
@@ -24021,8 +24122,9 @@ function _renderAdvancedPlayerTable(scope){
   const AH = [['dorsal','#','',''],['name','Jugador','clp-l',''],['pj','PJ','','Partidos jugados'],['mpg','MIN/P','','Minutos por partido'],
     ['ppg','PTS/P','clp-g','Puntos por partido'],['ptsShot','PTS/TIRO','','Puntos por intento de campo'],
     ['ppp','O-PPP','clp-g','Puntos del equipo a favor por posesión en pista'],['dppp','D-PPP','','Puntos del equipo en contra por posesión en pista'],['net','NET','','Diferencial neto de puntos por posesión'],['netOff','NET OFF','','NET del equipo con el jugador en el banquillo'],['onOff','ON-OFF','','NET en pista menos NET fuera'],
-    ['efg','eFG%','clp-g','Porcentaje de tiro ajustado'],['ts','TS%','','Porcentaje de tiro verdadero (con libres)'],['usg','USG%','','Porcentaje de posesiones finalizadas por el jugador'],
-    ['astTo','AST/TO','clp-g','Asistencias por pérdida'],['pAst','PTS AST%','','Porcentaje de sus puntos que llegan tras una asistencia (partidos con estadística en directo, donde se apuntan las asistencias)'],
+    ['efg','eFG%','clp-g','Porcentaje de tiro ajustado'],['ts','TS%','','Porcentaje de tiro verdadero (con libres)'],['p3s','PTS 2·3·TL','','De dónde salen sus puntos: % de 2, de 3 y de tiros libres (ordena por el % de triples)'],['usg','USG%','','Porcentaje de posesiones finalizadas por el jugador'],
+    ['astTo','AST/TO','clp-g','Asistencias por pérdida'],['astP','AST%','','De las canastas de sus compañeros con él en pista, cuántas asiste (partidos del directo)'],['tovP','TOV%','','Pérdidas por cada 100 jugadas que acaba: tiros + 0,44 × libres + pérdidas (partidos del directo)'],
+    ['rebP','REB%','clp-g','De los rebotes que hubo con él en pista, cuántos coge. Debajo: % de los de ataque y de los de defensa (partidos del directo)'],
     ['pir','PIR','clp-g','Valoración (fórmula FIBA)'],['eff','EFF','','Eficiencia (fórmula NBA)']];
   const on = k => sc === k ? ' clp-on' : '';
   const dash = '<span class="clp-z">—</span>';
@@ -24048,15 +24150,18 @@ function _renderAdvancedPlayerTable(scope){
       <td${c('onOff')} title="NET en pista menos NET en el banquillo: cuánto mejora el equipo con él">${badge(p.onOff, sgTxt(p.onOff))}</td>
       <td${c('efg', 'clp-g clp-pc')}>${Number.isFinite(p.efg) ? '<b>' + pc(p.efg) + '</b>' : dash}</td>
       <td${c('ts', 'clp-pc')}>${Number.isFinite(p.ts) ? '<b>' + pc(p.ts) + '</b>' : dash}</td>
+      <td${c('p3s')} title="${Number.isFinite(p.p3s) ? 'De 2: ' + Math.round(p.p2s * 100) + '% · De 3: ' + Math.round(p.p3s * 100) + '% · Libres: ' + Math.round(p.pls * 100) + '%' : ''}">${Number.isFinite(p.p3s) ? `<span class="adv-dist"><span class="adv-db"><i style="width:${(p.p2s * 100).toFixed(1)}%;background:#2563eb"></i><i style="width:${(p.p3s * 100).toFixed(1)}%;background:#db2777"></i><i style="width:${(p.pls * 100).toFixed(1)}%;background:#f59e0b"></i></span><small><b style="color:#2563eb">${Math.round(p.p2s * 100)}</b> · <b style="color:#db2777">${Math.round(p.p3s * 100)}</b> · <b style="color:#d97706">${Math.round(p.pls * 100)}</b></small></span>` : dash}</td>
       <td${c('usg')}><span class="adv-usg"><b>${num1(p.usg)}%</b><i style="width:${Number.isFinite(p.usg) ? Math.max(4, p.usg / maxUsg * 100).toFixed(0) : 0}%"></i></span></td>
       <td${c('astTo', 'clp-g')}>${Number.isFinite(p.astTo) && p.astTo > 0 ? num(p.astTo) : '<span class="clp-z">' + num(p.astTo) + '</span>'}</td>
-      <td${c('pAst')} title="De sus puntos, los que llegan tras una asistencia (partidos con estadística en directo)">${Number.isFinite(p.pAst) ? '<span class="adv-ast">' + Math.round(p.pAst * 100) + '%</span>' : dash}</td>
+      <td${c('astP')} title="De las canastas de sus compañeros con él en pista, cuántas asiste${Number.isFinite(p.pAst) ? ' · el ' + Math.round(p.pAst * 100) + '% de SUS puntos llegan tras asistencia' : ''}">${Number.isFinite(p.astP) ? '<span class="adv-ast">' + (p.astP * 100).toFixed(1) + '%</span>' : dash}</td>
+      <td${c('tovP')}>${Number.isFinite(p.tovP) ? '<b class="' + (p.tovP >= 0.2 ? 'clp-neg' : '') + '">' + (p.tovP * 100).toFixed(1) + '%</b>' : dash}</td>
+      <td${c('rebP', 'clp-g clp-pc')}>${Number.isFinite(p.rebP) ? '<b>' + (p.rebP * 100).toFixed(1) + '%</b><small>O ' + (Number.isFinite(p.orebP) ? Math.round(p.orebP * 100) + '%' : '—') + ' · D ' + (Number.isFinite(p.drebP) ? Math.round(p.drebP * 100) + '%' : '—') + '</small>' : dash}</td>
       <td${c('pir', 'clp-g')}>${badge(p.pir, num0(p.pir))}</td>
       <td${c('eff')}>${badge(p.eff, num0(p.eff))}</td>
     </tr>`;
   });
 
-  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="18" class="no-d">Sin datos</td></tr>';
+  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="21" class="no-d">Sin datos</td></tr>';
 
   box.innerHTML = `<div class="clp-w" style="overflow-x:auto;"><table class="clp clp-adv" style="min-width:1140px">
     <thead><tr>${AH.map(([k, l, cl, t]) => `<th onclick="advSort('${k}','${scope}')" class="${cl}${sc === k ? ' on' : ''}"${t ? ` title="${t}"` : ''}>${l}${arrIcon(k)}</th>`).join('')}</tr></thead>
@@ -24078,6 +24183,10 @@ function _renderAdvancedPlayerTable(scope){
       <div><b>Ts%:</b> eficacia total = Pts / [2 x (FGA + 0.44 x FTA)].</div>
       <div><b>Usg%:</b> uso estimado = 100 x (FGA + 0.44 x FTA + Per) x (Min equipo / 5) / (Min jugador x Posesiones equipo).</div>
       <div><b>Ast/To:</b> asistencias por pérdida = Ast / Per; si no hay pérdidas, muestra las asistencias.</div>
+      <div><b>PTS 2·3·TL:</b> de cada 100 puntos suyos, cuántos son de 2 (azul), de 3 (rosa) y de tiro libre (naranja). Al ordenar, manda el % de triples.</div>
+      <div><b>AST%:</b> de las canastas de sus compañeros mientras él está en pista, cuántas asiste él. Solo partidos del directo (se sabe quién está en pista en cada jugada).</div>
+      <div><b>TOV%:</b> pérdidas por cada 100 jugadas que acaba = Per / (tiros + 0,44 × TL + Per). Menos es mejor. Solo partidos del directo.</div>
+      <div><b>REB%:</b> de los rebotes que hubo con él en pista, cuántos coge (debajo, O = de ataque y D = de defensa). Solo partidos del directo en los que se apuntan los rebotes de los dos equipos.</div>
       <div><b>Pir:</b> valoración FIBA = Eff + Fr - Fc.</div>
       <div><b>Eff:</b> eficiencia NBA = Pts + Rt + Ast + Stl + Blk - tiros fallados - TL fallados - Per.</div>
     </div>
@@ -24200,6 +24309,7 @@ function _advancedPlayer(name, targetTeam, matches){
     efg: fga ? (p.t2m + p.t3m + 0.5 * p.t3m) / fga : 0, 
     ts: den ? p.pts / (2 * den) : 0,
     t3Rate: fga ? (p.t3a / fga) * 100 : 0, 
+    ...(() => { const sp = p.t2m * 2 + p.t3m * 3 + p.ftm; return { p2s: sp ? p.t2m * 2 / sp : NaN, p3s: sp ? p.t3m * 3 / sp : NaN, pls: sp ? p.ftm / sp : NaN }; })(),
     astTo: p.to ? p.ast / p.to : p.ast,
     usg: pMinDec && tmPoss ? 100 * (den + p.to) * (tmMin / 5) / (pMinDec * tmPoss) : 0,
     ppp: pppDenom > 0 ? (p.pts / pppDenom) : 0, 

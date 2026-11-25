@@ -15671,6 +15671,263 @@ function _meditTOSave(m) {
   });
   const n = _meditTO.del.size + _meditTO.add.length; _meditTO = null; return n;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📜 EDITAR CRONOLOGÍA de un partido anotado en directo: cambiar cuarto, reloj, equipo, jugador y acción de cada jugada,
+// añadir jugadas que faltan, borrar, reordenar y mover un tramo entero de golpe (cuando el reloj del directo iba desfasado).
+// Al guardar: la cronología se reordena, el marcador de cada jugada se recalcula y las estadísticas cambian SOLO en lo que
+// cambian las jugadas (así no se pierden correcciones hechas a mano en la tabla). Antes se guarda una copia para deshacer.
+// ═══════════════════════════════════════════════════════════════════════════
+let _ce = null;
+const _CE_T = [['pts2', 'Canasta 2'], ['pts3', 'Triple'], ['tl_in', 'TL dentro'], ['miss2', 'Falla 2'], ['miss3', 'Falla 3'], ['tl_out', 'TL fuera'],
+  ['ro', 'Reb. ofensivo'], ['rd', 'Reb. defensivo'], ['ast', 'Asistencia'], ['stl', 'Robo'], ['blk', 'Tapón'], ['to', 'Pérdida'],
+  ['foul', 'Falta'], ['tech', 'Técnica'], ['anti', 'Antideportiva'], ['timeout', 'Tiempo muerto']];
+const _CE_TEAMOK = new Set(['ro', 'rd', 'stl', 'blk', 'to']);   // acciones que se pueden apuntar a «Equipo»
+const _CE_FOULS = new Set(['foul', 'anti', 'tech', 'tech_real', 'tech_tac']);
+const _CE_SHOT = { pts2: ['T2', true], pts3: ['T3', true], miss2: ['T2', false], miss3: ['T3', false] };
+const _ceLen = P => (P > 4 ? 5 : 10), _ceStart = P => (P > 4 ? 40 + (P - 5) * 5 : (P - 1) * 10);
+const _ceRem = (P, min) => Math.max(0, Math.min(_ceLen(P) * 60, Math.round(((_ceStart(P) + _ceLen(P)) - min) * 600) / 10));   // segundos que quedan en el reloj
+const _ceMin = (P, rem) => _ceStart(P) + _ceLen(P) - rem / 60;
+const _ceClk = r => { const s = Math.max(0, r); const m = Math.floor(s / 60), x = s - m * 60; return `${m}:${(x < 10 ? '0' : '') + (Number.isInteger(x) ? x : x.toFixed(1))}`; };
+const _ceParse = (v, P) => { v = String(v || '').trim().replace(',', '.'); let r = v.match(/^(\d{1,2})[:'´ ](\d{1,2}(?:\.\d)?)$/), s;
+  if (r) { if (+r[2] >= 60) return null; s = +r[1] * 60 + +r[2]; } else if ((r = v.match(/^(\d{1,2}(?:\.\d)?)$/))) s = +r[1] * 60; else return null;
+  return s <= _ceLen(P) * 60 ? s : null; };
+const _ceQN = P => (P > 4 ? 'PR' + (P - 4) : 'Q' + P);
+const _ceBakKey = id => 'ba_crono_bak_' + id;
+
+window.openCronoEdit = function (id) {
+  const m = S.matches.find(x => String(x.id) === String(id)); if (!m) return;
+  if (m.type !== 'live') { alert('La cronología solo se puede editar en partidos anotados en directo.\nEn los importados de la FCBQ, vuelve a importar el enlace de estadísticas.'); return; }
+  const ev = m.events || []; let seq = 0;
+  _ce = { id: m.id, q: 'all', rows: [], fixed: [], nk: 0, sel: null };
+  ev.forEach((e, i) => {
+    if (e.type === 'period_start') { _ce.fixed.push(e); return; }
+    const P = e.period || 1;
+    _ce.rows.push({ k: ++_ce.nk, orig: e, P, rem: _ceRem(P, e.min || 0), team: e.team, player: e.player || '', type: e.type, to: e.to || '', victim: e.victim || '', seq: i, isNew: false });
+  });
+  _ce.base = JSON.stringify(_ce.rows.map(_ceSig));
+  let ov = document.getElementById('ce-ov'); if (!ov) { ov = document.createElement('div'); ov.id = 'ce-ov'; document.body.appendChild(ov); }
+  // el editor del partido ya está en la capa máxima: este va encima por estar después en la página
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:8px';
+  document.body.appendChild(ov);
+  _cePaint();
+};
+const _ceSig = r => [r.P, r.rem, r.team, r.player, r.type, r.to, r.victim].join('|');
+const _ceSorted = () => _ce.rows.slice().sort((a, b) => a.P - b.P || b.rem - a.rem || a.seq - b.seq);
+const _ceDirty = r => r.isNew || !r.orig || _ceSig(r) !== [r.orig.period || 1, _ceRem(r.orig.period || 1, r.orig.min || 0), r.orig.team, r.orig.player || '', r.orig.type, r.orig.to || '', r.orig.victim || ''].join('|');
+const _ceChanges = () => _ce.rows.filter(_ceDirty).length + (_ce.del || 0);
+
+// repintar siempre fuera del evento (un «change» al perder el foco no puede repintar dentro de otro repintado)
+function _cePaint(then) { if (!_ce) return; clearTimeout(_ce._pt); _ce._pt = setTimeout(() => { _cePaintNow(); if (then) then(); }, 0); }
+function _cePaintNow() {
+  const ov = document.getElementById('ce-ov'); if (!ov || !_ce) return;
+  const m = S.matches.find(x => x.id === _ce.id); if (!m) return;
+  const keepScroll = (document.getElementById('ce-list') || {}).scrollTop || 0;
+  const tn = s => _esc(s === 'home' ? m.homeTeam : m.awayTeam);
+  const roster = s => (s === 'home' ? m.homePlayers : m.awayPlayers) || [];
+  const pn = p => `${p.dorsal ? '#' + p.dorsal + ' ' : ''}${String(p.name).split(' ').slice(0, 2).join(' ')}`;
+  const all = _ceSorted(), maxP = Math.max(4, ...all.map(r => r.P));
+  // marcador tras cada jugada, en el orden nuevo
+  const sc = { home: 0, away: 0 }, scAt = new Map();
+  all.forEach(r => { sc[r.team] += r.type === 'pts2' ? 2 : r.type === 'pts3' ? 3 : r.type === 'tl_in' ? 1 : 0; scAt.set(r.k, `${sc.home}-${sc.away}`); });
+  const rows = _ce.q === 'all' ? all : all.filter(r => r.P === +_ce.q);
+  const opt = (v, cur, lab) => `<option value="${_esc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${lab}</option>`;
+  const qOpts = cur => Array.from({ length: maxP + 1 }, (_, i) => i + 1).map(P => opt(P, cur, _ceQN(P))).join('');
+  const sel = 'border:1px solid #cbd5e1;border-radius:6px;padding:4px;font-size:11.5px;background:#fff';
+  const body = rows.map(r => {
+    const d = _ceDirty(r), bg = r.isNew ? '#ecfdf5' : d ? '#fffbeb' : '#fff', other = r.team === 'home' ? 'away' : 'home';
+    const plOpts = (r.type === 'timeout' ? opt('', r.player, '—') : (_CE_TEAMOK.has(r.type) ? opt('', r.player, 'Equipo') : (r.player ? '' : opt('', '', '¿Quién?'))))
+      + (r.type === 'timeout' ? '' : roster(r.team).map(p => opt(p.name, r.player, _esc(pn(p)))).join(''));
+    let extra = '<span style="color:#cbd5e1">—</span>';
+    if (r.type === 'ast') extra = `<select style="${sel};max-width:130px" title="Pase a" onchange="_ceSet(${r.k},'to',this.value)">${opt('', r.to, '→ ¿a quién?')}${roster(r.team).filter(p => p.name !== r.player).map(p => opt(p.name, r.to, '→ ' + _esc(pn(p)))).join('')}</select>`;
+    else if (_CE_FOULS.has(r.type)) extra = `<select style="${sel};max-width:130px" title="Falta sobre" onchange="_ceSet(${r.k},'victim',this.value)">${opt('', r.victim, 'sobre —')}${roster(other).map(p => opt(p.name, r.victim, 'sobre ' + _esc(pn(p)))).join('')}</select>`;
+    return `<tr style="background:${bg}${_ce.sel === r.k ? ';outline:2px solid #2563eb' : ''}" id="ce-r${r.k}">
+      <td><select style="${sel}" onchange="_ceSet(${r.k},'P',this.value)">${qOpts(r.P)}</select></td>
+      <td><input value="${_ceClk(r.rem)}" inputmode="decimal" style="${sel};width:58px;text-align:center;font-weight:700" onchange="_ceSet(${r.k},'clk',this.value)" title="Reloj del marcador (lo que queda del cuarto)"></td>
+      <td><select style="${sel};max-width:120px" onchange="_ceSet(${r.k},'team',this.value)">${opt('home', r.team, tn('home'))}${opt('away', r.team, tn('away'))}</select></td>
+      <td><select style="${sel};max-width:150px${!r.player && !_CE_TEAMOK.has(r.type) && r.type !== 'timeout' ? ';border-color:#ef4444' : ''}" onchange="_ceSet(${r.k},'player',this.value)">${plOpts}</select></td>
+      <td><select style="${sel}" onchange="_ceSet(${r.k},'type',this.value)">${_CE_T.map(([v, l]) => opt(v, r.type, l)).join('')}${_CE_T.some(t => t[0] === r.type) ? '' : opt(r.type, r.type, r.type)}</select></td>
+      <td>${extra}</td>
+      <td style="text-align:center;font-weight:800;font-variant-numeric:tabular-nums;color:#334155">${scAt.get(r.k)}</td>
+      <td style="white-space:nowrap"><button type="button" title="Subir (antes, mismo segundo)" onclick="_ceMove(${r.k},-1)" style="border:1px solid #e2e8f0;background:#fff;border-radius:5px;cursor:pointer;padding:2px 5px">↑</button><button type="button" title="Bajar (después, mismo segundo)" onclick="_ceMove(${r.k},1)" style="border:1px solid #e2e8f0;background:#fff;border-radius:5px;cursor:pointer;padding:2px 5px;margin-left:2px">↓</button><button type="button" title="Borrar jugada" onclick="_ceDel(${r.k})" style="border:0;background:#fee2e2;color:#dc2626;border-radius:5px;cursor:pointer;padding:3px 6px;margin-left:4px">🗑</button></td></tr>`;
+  }).join('');
+  let bak = null; try { bak = JSON.parse(localStorage.getItem(_ceBakKey(m.id)) || 'null'); } catch (e) { }
+  const nch = _ceChanges();
+  const inp = 'border:1px solid #cbd5e1;border-radius:6px;padding:5px;font-size:12px;width:auto;min-width:0';
+  ov.innerHTML = `<div style="background:#fff;border-radius:14px;width:100%;max-width:1060px;max-height:96vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="background:var(--nv);color:#fff;padding:11px 16px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><div style="font-weight:800;font-size:15px">📜 Editar cronología</div><div style="font-size:11px;opacity:.75">${tn('home')} – ${tn('away')} · ${_ce.rows.length} jugadas · reloj = lo que marca el marcador (cuenta atrás)</div></div>
+      <div style="display:flex;gap:6px;align-items:center">${bak ? `<button type="button" onclick="_ceRestore()" title="Volver a la cronología de antes del último guardado (${new Date(bak.t).toLocaleString('es-ES')})" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;padding:5px 10px;font-size:11px;cursor:pointer">↩ Restaurar la anterior</button>` : ''}
+        <button type="button" onclick="_ceClose()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;padding:5px 11px;font-size:13px;cursor:pointer">✕</button></div></div>
+    <div style="padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:#f8fafc">
+      <div><div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;margin-bottom:3px">Ver</div>
+        <div style="display:flex;gap:4px">${['all', ...Array.from({ length: maxP }, (_, i) => String(i + 1))].map(q => `<button type="button" onclick="_ceQ('${q}')" style="border:1px solid ${_ce.q === q ? 'var(--nv)' : '#cbd5e1'};background:${_ce.q === q ? 'var(--nv)' : '#fff'};color:${_ce.q === q ? '#fff' : '#334155'};border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">${q === 'all' ? 'Todo' : _ceQN(+q)}</button>`).join('')}</div></div>
+      <div><div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;margin-bottom:3px">＋ Añadir jugada</div>
+        <div style="display:flex;gap:4px"><select id="ce-aq" style="${inp}">${qOpts(_ce.q === 'all' ? 1 : +_ce.q)}</select><input id="ce-at" placeholder="reloj 7:42" style="${inp};width:86px"><button type="button" class="btn bo" style="padding:5px 10px" onclick="_ceAdd()">Añadir</button></div></div>
+      <div><div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;margin-bottom:3px">⇆ Mover un tramo entero</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap"><select id="ce-sq" style="${inp}">${qOpts(_ce.q === 'all' ? 1 : +_ce.q)}</select>
+          <span style="font-size:11px">de</span><input id="ce-sa" placeholder="10:00" style="${inp};width:62px"><span style="font-size:11px">a</span><input id="ce-sb" placeholder="7:00" style="${inp};width:62px">
+          <input id="ce-ss" placeholder="+15 s" title="Segundos: + más tarde en el partido (el reloj marca menos), − antes" style="${inp};width:62px"><button type="button" class="btn bo" style="padding:5px 10px" onclick="_ceShift()">Mover</button></div></div>
+    </div>
+    <div id="ce-list" style="overflow:auto;flex:1;padding:0 6px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="position:sticky;top:0;background:#fff;z-index:1;text-align:left;font-size:10px;text-transform:uppercase;color:var(--t2)"><th style="padding:6px 4px">Cuarto</th><th>Reloj</th><th>Equipo</th><th>Jugador</th><th>Acción</th><th>Asist. / falta</th><th style="text-align:center">Marcador</th><th></th></tr></thead>
+        <tbody>${body || '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--t3)">Sin jugadas en este cuarto.</td></tr>'}</tbody></table></div>
+    <div style="padding:10px 14px;border-top:1px solid var(--bd);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--t3);flex:1;min-width:220px"><span style="display:inline-block;width:10px;height:10px;background:#fffbeb;border:1px solid #fde68a;vertical-align:middle"></span> cambiada · <span style="display:inline-block;width:10px;height:10px;background:#ecfdf5;border:1px solid #a7f3d0;vertical-align:middle"></span> nueva · Al cambiar el reloj la jugada se recoloca sola. ${nch ? `<b style="color:#b45309">${nch} cambio${nch > 1 ? 's' : ''} sin guardar</b>` : ''}</span>
+      <button type="button" class="btn bp" onclick="_ceSave()" ${nch ? '' : 'disabled style="opacity:.5"'}>✓ Guardar cronología</button>
+      <button type="button" class="btn bo" onclick="_ceClose()">Cancelar</button></div></div>`;
+  const l = document.getElementById('ce-list'); if (l) l.scrollTop = _ce._top ? 0 : keepScroll; _ce._top = false;
+}
+window._ceQ = q => { _ce.q = q; _ce._top = true; _cePaint(); };
+window._ceSet = (k, f, v) => {
+  const r = _ce.rows.find(x => x.k === k); if (!r) return;
+  if (f === 'clk') { const s = _ceParse(v, r.P); if (s == null) { alert(`Pon el reloj como min:seg (ej. 7:42 o 0:35.4), entre 0:00 y ${_ceLen(r.P)}:00.`); _cePaint(); return; } r.rem = s; }
+  else if (f === 'P') { r.P = +v; r.rem = Math.min(r.rem, _ceLen(r.P) * 60); }
+  else if (f === 'team') { r.team = v; r.player = ''; r.to = ''; r.victim = ''; }
+  else if (f === 'type') { r.type = v; if (v !== 'ast') r.to = ''; if (!_CE_FOULS.has(v)) r.victim = ''; if (v === 'timeout') r.player = ''; }
+  else r[f] = v;
+  _ce.sel = k; _cePaint(() => { if (f === 'clk' || f === 'P') { const el = document.getElementById('ce-r' + k); if (el) el.scrollIntoView({ block: 'center' }); } });
+};
+window._ceDel = k => { const i = _ce.rows.findIndex(x => x.k === k); if (i < 0) return; const r = _ce.rows[i];
+  if (!r.isNew && !confirm('¿Borrar esta jugada de la cronología?')) return;
+  _ce.rows.splice(i, 1); if (!r.isNew) _ce.del = (_ce.del || 0) + 1; (_ce.gone = _ce.gone || []).push(r); _cePaint(); };
+window._ceMove = (k, dir) => {
+  const s = _ceSorted(), i = s.findIndex(x => x.k === k), j = i + dir; if (i < 0 || j < 0 || j >= s.length) return;
+  const a = s[i], b = s[j];
+  if (a.P !== b.P || a.rem !== b.rem) { if (typeof toast === 'function') toast('Para pasarla delante o detrás de una jugada de otro segundo, cambia su reloj', 'err'); return; }
+  const t = a.seq; a.seq = b.seq; b.seq = t; if (a.seq === b.seq) a.seq += dir * 0.01;
+  a.moved = b.moved = true; _ce.sel = k; _cePaint();
+};
+window._ceAdd = () => {
+  const P = +document.getElementById('ce-aq').value, v = document.getElementById('ce-at').value;
+  const s = _ceParse(v || _ceClk(_ceLen(P) * 60), P); if (s == null) { alert(`Pon el reloj como min:seg (ej. 7:42), entre 0:00 y ${_ceLen(P)}:00.`); return; }
+  const same = _ce.rows.filter(r => r.P === P && r.rem === s);
+  const r = { k: ++_ce.nk, orig: null, P, rem: s, team: 'home', player: '', type: 'pts2', to: '', victim: '', seq: (same.length ? Math.max(...same.map(x => x.seq)) : 1e6) + 0.5, isNew: true };
+  _ce.rows.push(r); _ce.sel = r.k; if (_ce.q !== 'all' && +_ce.q !== P) _ce.q = String(P);
+  _cePaint(() => { const el = document.getElementById('ce-r' + r.k); if (el) el.scrollIntoView({ block: 'center' }); });
+};
+window._ceShift = () => {
+  const P = +document.getElementById('ce-sq').value, a = _ceParse(document.getElementById('ce-sa').value, P), b = _ceParse(document.getElementById('ce-sb').value, P);
+  const d = parseFloat(String(document.getElementById('ce-ss').value).replace(',', '.').replace(/[^\d.+-]/g, ''));
+  if (a == null || b == null || !isFinite(d) || !d) { alert('Rellena: cuarto, desde qué reloj, hasta qué reloj y cuántos segundos (+ = más tarde en el partido, el reloj marcará menos; − = antes).'); return; }
+  const hi = Math.max(a, b), lo = Math.min(a, b), sel = _ce.rows.filter(r => r.P === P && r.rem <= hi && r.rem >= lo);
+  if (!sel.length) { alert('No hay jugadas en ese tramo.'); return; }
+  if (!confirm(`Mover ${sel.length} jugadas de ${_ceQN(P)} (de ${_ceClk(hi)} a ${_ceClk(lo)}) ${Math.abs(d)} s ${d > 0 ? 'más tarde' : 'antes'}?`)) return;
+  sel.forEach(r => { r.rem = Math.max(0, Math.min(_ceLen(P) * 60, Math.round((r.rem - d) * 10) / 10)); });
+  _cePaint();
+};
+window._ceClose = () => { if (_ce && _ceChanges() && !confirm('Hay cambios sin guardar en la cronología. ¿Salir sin guardar?')) return; const ov = document.getElementById('ce-ov'); if (ov) ov.remove(); _ce = null; };
+
+// estadísticas que salen de las jugadas (para aplicar solo la diferencia)
+function _ceCalc(events, m) {
+  const P = { home: {}, away: {} }, T = { home: { ro: 0, rd: 0, stl: 0, blk: 0, to: 0 }, away: { ro: 0, rd: 0, stl: 0, blk: 0, to: 0 } };
+  const g = (s, n) => (P[s][n] = P[s][n] || {});
+  const add = (o, k, v) => { o[k] = (o[k] || 0) + v; };
+  events.forEach(e => {
+    const s = e.team; if (!P[s]) return; const opp = s === 'home' ? 'away' : 'home';
+    if (e.teamOnly || !e.player) { if (T[s][e.type] != null) T[s][e.type]++; }
+    else { const o = g(s, e.player);
+      switch (e.type) {
+        case 'pts2': add(o, 't2Made', 1); add(o, 't2Att', 1); add(o, 'pts', 2); break;
+        case 'pts3': add(o, 't3Made', 1); add(o, 't3Att', 1); add(o, 'pts', 3); break;
+        case 'tl_in': add(o, 'tlMade', 1); add(o, 'tlAtt', 1); add(o, 'pts', 1); break;
+        case 'miss2': add(o, 't2Att', 1); break; case 'miss3': add(o, 't3Att', 1); break; case 'tl_out': add(o, 'tlAtt', 1); break;
+        case 'ro': case 'rd': case 'ast': case 'stl': case 'blk': case 'to': add(o, e.type, 1); break;
+        case 'foul': add(o, 'fc', 1); break;
+        case 'tech': case 'tech_real': add(o, 'tech', 1); add(o, 'fc', 1); break;
+        case 'tech_tac': add(o, 'tech_tac', 1); add(o, 'fc', 1); break;
+        case 'anti': add(o, 'anti', 1); add(o, 'fc', 1); break;
+      } }
+    if (e.victim && _CE_FOULS.has(e.type)) add(g(opp, e.victim), 'fr', 1);
+    const pts = e.type === 'pts2' ? 2 : e.type === 'pts3' ? 3 : e.type === 'tl_in' ? 1 : 0;
+    if (pts && e.oc) { (e.oc[s] || []).forEach(n => add(g(s, n), 'pm', pts)); (e.oc[opp] || []).forEach(n => add(g(opp, n), 'pm', -pts)); }
+  });
+  return { P, T };
+}
+
+window._ceSave = function () {
+  const m = S.matches.find(x => x.id === _ce.id); if (!m || !_ce) return;
+  const bad = _ce.rows.filter(r => !r.player && !_CE_TEAMOK.has(r.type) && r.type !== 'timeout');
+  if (bad.length) { _ce.sel = bad[0].k; _ce.q = 'all'; _cePaint(() => { const el = document.getElementById('ce-r' + bad[0].k); if (el) el.scrollIntoView({ block: 'center' }); });
+    alert(`Hay ${bad.length} jugada${bad.length > 1 ? 's' : ''} sin jugador (marcada${bad.length > 1 ? 's' : ''} en rojo). Elige el jugador o bórrala${bad.length > 1 ? 's' : ''}.`); return; }
+  const n = _ceChanges();
+  if (!confirm(`Guardar la cronología con ${n} cambio${n > 1 ? 's' : ''}?\n\nSe reordenan las jugadas, se recalcula el marcador de cada una y las estadísticas de los jugadores cambian solo en lo que cambian estas jugadas.\nSe guarda una copia de la cronología actual para poder restaurarla.`)) return;
+  const old = m.events || [];
+  try { localStorage.setItem(_ceBakKey(m.id), JSON.stringify({ t: Date.now(), events: old, shots: m.shots || [], homePlayers: m.homePlayers, awayPlayers: m.awayPlayers, teamStats: m.teamStats, scoreHome: m.scoreHome, scoreAway: m.scoreAway })); } catch (e) { }
+  // 1) nuevas jugadas, en orden
+  const sorted = _ceSorted();
+  const out = sorted.map(r => {
+    const e = r.orig ? { ...r.orig } : { manual: true };
+    const moved = !r.orig || (r.orig.period || 1) !== r.P || _ceRem(r.orig.period || 1, r.orig.min || 0) !== r.rem;
+    e.period = r.P; e.min = moved ? Math.round(_ceMin(r.P, r.rem) * 1e5) / 1e5 : r.orig.min;
+    e.team = r.team; e.type = r.type;
+    if (r.type === 'timeout') { e.player = ''; e.desc = `Tiempo Muerto solicitado por ${r.team === 'home' ? m.homeTeam : m.awayTeam}`; delete e.teamOnly; }
+    else if (r.player) { e.player = r.player; delete e.teamOnly; }
+    else { e.player = ''; e.teamOnly = true; }
+    if (r.type === 'ast' && r.to) e.to = r.to; else delete e.to;
+    if (_CE_FOULS.has(r.type) && r.victim) e.victim = r.victim; else delete e.victim;
+    if (!_CE_SHOT[r.type]) delete e.sid;
+    e._moved = moved || !!r.moved; e._new = !r.orig;
+    return e;
+  });
+  // 2) quiénes estaban en pista: las jugadas movidas o nuevas toman los de la jugada real más cercana (del directo)
+  out.forEach((e, i) => {
+    if (!e._moved && !e._new) return;
+    let oc = null;
+    for (let j = i - 1; j >= 0 && !oc; j--) if (!out[j]._moved && !out[j]._new && out[j].oc) oc = out[j].oc;
+    for (let j = i + 1; j < out.length && !oc; j++) if (!out[j]._moved && !out[j]._new && out[j].oc) oc = out[j].oc;
+    if (oc) e.oc = { home: [...(oc.home || [])], away: [...(oc.away || [])] };
+  });
+  // 3) inicios de cuarto en su sitio y marcador de cada jugada
+  const fixed = _ce.fixed.map(e => ({ ...e })), evs = [];
+  [...new Set([...fixed, ...out].map(e => e.period || 1))].sort((a, b) => a - b).forEach(P => {
+    fixed.filter(e => (e.period || 1) === P).forEach(e => evs.push(e));   // el inicio del cuarto, delante
+    out.filter(e => e.period === P).forEach(e => evs.push(e));           // y las jugadas en el orden que se ve en el editor
+  });
+  const sc = { home: 0, away: 0 };
+  evs.forEach(e => { sc[e.team] += e.type === 'pts2' ? 2 : e.type === 'pts3' ? 3 : e.type === 'tl_in' ? 1 : 0; if (e.type !== 'timeout') e.score = { home: sc.home, away: sc.away }; delete e._moved; delete e._new; });
+  // 4) tiros del mapa ligados a cada jugada: se actualizan o se quitan
+  const bySid = new Map(evs.filter(e => e.sid).map(e => [e.sid, e]));
+  const fixShot = x => { const e = bySid.get(x.sid); if (!e) return false; const [ty, made] = _CE_SHOT[e.type]; x.player = e.player; x.team = e.team; x.made = made; x.type = ty; x.period = e.period; x.min = e.min; return true; };
+  m.shots = (m.shots || []).filter(x => !x.sid || fixShot(x));
+  if (Array.isArray(S.shots)) S.shots = S.shots.filter(x => String(x.mId || x.matchId) !== String(m.id) || !x.sid || fixShot(x));
+  // 5) estadísticas: solo la diferencia entre la cronología vieja y la nueva
+  const A = _ceCalc(old, m), B = _ceCalc(evs, m);
+  const K = ['pts', 't2Made', 't2Att', 't3Made', 't3Att', 'tlMade', 'tlAtt', 'ro', 'rd', 'ast', 'stl', 'blk', 'to', 'fc', 'fr', 'tech', 'tech_tac', 'anti', 'pm'];
+  ['home', 'away'].forEach(s => ((s === 'home' ? m.homePlayers : m.awayPlayers) || []).forEach(p => {
+    const a = A.P[s][p.name] || {}, b = B.P[s][p.name] || {};
+    K.forEach(k => { const d = (b[k] || 0) - (a[k] || 0); if (d) p[k] = k === 'pm' ? (p[k] || 0) + d : Math.max(0, (p[k] || 0) + d); });
+    p.tl = `${p.tlMade || 0}/${p.tlAtt || 0}`; p.t2 = `${p.t2Made || 0}/${p.t2Att || 0}`; p.t3 = `${p.t3Made || 0}/${p.t3Att || 0}`;
+    p.tlPct = p.tlAtt ? p.tlMade / p.tlAtt : null; p.t2Pct = p.t2Att ? p.t2Made / p.t2Att : null; p.t3Pct = p.t3Att ? p.t3Made / p.t3Att : null;
+    p.reb = (p.ro || 0) + (p.rd || 0);
+    const miss = ((p.tlAtt || 0) - (p.tlMade || 0)) + ((p.t2Att || 0) - (p.t2Made || 0)) + ((p.t3Att || 0) - (p.t3Made || 0));
+    p.val = (p.pts || 0) + p.reb + (p.ast || 0) + (p.stl || 0) + (p.blk || 0) + (p.fr || 0) - miss - (p.to || 0) - (p.fc || 0);
+  }));
+  m.teamStats = m.teamStats || { home: {}, away: {} };
+  ['home', 'away'].forEach(s => { m.teamStats[s] = m.teamStats[s] || {}; Object.keys(B.T[s]).forEach(k => { m.teamStats[s][k] = Math.max(0, (m.teamStats[s][k] || 0) + B.T[s][k] - A.T[s][k]); }); });
+  m.events = evs;
+  m.scoreHome = (m.homePlayers || []).reduce((a, p) => a + (p.pts || 0), 0);
+  m.scoreAway = (m.awayPlayers || []).reduce((a, p) => a + (p.pts || 0), 0);
+  m.editedAt = Date.now();
+  const ov = document.getElementById('ce-ov'); if (ov) ov.remove(); _ce = null;
+  if (typeof svL === 'function') svL();
+  if (typeof rAll === 'function') rAll();
+  if (_meditId === m.id) { _meditTOInit(m); renderMatchEditBody(); const sub = document.getElementById('medit-sub'); if (sub) sub.textContent = `${m.homeTeam} ${m.scoreHome}—${m.scoreAway} ${m.awayTeam}${m.date ? ' · ' + m.date : ''}`; }
+  if (typeof toast === 'function') toast(`✅ Cronología guardada · ${m.scoreHome}-${m.scoreAway}`);
+};
+window._ceRestore = function () {
+  const m = S.matches.find(x => x.id === _ce.id); if (!m) return;
+  let b = null; try { b = JSON.parse(localStorage.getItem(_ceBakKey(m.id)) || 'null'); } catch (e) { }
+  if (!b) return;
+  if (!confirm(`¿Volver a la cronología guardada el ${new Date(b.t).toLocaleString('es-ES')} (antes del último cambio)?\nSe perderán los cambios hechos después.`)) return;
+  Object.assign(m, { events: b.events, shots: b.shots, homePlayers: b.homePlayers, awayPlayers: b.awayPlayers, teamStats: b.teamStats, scoreHome: b.scoreHome, scoreAway: b.scoreAway, editedAt: Date.now() });
+  try { localStorage.removeItem(_ceBakKey(m.id)); } catch (e) { }
+  _ce = null; const ov = document.getElementById('ce-ov'); if (ov) ov.remove();
+  if (typeof svL === 'function') svL(); if (typeof rAll === 'function') rAll();
+  if (_meditId === m.id) { _meditTOInit(m); renderMatchEditBody(); }
+  if (typeof toast === 'function') toast('↩ Cronología restaurada');
+};
 function openMatchEdit(id){
   const m = S.matches.find(x => x.id === id);
   if(!m) { if(typeof toast==='function') toast('Partido no encontrado','err'); return; }
@@ -15795,7 +16052,12 @@ function renderMatchEditBody(){
       <div><label style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase">Temporada</label>
         <input id="me-season" list="me-season-dl" value="${_esc(m.season || '')}" placeholder="2026-27" style="${inp}"><datalist id="me-season-dl">${seasons.map(c => `<option value="${_esc(c)}">`).join('')}</datalist></div>
     </div>`;
-  el.innerHTML = meta + `<div id="me-to-box">${_meditTOHtml(m)}</div>` + bH + bA;
+  const nPl = (m.events || []).filter(e => e.type !== 'period_start').length;
+  const crono = m.type === 'live' && nPl ? `<div style="margin-bottom:14px;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><div style="font-size:11px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.05em">📜 Cronología del directo <span style="font-weight:600;text-transform:none;color:var(--t3)">(${nPl} jugadas)</span></div>
+        <div style="font-size:11px;color:#1e40af;margin-top:2px">Cambia el minuto, el jugador o la acción de cada jugada, añade las que faltan o mueve un tramo entero si el reloj iba desfasado. El analizador de vídeo usa estos minutos.</div></div>
+      <button type="button" class="btn bp" onclick="openCronoEdit(${m.id})" style="padding:8px 14px">📜 Editar cronología</button></div>` : '';
+  el.innerHTML = meta + crono + `<div id="me-to-box">${_meditTOHtml(m)}</div>` + bH + bA;
 }
 
 // Cambia el nombre y/o dorsal de un jugador en TODO el partido (plantilla, jugadas del directo, quintetos en pista,

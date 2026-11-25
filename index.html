@@ -3915,6 +3915,8 @@ body.player-mode .cx-card{display:none!important}
 .mr-est{font-style:normal;font-size:9px;font-weight:800;color:#94a3b8;border:1px solid #e2e8f0;border-radius:4px;padding:0 3px}
 .mr-sub{font-size:10.5px;color:#64748b;margin:4px 0 0}
 
+.cx-card>.ct{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.cx-canva{margin-left:auto;padding:6px 14px;border-radius:999px;border:0;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;font-size:11.5px;font-weight:800;cursor:pointer;text-transform:none;letter-spacing:0}
+
 /* ── 🎨 Canva: tríptico del partido ── */
 .zx-tabs .zx-canva{margin-left:auto;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff}
 .tp-ov{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
@@ -5542,31 +5544,37 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
     <style>
       .clp-w{border-radius:12px;border:1px solid var(--bd);box-shadow:0 1px 2px rgba(15,23,42,.04)}
       table.clp{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:12.5px}
-      table.clp thead th{position:sticky;top:0;z-index:1;background:#f8fafc;color:#64748b;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;padding:11px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-align:center;cursor:pointer;user-select:none;transition:color .15s}
+      table.clp thead th{position:sticky;top:0;z-index:1;background:#f8fafc;color:#64748b;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;padding:9px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-align:center;cursor:pointer;user-select:none;transition:color .15s}
       table.clp thead th:hover{color:var(--nv)}
       table.clp thead th.on{color:var(--ac)}
       table.clp thead th.clp-l{text-align:left}
       table.clp thead th.clp-g{border-left:1px solid #e2e8f0}
-      table.clp tbody td{padding:9px 8px;text-align:center;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap}
+      table.clp tbody td{padding:5px 8px;text-align:center;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap}
       table.clp tbody tr:last-child td{border-bottom:0}
       table.clp tbody tr:nth-child(even) td{background:#fbfcfe}
       table.clp tbody tr{cursor:pointer;transition:background .12s}
       table.clp tbody tr:hover td{background:#eef4ff}
       table.clp td.clp-g{border-left:1px solid #f1f5f9}
       table.clp td.clp-on{background:rgba(0,113,227,.05)!important}
-      table.clp .clp-d{display:inline-block;min-width:30px;padding:3px 6px;border-radius:7px;background:#f1f5f9;color:#475569;font-weight:800;font-size:11px}
+      table.clp .clp-d{display:inline-block;min-width:30px;padding:2px 6px;border-radius:7px;background:#f1f5f9;color:#475569;font-weight:800;font-size:11px}
       table.clp td.clp-n{text-align:left;font-weight:800;color:var(--nv);letter-spacing:.01em}
       table.clp .clp-n .st{color:#f59e0b;margin-left:4px;font-size:11px}
       table.clp td.clp-pts{font-weight:900;color:var(--nv);font-size:13.5px}
       table.clp td.clp-m{font-weight:700;color:#475569}
       table.clp .clp-pc b{font-weight:800;color:var(--nv)}
-      table.clp .clp-pc small{display:block;color:#94a3b8;font-size:10px;font-weight:500;margin-top:1px}
+      table.clp .clp-pc small{display:block;color:#94a3b8;font-size:9.5px;font-weight:500;margin-top:0;line-height:1.1}
+      table.clp .clp-pc b{line-height:1.2}
+      table.clp.clp-adv tbody td{padding:7px 8px}
+      table.clp .adv-usg{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:48px}
+      table.clp .adv-usg b{color:#b45309;font-weight:800}
+      table.clp .adv-usg i{display:block;height:4px;border-radius:2px;background:linear-gradient(90deg,#fcd34d,#f59e0b);align-self:flex-start}
+      table.clp .adv-ast{display:inline-block;min-width:34px;padding:2px 7px;border-radius:999px;background:#f3e8ff;color:#7e22ce;font-weight:800;font-size:11px}
       table.clp .clp-z{color:#cbd5e1}
       table.clp .clp-pt{display:inline-block;min-width:22px;padding:2px 6px;border-radius:999px;background:#fef3c7;color:#b45309;font-weight:800;font-size:11px}
       table.clp .clp-pt.no{background:transparent;color:#cbd5e1}
       table.clp .clp-pos{color:#16a34a;font-weight:800}
       table.clp .clp-neg{color:#dc2626;font-weight:800}
-      table.clp .clp-val{display:inline-block;min-width:34px;padding:3px 7px;border-radius:8px;font-weight:900}
+      table.clp .clp-val{display:inline-block;min-width:34px;padding:2px 7px;border-radius:8px;font-weight:900}
       table.clp .clp-val.pos{background:#dcfce7;color:#15803d}
       table.clp .clp-val.neg{background:#fee2e2;color:#b91c1c}
       table.clp .clp-val.zero{background:#f1f5f9;color:#64748b}
@@ -5574,6 +5582,10 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
     <div id="cl-classic-legend" style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.5">
       <b style="color:var(--nv)">LEYENDA CLÁSICA:</b> PJ partidos · MIN minutos · PTS puntos · T2/T3/TL aciertos de 2, triples y libres · RO/RD/RT rebotes ofensivos, defensivos y totales · AST asistencias · STL robos · BLK tapones · PER pérdidas · FC/FR faltas cometidas/recibidas · +/- diferencia con el jugador en pista · +/-/MIN diferencia por minuto x 10.
     </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="ct">⏱️ Por cuartos</div>
+    <div id="cl-qtr"></div>
   </div>
   <div class="g2" style="gap:10px;margin-bottom:10px">
     <div class="card"><div class="ct">🖐 Mejores Combinaciones (+/-)</div><div id="cl-lineups"></div></div>
@@ -15026,7 +15038,7 @@ function renderClub(){
   const kEl = document.getElementById('cl-kpis');
   if(!G){
     if(kEl) kEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Sin partidos del Claret todavía. Importa cronologías o juega partidos en Directo (el nombre del equipo debe contener "Claret").</div>';
-    ['cl-players','cl-lineups','cl-used','cl-subs','cl-impact','cl-links','cl-astpairs','cl-wowy'].forEach(id => {
+    ['cl-players','cl-lineups','cl-used','cl-subs','cl-impact','cl-links','cl-astpairs','cl-wowy','cl-qtr'].forEach(id => {
         const e = document.getElementById(id); 
         if(e) e.innerHTML = ''; 
     });
@@ -15144,6 +15156,7 @@ function renderClub(){
   try { renderClubLinks(ours); } catch (e) { console.error('Red de minutos Claret:', e); }
   if(typeof renderClubAstPairs === 'function') renderClubAstPairs();
   if(typeof renderClubOrigins === 'function') renderClubOrigins(ours);
+  try { renderClubQuarters(ours); } catch (e) { console.error('Por cuartos:', e); }
 }
 
 // ── Caja inicial: récord y medias, cada una con su evolución partido a partido (línea discontinua = la media) ──
@@ -19313,6 +19326,176 @@ function _clEngines(ours) {
   const list = ours.map(_clEngine).filter(Boolean);
   window._clEngCache = { key, list }; return list;
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// ⏱️ POR CUARTOS: cómo reparte cada jugador sus puntos, minutos (y, con el directo, rebotes, asistencias, pérdidas…)
+// entre los cuartos, y qué hacen los titulares. Lo usan la pestaña Claret y el «Cruce del partido» (Próximo rival, staff).
+// Puntos y minutos salen del jugada a jugada (FCBQ o directo); el resto solo de los partidos apuntados en directo.
+// ═══════════════════════════════════════════════════════════════════════════
+const _QTR_EV = { pts2: ['pts', 2], pts3: ['pts', 3], tl_in: ['pts', 1], ro: ['reb', 1], rd: ['reb', 1], ast: ['ast', 1], to: ['to', 1], stl: ['stl', 1], blk: ['blk', 1],
+  foul: ['fc', 1], tech: ['fc', 1], tech_real: ['fc', 1], tech_tac: ['fc', 1], anti: ['fc', 1] };
+const _QTR_DET = new Set(['ro', 'rd', 'ast', 'to', 'stl']);   // un partido «con estadística del directo» tiene estas jugadas
+const _QTR_M = { pts: ['PTS', 'Puntos'], min: ['MIN', 'Minutos'], reb: ['REB', 'Rebotes'], ast: ['AST', 'Asistencias'], to: ['PER', 'Pérdidas'], stl: ['ROB', 'Robos'], fc: ['FC', 'Faltas'] };
+const _QTR_DETK = new Set(['reb', 'ast', 'to', 'stl', 'blk']);
+const _qtrIdx = p => { p = Number(p) || 1; return p <= 4 ? p - 1 : 4; };
+const _qtrZ = () => [0, 0, 0, 0, 0];
+
+function _qtrData(list) {
+  const P = {}, T = { g: 0, gD: 0, gM: 0, gq: _qtrZ(), pf: _qtrZ(), pa: _qtrZ(), x: {}, stp: _qtrZ(), bnp: _qtrZ(), five: {}, firstSub: [], ot: false };
+  Object.keys(_QTR_M).concat('blk').forEach(k => { T.x[k] = _qtrZ(); });
+  const pl = (n, d) => { const o = P[n] || (P[n] = { name: n, dorsal: '', g: 0, gM: 0, gD: 0, starts: 0, q: {} }); if (d && !o.dorsal) o.dorsal = d; return o; };
+  const add = (o, k, qi, v) => { (o.q[k] = o.q[k] || _qtrZ())[qi] += v; };
+  list.forEach(({ m, side }) => {
+    if (!m || !side) return;
+    const opp = side === 'home' ? 'away' : 'home', roster = (side === 'home' ? m.homePlayers : m.awayPlayers) || [];
+    const evs = m.events || [], det = evs.some(e => e.team === side && _QTR_DET.has(e.type));
+    T.g++; if (det) T.gD++;
+    const played = new Set();
+    roster.forEach(p => { if (p && p.name && _playedGame(p)) { const o = pl(p.name, p.dorsal); o.g++; if (det) o.gD++; played.add(p.name); } });
+    // marcador por cuarto (oficial si lo hay)
+    let qs = null; try { qs = _matchQuarters(m); } catch (e) { }
+    (qs || []).forEach(q => { const i = _qtrIdx(q.p); if (i === 4) T.ot = true; T.gq[i]++; T.pf[i] += side === 'home' ? q.h : q.a; T.pa[i] += side === 'home' ? q.a : q.h; });
+    // titulares
+    let st = null; try { st = _scoutFindStarters(m, side); } catch (e) { }
+    if (st && st.size === 5) { st.forEach(n => { pl(n).starts++; }); const k = [...st].sort().join('|'); T.five[k] = (T.five[k] || 0) + 1; }
+    // jugadas por cuarto
+    evs.forEach(e => {
+      const d = _QTR_EV[e.type]; if (!d || e.team !== side) return;
+      const i = _qtrIdx(e.period); if (i === 4) T.ot = true;
+      if (d[0] === 'pts') { if (e.player) { add(pl(e.player), 'pts', i, d[1]); (st && st.has(e.player) ? T.stp : T.bnp)[i] += d[1]; } return; }
+      if (!det) return;
+      T.x[d[0]][i] += d[1];
+      if (e.player && !e.teamOnly) add(pl(e.player), d[0], i, d[1]);
+    });
+    // minutos por cuarto: tramos entre cambios
+    let E = null; try { E = _clEngine({ m, side }); } catch (e) { }
+    if (E && E.segs.length) {
+      T.gM++;
+      const B = [0, 600, 1200, 1800, 2400, Math.max(2400, E.endT || 2400)], on = new Set();
+      E.segs.forEach(sg => sg.court.forEach(n => {
+        on.add(n);
+        for (let i = 0; i < 5; i++) { const a = Math.max(sg.t0, B[i]), b = Math.min(sg.t1, B[i + 1]); if (b > a) add(pl(n), 'min', i, (b - a) / 60); }
+      }));
+      on.forEach(n => { pl(n).gM++; });
+      const f = (E.changes || []).map(c => c.t).filter(t => t > 0 && t < 600).sort((a, b) => a - b)[0];
+      if (f != null) T.firstSub.push(f);
+    }
+  });
+  return { P, T };
+}
+
+// cache para volver a pintar al cambiar de estadística
+window.__qtrCache = window.__qtrCache || {};
+window.__qtrSet = (id, k) => { const c = window.__qtrCache[id]; if (!c) return; c.k = k; const el = document.getElementById(id); if (el) el.outerHTML = _qtrCardInner(id, c); };
+
+function _qtrPlayers(D, k) {
+  const avgOf = o => (k === 'min' ? o.gM : _QTR_DETK.has(k) ? o.gD : o.g);
+  return Object.values(D.P).map(o => { const n = avgOf(o), q = o.q[k] || _qtrZ(); return { o, n, v: q.map(x => (n ? x / n : 0)) }; })
+    .filter(r => r.n > 0 && r.v.some(x => x > 0)).map(r => ({ ...r, tot: r.v.reduce((a, b) => a + b, 0) })).sort((a, b) => b.tot - a.tot);
+}
+const _qtrF = v => v.toFixed(1).replace('.', ',');
+const _qtrNm = o => `<span class="qt-d">${_esc(o.dorsal || '')}</span>${_esc(_clShort(o.name))}`;
+
+function _qtrPlayerTable(D, k) {
+  const R = _qtrPlayers(D, k), ot = D.T.ot && R.some(r => r.v[4] > 0), nQ = ot ? 5 : 4, L = ['Q1', 'Q2', 'Q3', 'Q4', 'PR'].slice(0, nQ);
+  if (!R.length) return `<div class="empty" style="font-size:11px">${_QTR_DETK.has(k) || k === 'fc' ? 'Hace falta algún partido apuntado en directo.' : k === 'min' ? 'Faltan los cambios (entradas y salidas) en el jugada a jugada.' : 'Sin jugada a jugada en estos partidos.'}</div>`;
+  const COL = ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#64748b'];
+  return `<div class="qt-tw"><table class="qt-t"><thead><tr><th class="l">Jugador</th>${L.map(q => `<th>${q}</th>`).join('')}<th>Total</th><th class="qt-bh">Reparto</th></tr></thead><tbody>${R.map(r => {
+    const mx = Math.max(...r.v.slice(0, nQ)), sum = r.v.slice(0, nQ).reduce((a, b) => a + b, 0) || 1;
+    return `<tr><td class="l">${_qtrNm(r.o)}<small>${r.n} PJ${r.o.starts ? ` · ${r.o.starts} tit.` : ''}</small></td>${r.v.slice(0, nQ).map(x => {
+      const a = mx ? x / mx : 0; return `<td style="background:rgba(37,99,235,${(0.05 + a * 0.38).toFixed(2)})"${x === mx && x > 0 ? ' class="mx"' : ''}>${x >= 0.05 ? _qtrF(x) : '·'}</td>`; }).join('')}
+      <td class="qt-tot">${_qtrF(r.tot)}</td><td class="qt-bar"><span>${r.v.slice(0, nQ).map((x, i) => x > 0 ? `<i style="width:${(x / sum * 100).toFixed(1)}%;background:${COL[i]}" title="${L[i]}: ${Math.round(x / sum * 100)}%"></i>` : '').join('')}</span></td></tr>`;
+  }).join('')}</tbody></table></div>
+  <div class="qt-leg">${L.map((q, i) => `<span><i style="background:${COL[i]}"></i>${q}</span>`).join('')}<span class="qt-legn">Media por partido jugado${k === 'min' ? ' (partidos con cambios apuntados)' : _QTR_DETK.has(k) || k === 'fc' ? ' (partidos del directo)' : ''} · más oscuro = su cuarto más fuerte</span></div>`;
+}
+
+// lo que más destaca de la tabla (2–4 frases)
+function _qtrReads(D, who) {
+  const out = [], Q = ['Q1', 'Q2', 'Q3', 'Q4'];
+  const pts = _qtrPlayers(D, 'pts'), mins = _qtrPlayers(D, 'min');
+  const q4 = pts.filter(r => r.n >= 2).sort((a, b) => b.v[3] - a.v[3])[0], q1 = pts.filter(r => r.n >= 2).sort((a, b) => b.v[0] - a.v[0])[0];
+  if (q1 && q1.v[0] >= 1.5) out.push(`🚀 En el <b>Q1</b> ${who.su} referencia es <b>${_esc(_clShort(q1.o.name))}</b> (${_qtrF(q1.v[0])} pts de media).`);
+  if (q4 && q4.v[3] >= 1.5) out.push(`🔥 En el <b>Q4</b> ${q4 === q1 ? 'sigue siendo' : 'aparece'} <b>${_esc(_clShort(q4.o.name))}</b> (${_qtrF(q4.v[3])} pts de media).`);
+  const late = pts.filter(r => r.n >= 2 && r.tot >= 4).map(r => ({ r, s: (r.v[2] + r.v[3]) / r.tot })).sort((a, b) => b.s - a.s)[0];
+  if (late && late.s >= 0.65) out.push(`⏳ <b>${_esc(_clShort(late.r.o.name))}</b> mete el ${Math.round(late.s * 100)}% de sus puntos en la 2ª parte.`);
+  const closer = mins.filter(r => r.n >= 2 && r.tot >= 12 && r.o.starts < r.o.g / 2).map(r => ({ r, s: r.v[3] / r.tot })).sort((a, b) => b.s - a.s)[0];
+  if (closer && closer.s >= 0.33) out.push(`🧩 <b>${_esc(_clShort(closer.r.o.name))}</b> sale del banquillo pero juega mucho el Q4 (${_qtrF(closer.r.v[3])} min de media).`);
+  return out;
+}
+
+function _qtrStarters(D, who) {
+  const T = D.T, G = T.g, St = Object.values(D.P).filter(o => o.starts > 0).sort((a, b) => b.starts - a.starts || b.g - a.g);
+  if (!St.length) return `<div class="empty" style="font-size:11px">No hay titulares identificables en estos partidos.</div>`;
+  const five = Object.entries(T.five).sort((a, b) => b[1] - a[1])[0], nFive = Object.values(T.five).reduce((a, b) => a + b, 0);
+  const minQ = (o, i) => (o.gM && o.q.min ? o.q.min[i] / o.gM : null), ptsQ = (o, i) => (o.g && o.q.pts ? o.q.pts[i] / o.g : 0);
+  const fs = T.firstSub.length ? T.firstSub.reduce((a, b) => a + b, 0) / T.firstSub.length : null;
+  const clk = s => { const r = Math.max(0, 600 - s); return Math.floor(r / 60) + ':' + String(Math.round(r % 60)).padStart(2, '0'); };
+  const share = T.stp.slice(0, 4).map((s, i) => { const t = s + T.bnp[i]; return t ? s / t : null; });
+  const lines = [];
+  if (five && nFive) lines.push(`<p>🖐️ <b>Quinteto más repetido</b> (${five[1]} de ${nFive} partidos): ${five[0].split('|').map(n => `<b>${_esc(_clShort(n))}</b>`).join(', ')}.</p>`);
+  if (fs != null) lines.push(`<p>🔄 El primer cambio llega de media con <b>${clk(fs)}</b> por jugar del Q1.</p>`);
+  if (share.some(x => x != null)) lines.push(`<p>📊 Puntos de los titulares: ${share.map((x, i) => x == null ? '' : `<span class="qt-chip">Q${i + 1} <b>${Math.round(x * 100)}%</b></span>`).join(' ')}</p>`);
+  return `${lines.join('')}<div class="qt-tw"><table class="qt-t qt-st"><thead><tr><th class="l">Titular</th><th title="Partidos de titular / jugados">Tit.</th><th title="Minutos en el Q1 (media)">Min Q1</th><th title="Puntos en el Q1 (media)">Pts Q1</th><th title="Minutos en el Q4 (media)">Min Q4</th><th title="Puntos en el Q4 (media)">Pts Q4</th></tr></thead><tbody>${St.slice(0, 8).map(o => {
+    const m1 = minQ(o, 0), m4 = minQ(o, 3);
+    return `<tr><td class="l">${_qtrNm(o)}</td><td><b>${o.starts}</b>/${o.g}</td><td>${m1 == null ? '—' : _qtrF(m1)}</td><td>${_qtrF(ptsQ(o, 0))}</td><td>${m4 == null ? '—' : _qtrF(m4)}</td><td>${_qtrF(ptsQ(o, 3))}</td></tr>`; }).join('')}</tbody></table></div>`;
+}
+
+// tabla del equipo por cuarto (Claret): puntos a favor/en contra y, con el directo, rebotes, asistencias, pérdidas…
+function _qtrTeamTable(D) {
+  const T = D.T, Q = ['Q1', 'Q2', 'Q3', 'Q4'];
+  const av = (arr, n) => arr.slice(0, 4).map((x, i) => (n[i] ? x / n[i] : null));
+  const nQ = T.gq, nD = [T.gD, T.gD, T.gD, T.gD];
+  const pf = av(T.pf, nQ), pa = av(T.pa, nQ), df = pf.map((x, i) => (x == null || pa[i] == null ? null : x - pa[i]));
+  const rows = [['Puntos a favor', pf, 1], ['Puntos en contra', pa, -1], ['Diferencia', df, 1, true]];
+  if (T.gD) rows.push(['Rebotes', av(T.x.reb, nD), 1], ['Asistencias', av(T.x.ast, nD), 1], ['Pérdidas', av(T.x.to, nD), -1], ['Robos', av(T.x.stl, nD), 1], ['Faltas', av(T.x.fc, nD), -1]);
+  const cell = (v, best, worst, sg) => { if (v == null) return '<td>—</td>'; const c = v === best ? ' class="qt-g"' : v === worst ? ' class="qt-b"' : ''; return `<td${c}>${sg && v >= 0.05 ? '+' : ''}${_qtrF(Math.abs(v) < 0.05 ? 0 : v)}</td>`; };
+  return `<div class="qt-tw"><table class="qt-t qt-team"><thead><tr><th class="l">Por partido</th>${Q.map(q => `<th>${q}</th>`).join('')}</tr></thead><tbody>${rows.map(([lab, v, dir, sg]) => {
+    const ok = v.filter(x => x != null); const best = ok.length > 1 ? (dir > 0 ? Math.max(...ok) : Math.min(...ok)) : null, worst = ok.length > 1 ? (dir > 0 ? Math.min(...ok) : Math.max(...ok)) : null;
+    return `<tr><td class="l">${lab}</td>${v.map(x => cell(x, best, worst === best ? null : worst, sg)).join('')}</tr>`; }).join('')}</tbody></table></div>
+    <div class="qt-leg"><span class="qt-legn">${T.g} partido${T.g !== 1 ? 's' : ''}${T.gD ? ` · rebotes, asistencias, pérdidas, robos y faltas de los ${T.gD} apuntados en directo` : ' · rebotes, asistencias y pérdidas solo salen con partidos apuntados en directo'} · <b style="color:#15803d">verde</b> = su mejor cuarto, <b style="color:#b91c1c">rojo</b> = el peor</span></div>`;
+}
+
+const _QTR_CSS = `<style>
+.qt{margin-top:14px}.qt h4{font-size:13px;font-weight:900;color:var(--nv);margin:0 0 4px;letter-spacing:.02em}.qt h5{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--nv);margin:14px 0 6px}
+.qt-intro{font-size:11.5px;color:var(--t2);margin:0 0 8px;line-height:1.45}.qt-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}
+.qt-tabs button{padding:5px 11px;border-radius:999px;border:1px solid var(--bd);background:#fff;color:var(--t2);font-size:11px;font-weight:800;cursor:pointer}.qt-tabs button.on{background:var(--nv);border-color:var(--nv);color:#fff}
+.qt-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}@media (max-width:860px){.qt-grid{grid-template-columns:minmax(0,1fr)}}
+.qt-tw{overflow-x:auto;border:1px solid var(--bd);border-radius:10px}.qt-t{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.qt-t th{background:#f8fafc;color:#64748b;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:7px 6px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--bd)}
+.qt-t td{padding:6px;text-align:center;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap}.qt-t tr:last-child td{border-bottom:0}
+.qt-t .l{text-align:left}.qt-t td.l{font-weight:800;color:var(--nv)}.qt-t td.l small{display:block;font-weight:500;color:var(--t3);font-size:9.5px}
+.qt-t td.mx{font-weight:900;color:#1e3a8a}.qt-t .qt-tot{font-weight:900;color:var(--nv)}.qt-d{display:inline-block;min-width:20px;margin-right:5px;padding:1px 4px;border-radius:5px;background:#f1f5f9;color:#475569;font-size:10px;font-weight:800;text-align:center}
+.qt-bar span{display:flex;width:90px;height:8px;border-radius:4px;overflow:hidden;background:#f1f5f9}.qt-bar i{display:block;height:8px}.qt-bh{min-width:90px}
+.qt-leg{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:6px;font-size:10px;color:var(--t3)}.qt-leg span{display:inline-flex;align-items:center;gap:4px}.qt-leg i{width:9px;height:9px;border-radius:2px;display:inline-block}.qt-legn{flex-basis:100%}
+.qt-team td.qt-g{background:#dcfce7;color:#15803d;font-weight:900}.qt-team td.qt-b{background:#fee2e2;color:#b91c1c;font-weight:900}
+.qt-txt p{font-size:12px;color:var(--nv);line-height:1.45;margin:0 0 6px}.qt-chip{display:inline-block;padding:1px 7px;border-radius:999px;background:#eff6ff;color:#1e3a8a;font-size:11px;margin:0 2px 2px 0}
+.qt-st td{font-size:11.5px}
+</style>`;
+
+function _qtrCardInner(id, c) {
+  const { D, keys, who, team } = c, k = keys.includes(c.k) ? c.k : keys[0], reads = _qtrReads(D, who);
+  return `<div class="qt" id="${id}">${c.title ? `<h4>${c.title}</h4>` : ''}<p class="qt-intro">${c.intro}</p>
+    ${team ? `<h5>Equipo</h5>${_qtrTeamTable(D)}` : ''}
+    <div class="qt-grid"><div><h5>Jugadores por cuarto</h5><div class="qt-tabs">${keys.map(x => `<button type="button"${x === k ? ' class="on"' : ''} onclick="__qtrSet('${id}','${x}')" title="${_QTR_M[x][1]}">${_QTR_M[x][0]}</button>`).join('')}</div>${_qtrPlayerTable(D, k)}</div>
+    <div class="qt-txt">${reads.length ? `<h5>Lo que destaca</h5>${reads.map(h => `<p>${h}</p>`).join('')}` : ''}<h5>Titulares</h5>${_qtrStarters(D, who)}</div></div></div>`;
+}
+function _qtrCard(list, o) {
+  const D = _qtrData(list); if (!D.T.g) return '';
+  const id = o.id || 'qt' + Math.random().toString(36).slice(2, 8), c = { D, keys: o.keys, k: (window.__qtrCache[id] && window.__qtrCache[id].k) || o.keys[0], who: o.who, team: o.team, title: o.title, intro: o.intro };
+  window.__qtrCache[id] = c; return _QTR_CSS + _qtrCardInner(id, c);
+}
+
+// Claret: tarjeta «⏱️ Por cuartos» de la pestaña (mismos partidos que el resto de la pestaña)
+function renderClubQuarters(ours) {
+  const el = document.getElementById('cl-qtr'); if (!el) return;
+  const h = _qtrCard((ours || []).map(o => ({ m: o.m, side: o.side })), { id: 'qt-cl', keys: ['pts', 'min', 'reb', 'ast', 'to', 'stl', 'fc'], team: true, who: { su: 'nuestra' },
+    intro: 'Cómo repartimos el partido entre los cuartos. Puntos y minutos salen del jugada a jugada (FCBQ o directo); rebotes, asistencias, pérdidas, robos y faltas, solo de los partidos apuntados en directo.' });
+  el.innerHTML = h || '<div class="empty">Sin partidos con jugada a jugada todavía.</div>';
+}
+// Próximo rival → «🎯 Cruce del partido» (solo staff): lo mismo del rival, con los datos de la FCBQ
+window.__baQuarterHTML = (rival, list) => _qtrCard(list, { id: 'qt-rv', keys: ['pts', 'min'], who: { su: 'su' }, title: `⏱️ Por cuartos · ${_esc(rival)}`,
+  intro: `Cómo reparten sus jugadores los <b>puntos</b> y los <b>minutos</b> entre los cuartos (jugada a jugada de la FCBQ, ${list.length} partido${list.length !== 1 ? 's' : ''}), y qué hacen sus titulares.` });
+window.renderClubQuarters = renderClubQuarters;
+
 function _clComboCalc(ours, size) {
   const combos = {};
   const comb = (arr, k) => { if (k > arr.length || k <= 0) return []; if (k === arr.length) return [arr]; if (k === 1) return arr.map(a => [a]);
@@ -23834,63 +24017,49 @@ function _renderAdvancedPlayerTable(scope){
   });
 
   const arrIcon = col => sc === col ? (sdir > 0 ? ' ▲' : ' ▼') : '';
+  // mismo estilo que la tabla clásica (clase .clp): cabecera en mayúsculas, la columna ordenada resaltada y bloques separados
+  const AH = [['dorsal','#','',''],['name','Jugador','clp-l',''],['pj','PJ','','Partidos jugados'],['mpg','MIN/P','','Minutos por partido'],
+    ['ppg','PTS/P','clp-g','Puntos por partido'],['ptsShot','PTS/TIRO','','Puntos por intento de campo'],
+    ['ppp','O-PPP','clp-g','Puntos del equipo a favor por posesión en pista'],['dppp','D-PPP','','Puntos del equipo en contra por posesión en pista'],['net','NET','','Diferencial neto de puntos por posesión'],['netOff','NET OFF','','NET del equipo con el jugador en el banquillo'],['onOff','ON-OFF','','NET en pista menos NET fuera'],
+    ['efg','eFG%','clp-g','Porcentaje de tiro ajustado'],['ts','TS%','','Porcentaje de tiro verdadero (con libres)'],['usg','USG%','','Porcentaje de posesiones finalizadas por el jugador'],
+    ['astTo','AST/TO','clp-g','Asistencias por pérdida'],['pAst','PTS AST%','','Porcentaje de sus puntos que llegan tras una asistencia (partidos con estadística en directo, donde se apuntan las asistencias)'],
+    ['pir','PIR','clp-g','Valoración (fórmula FIBA)'],['eff','EFF','','Eficiencia (fórmula NBA)']];
+  const on = k => sc === k ? ' clp-on' : '';
+  const dash = '<span class="clp-z">—</span>';
+  const sgnCls = x => !Number.isFinite(x) ? 'clp-z' : x > 0.005 ? 'clp-pos' : x < -0.005 ? 'clp-neg' : 'clp-z';
+  const sgTxt = x => !Number.isFinite(x) ? '—' : Math.abs(x) < 0.005 ? '0.00' : (x > 0 ? '+' : '') + x.toFixed(2);
+  const badge = (x, d) => Number.isFinite(x) ? `<span class="clp-val ${x > 0 ? 'pos' : x < 0 ? 'neg' : 'zero'}">${d}</span>` : dash;
+  const maxUsg = Math.max(1, ...list.map(p => Number.isFinite(p.usg) ? p.usg : 0));
 
   let rowsHtml = '';
   list.forEach(p => {
-    const netC = p.net > 0 ? 'var(--gn)' : (p.net < 0 ? '#dc2626' : 'inherit');
-    const netS = p.net > 0 ? '+' : '';
-    const sgn = x => !Number.isFinite(x) ? 'inherit' : x > 0 ? 'var(--gn)' : x < 0 ? '#dc2626' : 'inherit';
-    const sg = x => Number.isFinite(x) && x > 0 ? '+' : '';
-    const pirC = p.pir > 0 ? 'var(--gn)' : (p.pir < 0 ? '#dc2626' : 'var(--t3)');
-    const effC = p.eff > 0 ? 'var(--gn)' : (p.eff < 0 ? '#dc2626' : 'var(--t3)');
-      
-    rowsHtml += `<tr onclick="_advRowClick(event, this, '${scope}')" data-n="${_esc(p.name)}" style="cursor:pointer; border-bottom:1px solid var(--bd);">
-      <td style="color:var(--t3); padding:8px">#${p.dorsal}</td>
-      <td style="white-space:nowrap"><b>${_esc(p.name)}</b></td>
-      <td style="font-weight:700;color:var(--t2);text-align:center">${p.pj}</td>
-      <td data-c="mpg" class="adv-c" style="font-weight:700;color:var(--t2);text-align:center">${num1(p.mpg)}</td>
-      <td data-c="ppg" class="adv-c" style="font-weight:900;color:var(--ac);text-align:center">${num1(p.ppg)}</td>
-      <td data-c="ptsShot" class="adv-c" style="font-weight:800;color:var(--nv);text-align:center" title="Puntos por intento de campo">${num(p.ptsShot)}</td>
-      <td data-c="ppp" class="adv-c" style="font-weight:800;text-align:center" title="Puntos del equipo a favor por posesión">${num(p.ppp)}</td>
-      <td data-c="dppp" class="adv-c" style="font-weight:800;text-align:center" title="Puntos del equipo en contra por posesión">${num(p.dppp)}</td>
-      <td data-c="net" class="adv-c" style="font-weight:900;text-align:center;color:${netC}" title="Diferencial Neto por posesión">${netS}${num(p.net)}</td>
-      <td data-c="netOff" class="adv-c" style="font-weight:800;text-align:center;color:${sgn(p.netOff)}" title="NET del equipo con el jugador en el banquillo">${sg(p.netOff)}${num(p.netOff)}</td>
-      <td data-c="onOff" class="adv-c" style="font-weight:900;text-align:center;color:${sgn(p.onOff)};background:#f8fafc" title="NET en pista menos NET en el banquillo: cuánto mejora el equipo con él">${sg(p.onOff)}${num(p.onOff)}</td>
-      <td data-c="efg" class="adv-c" style="color:#15803d;font-weight:800;text-align:center">${pc(p.efg)}</td>
-      <td data-c="ts" class="adv-c" style="color:var(--nv);font-weight:700;text-align:center">${pc(p.ts)}</td>
-      <td data-c="usg" class="adv-c" style="font-weight:800;text-align:center;color:#b45309">${num(p.usg)}%</td>
-      <td data-c="astTo" class="adv-c" style="font-weight:700;text-align:center">${num(p.astTo)}</td>
-      <td data-c="pAst" class="adv-c" style="font-weight:800;text-align:center;color:#7c3aed" title="De sus puntos, los que llegan tras una asistencia (partidos con estadística en directo)">${Number.isFinite(p.pAst) ? Math.round(p.pAst * 100) + '%' : '<span style="color:var(--t3);font-weight:600">—</span>'}</td>
-      <td data-c="pir" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${pirC}">${num0(p.pir)}</td>
-      <td data-c="eff" class="adv-c" style="font-weight:900;font-size:13px;text-align:center;color:${effC}">${num0(p.eff)}</td>
+    const c = (k, extra) => ` data-c="${k}" class="adv-c${extra ? ' ' + extra : ''}${on(k)}"`;
+    rowsHtml += `<tr onclick="_advRowClick(event, this, '${scope}')" data-n="${_esc(p.name)}">
+      <td class="${on('dorsal')}"><span class="clp-d">#${_esc(p.dorsal)}</span></td>
+      <td class="clp-n${on('name')}">${_esc(p.name)}</td>
+      <td class="${on('pj')}">${p.pj}</td>
+      <td${c('mpg', 'clp-m')}>${num1(p.mpg)}</td>
+      <td${c('ppg', 'clp-g clp-pts')}>${num1(p.ppg)}</td>
+      <td${c('ptsShot')} title="Puntos por intento de campo"><b>${num(p.ptsShot)}</b></td>
+      <td${c('ppp', 'clp-g')}>${num(p.ppp)}</td>
+      <td${c('dppp')}>${num(p.dppp)}</td>
+      <td${c('net')}><span class="${sgnCls(p.net)}">${sgTxt(p.net)}</span></td>
+      <td${c('netOff')}><span class="${sgnCls(p.netOff)}">${sgTxt(p.netOff)}</span></td>
+      <td${c('onOff')} title="NET en pista menos NET en el banquillo: cuánto mejora el equipo con él">${badge(p.onOff, sgTxt(p.onOff))}</td>
+      <td${c('efg', 'clp-g clp-pc')}>${Number.isFinite(p.efg) ? '<b>' + pc(p.efg) + '</b>' : dash}</td>
+      <td${c('ts', 'clp-pc')}>${Number.isFinite(p.ts) ? '<b>' + pc(p.ts) + '</b>' : dash}</td>
+      <td${c('usg')}><span class="adv-usg"><b>${num1(p.usg)}%</b><i style="width:${Number.isFinite(p.usg) ? Math.max(4, p.usg / maxUsg * 100).toFixed(0) : 0}%"></i></span></td>
+      <td${c('astTo', 'clp-g')}>${Number.isFinite(p.astTo) && p.astTo > 0 ? num(p.astTo) : '<span class="clp-z">' + num(p.astTo) + '</span>'}</td>
+      <td${c('pAst')} title="De sus puntos, los que llegan tras una asistencia (partidos con estadística en directo)">${Number.isFinite(p.pAst) ? '<span class="adv-ast">' + Math.round(p.pAst * 100) + '%</span>' : dash}</td>
+      <td${c('pir', 'clp-g')}>${badge(p.pir, num0(p.pir))}</td>
+      <td${c('eff')}>${badge(p.eff, num0(p.eff))}</td>
     </tr>`;
   });
 
-  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="17" class="no-d">Sin datos</td></tr>';
+  const finalRows = rowsHtml !== '' ? rowsHtml : '<tr><td colspan="18" class="no-d">Sin datos</td></tr>';
 
-  box.innerHTML = `<div class="tw" style="overflow-x:auto;"><table style="min-width:1140px; font-size:12px">
-    <thead>
-      <tr>
-        <th onclick="advSort('dorsal','${scope}')" style="cursor:pointer;text-align:left;padding:8px">#${arrIcon('dorsal')}</th>
-        <th onclick="advSort('name','${scope}')" style="cursor:pointer;text-align:left">JUGADOR${arrIcon('name')}</th>
-        <th onclick="advSort('pj','${scope}')" style="cursor:pointer;text-align:center">PJ${arrIcon('pj')}</th>
-        <th onclick="advSort('mpg','${scope}')" style="cursor:pointer;text-align:center" title="Minutos por Partido">MIN/P${arrIcon('mpg')}</th>
-        <th onclick="advSort('ppg','${scope}')" style="cursor:pointer;text-align:center">PTS/P${arrIcon('ppg')}</th>
-        <th onclick="advSort('ptsShot','${scope}')" style="cursor:pointer;text-align:center" title="Puntos por intento de campo">PTS/TIRO${arrIcon('ptsShot')}</th>
-        <th onclick="advSort('ppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo a favor por posesión en pista">O-PPP${arrIcon('ppp')}</th>
-        <th onclick="advSort('dppp','${scope}')" style="cursor:pointer;text-align:center" title="Puntos del equipo en contra por posesión en pista">D-PPP${arrIcon('dppp')}</th>
-        <th onclick="advSort('net','${scope}')" style="cursor:pointer;text-align:center" title="Diferencial Neto de puntos por posesión">NET${arrIcon('net')}</th>
-        <th onclick="advSort('netOff','${scope}')" style="cursor:pointer;text-align:center" title="NET del equipo con el jugador en el banquillo">NET OFF${arrIcon('netOff')}</th>
-        <th onclick="advSort('onOff','${scope}')" style="cursor:pointer;text-align:center" title="NET en pista menos NET fuera">ON-OFF${arrIcon('onOff')}</th>
-        <th onclick="advSort('efg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro ajustado">eFG%${arrIcon('efg')}</th>
-        <th onclick="advSort('ts','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de tiro verdadero (con Libres)">TS%${arrIcon('ts')}</th>
-        <th onclick="advSort('usg','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de posesiones finalizadas por el jugador">USG%${arrIcon('usg')}</th>
-        <th onclick="advSort('astTo','${scope}')" style="cursor:pointer;text-align:center">AST/TO${arrIcon('astTo')}</th>
-        <th onclick="advSort('pAst','${scope}')" style="cursor:pointer;text-align:center" title="Porcentaje de sus puntos que llegan tras una asistencia (partidos con estadística en directo, donde se apuntan las asistencias)">PTS AST%${arrIcon('pAst')}</th>
-        <th onclick="advSort('pir','${scope}')" style="cursor:pointer;text-align:center" title="Valoración (Fórmula FIBA)">PIR${arrIcon('pir')}</th>
-        <th onclick="advSort('eff','${scope}')" style="cursor:pointer;text-align:center" title="Eficiencia (Fórmula NBA)">EFF${arrIcon('eff')}</th>
-      </tr>
-    </thead>
+  box.innerHTML = `<div class="clp-w" style="overflow-x:auto;"><table class="clp clp-adv" style="min-width:1140px">
+    <thead><tr>${AH.map(([k, l, cl, t]) => `<th onclick="advSort('${k}','${scope}')" class="${cl}${sc === k ? ' on' : ''}"${t ? ` title="${t}"` : ''}>${l}${arrIcon(k)}</th>`).join('')}</tr></thead>
     <tbody>${finalRows}</tbody>
   </table></div>
   <div style="margin-top:8px;padding:10px 12px;background:#f8fafc;border:1px solid var(--bd);border-radius:8px;font-size:10px;color:var(--t2);line-height:1.55">
@@ -31902,8 +32071,9 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     const b1 = block(R, Y, rName, yName, false), b2 = block(Y, R, yName, rName, true);
     keys.sort((a, b) => b.s - a.s);
     const few = Math.min(R.n, Y.n) < 4;
+    window.__baCxCanva = () => window.__baTriptych && window.__baTriptych(ctx, rival, my);
     return `<div class="card cx-card">
-      <div class="ct">🎯 Cruce del partido <span class="cx-staff">Solo staff</span></div>
+      <div class="ct">🎯 Cruce del partido <span class="cx-staff">Solo staff</span>${window.__baTriptych ? '<button type="button" class="cx-canva" onclick="window.__baCxCanva && window.__baCxCanva()" title="Qué poner en cada apartado del tríptico del partido">🎨 Canva</button>' : ''}</div>
       <p class="cx-intro">Cada estadística está <b>ajustada por los rivales</b> que ha tenido cada equipo: se compara lo que hizo en cada partido con lo que ese rival suele conceder en sus otros partidos. <b>Esperable</b> = media de la liga + ajuste de un ataque + ajuste de la otra defensa (con pocos partidos se acerca más a la media de la liga, para que un partido raro no lo dispare).</p>
       ${few ? `<div class="cx-warn">⚠️ Muestra pequeña (${R.n} y ${Y.n} partidos con datos). Tómalo como orientación; a partir de 5–6 jornadas es más fiable.</div>` : ''}
       ${keys.length ? `<div class="cx-keys"><h5>Claves</h5>${keys.slice(0, 6).map(x => `<p>${x.h}</p>`).join('')}</div>` : ''}
@@ -31911,7 +32081,7 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
         <section><h5>Su ataque contra nuestra defensa</h5>${head(rName, yName)}${b1}</section>
         <section><h5>Nuestro ataque contra su defensa</h5>${head(yName, rName)}${b2}</section>
       </div>
-      ${window.__baZoneCross ? window.__baZoneCross(ctx, rival, my, adj) : ''}
+      ${window.__baQuarterHTML ? window.__baQuarterHTML(rival, (rivMatches || []).map(m => ({ m, side: sameTeam(m.homeTeam, rival) ? 'home' : sameTeam(m.awayTeam, rival) ? 'away' : null })).filter(x => x.side && !fr(x.m))) : ''}
       <p class="cx-foot">Verde = favorable para nosotros · rojo = desfavorable. «ajust.» = diferencia con lo que conceden (o meten) sus rivales: + en ataque es bueno, − en defensa es bueno. Solo partidos de la liga con tiros intentados de los dos equipos.</p>
     </div>`;
   };

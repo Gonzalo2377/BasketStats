@@ -3422,6 +3422,34 @@ body:not(.player-mode) .top { position: fixed !important; top: 0 !important; lef
 #tac-board #tac-play-btn.run { border-color: #16a34a !important; box-shadow: 0 0 0 4px rgba(22,163,74,.35), 0 4px 14px rgba(0,0,0,.45) !important }
 #tac-board #tac-play-btn.run::after { content: '❚❚'; background: #16a34a; letter-spacing: -1px }
 
+/* 📋 Barra de jugada y zona del directo */
+#lv-sysbar{padding:0 15px;margin:8px 0}
+.lsb{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:8px 10px}
+.lsb-sys,.lsb-z{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.lsb-l{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-right:2px}
+.lsb-p{min-width:46px;height:38px;padding:0 14px;border-radius:999px;border:2px solid #ddd6fe;background:#f5f3ff;color:#5b21b6;font-weight:900;font-size:14px;cursor:pointer;touch-action:manipulation}
+.lsb-p.on{background:#7c3aed;border-color:#6d28d9;color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.lsb-e{height:38px;width:38px;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:14px}
+.lsb-t{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;color:#334155;font-weight:800;font-size:12.5px;cursor:pointer;touch-action:manipulation}
+.lsb-t i{position:relative;width:32px;height:18px;border-radius:999px;background:#cbd5e1;flex-shrink:0;transition:background .15s}
+.lsb-t i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.lsb-t.on{border-color:#0f766e;background:#ecfdf5;color:#065f46}.lsb-t.on i{background:#0f766e}.lsb-t.on i::after{left:16px}
+.lsb-t.att.on{border-color:#c2410c;background:#fff7ed;color:#9a3412}.lsb-t.att.on i{background:#ea580c}
+/* en pantalla completa (FULL): barra más fina para no robar pista */
+#lv-panel.zen-mode-panel #lv-sysbar{padding:0 !important;margin:6px 0 4px !important}
+#lv-panel.zen-mode-panel .lsb{padding:4px 8px;border-radius:10px;gap:6px 10px}
+#lv-panel.zen-mode-panel .lsb-p,#lv-panel.zen-mode-panel .lsb-e,#lv-panel.zen-mode-panel .lsb-t{height:34px}
+#lv-panel.zen-mode-panel .lsb-e{width:34px}
+#lv-panel.zen-mode-panel .lsb-p,#lv-panel.zen-mode-panel .lsb-t{touch-action:manipulation !important}
+
+/* ZONA junto al marcador: izquierda = el visitante defiende en zona · derecha = el local (el marcador está a escala 0,65) */
+.marcador-integrado .lv-zbtn{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:118px;height:92px;border-radius:16px;border:3px solid rgba(255,255,255,.35);background:rgba(15,23,42,.85);color:#cbd5e1;cursor:pointer;touch-action:manipulation !important;box-shadow:0 8px 20px rgba(0,0,0,.45);font-family:inherit}
+.marcador-integrado .lv-zbtn.l{right:calc(100% + 14px)}.marcador-integrado .lv-zbtn.r{left:calc(100% + 14px)}
+.marcador-integrado .lv-zbtn b{font-size:22px;font-weight:900;letter-spacing:1px;color:#fff}
+.marcador-integrado .lv-zbtn small{font-size:11px;font-weight:800;max-width:108px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+.marcador-integrado .lv-zbtn i{font-style:normal;font-size:12px;font-weight:900;padding:1px 8px;border-radius:999px;background:#334155;color:#94a3b8}
+.marcador-integrado .lv-zbtn.on{background:#0f766e;border-color:#5eead4;color:#ccfbf1}.marcador-integrado .lv-zbtn.on i{background:#5eead4;color:#134e4a}
+
 ﻿/* ═══════════ Quiniela del staff ═══════════ */
 body.player-mode #ba-quinibtn, body.player-mode .q-hcard { display: none !important }
 body.player-mode.ba-pq #t-compare { display: none !important }
@@ -5036,6 +5064,8 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
       <div class="tac-board" id="tac-board">
          <!-- 🔴 MARCADOR INTEGRADO EN LA PISTA 🔴 -->
          <div class="marcador-integrado">
+            <button type="button" id="lv-zone-away" class="lv-zbtn l" onclick="lvZone('away')" title="El visitante defiende en zona"><b>ZONA</b></button>
+            <button type="button" id="lv-zone-home" class="lv-zbtn r" onclick="lvZone('home')" title="El local defiende en zona"><b>ZONA</b></button>
             <div class="team-block home-block">
             <div id="lv-hl" class="team-name">LOCAL</div>
             <!-- 🚀 Contenedor de Tiempos Muertos -->
@@ -5129,6 +5159,9 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
         <button class="tac-sb-btn" title="Mapas Indiv. Partido" onclick="tacSideModal('indiv_match', 'away')">⛹️<br><small style="font-size:7px;font-weight:800;color:#ef4444">HOY</small></button>
       </div>
     </div>
+
+    <!-- 📋 Jugada y zona: debajo de la pista (arriba del todo, en el iPad a pantalla completa, el toque se confunde con el gesto de salir) -->
+    <div id="lv-sysbar"></div>
 
     <!-- BANQUILLOS INFERIORES -->
     <div style="display:flex; gap:12px; align-items:stretch">
@@ -5600,6 +5633,7 @@ html.ac-ffs-on,html.ac-ffs-on body{overflow:hidden}
     <div class="ct">⏱️ Por cuartos</div>
     <div id="cl-qtr"></div>
   </div>
+  <div class="card" id="cl-sysz" style="margin-bottom:10px"></div>
   <div class="g2" style="gap:10px;margin-bottom:10px">
     <div class="card"><div class="ct">🖐 Mejores Combinaciones (+/-)</div><div id="cl-lineups"></div></div>
     <div class="card"><div class="ct">⏱️ Combinaciones más usadas</div><div id="cl-used"></div></div>
@@ -6107,9 +6141,12 @@ window._calcTimeouts = function(team) {
         max = 3; // Segunda parte
         used = lv.events.filter(e => e.team === team && e.type === 'timeout' && (e.period === 3 || e.period === 4)).length;
         
-        // Regla de los últimos 2 minutos del Q4: Si no has gastado ninguno, el máximo baja a 2.
+        // FIBA: en los 2 últimos minutos del 4º cuarto, como mucho 2 tiempos muertos (aunque quedaran 3).
+        // Quedan = lo menor de: los de la 2ª parte sin gastar, o 2 menos los ya pedidos en esos 2 minutos.
         if (period === 4 && lv.timer && lv.timer.seconds <= 120) {
-            if (used === 0) max = 2; 
+            const last2 = lv.events.filter(e => e.team === team && e.type === 'timeout' && e.period === 4 && (e.min || 0) >= 38 - 1e-6).length;
+            const rem = Math.max(0, Math.min(3 - used, 2 - last2));
+            return { max: Math.min(2, rem + last2), used: last2, rem };
         }
     } else {
         max = 1; // 1 por prórroga (no se acumulan)
@@ -6914,6 +6951,8 @@ function pickAssist(i){
 function askPlayContext(team, scorer, assistName) {
   const inner = document.getElementById('shot-popup-inner');
   window._playCtx = { team, scorer, assistName };
+  // con una jugada marcada arriba, la canasta es de «Sistema» (y de esa jugada): no hace falta preguntar
+  { const ls = [...lv.events].reverse().find(e => ['pts2','pts3'].includes(e.type)); if (ls && ls.sys && ls.team === team) { window._playCtx._sysAsked = true; pickPlayContext('Sistema'); return; } }
   
   inner.innerHTML = `
     <div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:2px">📋 Origen de los puntos</div>
@@ -6931,6 +6970,7 @@ function askPlayContext(team, scorer, assistName) {
 
 function pickPlayContext(contextType) {
   const c = window._playCtx;
+  if (contextType === 'Sistema' && c && !c._sysAsked && c.team === _lvOurSide()) { const ls = [...lv.events].reverse().find(e => ['pts2','pts3','tl_in'].includes(e.type)); if (ls && !ls.sys) { c._sysAsked = true; _lvSysAsk(ls, () => pickPlayContext('Sistema')); return; } }
   closeSP(null);
   if (!c) return;
 
@@ -8014,6 +8054,7 @@ function startLive(){
   lv.score={home:0,away:0};lv.period=1;lv.curMin=0;
   lv.actTeam='home';lv.selPl=null;lv.log=[];lv.events=[];lv.shots=[];lv.subEvents=[];
   lv.onCourt={home:new Set(),away:new Set()};
+  lv.sys=null;lv.sysP=null;lv.sysPc=0;lv.sysFT=null;lv.zone={home:false,away:false};   // 📋 jugada y zona
   
   window._tacBoard.slots = { home: [null,null,null,null,null], away: [null,null,null,null,null] };
 
@@ -9084,6 +9125,7 @@ function renderLiveStatsModal() {
         <div style="flex: 1; min-width:320px; display:flex; flex-direction:column; gap:16px; height:100%; overflow-y:auto; padding-right:8px; padding-bottom:20px;">
           ${htmlPeriods}
           <div class="card" style="margin:0; flex-shrink:0"><div class="ct">📋 Origen de los Puntos</div>${htmlOrigin}</div>
+          ${_szLiveCard()}
           <div class="card" style="margin:0; flex:1; display:flex; flex-direction:column;"><div class="ct">⏱️ Cronología</div><div style="overflow-y:auto; flex:1;">${cronoHtml}</div></div>
         </div>
       </div>
@@ -9247,7 +9289,126 @@ function lvAndOne(){
   inner.innerHTML=`<div style="font-weight:900;font-size:14px;text-align:center;margin-bottom:10px;color:var(--nv)">+1 · ¿qué equipo anota?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="window._a1Team('home')" style="padding:14px;border-radius:10px;border:2px solid #3b82f6;background:#eff6ff;font-weight:900;cursor:pointer">${_esc(tName('home'))}</button><button onclick="window._a1Team('away')" style="padding:14px;border-radius:10px;border:2px solid #ef4444;background:#fef2f2;font-weight:900;cursor:pointer">${_esc(tName('away'))}</button></div>${cancel}`; show();
 }
 // Cada jugada anotada en directo guarda también la hora real del toque (ts): sirve para encajarla después en el vídeo sin depender del reloj del partido
-function _lvEv(e){ if(e && e.ts==null) e.ts=Date.now(); return lv.events.push(e); }
+function _lvEv(e){ if(e && e.ts==null) e.ts=Date.now(); try { _lvStamp(e); } catch (x) { } return lv.events.push(e); }
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 JUGADAS (SISTEMAS) Y ZONA EN EL DIRECTO
+// · Jugada: se toca al cantarla; lo que apuntamos de NUESTRO ataque la lleva (e.sys, e.sysP = nº de posesión). Se apaga sola cuando
+//   acaba la posesión: nuestra canasta (los libres de un 2+1 aún cuentan), nuestra pérdida, o rebote defensivo / robo / cualquier
+//   jugada del rival que no sea falta, tapón o tiempo muerto.
+// · Zona: un botón por equipo junto al marcador = ESE equipo defiende en zona. Cada jugada guarda los dos (e.zH local, e.zA visitante);
+//   la zona del local cuenta para el ataque del visitante (y la defensa del local), no para el ataque del local.
+// ═══════════════════════════════════════════════════════════════════════════
+const _SYS_DEF = ['1', '3', 'Bucle', 'Cruz', 'Diente'];
+const _SYS_EV = new Set(['pts2', 'pts3', 'miss2', 'miss3', 'tl_in', 'tl_out', 'to', 'ro', 'ast']);
+const _SYS_KEEP = new Set(['foul', 'tech', 'tech_real', 'tech_tac', 'anti', 'blk', 'timeout']);   // jugadas del rival que NO acaban nuestra posesión
+function _sysList() { try { const l = JSON.parse(localStorage.getItem('ba_sistemas') || 'null'); if (Array.isArray(l) && l.length) return l.map(String); } catch (e) { } return _SYS_DEF.slice(); }
+function _lvOurSide() { return isOurTeam(lv.an) && !isOurTeam(lv.hn) ? 'away' : 'home'; }
+function _lvZoneObj() { const z = lv.zone; if (!z || z.home == null) lv.zone = { home: false, away: false }; return lv.zone; }
+function _lvStamp(e) {
+  if (!e) return;
+  if (e.type === 'period_start') { lv.sys = null; lv.sysFT = null; return; }
+  if (!e.team) return;
+  const z = _lvZoneObj(); e.zH = z.home ? 1 : 0; e.zA = z.away ? 1 : 0;
+  const our = _lvOurSide(), t = e.type;
+  if (e.team === our) {
+    const ft = t === 'tl_in' || t === 'tl_out' || t === 'ast';
+    if (lv.sys && _SYS_EV.has(t)) { e.sys = lv.sys; e.sysP = lv.sysP; }
+    else if (!lv.sys && lv.sysFT && ft) { e.sys = lv.sysFT.sys; e.sysP = lv.sysFT.sysP; }   // libres del 2+1 y la asistencia de la canasta
+    if (!ft && t !== 'foul') lv.sysFT = null;
+    if (lv.sys && (t === 'pts2' || t === 'pts3')) { lv.sysFT = { sys: lv.sys, sysP: lv.sysP }; lv.sys = null; }   // canasta: fin de la posesión
+    else if (t === 'to') { lv.sys = null; lv.sysFT = null; }                                                       // pérdida
+  } else if (!_SYS_KEEP.has(t)) { lv.sys = null; lv.sysFT = null; }                                                // rebote def., robo, tiro… del rival
+}
+function _lvSysPaint() {
+  const el = document.getElementById('lv-sysbar'); if (!el) return;
+  const L = _sysList(), z = _lvZoneObj(), ours = _lvOurSide() === 'home' ? lv.hn : lv.an;
+  el.innerHTML = `<div class="lsb"><div class="lsb-sys"><span class="lsb-l" title="Jugada que cantamos en ataque (${_esc(ours || 'nosotros')}). Se apaga sola al acabar la posesión.">Jugada</span>${L.map((n, i) => `<button type="button" class="lsb-p${lv.sys === n ? ' on' : ''}" onclick="lvSys(${i})">${_esc(n)}</button>`).join('')}<button type="button" class="lsb-e" onclick="lvSysEdit()" title="Cambiar la lista de jugadas">✏️</button></div></div>`;
+  // botones de zona del marcador: el de la derecha = el LOCAL defiende en zona; el de la izquierda = el VISITANTE
+  [['home', 'lv-zone-home', lv.hn], ['away', 'lv-zone-away', lv.an]].forEach(([k, id, nm]) => { const bt = document.getElementById(id); if (!bt) return;
+    bt.classList.toggle('on', !!z[k]); bt.innerHTML = `<b>ZONA</b><small>${_esc(String(nm || (k === 'home' ? 'Local' : 'Visitante')).slice(0, 18))}</small><i>${z[k] ? 'ON' : 'OFF'}</i>`;
+    bt.title = (z[k] ? 'Ahora: ' : 'Tocar si ') + (nm || '') + ' defiende en zona'; });
+}
+window.lvSys = i => { const n = _sysList()[i]; if (n == null) return; if (lv.sys === n) lv.sys = null; else { lv.sys = n; lv.sysPc = (lv.sysPc || 0) + 1; lv.sysP = lv.sysPc; lv.sysFT = null; } _lvSysPaint(); if (typeof _lvPersist === 'function') _lvPersist(); };
+window.lvSysEdit = () => { const v = prompt('Jugadas de ataque, separadas por comas:', _sysList().join(', ')); if (v == null) return; const l = v.split(',').map(s => s.trim()).filter(Boolean).slice(0, 12); try { localStorage.setItem('ba_sistemas', JSON.stringify(l.length ? l : _SYS_DEF)); } catch (e) { } if (lv.sys && !l.includes(lv.sys)) lv.sys = null; _lvSysPaint(); };
+window.lvZone = k => { const z = _lvZoneObj(); z[k] = !z[k]; const nm = (k === 'home' ? lv.hn : lv.an) || (k === 'home' ? 'Local' : 'Visitante');
+  const msg = z[k] ? `🛡️ ${nm} defiende en zona` : `🛡️ ${nm} vuelve a individual`;
+  lv.log.unshift({ team: k, msg, period: lv.period, min: lv.curMin });
+  if (typeof toast === 'function') toast(msg); _lvSysPaint(); if (typeof rLvLog === 'function') rLvLog(); if (typeof _lvPersist === 'function') _lvPersist(); };
+// sin jugada marcada y «⚙️ Sistema» al anotar: preguntar cuál (o «no sé»)
+function _lvSysAsk(ev, done) {
+  const inner = document.getElementById('shot-popup-inner'); if (!inner) { done(); return; }
+  window._sysAskPick = i => { const n = _sysList()[i]; if (n != null) { ev.sys = n; lv.sysPc = (lv.sysPc || 0) + 1; ev.sysP = lv.sysPc; } window._sysAskPick = null; done(); };
+  inner.innerHTML = `<div style="font-weight:800;font-size:13px;text-align:center;margin-bottom:2px">⚙️ ¿Qué jugada era?</div><div style="font-size:10px;color:var(--t3);text-align:center;margin-bottom:8px">No había ninguna marcada arriba</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${_sysList().map((n, i) => `<button onclick="_sysAskPick(${i})" style="background:#f5f3ff;border:2px solid #7c3aed;color:#4c1d95;border-radius:10px;padding:13px 8px;font-weight:800;font-size:13px;cursor:pointer">${_esc(n)}</button>`).join('')}</div>
+    <button onclick="_sysAskPick(-1)" style="width:100%;margin-top:8px;background:#f1f5f9;border:none;color:var(--t2);border-radius:8px;padding:9px;font-size:11px;font-weight:700;cursor:pointer">No sé</button>`;
+}
+
+// ── Números: por jugada (posesiones marcadas) y con/sin zona (posesiones estimadas = tiros + 0,44·libres + pérdidas − rebotes de ataque) ──
+const _szPts = { pts2: 2, pts3: 3, tl_in: 1 };
+const _SZ_OFF = /^(pts|miss)[23]$|^tl_(in|out)$|^to$|^ro$/;   // jugadas del equipo que ataca
+function _szData(list) {
+  const S1 = {}, Z = { att: [_szZ(), _szZ()], def: [_szZ(), _szZ()] }; let gZ = 0, gS = 0;
+  list.forEach(({ events, side }, gi) => {
+    const evs = events || [], opp = side === 'home' ? 'away' : 'home';
+    if (evs.some(e => e.sys)) gS++;
+    const tracked = evs.some(e => e.zH != null); if (tracked) gZ++;
+    const P = {};
+    evs.forEach(e => {
+      if (e.team === side && e.sys) {
+        const k = gi + '|' + (e.sysP != null ? e.sysP : 'x' + e.ts), p = P[k] || (P[k] = { sys: e.sys, pts: 0, fga: 0, fgm: 0, t3a: 0, t3m: 0, fta: 0, to: 0, who: {} });
+        p.pts += _szPts[e.type] || 0;
+        if (/^(pts|miss)[23]$/.test(e.type)) { p.fga++; if (e.type[0] === 'p') p.fgm++; if (e.type.endsWith('3')) { p.t3a++; if (e.type[0] === 'p') p.t3m++; } if (e.player) p.who[e.player] = (p.who[e.player] || 0) + 1; }
+        if (e.type === 'tl_in' || e.type === 'tl_out') p.fta++;
+        if (e.type === 'to') { p.to++; if (e.player) p.who[e.player] = (p.who[e.player] || 0) + 1; }
+      }
+      // la zona que cuenta es la del equipo que DEFIENDE: en el ataque de A, la zona de B
+      if (!tracked || e.zH == null || !_SZ_OFF.test(e.type)) return;
+      const zf = (e.team === 'home' ? e.zA : e.zH) ? 1 : 0;
+      if (e.team === side) _szAdd(Z.att[zf], e); else if (e.team === opp) _szAdd(Z.def[zf], e);
+    });
+    Object.values(P).forEach(p => { const s = S1[p.sys] || (S1[p.sys] = { sys: p.sys, n: 0, pts: 0, fga: 0, fgm: 0, t3a: 0, t3m: 0, fta: 0, to: 0, scored: 0, who: {} });
+      s.n++; s.pts += p.pts; s.fga += p.fga; s.fgm += p.fgm; s.t3a += p.t3a; s.t3m += p.t3m; s.fta += p.fta; s.to += p.to; if (p.pts > 0) s.scored++; Object.entries(p.who).forEach(([w, c]) => { s.who[w] = (s.who[w] || 0) + c; }); });
+  });
+  return { sys: Object.values(S1).sort((a, b) => b.n - a.n), Z, gZ, gS };
+}
+function _szZ() { return { pts: 0, fga: 0, fgm: 0, t3a: 0, t3m: 0, fta: 0, to: 0, ro: 0, ev: 0 }; }
+function _szAdd(z, e) { z.ev++; z.pts += _szPts[e.type] || 0;
+  if (/^(pts|miss)[23]$/.test(e.type)) { z.fga++; if (e.type[0] === 'p') z.fgm++; if (e.type.endsWith('3')) { z.t3a++; if (e.type[0] === 'p') z.t3m++; } }
+  if (e.type === 'tl_in' || e.type === 'tl_out') z.fta++; if (e.type === 'to') z.to++; if (e.type === 'ro') z.ro++; }
+const _szPoss = z => Math.max(0, z.fga + 0.44 * z.fta + z.to - z.ro);
+function _szHTML(D, o) {
+  o = o || {}; const f1 = v => v.toFixed(2).replace('.', ','), pc = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  let sysH;
+  if (!D.sys.length) sysH = `<div class="empty" style="font-size:11px">Todavía no hay jugadas marcadas. Toca la jugada arriba de la pista cuando se cante.</div>`;
+  else {
+    const ok = D.sys.filter(s => s.n >= 3), best = ok.length > 1 ? Math.max(...ok.map(s => s.pts / s.n)) : null, worst = ok.length > 1 ? Math.min(...ok.map(s => s.pts / s.n)) : null;
+    const bS = ok.find(s => s.pts / s.n === best), wS = ok.find(s => s.pts / s.n === worst);
+    const read = bS && wS && bS !== wS ? `<p class="sz-read">✅ Mejor: <b>${_esc(bS.sys)}</b> (${f1(bS.pts / bS.n)} pts/pos. en ${bS.n}) &nbsp;·&nbsp; ⚠️ Peor: <b>${_esc(wS.sys)}</b> (${f1(wS.pts / wS.n)} en ${wS.n})</p>` : '';
+    const C = !!o.compact;
+    sysH = read + `<div class="clp-w" style="overflow-x:auto"><table class="clp sz-t"><thead><tr><th class="clp-l">Jugada</th><th title="Posesiones en que se jugó">Veces</th><th>Pts</th><th title="Puntos por posesión">Pts/pos.</th>${C ? '' : '<th title="Posesiones que acabaron con puntos">Anotan</th>'}<th title="Acierto en tiros de campo">TC</th><th>Pérd.</th>${C ? '' : '<th class="clp-l" title="Quién la acaba (tiro o pérdida)">La acaba</th>'}</tr></thead><tbody>${D.sys.map(s => {
+      const ppp = s.pts / s.n, cls = s.n >= 3 && ppp === best ? ' sz-g' : s.n >= 3 && ppp === worst ? ' sz-b' : '';
+      const top = Object.entries(s.who).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([w, c]) => `${_esc(_clShort(w))} <small>${c}</small>`).join(' · ');
+      return `<tr><td class="clp-n"><span class="sz-sys">${_esc(s.sys)}</span>${C && top ? `<small class="sz-wc">${top}</small>` : ''}</td><td>${s.n}</td><td>${s.pts}</td><td class="${cls.trim()}"><b>${f1(ppp)}</b></td>${C ? '' : `<td>${pc(s.scored, s.n)}</td>`}<td>${pc(s.fgm, s.fga)}<small>${s.fgm}/${s.fga}</small></td><td>${s.to || '<span class="clp-z">0</span>'}</td>${C ? '' : `<td class="sz-who">${top || '—'}</td>`}</tr>`; }).join('')}</tbody></table></div>`;
+  }
+  const zr = (lab, z, rival) => { const p = _szPoss(z); return `<tr><td class="clp-n">${lab}</td><td>${Math.round(p)}</td><td><b>${p >= 1 ? f1(z.pts / p) : '—'}</b></td><td>${pc(z.t3m, z.t3a)}</td><td>${p >= 1 ? Math.round(z.to / p * 100) + '%' : '—'}</td></tr>`; };
+  const zt = (title, a, b, la, lb, note) => { const pa = _szPoss(a), pb = _szPoss(b), ok = pa >= 1 && pb >= 1, d = ok ? b.pts / pb - a.pts / pa : 0;
+    return `<div class="sz-zc"><h6>${title}</h6><table class="clp sz-t"><thead><tr><th class="clp-l"></th><th title="Posesiones (estimadas)">Pos.</th><th title="Puntos por posesión">Pts/pos.</th><th>% T3</th><th title="Pérdidas por posesión">Pérd.</th></tr></thead><tbody>${zr(la, a)}${zr(lb, b)}</tbody></table>${ok && pb >= 5 ? `<p class="sz-note">${note(d)}</p>` : '<p class="sz-note">Aún hay pocas posesiones en zona para sacar conclusiones.</p>'}</div>`; };
+  const zH = !D.gZ ? `<div class="empty" style="font-size:11px">Sin datos de zona: se apuntan con los botones ZONA de al lado del marcador en el directo.</div>`
+    : `<div class="sz-zg">${zt('⚔️ Nuestro ataque', D.Z.att[0], D.Z.att[1], 'Contra individual', 'Contra zona', d => Math.abs(d) < 0.05 ? 'Atacamos igual contra zona que contra individual.' : d > 0 ? `Contra zona metemos <b>${f1(d)}</b> puntos más por posesión.` : `Contra zona metemos <b>${f1(-d)}</b> puntos menos por posesión: nos cuesta.`)}
+      ${zt('🛡️ Nuestra defensa', D.Z.def[0], D.Z.def[1], 'En individual', 'En zona', d => Math.abs(d) < 0.05 ? 'Nos meten lo mismo en zona que en individual.' : d < 0 ? `En zona nos meten <b>${f1(-d)}</b> puntos menos por posesión: funciona.` : `En zona nos meten <b>${f1(d)}</b> puntos más por posesión.`)}</div>`;
+  return `<style>.sz-t td small{display:block;font-size:9.5px;color:var(--t3)}.sz-t td.sz-g{background:#dcfce7;color:#15803d}.sz-t td.sz-b{background:#fee2e2;color:#b91c1c}.sz-sys{display:inline-block;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#5b21b6;font-weight:900}
+    .sz-t td.sz-who{text-align:left!important;font-size:11.5px;white-space:nowrap}.sz-t td.sz-who small{display:inline;color:var(--t3);font-size:10px}.sz-zg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.sz-zc h6{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--nv);margin:0 0 6px}.sz-zc table{border:1px solid var(--bd);border-radius:10px}.sz-note{font-size:11.5px;color:var(--nv);margin:6px 0 0}.sz-read{font-size:12px;color:var(--nv);margin:0 0 8px;line-height:1.5}.sz-t td small.sz-wc{font-size:10px;font-weight:600;color:var(--t3);margin-top:2px}.sz-t td small.sz-wc small{display:inline}.sz-h{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--nv);margin:12px 0 6px}</style>
+    ${o.intro ? `<p style="font-size:11.5px;color:var(--t2);margin:0 0 8px">${o.intro}</p>` : ''}<div class="sz-h">Jugadas</div>${sysH}<div class="sz-h">Zona</div>${zH}`;
+}
+function _szLiveCard() { try { return `<div class="card" style="margin:0; flex-shrink:0"><div class="ct">📋 Jugadas y zona</div>${_szHTML(_szData([{ events: lv.events, side: _lvOurSide() }]), { compact: true })}</div>`; } catch (e) { console.error('Jugadas y zona:', e); return ''; } }
+function renderClubSysZone(ours) {
+  const el = document.getElementById('cl-sysz'); if (!el) return;
+  const list = (ours || []).map(o => ({ events: o.m.events || [], side: o.side }));
+  const D = _szData(list);
+  el.innerHTML = `<div class="ct">📋 Jugadas y zona</div>` + _szHTML(D, { intro: `Sale de los partidos apuntados en directo con la barra de jugadas y zona (${D.gS || D.gZ ? Math.max(D.gS, D.gZ) + ' partido' + (Math.max(D.gS, D.gZ) !== 1 ? 's' : '') : 'ninguno todavía'}).` });
+}
+window.__lvRefresh = () => { rLvAll(); };
+
 
 function _lvEventLabel(ev){
   const n=ev.player?(ev.player||'').split(' ')[0]:(ev.teamOnly?'Equipo':'');
@@ -9516,6 +9677,7 @@ function lvAct(type){
 
 function rLvAll(){
   window.__lvTick = performance.now();
+  try { _lvSysPaint(); } catch (e) { }
   if (window.__bqTick) window.__bqTick();
   const sh = document.getElementById('lv-score-h'); if(sh) sh.textContent = lv.score.home;
   const sa = document.getElementById('lv-score-a'); if(sa) sa.textContent = lv.score.away;
@@ -14113,9 +14275,12 @@ function generateOriginDualCard(evFor, evAgainst, titleFor, titleAgainst) {
         return html + `<div style="font-size:11px; color:var(--t3); padding:10px 0;">No hay datos de origen registrados en directo.</div></div>`;
     }
 
+    const sysMap = {}; events.forEach(e => { if (['pts2','pts3'].includes(e.type) && e.playContext === 'Sistema' && e.sys) sysMap[e.sys] = (sysMap[e.sys] || 0) + (e.type === 'pts3' ? 3 : 2); });
     cats.forEach(c => {
       const v = map[c];
       const pct = tot ? Math.round((v/tot)*100) : 0;
+      const subs = c === 'Sistema' ? Object.entries(sysMap).sort((a, b) => b[1] - a[1]) : [];
+      if (subs.length) { const rest = v - subs.reduce((t, x) => t + x[1], 0); if (rest > 0) subs.push(['sin decir', rest]); }
       html += `
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:12px;">
           <span style="width:90px; font-weight:600; color:var(--tx)">${c}</span>
@@ -14124,7 +14289,13 @@ function generateOriginDualCard(evFor, evAgainst, titleFor, titleAgainst) {
             <div style="height:100%; width:${pct}%; background:${cColor}; border-radius:4px"></div>
           </div>
           <span style="width:35px; text-align:right; color:var(--t3); font-size:11px; font-weight:700">${pct}%</span>
-        </div>`;
+        </div>` + subs.map(([k, sv]) => { const sp = v ? Math.round(sv / v * 100) : 0; return `
+        <div style="display:flex; align-items:center; gap:10px; margin:-3px 0 7px; font-size:11px;">
+          <span style="width:90px; padding-left:12px; font-weight:800; color:#5b21b6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">↳ ${_esc(k)}</span>
+          <b style="width:30px; text-align:right; color:#5b21b6">${sv}p</b>
+          <div style="flex:1; height:5px; background:rgba(0,0,0,0.05); border-radius:3px; overflow:hidden;"><div style="height:100%; width:${sp}%; background:#7c3aed; border-radius:3px"></div></div>
+          <span style="width:35px; text-align:right; color:var(--t3); font-size:10px; font-weight:700" title="De los puntos de sistema">${sp}%</span>
+        </div>`; }).join('');
     });
     return html + `</div>`;
   };
@@ -15057,7 +15228,7 @@ function renderClub(){
   const kEl = document.getElementById('cl-kpis');
   if(!G){
     if(kEl) kEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Sin partidos del Claret todavía. Importa cronologías o juega partidos en Directo (el nombre del equipo debe contener "Claret").</div>';
-    ['cl-players','cl-lineups','cl-used','cl-subs','cl-impact','cl-links','cl-astpairs','cl-wowy','cl-qtr'].forEach(id => {
+    ['cl-players','cl-lineups','cl-used','cl-subs','cl-impact','cl-links','cl-astpairs','cl-wowy','cl-qtr','cl-sysz'].forEach(id => {
         const e = document.getElementById(id); 
         if(e) e.innerHTML = ''; 
     });
@@ -15176,6 +15347,7 @@ function renderClub(){
   if(typeof renderClubAstPairs === 'function') renderClubAstPairs();
   if(typeof renderClubOrigins === 'function') renderClubOrigins(ours);
   try { renderClubQuarters(ours); } catch (e) { console.error('Por cuartos:', e); }
+  try { renderClubSysZone(ours); } catch (e) { console.error('Jugadas y zona:', e); }
 }
 
 // ── Caja inicial: récord y medias, cada una con su evolución partido a partido (línea discontinua = la media) ──

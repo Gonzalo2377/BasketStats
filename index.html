@@ -31544,12 +31544,17 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
     try {
       const [u, r] = await Promise.all([c.from('metadata').select('id,data').like('id', 'quiniela_u_%'), c.from('metadata').select('id,data').eq('id', 'quiniela_res').maybeSingle()]);
       if (u.error) throw u.error;
-      // la lista de la nube manda: si un usuario se borra en Supabase, desaparece también de los móviles
-      const fresh = {};
-      (u.data || []).forEach(row => { const x = row.data; if (!x || !x.uid) return; const old = D.users[x.uid];
+      // 🛟 nube + móvil: nunca se borra lo que hay en el móvil (base de datos nueva desde la v114). Lo que falta en la nube se vuelve a subir.
+      const fresh = {}, inCloud = new Set();
+      (u.data || []).forEach(row => { const x = row.data; if (!x || !x.uid) return; inCloud.add(x.uid); const old = D.users[x.uid];
         fresh[x.uid] = x.uid === UID && dirty && old ? old : (old && (old.ts || 0) > (x.ts || 0) ? old : x); });
+      const missing = Object.values(D.users || {}).filter(x => x && x.uid && !inCloud.has(x.uid));
+      missing.forEach(x => { fresh[x.uid] = x; });
       D.users = fresh;
-      if (r.data && r.data.data && r.data.data.res) mergeRes(r.data.data.res);
+      const hadRes = !!(r.data && r.data.data && r.data.data.res);
+      if (hadRes) mergeRes(r.data.data.res);
+      if (missing.length) c.from('metadata').upsert(missing.map(x => ({ id: 'quiniela_u_' + x.uid, data: x }))).then(({ error }) => { if (error) console.warn('Quiniela: no se pudieron recuperar usuarios', error); else console.info('Quiniela: recuperados en la nube', missing.length); });
+      if (!hadRes && Object.keys(D.res || {}).length) c.from('metadata').upsert({ id: 'quiniela_res', data: { res: D.res, ts: Date.now() } }).then(() => { });
       loaded = true; keep(); return true;
     } catch (e) { console.warn('Quiniela: no se pudo leer', e); return false; }
   }
@@ -33468,7 +33473,9 @@ window.__baCrests = {"AEC": "data:image/webp;base64,UklGRhoVAABXRUJQVlA4IA4VAABw
   async function pullList() {
     const c = sb(); if (!c) return false;
     try { const r = await c.from('metadata').select('data').eq('id', 'scvid_list').maybeSingle(); if (r.error) throw r.error;
-      const items = (r.data && r.data.data && r.data.data.items) || [];
+      // 🛟 si la nube no tiene la lista (base de datos nueva) se queda la del móvil y se vuelve a subir
+      if (!(r.data && r.data.data && Array.isArray(r.data.data.items))) { if (LIST.length) c.from('metadata').upsert({ id: 'scvid_list', data: { items: LIST, ts: Date.now() } }).then(() => { }); return false; }
+      const items = r.data.data.items;
       const ch = JSON.stringify(items) !== JSON.stringify(LIST); LIST = items; keepList(); return ch;
     } catch (e) { console.warn('Vídeo scouting: no se pudo leer la lista', e); return false; }
   }

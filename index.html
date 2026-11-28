@@ -6198,6 +6198,8 @@ window.askTimeout = function() {
 
 window._registrarTimeout = function(side, teamName) {
     if (!lv.events) return;
+    if (_lvDup('timeout', side, '', 3000)) return;   // doble toque
+    try { lv.curMin = _lvNowMin(); } catch (e) { }   // minuto del reloj (la regla de los 2 últimos minutos depende de él)
     _lvEv({
         id: Date.now(), period: lv.period, min: lv.curMin || 0,
         team: side, type: 'timeout',
@@ -7956,6 +7958,7 @@ function _lvNowMin(){
 // así al deshacer/borrar la acción también desaparece el tiro del mapa.
 function _lvRecordShot(x,y,made,type){
   const team=lv.actTeam, pl=lv.selPl, s=lv.st[team]&&lv.st[team][pl]; if(!pl||!s) return;
+  if(_lvDup(made?(type==='T3'?'pts3':'pts2'):(type==='T3'?'miss3':'miss2'), team, pl, 900)) return;   // doble toque
   const min=_lvNowMin(); lv.curMin=min;
   const sid='s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   lv.shots.push({x,y,made,player:pl,team,period:lv.period,min,type,sid});
@@ -9479,8 +9482,19 @@ function lvDeleteEvent(i){
   toast('Acción borrada');
 }
 
+// ¿Es la misma jugada que la última, apuntada hace un momento? (doble toque en el iPad)
+function _lvDup(type, team, player, ms){
+  const e = lv.events && lv.events[lv.events.length - 1];
+  if (!e || e.type !== type || e.team !== team || (e.player || '') !== (player || '') || !e.ts) return false;
+  if (Date.now() - e.ts > ms) return false;
+  if (typeof toast === 'function') toast('Toque doble: no se apunta dos veces', 'err');
+  return true;
+}
 function lvUndo(){
   if(!lv.events.length)return;
+  const _u = lv.events[lv.events.length - 1];
+  // si deshaces nuestra canasta (o pérdida) que había apagado la jugada, la jugada vuelve a estar activa
+  if (_u && _u.sys && ['pts2','pts3','to'].includes(_u.type)) { lv.sys = _u.sys; lv.sysP = _u.sysP; lv.sysFT = null; }
   lv.events.pop();
   _lvReplay();rLvAll();svL();
 }
@@ -9636,6 +9650,7 @@ function toggleLvStats(){}
 function lvAct(type){
   const p = lv.selPl, team = lv.actTeam;
   if(!p){ if(typeof toast==='function') toast('¡Selecciona un jugador!','err'); return; }
+  if(_lvDup(type, team, p, 700)) return;   // doble toque: la misma acción del mismo jugador en menos de 0,7 s
   
   const s = lv.st[team][p]; if(!s) return;
   const minEl = document.getElementById('lv-min');
@@ -11994,6 +12009,7 @@ function subTapPlayer(name,team){
     lv.subEvents.push({type:'in',player:name,team,min:curMin,period:lv.period});
   }
   rLvLog();renderSubModal();
+  if(typeof _lvPersist==='function') _lvPersist();   // el quinteto queda guardado al momento (antes esperaba a la siguiente jugada)
 }
 
 let _histOpen=false;
